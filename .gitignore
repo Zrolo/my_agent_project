@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+venv/
+.venv/
+
+# 不需要同步的文件
+CC-Switch-v3.11.1-Windows-Portable/
+~/
+*.pptx
