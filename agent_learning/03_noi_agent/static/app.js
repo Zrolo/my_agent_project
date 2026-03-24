@@ -120,7 +120,7 @@ function showMainInterface() {
     }
 }
 
-// 学生查询配额
+// 学生查询配额（安全渲染）
 async function studentCheckQuota() {
     const problemId = document.getElementById('student-problem-id').value.trim() || 'P1001';
     
@@ -129,20 +129,28 @@ async function studentCheckQuota() {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         
+        const quotaEl = document.getElementById('quota-info');
+        
         if (!res.ok) {
             const err = await res.json();
-            document.getElementById('quota-info').innerHTML = `<span class="error">${err.detail}</span>`;
+            quotaEl.innerHTML = '';
+            const span = document.createElement('span');
+            span.className = 'error';
+            span.textContent = err.detail || '查询失败';
+            quotaEl.appendChild(span);
             return;
         }
         
         const data = await res.json();
-        document.getElementById('quota-info').innerHTML = `
-            题目: ${data.problem_id} | 
-            已用: ${data.count}/${data.max} | 
-            剩余: ${data.remaining}
-        `;
+        // 使用 textContent 安全渲染动态数据
+        quotaEl.textContent = `题目: ${data.problem_id} | 已用: ${data.count}/${data.max} | 剩余: ${data.remaining}`;
     } catch (err) {
-        document.getElementById('quota-info').innerHTML = '<span class="error">查询失败</span>';
+        const quotaEl = document.getElementById('quota-info');
+        quotaEl.innerHTML = '';
+        const span = document.createElement('span');
+        span.className = 'error';
+        span.textContent = '查询失败';
+        quotaEl.appendChild(span);
     }
 }
 
@@ -185,13 +193,10 @@ async function studentSendMessage() {
         // 显示回复
         addChatMessage('assistant', data.reply);
         
-        // 更新配额显示
+        // 更新配额显示（安全渲染）
         const q = data.quota;
-        document.getElementById('quota-info').innerHTML = `
-            题目: ${q.problem_id} | 
-            已用: ${q.count}/${q.max} | 
-            剩余: ${q.remaining}
-        `;
+        document.getElementById('quota-info').textContent = 
+            `题目: ${q.problem_id} | 已用: ${q.count}/${q.max} | 剩余: ${q.remaining}`;
     } catch (err) {
         addChatMessage('assistant', '网络错误，请稍后重试');
     }
@@ -221,13 +226,19 @@ function clearChatHistory() {
     document.getElementById('chat-history').innerHTML = '';
 }
 
-// 教师查询配额
+// 教师查询配额（安全渲染）
 async function teacherCheckQuota() {
     const studentId = document.getElementById('query-student-id').value.trim();
     const problemId = document.getElementById('query-problem-id').value.trim() || 'P1001';
     
+    const resultEl = document.getElementById('teacher-quota-result');
+    
     if (!studentId) {
-        document.getElementById('teacher-quota-result').innerHTML = '<span class="error">请输入学生 ID</span>';
+        resultEl.innerHTML = '';
+        const span = document.createElement('span');
+        span.className = 'error';
+        span.textContent = '请输入学生 ID';
+        resultEl.appendChild(span);
         return;
     }
     
@@ -238,29 +249,39 @@ async function teacherCheckQuota() {
         
         if (!res.ok) {
             const err = await res.json();
-            document.getElementById('teacher-quota-result').innerHTML = `<span class="error">${err.detail}</span>`;
+            resultEl.innerHTML = '';
+            const span = document.createElement('span');
+            span.className = 'error';
+            span.textContent = err.detail || '查询失败';
+            resultEl.appendChild(span);
             return;
         }
         
         const data = await res.json();
-        document.getElementById('teacher-quota-result').innerHTML = `
-            学生: ${data.student_id} | 
-            题目: ${data.problem_id} | 
-            已用: ${data.count}/${data.max} | 
-            剩余: ${data.remaining}
-        `;
+        // 使用 textContent 安全渲染动态数据
+        resultEl.textContent = `学生: ${data.student_id} | 题目: ${data.problem_id} | 已用: ${data.count}/${data.max} | 剩余: ${data.remaining}`;
     } catch (err) {
-        document.getElementById('teacher-quota-result').innerHTML = '<span class="error">查询失败</span>';
+        resultEl.innerHTML = '';
+        const span = document.createElement('span');
+        span.className = 'error';
+        span.textContent = '查询失败';
+        resultEl.appendChild(span);
     }
 }
 
-// 教师重置配额
+// 教师重置配额（安全渲染）
 async function teacherResetQuota() {
     const studentId = document.getElementById('reset-student-id').value.trim();
     const problemId = document.getElementById('reset-problem-id').value.trim() || 'P1001';
     
+    const resultEl = document.getElementById('reset-result');
+    
     if (!studentId) {
-        document.getElementById('reset-result').innerHTML = '<span class="error">请输入学生 ID</span>';
+        resultEl.innerHTML = '';
+        const span = document.createElement('span');
+        span.className = 'error';
+        span.textContent = '请输入学生 ID';
+        resultEl.appendChild(span);
         return;
     }
     
@@ -281,19 +302,27 @@ async function teacherResetQuota() {
         
         if (!res.ok) {
             const err = await res.json();
-            document.getElementById('reset-result').innerHTML = `<span class="error">${err.detail}</span>`;
+            resultEl.innerHTML = '';
+            const span = document.createElement('span');
+            span.className = 'error';
+            span.textContent = err.detail || '重置失败';
+            resultEl.appendChild(span);
             return;
         }
         
         const data = await res.json();
-        document.getElementById('reset-result').innerHTML = `
-            <span class="success">
-                已重置！${data.student_id} / ${data.problem_id} | 
-                剩余: ${data.remaining}/${data.max}
-            </span>
-        `;
+        // 使用安全方式渲染
+        resultEl.innerHTML = '';
+        const span = document.createElement('span');
+        span.className = 'success';
+        span.textContent = `已重置！${data.student_id} / ${data.problem_id} | 剩余: ${data.remaining}/${data.max}`;
+        resultEl.appendChild(span);
     } catch (err) {
-        document.getElementById('reset-result').innerHTML = '<span class="error">重置失败</span>';
+        resultEl.innerHTML = '';
+        const span = document.createElement('span');
+        span.className = 'error';
+        span.textContent = '重置失败';
+        resultEl.appendChild(span);
     }
 }
 
