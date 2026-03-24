@@ -22,6 +22,12 @@ client = OpenAI(
 # ============================================================
 # 第一步：定义真实的工具函数
 # ============================================================
+def count_day_to_noi(year:int) -> str:
+    nowday = datetime.now()
+    target_day = datetime(year,10,15)
+    delta = abs(target_day- nowday)
+    return f"还有{delta.days}天"
+
 
 def get_current_time() -> str:
     """返回当前时间"""
@@ -65,6 +71,23 @@ def search_knowledge(query: str) -> str:
 # ============================================================
 
 TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "count_day_to_noi",
+            "description": "距离noi还有多长时间",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "year": {
+                        "type": "integer",
+                        "description": "noi 举行的年份"
+                    }
+                },
+                "required": []
+            }
+        }
+    },
     {
         "type": "function",
         "function": {
@@ -121,6 +144,7 @@ TOOL_REGISTRY = {
     "get_current_time": get_current_time,
     "calculate": calculate,
     "search_knowledge": search_knowledge,
+    "count_day_to_noi": count_day_to_noi,
 }
 
 def execute_tool(tool_name: str, tool_args: dict) -> str:
