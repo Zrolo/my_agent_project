@@ -9,13 +9,10 @@ import os
 import re
 from openai import OpenAI
 
-client = OpenAI(
-    api_key=os.environ.get("MOONSHOT_API_KEY"),
-    base_url="https://api.moonshot.cn/v1"
-)
-
-QUOTA_FILE = "quota.json"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+QUOTA_FILE = os.path.join(BASE_DIR, "quota.json")
 PER_PROBLEM_HINT_LIMIT = 3
+client = None
 
 SYSTEM_PROMPT = """你是一名 NOI 竞赛教练助手，专门辅导 CSP-J/S、NOIP 方向的学生。
 
@@ -57,6 +54,20 @@ SYSTEM_PROMPT = """你是一名 NOI 竞赛教练助手，专门辅导 CSP-J/S、
 标签单独一行，放在回复最后，不加任何解释。
 这条规则优先级最高，无论回复多长，最后一行必须是标签，不能省略。
 """
+
+
+def get_client() -> OpenAI:
+    """延迟初始化客户端，避免导入模块时因环境变量缺失直接崩溃。"""
+    global client
+    if client is None:
+        api_key = os.environ.get("MOONSHOT_API_KEY") or os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            raise RuntimeError("MOONSHOT_API_KEY 未设置")
+        client = OpenAI(
+            api_key=api_key,
+            base_url="https://api.moonshot.cn/v1"
+        )
+    return client
 
 
 def load_quota(student_id: str, problem_id: str) -> dict:
@@ -195,7 +206,7 @@ def chat(messages: list, student_id: str, problem_id: str) -> tuple[str, str]:
 3. 不要在回复中写配额数字
 """
     
-    response = client.chat.completions.create(
+    response = get_client().chat.completions.create(
         model="moonshot-v1-8k",
         messages=[{"role": "system", "content": system_with_quota}] + messages,
         temperature=0.3,

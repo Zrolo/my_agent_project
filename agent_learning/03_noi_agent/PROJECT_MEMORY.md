@@ -232,35 +232,101 @@ def chat(messages, student_id, problem_id) -> tuple[str, str]:
 
 ---
 
-## 10. 审查请求模板
+## 10. 当前状态（实时更新）
+
+### 10.1 代码提交状态 ✅
+- **提交ID**: `27e257b`
+- **提交信息**: `Fix quota: label-based detection + split display/history`
+- **推送状态**: ✅ 已推送到 GitHub
+- **仓库地址**: https://github.com/Zrolo/my_agent_project
+
+### 10.2 当前阻塞问题 🔴
+**API 服务不稳定** - 遇到 503 Service Unavailable 错误
+```
+Unexpected status 503: All providers unavailable
+url: https://moacode.org/v1/responses
+```
+
+**影响**: 
+- 无法进行真实对话测试
+- LLM级别标注稳定性验证受阻
+
+**临时方案**:
+- 等待服务恢复（503通常是临时性）
+- 或添加指数退避重试机制
+
+### 10.3 最新验证结果
+在API可用时，已验证：
+- ✅ 配额绑定逻辑正确（学生+题目维度）
+- ✅ 级别判定逻辑正确（标签优先+代码块备用）
+- ✅ 重复提示问题已解决（display/history分离）
+- ✅ 三轮对话测试通过
+
+### 10.4 下一步行动
+| 优先级 | 任务 | 状态 |
+|-------|------|------|
+| P0 | 处理API 503错误，加自动重试 | 待做 |
+| P1 | 找真实学生测试接受度 | 等API恢复 |
+| P2 | 优化System Prompt提高标签稳定性 | 等API恢复 |
+
+---
+
+## 11. 快速状态摘要（给其他AI）
+
+```
+【NOI Agent 当前状态 - 2026-03-24】
+
+✅ 已完成：
+- 配额系统：每题3次，绑定学生+题目维度
+- 级别判定：LLM自标注[LEVEL:Lx]标签 + 代码块备用检测
+- 对话管理：display_reply（带配额提示）和 history_reply（干净内容）分离
+- 代码已提交并推送到GitHub
+
+🔴 当前阻塞：
+- API 503错误，服务暂时不可用
+- 无法进行真实对话测试验证
+
+📋 需要帮忙：
+1. 审查当前代码逻辑是否有漏洞
+2. 设计API 503错误的重试机制
+3. 优化System Prompt提高标签稳定性（当前约70%成功率）
+
+📁 关键文件：
+- noi_agent.py: 主程序
+- PROJECT_MEMORY.md: 完整项目文档
+- quota.json: 配额存储
+
+💻 运行测试：
+cd ~/Downloads/my_agent_project/agent_learning/03_noi_agent
+export MOONSHOT_API_KEY=xxx
+python3 noi_agent.py
+```
+
+---
+
+## 12. 审查请求模板
 
 如需AI审查，使用以下模板：
 
 ```
 【NOI Agent 审查请求】
 
-项目状态：见 PROJECT_MEMORY.md
+项目状态：见 PROJECT_MEMORY.md 第10节"当前状态"
 改动文件：noi_agent.py
-改动范围：修改了 chat() 函数返回值，从 str 改为 tuple[str, str]
-改动目的：解决配额提示重复出现的问题
-
-关键变更：
-1. chat() 现在返回 (reply_for_display, reply_for_history)
-2. display 带配额提示给学生看
-3. history 存干净内容到 messages
-
-测试情况：
-- ✅ 三轮对话测试通过
-- ✅ 存历史的内容无配额提示
-- ✅ 给学生看的回复有配额提示
-- ✅ 配额扣减逻辑正确
+改动范围：[填写具体修改]
+改动目的：[填写目的]
+当前阻塞：[如有，说明API 503等问题]
 
 请重点审查：
-1. 分开存储和展示的逻辑是否正确
-2. 是否有遗漏的边界条件
-3. 代码可读性和维护性
+1. [具体检查点1]
+2. [具体检查点2]
+3. [具体检查点3]
+
+参考文档：
+- PROJECT_MEMORY.md: 完整项目背景和当前状态
+- review_checklist.md: 审查维度清单
 ```
 
 ---
 
-**文档结束**
+**文档结束 - 最后更新：2026-03-24**
