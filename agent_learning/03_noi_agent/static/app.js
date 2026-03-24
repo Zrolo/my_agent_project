@@ -82,6 +82,17 @@ function handleLogout() {
     localStorage.removeItem('noi_user_id');
     localStorage.removeItem('noi_user_role');
     
+    // 清空所有显示区域（防止数据泄漏给下一个用户）
+    document.getElementById('chat-history').innerHTML = '';
+    document.getElementById('quota-info').innerHTML = '';
+    document.getElementById('teacher-quota-result').innerHTML = '';
+    document.getElementById('reset-result').innerHTML = '';
+    document.getElementById('student-message').value = '';
+    document.getElementById('query-student-id').value = '';
+    document.getElementById('query-problem-id').value = 'P1001';
+    document.getElementById('reset-student-id').value = '';
+    document.getElementById('reset-problem-id').value = 'P1001';
+    
     loginSection.classList.remove('hidden');
     studentSection.classList.add('hidden');
     teacherSection.classList.add('hidden');
@@ -186,11 +197,20 @@ async function studentSendMessage() {
     }
 }
 
-// 添加聊天消息到界面
+// 添加聊天消息到界面（安全渲染，防XSS）
 function addChatMessage(role, content) {
     const div = document.createElement('div');
     div.className = `message ${role}`;
-    div.innerHTML = `<strong>${role === 'user' ? '你' : 'Agent'}:</strong><pre>${content}</pre>`;
+    
+    const strong = document.createElement('strong');
+    strong.textContent = role === 'user' ? '你:' : 'Agent:';
+    
+    const pre = document.createElement('pre');
+    pre.textContent = content;  // 使用 textContent 防止 XSS
+    
+    div.appendChild(strong);
+    div.appendChild(pre);
+    
     document.getElementById('chat-history').appendChild(div);
     document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
 }

@@ -196,18 +196,19 @@ def reset_quota_endpoint(
 
 
 @app.get("/")
-def root():
-    """Serve the frontend HTML"""
-    return FileResponse(os.path.join(BASE_DIR, "static", "index.html"))
-
-
-@app.get("/api/health")
 def healthcheck() -> dict:
+    """Health check endpoint - returns JSON (Step 1/2 compatibility)"""
     return {
         "message": "NOI Coach Agent API is running",
         "hint_limit": PER_PROBLEM_HINT_LIMIT,
         "version": "0.2.0",
     }
+
+
+@app.get("/app")
+def serve_frontend():
+    """Serve the frontend HTML at /app"""
+    return FileResponse(os.path.join(BASE_DIR, "static", "index.html"))
 
 
 # Mount static files
