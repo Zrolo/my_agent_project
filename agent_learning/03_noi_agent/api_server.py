@@ -5,11 +5,16 @@ Run:
     uvicorn api_server:app --reload
 """
 
+import os
 from typing import Literal
 
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 from auth import (
     authenticate_user,
@@ -191,9 +196,19 @@ def reset_quota_endpoint(
 
 
 @app.get("/")
+def root():
+    """Serve the frontend HTML"""
+    return FileResponse(os.path.join(BASE_DIR, "static", "index.html"))
+
+
+@app.get("/api/health")
 def healthcheck() -> dict:
     return {
         "message": "NOI Coach Agent API is running",
         "hint_limit": PER_PROBLEM_HINT_LIMIT,
         "version": "0.2.0",
     }
+
+
+# Mount static files
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
