@@ -153,22 +153,6 @@ def parse_level_tag(reply: str) -> tuple[str, str]:
     return "", reply.strip()
 
 
-def should_consume_quota(reply: str) -> bool:
-    """
-    检测回复是否应消耗配额
-    严格基于 parse_level_tag 的结果，不做备用检测
-    缺标签时视为 L1（不扣费），宁可少扣不误扣
-    """
-    # 只认标签，不做备用检测
-    match = re.search(r'\[LEVEL:(L\d)\]', reply)
-    if match:
-        level = match.group(1)
-        return level in ("L2", "L3")
-    
-    # 缺标签视为 L1，不扣费
-    return False
-
-
 def chat(messages: list, student_id: str, problem_id: str) -> tuple[str, str]:
     """
     主对话逻辑：
@@ -213,8 +197,8 @@ def chat(messages: list, student_id: str, problem_id: str) -> tuple[str, str]:
     # 提取级别标签，获取干净回复（无标签，无配额提示）
     level, clean_reply = parse_level_tag(raw_reply)
     
-    # 使用 should_consume_quota 决定是否扣配额（严格基于标签）
-    if should_consume_quota(raw_reply):
+    # 基于 parse_level_tag 得到的最终 level 决定是否扣配额
+    if level in ("L2", "L3"):
         # 消耗配额
         success, remaining_after = consume_quota(student_id, problem_id)
         if success:
@@ -222,7 +206,7 @@ def chat(messages: list, student_id: str, problem_id: str) -> tuple[str, str]:
         else:
             reply_for_display = clean_reply + "\n\n---\n⚠️ 提示配额已用完"
     else:
-        # 不消耗配额
+        # L1/L4/缺标签：不消耗配额
         reply_for_display = clean_reply + f"\n\n---\n💡 本题还剩 {remaining} 次提示机会（本次未消耗）"
     
     # 存历史用：干净回复（去标签，无配额提示）
