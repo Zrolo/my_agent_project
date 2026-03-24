@@ -153,23 +153,19 @@ def parse_level_tag(reply: str) -> tuple[str, str]:
     return "", reply.strip()
 
 
-def detect_quota_consumption(reply: str) -> bool:
+def should_consume_quota(reply: str) -> bool:
     """
     检测回复是否应消耗配额
-    优先用标签，标签不存在时用备用检测
+    严格基于 parse_level_tag 的结果，不做备用检测
+    缺标签时视为 L1（不扣费），宁可少扣不误扣
     """
-    # 第一优先：找标签
+    # 只认标签，不做备用检测
     match = re.search(r'\[LEVEL:(L\d)\]', reply)
     if match:
         level = match.group(1)
         return level in ("L2", "L3")
     
-    # 备用：只检测最可靠的特征
-    # L3：有代码块（``` 出现）→ 几乎100%是L3
-    if "```" in reply:
-        return True
-    
-    # 其他情况一律不扣（保守策略，宁可少扣不误扣）
+    # 缺标签视为 L1，不扣费
     return False
 
 
@@ -217,8 +213,8 @@ def chat(messages: list, student_id: str, problem_id: str) -> tuple[str, str]:
     # 提取级别标签，获取干净回复（无标签，无配额提示）
     level, clean_reply = parse_level_tag(raw_reply)
     
-    # 使用 detect_quota_consumption 决定是否扣配额（优先标签，备用代码块检测）
-    if detect_quota_consumption(raw_reply):
+    # 使用 should_consume_quota 决定是否扣配额（严格基于标签）
+    if should_consume_quota(raw_reply):
         # 消耗配额
         success, remaining_after = consume_quota(student_id, problem_id)
         if success:

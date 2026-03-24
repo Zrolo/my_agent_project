@@ -18,7 +18,6 @@ from noi_agent import (
     save_quota,
 )
 
-
 app = FastAPI(
     title="NOI Coach Agent API",
     description="HTTP interface for the NOI coaching agent with per-problem quota control.",
