@@ -1,19 +1,19 @@
 {
   "teacher": {
     "id": "teacher",
-    "password_hash": "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+    "password_hash": "0788eefa2bf43cf1791d895d4b6475823355717ee05650409a49ea9f5dd9be2c",
     "salt": " fixed_salt_for_demo_only_use_random_in_production",
     "role": "teacher"
   },
   "student_a": {
     "id": "student_a",
-    "password_hash": "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+    "password_hash": "0788eefa2bf43cf1791d895d4b6475823355717ee05650409a49ea9f5dd9be2c",
     "salt": " fixed_salt_for_demo_only_use_random_in_production",
     "role": "student"
   },
   "student_b": {
     "id": "student_b",
-    "password_hash": "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+    "password_hash": "0788eefa2bf43cf1791d895d4b6475823355717ee05650409a49ea9f5dd9be2c",
     "salt": " fixed_salt_for_demo_only_use_random_in_production",
     "role": "student"
   }
