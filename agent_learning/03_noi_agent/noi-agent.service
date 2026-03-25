@@ -1,0 +1,17 @@
+[Unit]
+Description=NOI Agent FastAPI Service
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/noi-agent
+Environment=PATH=/opt/noi-agent/venv/bin
+EnvironmentFile=/opt/noi-agent/.env
+ExecStart=/opt/noi-agent/venv/bin/uvicorn api_server:app --host 127.0.0.1 --port 8000 --workers 2
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
