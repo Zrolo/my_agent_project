@@ -38,49 +38,215 @@
         <div id="student-section" class="section hidden">
             <h2>学生练习区</h2>
             
-            <div class="form-group">
-                <label>题目编号:</label>
-                <input type="text" id="student-problem-id" placeholder="例如: P1001" value="P1001">
-                <button id="check-quota-btn">查询配额</button>
+            <!-- 标签页 -->
+            <div id="student-tabs" class="tabs">
+                <button class="tab-btn active" data-tab="chat-tab">AI 答疑</button>
+                <button class="tab-btn" data-tab="checkin-tab">打卡复盘</button>
+                <button class="tab-btn" data-tab="history-tab">历史记录</button>
             </div>
             
-            <div id="quota-info" class="quota-info"></div>
-            
-            <div class="chat-container">
-                <h3>对话记录</h3>
-                <div id="chat-history" class="chat-history"></div>
-                
-                <div class="chat-input">
-                    <textarea id="student-message" placeholder="输入你的问题..." rows="3"></textarea>
-                    <button id="send-btn">发送</button>
+            <!-- AI 答疑标签 -->
+            <div id="chat-tab" class="tab-content">
+                <div class="form-group">
+                    <label>题目编号:</label>
+                    <input type="text" id="student-problem-id" placeholder="例如: P1001" value="P1001">
+                    <button id="check-quota-btn">查询配额</button>
                 </div>
+                
+                <div id="quota-info" class="quota-info"></div>
+                
+                <div class="chat-container">
+                    <h3>对话记录</h3>
+                    <div id="chat-history" class="chat-history"></div>
+                    
+                    <div class="chat-input">
+                        <textarea id="student-message" placeholder="输入你的问题..." rows="3"></textarea>
+                        <button id="send-btn">发送</button>
+                    </div>
+                </div>
+                
+                <button id="clear-history-btn" class="secondary">清空对话</button>
             </div>
             
-            <button id="clear-history-btn" class="secondary">清空对话</button>
+            <!-- 打卡复盘标签 -->
+            <div id="checkin-tab" class="tab-content hidden">
+                <h3>刷题打卡</h3>
+                <p class="hint">完成题目后打卡，AI 将自动生成复盘报告</p>
+                
+                <div class="form-group">
+                    <label>题目链接:</label>
+                    <input type="url" id="checkin-url" placeholder="https://www.luogu.com.cn/problem/P1001">
+                </div>
+                
+                <div class="form-group">
+                    <label>题目标题:</label>
+                    <input type="text" id="checkin-title" placeholder="例如：A+B Problem">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>OJ 来源:</label>
+                        <select id="checkin-oj">
+                            <option value="luogu">洛谷</option>
+                            <option value="codeforces">Codeforces</option>
+                            <option value="atcoder">AtCoder</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>完成状态:</label>
+                        <select id="checkin-status">
+                            <option value="independent">独立完成</option>
+                            <option value="hinted">需要提示</option>
+                            <option value="editorial">看题解</option>
+                            <option value="unfinished">未完成</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- 卡点描述优化区 -->
+                <div class="form-group bottleneck-section">
+                    <label>
+                        卡点描述 
+                        <span class="word-count" id="bottleneck-count">0 字</span>
+                    </label>
+                    
+                    <!-- 填写示例对比 -->
+                    <div class="example-box">
+                        <div class="example-header" onclick="toggleExample()">
+                            <span>📋 点击查看：什么是好的卡点描述？</span>
+                            <span class="toggle-icon">▼</span>
+                        </div>
+                        <div class="example-content hidden" id="example-content">
+                            <div class="example-bad">
+                                <strong>❌ 不够具体（会被拒绝）：</strong>
+                                <p>"不会"、"没思路"、"太难了"、"DP不会"</p>
+                            </div>
+                            <div class="example-good">
+                                <strong>✅ 好的示例：</strong>
+                                <ul>
+                                    <li>"知道是背包问题，但不确定状态是 dp[i][j] 还是 dp[i][j][k]，看了题解才知道只需要二维"</li>
+                                    <li>"区间DP的枚举顺序搞错了，我是从左到右枚举，后来发现应该从小区间到大区间"</li>
+                                    <li>"代码过了样例但WA，调试发现是边界情况 n=1 时数组越界，加了个特判就过了"</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <textarea 
+                        id="checkin-bottleneck" 
+                        rows="4" 
+                        placeholder="描述你卡在哪一步、用了什么方法、遇到什么错误。参考格式：&#10;我想用XX方法，尝试了XX，但遇到了XX问题，现象是XX"
+                    ></textarea>
+                    <div class="input-hint" id="bottleneck-hint">至少15字，越具体越好</div>
+                </div>
+                
+                <!-- 错误类型重新组织 -->
+                <div class="form-group">
+                    <label>错误类型（多选，选最相关1-2个）:</label>
+                    <div class="checkbox-group error-types">
+                        <div class="error-category">
+                            <strong>读题/建模：</strong>
+                            <label><input type="checkbox" name="error_type" value="题意理解"> 题意理解</label>
+                            <label><input type="checkbox" name="error_type" value="模型转化"> 模型转化</label>
+                        </div>
+                        <div class="error-category">
+                            <strong>算法/思路：</strong>
+                            <label><input type="checkbox" name="error_type" value="不知道用什么算法"> 不知道用什么算法</label>
+                            <label><input type="checkbox" name="error_type" value="知道算法但不知道怎么用"> 知道算法但不知道怎么用</label>
+                            <label><input type="checkbox" name="error_type" value="状态设计"> 状态设计</label>
+                            <label><input type="checkbox" name="error_type" value="状态转移"> 状态转移</label>
+                            <label><input type="checkbox" name="error_type" value="优化策略"> 优化策略</label>
+                        </div>
+                        <div class="error-category">
+                            <strong>代码/调试：</strong>
+                            <label><input type="checkbox" name="error_type" value="语法/API"> 语法/API</label>
+                            <label><input type="checkbox" name="error_type" value="边界条件"> 边界条件</label>
+                            <label><input type="checkbox" name="error_type" value="数组越界"> 数组越界</label>
+                            <label><input type="checkbox" name="error_type" value="精度/溢出"> 精度/溢出</label>
+                        </div>
+                        <div class="error-category">
+                            <label><input type="checkbox" name="error_type" value="其他"> 其他</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>反思总结（可选）:</label>
+                    <textarea id="checkin-reflection" rows="2" placeholder="这道题给你的收获是什么？下次遇到类似题你会怎么做？"></textarea>
+                </div>
+                
+                <button id="submit-checkin-btn" class="primary" disabled>提交打卡</button>
+                <div id="checkin-result" class="result-box"></div>
+            </div>
+            
+            <!-- 历史记录标签 -->
+            <div id="history-tab" class="tab-content hidden">
+                <h3>我的打卡历史</h3>
+                <button id="load-my-checkins-btn" class="secondary">刷新</button>
+                <div id="checkin-history-list" class="checkin-list"></div>
+            </div>
         </div>
 
         <!-- 教师区 -->
         <div id="teacher-section" class="section hidden">
             <h2>教师管理区</h2>
             
-            <div class="teacher-tools">
-                <h3>查询学生配额</h3>
-                <div class="form-row">
-                    <input type="text" id="query-student-id" placeholder="学生 ID">
-                    <input type="text" id="query-problem-id" placeholder="题目 ID" value="P1001">
-                    <button id="teacher-check-quota-btn">查询</button>
-                </div>
-                <div id="teacher-quota-result" class="quota-info"></div>
+            <!-- 标签页 -->
+            <div id="teacher-tabs" class="tabs">
+                <button class="tab-btn active" data-tab="quota-tab">配额管理</button>
+                <button class="tab-btn" data-tab="checkins-tab">学员打卡</button>
+                <button class="tab-btn" data-tab="stats-tab">错误统计</button>
+                <button class="tab-btn" data-tab="flags-tab">关注学员</button>
             </div>
             
-            <div class="teacher-tools">
-                <h3>重置学生配额</h3>
-                <div class="form-row">
-                    <input type="text" id="reset-student-id" placeholder="学生 ID">
-                    <input type="text" id="reset-problem-id" placeholder="题目 ID" value="P1001">
-                    <button id="reset-quota-btn" class="warning">重置配额</button>
+            <!-- 配额管理标签 -->
+            <div id="quota-tab" class="tab-content">
+                <div class="teacher-tools">
+                    <h3>查询学生配额</h3>
+                    <div class="form-row">
+                        <input type="text" id="query-student-id" placeholder="学生 ID">
+                        <input type="text" id="query-problem-id" placeholder="题目 ID" value="P1001">
+                        <button id="teacher-check-quota-btn">查询</button>
+                    </div>
+                    <div id="teacher-quota-result" class="quota-info"></div>
                 </div>
-                <div id="reset-result" class="result"></div>
+                
+                <div class="teacher-tools">
+                    <h3>重置学生配额</h3>
+                    <div class="form-row">
+                        <input type="text" id="reset-student-id" placeholder="学生 ID">
+                        <input type="text" id="reset-problem-id" placeholder="题目 ID" value="P1001">
+                        <button id="reset-quota-btn" class="warning">重置配额</button>
+                    </div>
+                    <div id="reset-result" class="result"></div>
+                </div>
+            </div>
+            
+            <!-- 学员打卡标签 -->
+            <div id="checkins-tab" class="tab-content hidden">
+                <h3>最近打卡记录</h3>
+                <button id="load-all-checkins-btn" class="secondary">刷新</button>
+                <div id="teacher-checkins-list" class="checkin-list"></div>
+            </div>
+            
+            <!-- 错误统计标签 -->
+            <div id="stats-tab" class="tab-content hidden">
+                <h3>错误类型统计</h3>
+                <button id="load-stats-btn" class="secondary">刷新</button>
+                <div id="error-stats" class="stats-container"></div>
+                
+                <h3 style="margin-top: 30px;">使用统计（最近7天）</h3>
+                <button id="load-usage-btn" class="secondary">刷新</button>
+                <div id="usage-stats" class="stats-container"></div>
+            </div>
+            
+            <!-- 关注学员标签 -->
+            <div id="flags-tab" class="tab-content hidden">
+                <h3>需要关注的学员</h3>
+                <button id="load-flags-btn" class="secondary">刷新</button>
+                <div id="student-flags" class="flags-container"></div>
             </div>
         </div>
     </div>
