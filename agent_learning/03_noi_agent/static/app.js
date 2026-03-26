@@ -14,10 +14,138 @@ const studentSection = document.getElementById('student-section');
 const teacherSection = document.getElementById('teacher-section');
 const userBar = document.getElementById('user-bar');
 
+// ============ 认证失效处理 ============
+
+/**
+ * 检查错误是否是认证失效
+ */
+function isAuthError(status, detail) {
+    if (status !== 401) return false;
+    
+    const authErrorMessages = [
+        'Invalid or expired token',
+        'Missing authorization header',
+        'Invalid authentication credentials',
+        'Not authenticated'
+    ];
+    
+    return authErrorMessages.some(msg => 
+        detail && detail.includes(msg)
+    );
+}
+
+/**
+ * 处理认证过期/失效
+ * - 清空本地 token
+ * - 回到登录页
+ * - 提示用户
+ */
+function handleAuthExpired(message = '登录状态已失效，请重新登录') {
+    // 先清空所有状态（复用 handleLogout 的清空逻辑，但不完全复用，因为要避免循环）
+    token = null;
+    userId = null;
+    userRole = null;
+    chatHistory = [];
+    
+    localStorage.removeItem('noi_token');
+    localStorage.removeItem('noi_user_id');
+    localStorage.removeItem('noi_user_role');
+    
+    // 清空显示
+    document.getElementById('chat-history').innerHTML = '';
+    document.getElementById('quota-info').textContent = '';
+    document.getElementById('teacher-quota-result').textContent = '';
+    document.getElementById('reset-result').textContent = '';
+    document.getElementById('checkin-history-list').innerHTML = '';
+    document.getElementById('teacher-checkins-list').innerHTML = '';
+    document.getElementById('error-stats').innerHTML = '';
+    document.getElementById('student-flags').innerHTML = '';
+    document.getElementById('checkin-result').innerHTML = '';
+    
+    // 显示登录区，隐藏主界面
+    loginSection.classList.remove('hidden');
+    studentSection.classList.add('hidden');
+    teacherSection.classList.add('hidden');
+    userBar.classList.add('hidden');
+    
+    // 显示认证失效提示
+    const errorEl = document.getElementById('login-error');
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
+    
+    // 3秒后自动隐藏错误提示
+    setTimeout(() => {
+        errorEl.style.display = 'none';
+    }, 5000);
+}
+
+/**
+ * 统一的 API 请求包装
+ * 自动处理 401 认证失效
+ */
+async function apiFetch(url, options = {}) {
+    // 确保 headers 存在
+    if (!options.headers) {
+        options.headers = {};
+    }
+    
+    // 如果有 token，自动添加
+    if (token) {
+        options.headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    const res = await fetch(url, options);
+    
+    // 处理 401 认证失效
+    if (res.status === 401) {
+        let detail = '';
+        try {
+            const errData = await res.json();
+            detail = errData.detail || '';
+        } catch (e) {
+            detail = 'Unauthorized';
+        }
+        
+        if (isAuthError(res.status, detail)) {
+            // 服务重启后的典型场景
+            if (detail.includes('Invalid or expired token')) {
+                handleAuthExpired('服务刚刚重启，请重新登录');
+            } else {
+                handleAuthExpired('登录状态已失效，请重新登录');
+            }
+            // 抛出特殊错误，让调用方知道已经处理了认证失效
+            const authError = new Error('AUTH_EXPIRED');
+            authError.isAuthError = true;
+            throw authError;
+        }
+    }
+    
+    return res;
+}
+
 // ============ 初始化 ============
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     if (token && userId && userRole) {
+        // 先显示界面，然后异步验证 token 是否还有效
         showMainInterface();
+        
+        // 验证 token 有效性（服务重启后会失效）
+        try {
+            // 用一个轻量接口验证（配额查询）
+            const res = await apiFetch(`${API_BASE}/quota/${userId}/P1001`);
+            if (!res.ok && res.status !== 401) {
+                // 其他错误（如网络问题），保持登录态
+                console.warn('Token validation failed:', res.status);
+            }
+        } catch (err) {
+            if (err.isAuthError) {
+                // 已经由 handleAuthExpired 处理，不需要额外操作
+                console.log('Token expired, redirected to login');
+            } else {
+                // 网络错误，给用户一个提示但不强制退出
+                console.error('Network error during token validation:', err);
+            }
+        }
     }
     
     // 登录
@@ -79,7 +207,7 @@ async function handleLogin(e) {
     const password = document.getElementById('password').value;
     
     try {
-        const res = await fetch(`${API_BASE}/auth/login`, {
+        const res = await apiFetch(`${API_BASE}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ user_id: userIdInput, password })
@@ -102,6 +230,7 @@ async function handleLogin(e) {
         
         showMainInterface();
     } catch (err) {
+        if (err.isAuthError) return; // 已由 handleAuthExpired 处理
         showError('login-error', '网络错误，请检查服务是否运行');
     }
 }
@@ -158,9 +287,7 @@ async function studentCheckQuota() {
     const problemId = document.getElementById('student-problem-id').value.trim() || 'P1001';
     
     try {
-        const res = await fetch(`${API_BASE}/quota/${userId}/${problemId}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await apiFetch(`${API_BASE}/quota/${userId}/${problemId}`);
         
         const quotaEl = document.getElementById('quota-info');
         
@@ -175,6 +302,8 @@ async function studentCheckQuota() {
         quotaEl.textContent = `题目: ${data.problem_id} | 已用: ${data.count}/${data.max} | 剩余: ${data.remaining}`;
         quotaEl.style.color = data.remaining === 0 ? 'orange' : '#333';
     } catch (err) {
+        if (err.isAuthError) return; // 已由 handleAuthExpired 处理
+        if (err.isAuthError) return; // 已由 handleAuthExpired 处理
         document.getElementById('quota-info').textContent = '查询失败';
     }
 }
@@ -189,11 +318,10 @@ async function studentSendMessage() {
     document.getElementById('student-message').value = '';
     
     try {
-        const res = await fetch(`${API_BASE}/chat`, {
+        const res = await apiFetch(`${API_BASE}/chat`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 problem_id: problemId,
@@ -216,6 +344,8 @@ async function studentSendMessage() {
         document.getElementById('quota-info').textContent = 
             `题目: ${q.problem_id} | 已用: ${q.count}/${q.max} | 剩余: ${q.remaining}`;
     } catch (err) {
+        if (err.isAuthError) return; // 已由 handleAuthExpired 处理
+        if (err.isAuthError) return; // 已由 handleAuthExpired 处理
         addChatMessage('assistant', '网络错误，请稍后重试');
     }
 }
@@ -340,11 +470,10 @@ async function submitCheckin() {
     }
     
     try {
-        const res = await fetch(`${API_BASE}/api/checkins`, {
+        const res = await apiFetch(`${API_BASE}/api/checkins`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 problem_url: problemUrl,
@@ -402,6 +531,8 @@ async function submitCheckin() {
         document.getElementById('bottleneck-hint').style.color = '#666';
         
     } catch (err) {
+        if (err.isAuthError) return; // 已由 handleAuthExpired 处理
+        if (err.isAuthError) return; // 已由 handleAuthExpired 处理
         resultEl.textContent = '网络错误';
         resultEl.style.color = 'red';
     } finally {
@@ -417,8 +548,8 @@ async function loadMyCheckins() {
     listEl.innerHTML = '<p>加载中...</p>';
     
     try {
-        const res = await fetch(`${API_BASE}/api/checkins/me`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+        const res = await apiFetch(`${API_BASE}/api/checkins/me`, {
+            
         });
         
         if (!res.ok) {
@@ -450,6 +581,7 @@ async function loadMyCheckins() {
         `).join('');
         
     } catch (err) {
+        if (err.isAuthError) return; // 已由 handleAuthExpired 处理
         listEl.innerHTML = '<p style="color:red">加载失败</p>';
     }
 }
@@ -467,8 +599,8 @@ async function teacherCheckQuota() {
     }
     
     try {
-        const res = await fetch(`${API_BASE}/quota/${studentId}/${problemId}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+        const res = await apiFetch(`${API_BASE}/quota/${studentId}/${problemId}`, {
+            
         });
         
         if (!res.ok) {
@@ -480,6 +612,7 @@ async function teacherCheckQuota() {
         const data = await res.json();
         resultEl.textContent = `学生: ${data.student_id} | 题目: ${data.problem_id} | 已用: ${data.count}/${data.max} | 剩余: ${data.remaining}`;
     } catch (err) {
+        if (err.isAuthError) return; // 已由 handleAuthExpired 处理
         resultEl.textContent = '查询失败';
     }
 }
@@ -498,7 +631,7 @@ async function teacherResetQuota() {
     if (!confirm(`确定要重置 ${studentId} 的 ${problemId} 配额吗？`)) return;
     
     try {
-        const res = await fetch(`${API_BASE}/quota/reset`, {
+        const res = await apiFetch(`${API_BASE}/quota/reset`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -516,6 +649,7 @@ async function teacherResetQuota() {
         const data = await res.json();
         resultEl.innerHTML = `<span style="color:green">已重置！${data.student_id} / ${data.problem_id} | 剩余: ${data.remaining}/${data.max}</span>`;
     } catch (err) {
+        if (err.isAuthError) return; // 已由 handleAuthExpired 处理
         resultEl.textContent = '重置失败';
     }
 }
@@ -525,8 +659,8 @@ async function loadAllCheckins() {
     listEl.innerHTML = '<p>加载中...</p>';
     
     try {
-        const res = await fetch(`${API_BASE}/api/teacher/checkins`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+        const res = await apiFetch(`${API_BASE}/api/teacher/checkins`, {
+            
         });
         
         if (!res.ok) {
@@ -558,6 +692,7 @@ async function loadAllCheckins() {
         `).join('');
         
     } catch (err) {
+        if (err.isAuthError) return; // 已由 handleAuthExpired 处理
         listEl.innerHTML = '<p style="color:red">加载失败</p>';
     }
 }
@@ -567,8 +702,8 @@ async function loadErrorStats() {
     statsEl.innerHTML = '<p>加载中...</p>';
     
     try {
-        const res = await fetch(`${API_BASE}/api/teacher/stats`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+        const res = await apiFetch(`${API_BASE}/api/teacher/stats`, {
+            
         });
         
         if (!res.ok) {
@@ -605,6 +740,7 @@ async function loadErrorStats() {
         `;
         
     } catch (err) {
+        if (err.isAuthError) return; // 已由 handleAuthExpired 处理
         statsEl.innerHTML = '<p style="color:red">加载失败</p>';
     }
 }
@@ -614,8 +750,8 @@ async function loadUsageStats() {
     usageEl.innerHTML = '<p>加载中...</p>';
     
     try {
-        const res = await fetch(`${API_BASE}/api/teacher/usage`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+        const res = await apiFetch(`${API_BASE}/api/teacher/usage`, {
+            
         });
         
         if (!res.ok) {
@@ -662,6 +798,7 @@ async function loadUsageStats() {
         `;
         
     } catch (err) {
+        if (err.isAuthError) return; // 已由 handleAuthExpired 处理
         usageEl.innerHTML = '<p style="color:red">加载失败</p>';
     }
 }
@@ -671,8 +808,8 @@ async function loadStudentFlags() {
     flagsEl.innerHTML = '<p>加载中...</p>';
     
     try {
-        const res = await fetch(`${API_BASE}/api/teacher/flags`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+        const res = await apiFetch(`${API_BASE}/api/teacher/flags`, {
+            
         });
         
         if (!res.ok) {
@@ -698,6 +835,7 @@ async function loadStudentFlags() {
         `).join('');
         
     } catch (err) {
+        if (err.isAuthError) return; // 已由 handleAuthExpired 处理
         flagsEl.innerHTML = '<p style="color:red">加载失败</p>';
     }
 }
