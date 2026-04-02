@@ -375,12 +375,16 @@ def evaluate_case(case: RegressionCase, review: dict | None) -> tuple[bool, list
 
 def run_case(token: str, case: RegressionCase) -> bool:
     headers = {"Authorization": f"Bearer {token}"}
-    response = requests.post(
-        f"{BASE}/api/checkins",
-        json=case.payload,
-        headers=headers,
-        timeout=90,
-    )
+    try:
+        response = requests.post(
+            f"{BASE}/api/checkins",
+            json=case.payload,
+            headers=headers,
+            timeout=90,
+        )
+    except requests.RequestException as exc:
+        status(FAIL, f"{case.case_id} {case.title} | 请求失败 | {exc}")
+        return False
 
     if response.status_code != 200:
         status(FAIL, f"{case.case_id} {case.title} | HTTP {response.status_code} | {response.text[:200]}")
