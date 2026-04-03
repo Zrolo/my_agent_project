@@ -1,0 +1,67 @@
+{
+  "version": "v1",
+  "source": "latest.ndjson",
+  "notes": "第一版 structure_type 采用接近算法题型的稳定名，bridge_note 由教师手填。已按 confirm_pool_tag_stats_v1.json 做第一轮保守筛选：能直接对上真实标签且粒度够稳的先标 usable，太粗的先 defer。",
+  "entries": [
+    {
+      "structure_type": "difference_constraints",
+      "bridge_note": "不等式约束转有向边，矛盾即正环",
+      "status": "usable",
+      "luogu_tags": ["差分约束"]
+    },
+    {
+      "structure_type": "topological_sort",
+      "bridge_note": "依赖关系决定处理顺序",
+      "status": "usable",
+      "luogu_tags": ["拓扑排序"]
+    },
+    {
+      "structure_type": "minimum_spanning_tree",
+      "bridge_note": "局部最优边选择能保证全局最优连通",
+      "status": "usable",
+      "luogu_tags": ["生成树"]
+    },
+    {
+      "structure_type": "bipartite_graph",
+      "bridge_note": "冲突关系可以二着色验证",
+      "status": "usable",
+      "luogu_tags": ["二分图"]
+    },
+    {
+      "structure_type": "monotonic_queue",
+      "bridge_note": "滑动窗口极值用单调性维护",
+      "status": "usable",
+      "luogu_tags": ["单调队列"]
+    },
+    {
+      "structure_type": "shortest_path",
+      "bridge_note": "松弛操作收敛到最优路径",
+      "status": "usable",
+      "luogu_tags": ["最短路"]
+    },
+    {
+      "structure_type": "union_find",
+      "bridge_note": "连通性合并用路径压缩维护",
+      "status": "usable",
+      "luogu_tags": ["并查集"]
+    },
+    {
+      "structure_type": "binary_search_answer",
+      "bridge_note": "答案单调时枚举转判定",
+      "status": "defer",
+      "luogu_tags": ["二分"]
+    },
+    {
+      "structure_type": "tree_dp",
+      "bridge_note": "子树状态向上合并",
+      "status": "usable",
+      "luogu_tags": ["树形 DP"]
+    },
+    {
+      "structure_type": "interval_dp",
+      "bridge_note": "区间问题拆分成子区间递推",
+      "status": "usable",
+      "luogu_tags": ["区间 DP"]
+    }
+  ]
+}

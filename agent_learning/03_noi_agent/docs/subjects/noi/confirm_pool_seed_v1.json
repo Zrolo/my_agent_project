@@ -1,0 +1,62 @@
+{
+  "version": "v1",
+  "notes": "第一批 confirm_pool 固定种子题。当前只导入 8 个最稳的 usable structure_type，先不导 minimum_spanning_tree 和 binary_search_answer。",
+  "entries": [
+    {
+      "structure_type": "difference_constraints",
+      "luogu_pid": "P1250",
+      "problem_url": "https://www.luogu.com.cn/problem/P1250",
+      "difficulty": 3,
+      "bridge_note": "不等式约束转有向边，矛盾即正环"
+    },
+    {
+      "structure_type": "topological_sort",
+      "luogu_pid": "P10480",
+      "problem_url": "https://www.luogu.com.cn/problem/P10480",
+      "difficulty": 3,
+      "bridge_note": "依赖关系决定处理顺序"
+    },
+    {
+      "structure_type": "bipartite_graph",
+      "luogu_pid": "P1330",
+      "problem_url": "https://www.luogu.com.cn/problem/P1330",
+      "difficulty": 3,
+      "bridge_note": "冲突关系可以二着色验证"
+    },
+    {
+      "structure_type": "monotonic_queue",
+      "luogu_pid": "P2032",
+      "problem_url": "https://www.luogu.com.cn/problem/P2032",
+      "difficulty": 3,
+      "bridge_note": "滑动窗口极值用单调性维护"
+    },
+    {
+      "structure_type": "shortest_path",
+      "luogu_pid": "P1359",
+      "problem_url": "https://www.luogu.com.cn/problem/P1359",
+      "difficulty": 2,
+      "bridge_note": "松弛操作收敛到最优路径"
+    },
+    {
+      "structure_type": "union_find",
+      "luogu_pid": "P1536",
+      "problem_url": "https://www.luogu.com.cn/problem/P1536",
+      "difficulty": 2,
+      "bridge_note": "连通性合并用路径压缩维护"
+    },
+    {
+      "structure_type": "tree_dp",
+      "luogu_pid": "P2014",
+      "problem_url": "https://www.luogu.com.cn/problem/P2014",
+      "difficulty": 4,
+      "bridge_note": "子树状态向上合并"
+    },
+    {
+      "structure_type": "interval_dp",
+      "luogu_pid": "P1880",
+      "problem_url": "https://www.luogu.com.cn/problem/P1880",
+      "difficulty": 4,
+      "bridge_note": "区间问题拆分成子区间递推"
+    }
+  ]
+}

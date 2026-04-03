@@ -1,0 +1,412 @@
+{
+  "total_rows": 15909,
+  "tag_type_counts": {
+    "algo": 46906,
+    "year": 11271,
+    "contest": 3069
+  },
+  "top_algo_tags": [
+    {
+      "tag": "O2优化",
+      "count": 4092
+    },
+    {
+      "tag": "Special Judge",
+      "count": 2472
+    },
+    {
+      "tag": "动态规划 DP",
+      "count": 1807
+    },
+    {
+      "tag": "ICPC",
+      "count": 1665
+    },
+    {
+      "tag": "数学",
+      "count": 1559
+    },
+    {
+      "tag": "贪心",
+      "count": 1444
+    },
+    {
+      "tag": "洛谷原创",
+      "count": 1226
+    },
+    {
+      "tag": "模拟",
+      "count": 1140
+    },
+    {
+      "tag": "洛谷月赛",
+      "count": 1067
+    },
+    {
+      "tag": "线段树",
+      "count": 918
+    },
+    {
+      "tag": "枚举",
+      "count": 823
+    },
+    {
+      "tag": "二分",
+      "count": 727
+    },
+    {
+      "tag": "COCI（克罗地亚）",
+      "count": 697
+    },
+    {
+      "tag": "搜索",
+      "count": 564
+    },
+    {
+      "tag": "图论",
+      "count": 516
+    },
+    {
+      "tag": "字符串",
+      "count": 507
+    },
+    {
+      "tag": "交互题",
+      "count": 499
+    },
+    {
+      "tag": "排序",
+      "count": 493
+    },
+    {
+      "tag": "构造",
+      "count": 492
+    },
+    {
+      "tag": "前缀和",
+      "count": 461
+    },
+    {
+      "tag": "Google Code Jam",
+      "count": 433
+    },
+    {
+      "tag": "语言月赛",
+      "count": 377
+    },
+    {
+      "tag": "树状数组",
+      "count": 375
+    },
+    {
+      "tag": "最短路",
+      "count": 351
+    },
+    {
+      "tag": "POI（波兰）",
+      "count": 351
+    },
+    {
+      "tag": "组合数学",
+      "count": 333
+    },
+    {
+      "tag": "蓝桥杯国赛",
+      "count": 314
+    },
+    {
+      "tag": "深度优先搜索 DFS",
+      "count": 302
+    },
+    {
+      "tag": "蓝桥杯省赛",
+      "count": 293
+    },
+    {
+      "tag": "并查集",
+      "count": 289
+    },
+    {
+      "tag": "梦熊比赛",
+      "count": 270
+    },
+    {
+      "tag": "广度优先搜索 BFS",
+      "count": 267
+    },
+    {
+      "tag": "树形 DP",
+      "count": 264
+    },
+    {
+      "tag": "递推",
+      "count": 256
+    },
+    {
+      "tag": "数论",
+      "count": 248
+    },
+    {
+      "tag": "江苏",
+      "count": 234
+    },
+    {
+      "tag": "山东",
+      "count": 234
+    },
+    {
+      "tag": "分块",
+      "count": 219
+    },
+    {
+      "tag": "Ad-hoc",
+      "count": 219
+    },
+    {
+      "tag": "计算几何",
+      "count": 213
+    },
+    {
+      "tag": "哈希 hashing",
+      "count": 212
+    },
+    {
+      "tag": "状压 DP",
+      "count": 208
+    },
+    {
+      "tag": "背包 DP",
+      "count": 206
+    },
+    {
+      "tag": "PA（波兰）",
+      "count": 200
+    },
+    {
+      "tag": "GESP",
+      "count": 200
+    },
+    {
+      "tag": "模板题",
+      "count": 198
+    },
+    {
+      "tag": "循环结构",
+      "count": 198
+    },
+    {
+      "tag": "位运算",
+      "count": 197
+    },
+    {
+      "tag": "网络流",
+      "count": 188
+    },
+    {
+      "tag": "容斥原理",
+      "count": 188
+    }
+  ],
+  "top_tag_pairs": [
+    {
+      "pair": "O2优化 | 洛谷原创",
+      "count": 823
+    },
+    {
+      "pair": "洛谷原创 | 洛谷月赛",
+      "count": 787
+    },
+    {
+      "pair": "O2优化 | 洛谷月赛",
+      "count": 764
+    },
+    {
+      "pair": "O2优化 | Special Judge",
+      "count": 674
+    },
+    {
+      "pair": "ICPC | Special Judge",
+      "count": 514
+    },
+    {
+      "pair": "O2优化 | 数学",
+      "count": 467
+    },
+    {
+      "pair": "O2优化 | 动态规划 DP",
+      "count": 416
+    },
+    {
+      "pair": "O2优化 | 贪心",
+      "count": 403
+    },
+    {
+      "pair": "Special Judge | 构造",
+      "count": 396
+    },
+    {
+      "pair": "Special Judge | 交互题",
+      "count": 384
+    },
+    {
+      "pair": "2023 | O2优化",
+      "count": 375
+    },
+    {
+      "pair": "O2优化 | 线段树",
+      "count": 293
+    },
+    {
+      "pair": "2024 | O2优化",
+      "count": 277
+    },
+    {
+      "pair": "2024 | ICPC",
+      "count": 263
+    },
+    {
+      "pair": "数学 | 洛谷原创",
+      "count": 244
+    },
+    {
+      "pair": "2022 | O2优化",
+      "count": 242
+    },
+    {
+      "pair": "O2优化 | 梦熊比赛",
+      "count": 238
+    },
+    {
+      "pair": "O2优化 | 构造",
+      "count": 228
+    },
+    {
+      "pair": "2025 | ICPC",
+      "count": 224
+    },
+    {
+      "pair": "O2优化 | 模拟",
+      "count": 223
+    },
+    {
+      "pair": "2024 | Special Judge",
+      "count": 221
+    },
+    {
+      "pair": "Special Judge | 数学",
+      "count": 210
+    },
+    {
+      "pair": "Special Judge | 贪心",
+      "count": 207
+    },
+    {
+      "pair": "排序 | 贪心",
+      "count": 202
+    },
+    {
+      "pair": "O2优化 | 各省省选",
+      "count": 202
+    },
+    {
+      "pair": "2021 | O2优化",
+      "count": 202
+    },
+    {
+      "pair": "O2优化 | 语言月赛",
+      "count": 201
+    },
+    {
+      "pair": "2025 | Special Judge",
+      "count": 201
+    },
+    {
+      "pair": "洛谷原创 | 贪心",
+      "count": 199
+    },
+    {
+      "pair": "洛谷月赛 | 贪心",
+      "count": 193
+    },
+    {
+      "pair": "动态规划 DP | 各省省选",
+      "count": 192
+    },
+    {
+      "pair": "ICPC | O2优化",
+      "count": 191
+    },
+    {
+      "pair": "动态规划 DP | 贪心",
+      "count": 188
+    },
+    {
+      "pair": "USACO | 动态规划 DP",
+      "count": 187
+    },
+    {
+      "pair": "Special Judge | 洛谷月赛",
+      "count": 187
+    },
+    {
+      "pair": "Special Judge | 洛谷原创",
+      "count": 186
+    },
+    {
+      "pair": "O2优化 | 二分",
+      "count": 185
+    },
+    {
+      "pair": "2023 | ICPC",
+      "count": 183
+    },
+    {
+      "pair": "ICPC | NERC/NEERC",
+      "count": 179
+    },
+    {
+      "pair": "2023 | Special Judge",
+      "count": 178
+    },
+    {
+      "pair": "2022 | Special Judge",
+      "count": 173
+    },
+    {
+      "pair": "数学 | 洛谷月赛",
+      "count": 172
+    },
+    {
+      "pair": "树状数组 | 线段树",
+      "count": 171
+    },
+    {
+      "pair": "动态规划 DP | 洛谷原创",
+      "count": 171
+    },
+    {
+      "pair": "USACO | 贪心",
+      "count": 171
+    },
+    {
+      "pair": "字符串 | 模拟",
+      "count": 165
+    },
+    {
+      "pair": "O2优化 | Ynoi",
+      "count": 162
+    },
+    {
+      "pair": "2022 | ICPC",
+      "count": 161
+    },
+    {
+      "pair": "2021 | Special Judge",
+      "count": 159
+    },
+    {
+      "pair": "2021 | ICPC",
+      "count": 158
+    }
+  ]
+}
