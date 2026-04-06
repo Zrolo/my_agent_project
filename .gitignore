@@ -13,6 +13,7 @@ CC-Switch-v3.11.1-Windows-Portable/
 
 # macOS / editor noise
 .DS_Store
+*.swp
 
 # Local runtime artifacts
 *.db
