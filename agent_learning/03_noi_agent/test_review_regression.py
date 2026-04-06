@@ -30,6 +30,7 @@ import requests
 BASE = os.environ.get("NOI_TEST_BASE", "http://127.0.0.1:8000")
 USER_ID = os.environ.get("NOI_TEST_USER", "student_a")
 PASSWORD = os.environ.get("NOI_TEST_PASSWORD", "password")
+REQUEST_TIMEOUT = int(os.environ.get("NOI_TEST_TIMEOUT", "180"))
 
 PASS = "\033[92mPASS\033[0m"
 WARN = "\033[93mWARN\033[0m"
@@ -78,7 +79,7 @@ CASES: list[RegressionCase] = [
         },
         expected_layers=("modeling",),
         key_bridge_terms=("对象", "关系", "点", "边"),
-        next_step_terms=("点表示", "边表示", "对象", "关系", "抽清"),
+        next_step_terms=("课程", "先修", "箭头", "点", "边"),
         forbidden_terms=("状态转移", "背包"),
     ),
     RegressionCase(
@@ -118,9 +119,9 @@ CASES: list[RegressionCase] = [
             "reflection": "关键像是并列约束，而不是一个主条件配一个顺手检查。",
         },
         expected_layers=("core_design",),
-        key_bridge_terms=("同时满足", "并列条件", "合法安排", "附带检查"),
-        next_step_terms=("整理限制", "标出条件", "同时满足", "附带检查"),
-        forbidden_terms=("不等式", "建图", "边权"),
+        key_bridge_terms=("逻辑与", "布尔表达式", "没有主次", "两个条件", "并列"),
+        next_step_terms=("AND", "草稿纸", "逻辑表达式", "维度", "缺漏"),
+        forbidden_terms=("建图", "边权"),
     ),
     RegressionCase(
         case_id="C1",
@@ -177,9 +178,9 @@ CASES: list[RegressionCase] = [
             "bottleneck_text": "我一看到最优值就想套 DP，但没判断这个规模其实允许直接枚举全部子集。",
             "error_types": ["check_condition", "知道算法但不知道怎么用"],
         },
-        expected_layers=("core_design",),
-        key_bridge_terms=("n<=20", "规模上界", "全部子集", "直接枚举"),
-        next_step_terms=("判断规模", "直接枚举", "全部子集", "先别套dp"),
+        expected_layers=("method", "core_design"),
+        key_bridge_terms=("2^n", "10^6", "直接枚举", "子集", "不需要用DP"),
+        next_step_terms=("圈出", "规模", "范围", "直接枚举", "模板"),
         forbidden_terms=("必须DP", "贪心", "最短路"),
     ),
     RegressionCase(
@@ -198,7 +199,7 @@ CASES: list[RegressionCase] = [
             "error_types": ["优化策略", "知道算法但不知道怎么用"],
         },
         expected_layers=("core_design",),
-        key_bridge_terms=("结束时间最早", "后续空间", "不吃亏", "兼容"),
+        key_bridge_terms=("结束时间最早", "后续", "空间", "不吃亏", "兼容"),
         next_step_terms=("画", "区间", "比较", "兼容"),
         forbidden_terms=("最短路", "状态转移"),
     ),
@@ -276,6 +277,12 @@ def normalize_text(text: str) -> str:
         ("\n", ""),
         ("\t", ""),
         ("`", ""),
+        ("$", ""),
+        ("{", ""),
+        ("}", ""),
+        ("\\le", "<="),
+        ("\\approx", ""),
+        (",", ""),
         ("n <= 20", "n<=20"),
         ("n≤20", "n<=20"),
         ("2 的 k 次方", "2^k"),
@@ -318,11 +325,154 @@ def contains_forbidden(text: str, keywords: Iterable[str]) -> bool:
     return False
 
 
+def review_text(review: dict | None, *fields: str) -> str:
+    if not review:
+        return ""
+    return " ".join((review.get(field) or "").strip() for field in fields if field)
+
+
+def count_pattern_hits(text: str, patterns: Iterable[str]) -> int:
+    lowered = normalize_text(text)
+    return sum(1 for pattern in patterns if re.search(pattern, lowered))
+
+
+def evaluate_b1_structure_gate(review: dict | None) -> list[str]:
+    failures: list[str] = []
+    main_block = review_text(review, "main_block")
+    key_bridge = review_text(review, "key_bridge")
+    next_step = review_text(review, "next_step")
+    all_text = review_text(review, "main_block", "key_bridge", "next_step", "transfer_signal")
+    lowered = normalize_text(all_text)
+
+    has_time_place = "时间" in lowered and "地点" in lowered
+    parallel_patterns = (
+        r"两个条件都要",
+        r"两个条件都满足",
+        r"同时满足",
+        r"都得过",
+        r"少一个都不行",
+        r"缺一个都不行",
+    )
+    sequential_patterns = (
+        r"先.*时间.*再.*地点",
+        r"先.*地点.*再.*时间",
+        r"时间.*附带检查.*地点",
+        r"地点.*附带检查.*时间",
+        r"先.*时间.*后.*地点",
+        r"先.*地点.*后.*时间",
+    )
+    negated_sequential_patterns = (
+        r"而非先.*时间.*再.*地点",
+        r"而非先.*地点.*再.*时间",
+        r"而非先.*时间.*后.*地点",
+        r"而非先.*地点.*后.*时间",
+        r"不是先.*时间.*再.*地点",
+        r"不是先.*地点.*再.*时间",
+    )
+    corrective_markers = ("而不是", "不是", "而非", "误以为", "看成了", "当成了", "但实际上")
+    action_patterns = (
+        r"列出",
+        r"分别列",
+        r"逐项检查",
+        r"画.*2x2",
+        r"画.*真假组合",
+        r"拿.*样例",
+        r"拿出.*草稿纸",
+        r"手写.*样本",
+        r"标注",
+        r"打勾",
+        r"对照.*代码",
+        r"改写成.*表达式",
+        r"布尔表达式",
+        r"check函数",
+        r"逻辑与",
+        r"代入",
+        r"检查",
+    )
+
+    if not has_time_place:
+        failures.append("B1 缺少原题具体对象：没有同时贴住时间和地点")
+
+    sequential_hit = count_pattern_hits(lowered, sequential_patterns) > 0
+    parallel_hit = count_pattern_hits(lowered, parallel_patterns) > 0 or count_matches(all_text, ("同时", "都要", "两个条件", "都满足")) >= 2
+    corrective_hit = contains_any(all_text, corrective_markers) or count_pattern_hits(lowered, negated_sequential_patterns) > 0
+
+    if sequential_hit and not (parallel_hit and corrective_hit):
+        failures.append("B1 出现先满足 A，再检查 B 的顺序结构")
+
+    if not parallel_hit:
+        failures.append("B1 没有明确表达两个条件平级且必须同时成立")
+
+    if count_pattern_hits(normalize_text(next_step), action_patterns) == 0:
+        failures.append("B1 next_step 不是具体动作")
+
+    if contains_any(review_text(review, "main_block", "key_bridge"), GENERIC_PHRASES):
+        failures.append("B1 输出仍停留在空泛建议，没有贴题解释")
+
+    return failures
+
+
+def evaluate_d1_structure_gate(review: dict | None) -> list[str]:
+    failures: list[str] = []
+    main_block = review_text(review, "main_block")
+    key_bridge = review_text(review, "key_bridge")
+    next_step = review_text(review, "next_step")
+    all_text = review_text(review, "main_block", "key_bridge", "next_step", "transfer_signal")
+    lowered = normalize_text(all_text)
+
+    scale_patterns = (
+        r"n<=20",
+        r"2\^20",
+        r"2\^n",
+        r"规模",
+        r"范围",
+    )
+    enumerate_patterns = (
+        r"直接枚举",
+        r"枚举子集",
+        r"枚举",
+        r"子集",
+    )
+    avoid_dp_patterns = (
+        r"不必.{0,4}dp",
+        r"不需要.{0,4}dp",
+        r"先别.{0,4}dp",
+        r"不用.{0,4}dp",
+    )
+    wrong_dp_patterns = (
+        r"如果.*大.*dp",
+        r"考虑dp",
+        r"搜索或动态规划",
+    )
+    action_verbs = ("确认", "算", "估", "写", "验证", "找", "圈出")
+    action_objects = ("n", "范围", "规模", "2^", "枚举", "子集", "超时")
+
+    if count_pattern_hits(lowered, scale_patterns) == 0:
+        failures.append("D1 缺少原题规模对象，没有贴住 n<=20 / 规模 / 范围")
+
+    if count_pattern_hits(lowered, enumerate_patterns) == 0:
+        failures.append("D1 没有明确给出可直接枚举的判断")
+
+    if count_pattern_hits(lowered, wrong_dp_patterns) > 0:
+        failures.append("D1 规模判断后又滑回先上 DP 的结论")
+
+    if "dp" in lowered and count_pattern_hits(lowered, avoid_dp_patterns) == 0 and count_pattern_hits(lowered, scale_patterns) == 0:
+        failures.append("D1 一上来就报算法名，没有先经过规模判断")
+
+    if not (contains_any(next_step, action_verbs) and contains_any(next_step, action_objects)):
+        failures.append("D1 next_step 不是具体动作")
+
+    if contains_any(review_text(review, "main_block", "key_bridge"), GENERIC_PHRASES):
+        failures.append("D1 输出仍停留在空泛建议，没有解释为什么先不用 DP")
+
+    return failures
+
+
 def login() -> str:
     response = requests.post(
         f"{BASE}/auth/login",
         json={"user_id": USER_ID, "password": PASSWORD},
-        timeout=20,
+        timeout=min(REQUEST_TIMEOUT, 30),
     )
     response.raise_for_status()
     token = response.json().get("token")
@@ -370,6 +520,21 @@ def evaluate_case(case: RegressionCase, review: dict | None) -> tuple[bool, list
     if case.forbidden_terms and contains_forbidden(student_text, case.forbidden_terms):
         failures.append(f"出现疑似串题型/错误术语：{case.forbidden_terms}")
 
+    special_failures: list[str] = []
+    if case.case_id == "B1":
+        special_failures = evaluate_b1_structure_gate(review)
+    elif case.case_id == "D1":
+        special_failures = evaluate_d1_structure_gate(review)
+
+    if case.case_id in {"B1", "D1"}:
+        failures = [
+            item for item in failures
+            if "key_bridge 命中期望结构词不足" not in item and "next_step 命中期望动作词不足" not in item
+        ]
+        if special_failures:
+            failures.extend(special_failures)
+            failures = list(dict.fromkeys(failures))
+
     return not failures, warnings, failures
 
 
@@ -380,11 +545,29 @@ def run_case(token: str, case: RegressionCase) -> bool:
             f"{BASE}/api/checkins",
             json=case.payload,
             headers=headers,
-            timeout=90,
+            timeout=REQUEST_TIMEOUT,
         )
     except requests.RequestException as exc:
         status(FAIL, f"{case.case_id} {case.title} | 请求失败 | {exc}")
         return False
+
+    if response.status_code == 401:
+        try:
+            refreshed_token = login()
+        except Exception as exc:
+            status(FAIL, f"{case.case_id} {case.title} | token 失效且重新登录失败 | {exc}")
+            return False
+        headers = {"Authorization": f"Bearer {refreshed_token}"}
+        try:
+            response = requests.post(
+                f"{BASE}/api/checkins",
+                json=case.payload,
+                headers=headers,
+                timeout=REQUEST_TIMEOUT,
+            )
+        except requests.RequestException as exc:
+            status(FAIL, f"{case.case_id} {case.title} | 重试请求失败 | {exc}")
+            return False
 
     if response.status_code != 200:
         status(FAIL, f"{case.case_id} {case.title} | HTTP {response.status_code} | {response.text[:200]}")

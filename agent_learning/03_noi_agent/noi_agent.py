@@ -8,11 +8,14 @@ import json
 import os
 import re
 from openai import OpenAI
+from model_config import get_model_candidates, is_model_unavailable_error
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 QUOTA_FILE = os.path.join(BASE_DIR, "quota.json")
 PER_PROBLEM_HINT_LIMIT = 3
 client = None
+CLASSIFIER_TIMEOUT_SECONDS = 2.5
+DEFAULT_CHAT_MODELS = ("kimi-k2.5",)
 
 # ============ 1. 代码层控制对象定义 ============
 
@@ -26,7 +29,10 @@ VALID_REASON_TAGS = [
     "bridge_attempt",
     "code_no_target",
     "slot_fill",
-    "cross_slot_dump"
+    "cross_slot_dump",
+    "classifier_direct",
+    "classifier_bridge",
+    "type_confirm"
 ]
 
 # L1 强拦关键词
@@ -61,6 +67,47 @@ CODE_PATTERNS = [
     r'struct ', r'public:', r'private:', r'void ', r'return '
 ]
 
+SEMANTIC_RISK_PATTERNS = [
+    r'这题是.*吗',
+    r'是不是',
+    r'对不对',
+    r'应该.*吧',
+    r'像.*吗',
+    r'感觉.*吗',
+    r'算.*吗',
+    r'用.*对吧',
+    r'这一步.*推不出来',
+    r'判断.*怎么组织',
+    r'这里.*想不通',
+]
+
+# Type Confirm 检测模式（代码层直接识别，不依赖分类器）
+TYPE_CONFIRM_PATTERNS = [
+    r'这题是.*[吗吧？?]',  # 这题是...吗/吧/?
+    r'是不是.*',
+    r'应该用.*[吧吗？?]',
+    r'像.*[吗吧？?]',
+    r'感觉是.*[吗吧？?]',
+    r'算.*[吗吧？?]',
+    r'用.*对吧',
+    r'这道题是.*[吗吧？?]',
+    r'是[二贪递字背图]*[分心归符包论dp]+[吗吧？?]',  # 是DP吗/是二分吗...
+]
+
+
+def _is_type_confirm(text: str) -> bool:
+    """
+    代码层直接识别 type_confirm 场景
+    识别学生是否在猜测或确认题型/方法
+    
+    返回 True 表示命中 type_confirm 模式
+    """
+    text_lower = text.lower()
+    for pattern in TYPE_CONFIRM_PATTERNS:
+        if re.search(pattern, text_lower):
+            return True
+    return False
+
 
 def get_client() -> OpenAI:
     """延迟初始化客户端"""
@@ -76,49 +123,127 @@ def get_client() -> OpenAI:
     return client
 
 
-# ============ 2. 代码层输入分析函数 ============
+# ============ 2. 代码层输入分析函数（双轨版本：等级轨 + 风险轨） ============
+
+# 风险标签优先级（从高到低）
+RISK_PRIORITY = {
+    "direct_request": 1,
+    "bridge_attempt": 2,
+    "type_confirm": 3,
+    "mixed_signal": 4,
+    "multi_question": 5,
+}
+
+# 风险标签对应的最高允许等级
+RISK_LEVEL_LIMITS = {
+    "direct_request": "L1",
+    "bridge_attempt": "L2",  # 无L3证据时
+    "type_confirm": "L2",
+    "mixed_signal": None,  # 按最危险意图处理
+    "multi_question": None,  # 不限制等级，但约束输出
+}
+
+
+def _detect_risks(user_input: str) -> list:
+    """
+    风险轨：检测学生输入中的套答案风险
+    
+    返回风险标签列表，可能包含多个：
+    - direct_request: 直接索取答案/代码
+    - type_confirm: 确认/猜测题型
+    - bridge_attempt: 索取关键桥梁
+    - mixed_signal: 混合多个危险意图
+    - multi_question: 一条输入多个问题
+    
+    本版本暂不实现 fake_attempt（依赖L3证据门槛自然过滤）
+    """
+    risks = []
+    text_lower = user_input.lower()
+    
+    # 1. direct_request: 直接索取
+    for kw in L1_DIRECT_KEYWORDS:
+        if kw in user_input:
+            risks.append("direct_request")
+            break
+    
+    # 2. type_confirm: 确认题型
+    if _is_type_confirm(user_input):
+        risks.append("type_confirm")
+    
+    # 3. bridge_attempt: 索取桥梁
+    if _is_bridge_attempt(user_input):
+        risks.append("bridge_attempt")
+    
+    # 4. multi_question: 多问题
+    # 检测是否有多个问号，或明显的多个问题模式
+    question_count = text_lower.count('?') + text_lower.count('？')
+    if question_count >= 2:
+        risks.append("multi_question")
+    elif len([m for m in re.finditer(r'(\?|？|(?:怎么|如何|为什么|吗|吧)[？?\s]*)', user_input)]) >= 2:
+        risks.append("multi_question")
+    
+    # 5. mixed_signal: 混合多个危险意图
+    # 如果同时命中多个风险标签（不含 multi_question），标记为 mixed_signal
+    core_risks = [r for r in risks if r != "multi_question"]
+    if len(core_risks) >= 2:
+        risks.append("mixed_signal")
+    
+    return risks
+
+
+def _get_highest_risk(risks: list) -> str:
+    """
+    根据优先级获取最高风险标签
+    """
+    if not risks:
+        return None
+    
+    # 按优先级排序，返回优先级最高的
+    sorted_risks = sorted(risks, key=lambda r: RISK_PRIORITY.get(r, 99))
+    return sorted_risks[0]
+
 
 def analyze_student_turn(user_input: str, messages: list) -> dict:
     """
-    分析学生输入，产出控制对象
+    分析学生输入，产出双轨控制对象
     
-    判定顺序（固定）：
-    1. L1强拦
-    2. L3保留资格
-    3. 贴代码无怀疑点
-    4. 桥梁套取
-    5. 跨槽位拼凑
-    6. L2槽位分析（只要会到L2就计算）
-    
-    返回：
+    返回双轨结构：
     {
-        "max_level": "L1|L2|L3",
-        "bridge_redline": True|False,
-        "reason_tags": [...],
-        "l2_slot_state": {"对象": "filled|partial|empty", ...},
-        "l2_current_slot": "对象|选择|限制|最简单情况|None"
+        "level_control": {
+            "max_level": "L1|L2|L3",
+            "bridge_redline": True|False,
+            "l2_slot_state": {...},
+            "l2_current_slot": "..."
+        },
+        "risk_control": {
+            "risk_tags": [...],
+            "highest_risk": "..."  # 优先级最高的风险标签
+        }
     }
+    
+    判定顺序：
+    1. 等级轨：判断思考深度（L1/L2/L3）
+    2. 风险轨：检测套答案风险
+    3. 合并：风险轨优先约束等级轨
     """
     user_lower = user_input.lower()
     
-    # 初始化控制对象
-    control = {
+    # ========== 等级轨：判断思考深度 ==========
+    level_control = {
         "max_level": "L3",  # 默认允许到L3
         "bridge_redline": False,
-        "reason_tags": [],
         "l2_slot_state": {slot: "empty" for slot in L2_SLOTS},
         "l2_current_slot": None
     }
     
-    # ===== Step 1: L1 强拦 =====
+    # Step 1: L1 强拦
     l1_triggered = False
     
     # 1A: 直接索取
     for kw in L1_DIRECT_KEYWORDS:
         if kw in user_input:
             l1_triggered = True
-            control["max_level"] = "L1"
-            control["reason_tags"].append("direct_request")
+            level_control["max_level"] = "L1"
             break
     
     # 1B: 极短且无思考
@@ -126,8 +251,7 @@ def analyze_student_turn(user_input: str, messages: list) -> dict:
         for kw in L1_SHORT_NO_THINKING:
             if kw in user_lower:
                 l1_triggered = True
-                control["max_level"] = "L1"
-                control["reason_tags"].append("direct_request")
+                level_control["max_level"] = "L1"
                 break
     
     # 1C: 情绪催促
@@ -135,63 +259,85 @@ def analyze_student_turn(user_input: str, messages: list) -> dict:
         for kw in L1_EMOTION_PRESSURE:
             if kw in user_input:
                 l1_triggered = True
-                control["max_level"] = "L1"
-                control["reason_tags"].append("emotion_pressure")
+                level_control["max_level"] = "L1"
                 break
     
-    # 1D: 只复述题意（无自己的分析）
+    # 1D: 只复述题意
     if not l1_triggered and _is_only_restating(user_input):
         l1_triggered = True
-        control["max_level"] = "L1"
-        control["reason_tags"].append("direct_request")
+        level_control["max_level"] = "L1"
     
-    if l1_triggered:
-        return control
-    
-    # ===== Step 2: L3 保留资格判断 =====
-    has_l3_evidence = _has_l3_evidence(user_input)
-    
-    if not has_l3_evidence:
-        # 没有L3证据，最多到L2
-        control["max_level"] = "L2"
-    else:
-        # 有L3证据，标记slot_fill
-        control["reason_tags"].append("slot_fill")
-    
-    # ===== Step 3: 贴代码无怀疑点 =====
-    has_code = _contains_code(user_input)
-    has_doubt_point = _has_doubt_point(user_input)
-    
-    if has_code and not has_doubt_point:
-        control["max_level"] = "L2"
-        control["reason_tags"].append("code_no_target")
-    
-    # ===== Step 4: 桥梁套取识别 =====
-    bridge_attempted = _is_bridge_attempt(user_input)
-    
-    if bridge_attempted:
-        control["bridge_redline"] = True
-        control["reason_tags"].append("bridge_attempt")
+    # 如果已触发L1，跳过后续等级判断
+    if not l1_triggered:
+        # Step 2: L3 保留资格判断
+        has_l3_evidence = _has_l3_evidence(user_input)
         
         if not has_l3_evidence:
-            # 无L3证据但索取桥梁，压到L2
-            control["max_level"] = "L2"
-        # 如果有L3证据，保留L3但开启bridge_redline
+            level_control["max_level"] = "L2"
+        
+        # Step 3: 贴代码无怀疑点
+        has_code = _contains_code(user_input)
+        has_doubt_point = _has_doubt_point(user_input)
+        
+        if has_code and not has_doubt_point:
+            level_control["max_level"] = "L2"
+        
+        # Step 4: 桥梁套取识别
+        bridge_attempted = _is_bridge_attempt(user_input)
+        if bridge_attempted:
+            level_control["bridge_redline"] = True
+            if not has_l3_evidence:
+                level_control["max_level"] = "L2"
+        
+        # Step 5: L2槽位分析
+        if level_control["max_level"] in ("L2", "L3"):
+            level_control["l2_slot_state"] = _analyze_slot_filling(user_input)
+            level_control["l2_current_slot"] = _determine_current_slot(level_control["l2_slot_state"])
     
-    # ===== Step 5: 跨槽位拼凑检测 =====
-    if _is_cross_slot_dump(user_input):
-        control["reason_tags"].append("cross_slot_dump")
-        # 不自动升到L3，限制在L2做连接验证
-        if control["max_level"] == "L3" and not has_l3_evidence:
-            control["max_level"] = "L2"
+    # ========== 风险轨：检测套答案风险 ==========
+    risk_tags = _detect_risks(user_input)
+    highest_risk = _get_highest_risk(risk_tags)
     
-    # ===== Step 6: L2槽位分析（只要会到L2或L3，都计算槽位）=====
-    # 修复：只要max_level是L2或L3，就计算槽位状态
-    if control["max_level"] in ("L2", "L3"):
-        control["l2_slot_state"] = _analyze_slot_filling(user_input)
-        control["l2_current_slot"] = _determine_current_slot(control["l2_slot_state"])
+    risk_control = {
+        "risk_tags": risk_tags,
+        "highest_risk": highest_risk
+    }
     
-    return control
+    # ========== 合并：风险轨优先约束等级轨 ==========
+    # 根据最高优先级风险调整等级
+    # 注意：bridge_attempt 需要特殊处理：有L3证据时保留L3，只开启桥梁红线
+    if highest_risk:
+        limit_level = RISK_LEVEL_LIMITS.get(highest_risk)
+        if limit_level:
+            # bridge_attempt 特殊处理：如果已经检测到L3证据，保留L3
+            if highest_risk == "bridge_attempt" and level_control["max_level"] == "L3":
+                # 有L3证据，保留L3，只开启桥梁红线（已在上面处理）
+                pass
+            else:
+                # 其他情况：如果风险要求限制等级，取更严格的等级
+                current_level = level_control["max_level"]
+                level_order = {"L1": 1, "L2": 2, "L3": 3}
+                if level_order.get(limit_level, 3) < level_order.get(current_level, 3):
+                    level_control["max_level"] = limit_level
+    
+    # 同步风险标签到 risk_control
+    # 从 level_control 的 reason_tags 中提取风险标签
+    risk_tags_from_level = [tag for tag in level_control.get("reason_tags", []) 
+                            if tag in ["direct_request", "emotion_pressure", "bridge_attempt", 
+                                      "type_confirm", "code_no_target", "cross_slot_dump"]]
+    for tag in risk_tags_from_level:
+        if tag not in risk_control["risk_tags"]:
+            risk_control["risk_tags"].append(tag)
+    
+    # 更新最高风险
+    if risk_control["risk_tags"]:
+        risk_control["highest_risk"] = _get_highest_risk(risk_control["risk_tags"])
+    
+    # 返回双轨结构
+    return {
+        "level_control": level_control,
+        "risk_control": risk_control
+    }
 
 
 def _is_only_restating(text: str) -> bool:
@@ -378,33 +524,171 @@ def _determine_current_slot(slot_state: dict) -> str:
     return "最简单情况"
 
 
-# ============ 3. Prompt构造 ============
+def _looks_like_semantic_risk(text: str) -> bool:
+    normalized = (text or "").strip().lower()
+    if not normalized:
+        return False
 
-def build_system_prompt(control: dict, remaining: int, student_id: str, problem_id: str) -> str:
+    for pattern in SEMANTIC_RISK_PATTERNS:
+        if re.search(pattern, normalized, re.IGNORECASE):
+            return True
+
+    if normalized.endswith(("吗", "吗？", "吗?", "对吧", "对吧？", "对吧?")):
+        return True
+
+    return False
+
+
+def should_call_classifier(dual_control: dict, user_input: str):
     """
-    构建带控制块的System Prompt
+    判断是否需要调用分类器（双轨版本）
+    
+    Args:
+        dual_control: 双轨控制对象，包含 level_control 和 risk_control
+    """
+    text = (user_input or "").strip()
+    level_control = dual_control["level_control"]
+    risk_control = dual_control["risk_control"]
+    
+    risk_tags = set(risk_control.get("risk_tags", []))
+
+    if not text or len(text) < 2:
+        return False, "skip_empty"
+
+    if level_control.get("max_level") == "L1":
+        return False, "skip_l1"
+
+    # 如果已经有高信忆度风险标签，不需要分类器
+    high_confidence_risks = {"direct_request", "type_confirm", "bridge_attempt", "emotion_pressure"}
+    if risk_tags & high_confidence_risks:
+        return False, "skip_high_confidence_risk"
+
+    if level_control.get("max_level") == "L3":
+        return False, "skip_l3"
+
+    if level_control.get("max_level") != "L2":
+        return False, "skip_non_l2"
+
+    if _looks_like_semantic_risk(text):
+        return True, "call_semantic_risk"
+
+    return False, "skip_non_semantic_l2"
+
+
+# ============ 3. 分类器结果合并（新增） ============
+
+def merge_intent_with_control(control: dict, intent_tag: str) -> dict:
+    """
+    将 MiniMax 意图分类结果合并到代码层控制对象
+    
+    规则（只能降级，不能升档）：
+    1. direct -> 强制 max_level = L1
+    2. type_confirm -> max_level <= L2，添加 type_confirm_tag
+    3. bridge -> 打开 bridge_redline，如果没有 L3 证据则压到 L2
+    4. substantive -> 严格 no-op，直接返回原 control，不做任何修改
+       L3 资格只由代码层的"可定位实质尝试"证据决定，分类器不负责升档
+    
+    Args:
+        control: analyze_student_turn() 返回的控制对象
+        intent_tag: 分类器结果 (direct/type_confirm/bridge/substantive/None)
+    
+    Returns:
+        合并后的控制对象
+    """
+    if not intent_tag:
+        return control
+    
+    # substantive 必须是严格 no-op，直接返回原对象
+    # 不新增任何字段，不修改任何已有字段
+    if intent_tag == "substantive":
+        return control
+    
+    # 复制控制对象，避免修改原始对象
+    merged = dict(control)
+    
+    # 记录分类器标签（substantive 分支不执行到这里）
+    if "intent_tag" not in merged:
+        merged["intent_tag"] = intent_tag
+    
+    # 当前是否有 L3 证据
+    has_l3_evidence = "slot_fill" in merged.get("reason_tags", [])
+    
+    if intent_tag == "direct":
+        # 强制压到 L1
+        merged["max_level"] = "L1"
+        if "classifier_direct" not in merged.get("reason_tags", []):
+            merged["reason_tags"] = merged.get("reason_tags", []) + ["classifier_direct"]
+    
+    elif intent_tag == "type_confirm":
+        # 不能确认题型，最多 L2
+        if merged["max_level"] in ("L3",):
+            merged["max_level"] = "L2"
+        if "type_confirm" not in merged.get("reason_tags", []):
+            merged["reason_tags"] = merged.get("reason_tags", []) + ["type_confirm"]
+    
+    elif intent_tag == "bridge":
+        # 打开桥梁红线
+        merged["bridge_redline"] = True
+        if "classifier_bridge" not in merged.get("reason_tags", []):
+            merged["reason_tags"] = merged.get("reason_tags", []) + ["classifier_bridge"]
+        
+        # 如果没有 L3 证据，压到 L2
+        if not has_l3_evidence:
+            merged["max_level"] = "L2"
+    
+    return merged
+
+
+# ============ 4. Prompt构造 ============
+
+def build_system_prompt(dual_control: dict, remaining: int, student_id: str, problem_id: str) -> str:
+    """
+    构建带控制块的System Prompt（双轨版本）
+    
+    Args:
+        dual_control: 双轨控制对象，包含 level_control 和 risk_control
     
     动态注入：
     - MAX_LEVEL
     - BRIDGE_REDLINE
-    - REASON_TAGS
+    - RISK_TAGS
     - L2_SLOT_STATE (如果是L2)
     - L2_CURRENT_SLOT (如果是L2)
     """
-    max_level = control["max_level"]
-    bridge_redline = control["bridge_redline"]
-    reason_tags = control["reason_tags"]
+    level_control = dual_control["level_control"]
+    risk_control = dual_control["risk_control"]
+    
+    max_level = level_control["max_level"]
+    bridge_redline = level_control["bridge_redline"]
+    risk_tags = risk_control.get("risk_tags", [])
+    highest_risk = risk_control.get("highest_risk")
+    
+    # 风险标签说明
+    risk_desc = "无"
+    if highest_risk:
+        risk_names = {
+            "direct_request": "直接索取",
+            "type_confirm": "确认题型",
+            "bridge_attempt": "索取桥梁",
+            "mixed_signal": "混合意图",
+            "multi_question": "多问题"
+        }
+        risk_desc = risk_names.get(highest_risk, highest_risk)
     
     base_prompt = f"""你是一名 NOI 竞赛教练助手，专门辅导 CSP-J/S、NOIP 方向的学生。
 
 ## 核心原则
 你不是"答案机"，你是"思维训练器"。目标是让学生学会独立解题。
 
-## 代码层控制指令（必须遵守）
+## 双轨控制指令（必须遵守）
 
+### 等级轨（思考深度）
 **本次回复最高级别: {max_level}**
 **桥梁红线: {'开启' if bridge_redline else '关闭'}**
-**触发原因: {', '.join(reason_tags) if reason_tags else '无'}**
+
+### 风险轨（套答案风险）
+**风险标签: {', '.join(risk_tags) if risk_tags else '无'}**
+**优先级最高风险: {risk_desc}**
 
 ### 级别定义
 - **L1 - 引导反问（不消耗配额）**：
@@ -420,19 +704,27 @@ def build_system_prompt(control: dict, remaining: int, student_id: str, problem_
   每次只推进半步，每次最多引入一个新概念
   可以给3-5行伪代码或关键行，不能给完整代码/方程/结构
 
-### 桥梁红线规则（bridge_redline=true时必须遵守）
+### 风险轨约束（必须优先遵守）
 
-**允许做的事**：
-- 指出方向有问题
-- 指出哪一类错误存在
-- 指出哪里不完整
+**direct_request** 场景：
+- 严禁给答案、代码、完整做法
+- 只能反问
 
-**禁止做的事**：
-- 说出正确内容
-- 补正确桥梁
-- 把关键结构说出来
+**type_confirm** 场景：
+- 严禁确认或否认题型（如"是DP"、"不是二分"等）
+- 只能追问"你为什么会这么猜？"
 
-**一句话总结**：可以指出错，不能补正确答案。
+**bridge_attempt** 场景（bridge_redline=true）：
+- 严禁直接给出状态定义、转移方程、check条件
+- 可以指出错误，不能补正确桥梁
+
+**mixed_signal** 场景：
+- 混合多个危险意图时，按最危险意图处理
+- 不按"最像思考的片段"提级
+
+**multi_question** 场景：
+- 不同时回答多个问题
+- 要求聚焦一个点
 
 ## 强制输出约束
 - 用初中生/高中生能懂的话
@@ -455,8 +747,8 @@ def build_system_prompt(control: dict, remaining: int, student_id: str, problem_
 4. 不认可学生的任何预设
 """
     elif max_level == "L2":
-        slot_state = control.get("l2_slot_state", {})
-        current_slot = control.get("l2_current_slot", "对象")
+        slot_state = level_control.get("l2_slot_state", {})
+        current_slot = level_control.get("l2_current_slot", "对象")
         
         base_prompt += f"""
 
@@ -497,6 +789,26 @@ def build_system_prompt(control: dict, remaining: int, student_id: str, problem_
 4. 不能给完整解法
 """
 
+    # 添加 type_confirm 特殊约束（如果适用）
+    if "type_confirm" in risk_tags:
+        base_prompt += """
+
+## type_confirm 特殊约束（必须遵守）
+学生在猜测或确认题型/方法。
+
+**绝对禁止**：
+- 不能确认题型（不能说"对，这是字符串"、"对，是DP"）
+- 不能纠正题型（不能说"不是这个，是另外那个"）
+- 不能给方向暗示
+
+**必须做的**：
+- 只能反问："你为什么会这么猜？"
+- 或者："题目里哪个特征让你想到这个方法？"
+- 或者："你是看到什么结构才往这个方向想的？"
+
+目标：让学生自己解释推理过程，而不是告诉他答案。
+"""
+
     # 添加当前状态信息
     base_prompt += f"""
 
@@ -508,14 +820,15 @@ def build_system_prompt(control: dict, remaining: int, student_id: str, problem_
 重要：
 1. 严格遵守上面的 MAX_LEVEL 限制
 2. 严格遵守桥梁红线规则
-3. 回复最后一行必须是 [LEVEL:L1|L2|L3|L4] 标签
-4. 不要在回复中写配额数字
+3. 严格遵守 type_confirm 约束（如果适用）
+4. 回复最后一行必须是 [LEVEL:L1|L2|L3|L4] 标签
+5. 不要在回复中写配额数字
 """
 
     return base_prompt
 
 
-# ============ 4. 配额管理（保持不变） ============
+# ============ 5. 配额管理（保持不变） ============
 
 def load_quota(student_id: str, problem_id: str) -> dict:
     """加载配额"""
@@ -634,26 +947,94 @@ def enforce_level_gate(level: str, max_level: str, raw_reply: str) -> tuple[str,
     return level, raw_reply
 
 
+# ============ 6.5 输出保险丝（双轨规则） ============
+
+# Type Confirm 危险模式：明确确认或否认题型的句首/独立句
+# 使用严格正则，避免误杀追问性质的反问
+TYPE_CONFIRM_DANGER_PATTERNS = [
+    r'^是\s*(dp|二分|贪心|递归|字符串|背包|图论|动态规划|树状|bfs|dfs)',  # 是DP/是二分...
+    r'^不是\s*(dp|二分|贪心|递归|字符串|背包|图论|动态规划)',  # 不是DP/不是二分...
+    r'^这题是',  # 这题是...
+    r'^应该用',  # 应该用...
+    r'^可以用\s*(dp|二分|贪心|递归|字符串|背包|图论)',  # 可以用二分...
+    r'^用\s*(dp|二分|贪心|递归|字符串|背包|图论)',  # 用二分...
+    r'[^为什么].*是[^,，。]*题',  # 确认是XX题（非追问）
+]
+
+# Bridge 危险模式：直接给出关键桥梁内容
+BRIDGE_DANGER_PATTERNS = [
+    r'状态定义为[^,，。]{5,}',  # 状态定义为...
+    r'转移方程为[^,，。]{5,}',  # 转移方程为...
+    r'check\s*函数[^,，。]{3,}',  # check函数...
+    r'建图[^,，。]{5,}',  # 建图...
+    r'递归[^,，。]{0,10}base\s*case',  # 递归...base case
+]
+
+# 安全替换回复
+TYPE_CONFIRM_SAFE_REPLY = "先别急着确认题型。你为什么会这么猜？\n\n[LEVEL:L2]"
+BRIDGE_SAFE_REPLY = "这里不能直接给出关键桥梁。你自己的尝试是什么？\n\n[LEVEL:L2]"
+
+
+def _check_danger_patterns(reply: str, patterns: list) -> bool:
+    """检查回复是否命中危险模式"""
+    for pattern in patterns:
+        if re.search(pattern, reply, re.IGNORECASE):
+            return True
+    return False
+
+
+def enforce_output_guards(reply: str, level_control: dict, risk_control: dict) -> tuple[str, str]:
+    """
+    输出保险丝（双轨规则）
+    
+    根据风险标签检查并约束输出，确保：
+    - type_confirm 场景不确认/否认题型
+    - bridge_attempt 场景不直接给桥梁
+    
+    返回: (处理后的回复, 是否被替换的标记)
+    """
+    risk_tags = risk_control.get("risk_tags", [])
+    
+    # 1. Type Confirm 保险丝
+    if "type_confirm" in risk_tags:
+        if _check_danger_patterns(reply, TYPE_CONFIRM_DANGER_PATTERNS):
+            return TYPE_CONFIRM_SAFE_REPLY, "type_confirm_guard"
+    
+    # 2. Bridge 保险丝
+    if level_control.get("bridge_redline", False) or "bridge_attempt" in risk_tags:
+        if _check_danger_patterns(reply, BRIDGE_DANGER_PATTERNS):
+            return BRIDGE_SAFE_REPLY, "bridge_guard"
+    
+    # 3. Multi Question 保险丝
+    if "multi_question" in risk_tags:
+        # 检测回复是否同时回答了多个问题
+        answer_count = len(re.findall(r'[。\.\!\?]？\s*(?=可以|应该|这个|那个)', reply))
+        if answer_count >= 2:
+            return "请一次只问一个点，我们先聚焦一下你最关键的问题。\n\n[LEVEL:L2]", "multi_question_guard"
+    
+    return reply, None
+
+
 # ============ 7. 主对话逻辑 ============
 
-def chat(messages: list, student_id: str, problem_id: str) -> tuple[str, str]:
+def chat(messages: list, student_id: str, problem_id: str) -> tuple[str, str, str]:
     """
-    主对话逻辑：
+    主对话逻辑（双轨版本）：
     1. 检查配额
-    2. 代码层分析学生输入，产出控制对象（含max_level硬限制）
-    3. 构建带控制块的Prompt
+    2. 代码层分析：产出双轨控制对象（等级轨 + 风险轨）
+    3. 构建带双轨控制块的Prompt
     4. 调用LLM
-    5. **硬闸门**：检查模型输出是否超过max_level，超限则强制降级
-    6. 提取（可能被强制修改后的）标签，决定扣配额
-    7. 返回 (display_reply, history_reply)
+    5. **硬闸门**：检查模型输出是否超过max_level
+    6. **输出保险丝**：检查并约束风险场景输出
+    7. 返回 (display_reply, history_reply, final_level)
     
-    返回: (reply_for_display, reply_for_history)
+    返回: (reply_for_display, reply_for_history, final_level)
     """
     remaining = get_remaining_quota(student_id, problem_id)
     
     if remaining <= 0:
         farewell = generate_farewell_gift(problem_id)
-        return farewell, farewell
+        return farewell, farewell, "L4"
     
     # 获取最后一条用户输入
     last_user_msg = ""
@@ -662,19 +1043,57 @@ def chat(messages: list, student_id: str, problem_id: str) -> tuple[str, str]:
             last_user_msg = msg.get("content", "")
             break
     
-    # 代码层分析：产出控制对象（关键：max_level是硬上限）
-    control = analyze_student_turn(last_user_msg, messages)
-    max_level = control["max_level"]  # 硬闸门上限
+    # 代码层分析：产出双轨控制对象
+    dual_control = analyze_student_turn(last_user_msg, messages)
+    level_control = dual_control["level_control"]
+    risk_control = dual_control["risk_control"]
     
-    # 构建带控制块的System Prompt
-    system_prompt = build_system_prompt(control, remaining, student_id, problem_id)
+    # 分类器增强（如果需要）
+    should_classify, classifier_reason = should_call_classifier(dual_control, last_user_msg)
+    if should_classify:
+        try:
+            from classifier import classify_intent
+            intent_tag = classify_intent(last_user_msg, timeout=CLASSIFIER_TIMEOUT_SECONDS)
+            # 合并分类器结果到风险轨
+            if intent_tag in ["direct", "type_confirm", "bridge"]:
+                if intent_tag not in risk_control["risk_tags"]:
+                    risk_control["risk_tags"].append(intent_tag)
+                    # 更新最高风险
+                    if risk_control["highest_risk"] is None or \
+                       RISK_PRIORITY.get(intent_tag, 99) < RISK_PRIORITY.get(risk_control["highest_risk"], 99):
+                        risk_control["highest_risk"] = intent_tag
+        except Exception as e:
+            print(f"[classifier] fail reason=unexpected_exception input_len={len(last_user_msg.strip())} detail={e}")
+    else:
+        print(f"[classifier] skipped reason={classifier_reason} input_len={len(last_user_msg.strip())}")
+    
+    max_level = level_control["max_level"]  # 硬闸门上限
+    
+    # 构建带双轨控制块的System Prompt
+    system_prompt = build_system_prompt(dual_control, remaining, student_id, problem_id)
     
     # 调用LLM
-    response = get_client().chat.completions.create(
-        model="moonshot-v1-8k",
-        messages=[{"role": "system", "content": system_prompt}] + messages,
-        temperature=0.3,
-    )
+    last_error = None
+    response = None
+    for idx, model_name in enumerate(get_model_candidates("NOI_CHAT_MODELS", DEFAULT_CHAT_MODELS)):
+        try:
+            temperature = 1 if "kimi-k2.5" in model_name.lower() else 0.3
+            response = get_client().chat.completions.create(
+                model=model_name,
+                messages=[{"role": "system", "content": system_prompt}] + messages,
+                temperature=temperature,
+            )
+            if idx > 0:
+                print(f"[noi_agent] fallback model succeeded: {model_name}")
+            break
+        except Exception as exc:
+            last_error = exc
+            print(f"[noi_agent] LLM call failed on model {model_name}: {exc}")
+            if not is_model_unavailable_error(exc):
+                raise
+
+    if response is None:
+        raise last_error or RuntimeError("No available chat model")
     
     raw_reply = response.choices[0].message.content
     
@@ -690,6 +1109,12 @@ def chat(messages: list, student_id: str, problem_id: str) -> tuple[str, str]:
     else:
         final_level = model_level
     
+    # ===== 输出保险丝（双轨规则） =====
+    # 根据风险轨检查并约束输出
+    clean_reply, guard_triggered = enforce_output_guards(clean_reply, level_control, risk_control)
+    if guard_triggered:
+        final_level = "L2"  # 保险丝触发时强制降为L2
+    
     # 基于**强制限制后的最终级别**决定扣费和展示
     if final_level in ("L2", "L3"):
         success, remaining_after = consume_quota(student_id, problem_id)
@@ -702,7 +1127,7 @@ def chat(messages: list, student_id: str, problem_id: str) -> tuple[str, str]:
     
     reply_for_history = clean_reply
     
-    return reply_for_display, reply_for_history
+    return reply_for_display, reply_for_history, final_level
 
 
 def main():
@@ -732,10 +1157,10 @@ def main():
             continue
 
         messages.append({"role": "user", "content": user_input})
-        reply_for_display, reply_for_history = chat(messages, student_id, problem_id)
+        reply_for_display, reply_for_history, final_level = chat(messages, student_id, problem_id)
         messages.append({"role": "assistant", "content": reply_for_history})
 
-        print(f"\nAgent：{reply_for_display}\n")
+        print(f"\nAgent [{final_level}]：{reply_for_display}\n")
 
 
 if __name__ == "__main__":

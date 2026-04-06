@@ -10,3 +10,13 @@ venv/
 CC-Switch-v3.11.1-Windows-Portable/
 ~/
 *.pptx
+
+# macOS / editor noise
+.DS_Store
+
+# Local runtime artifacts
+*.db
+*.db-*
+*.bak
+*.bak_*
+*.log

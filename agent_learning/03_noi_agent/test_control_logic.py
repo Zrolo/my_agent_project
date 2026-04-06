@@ -8,7 +8,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from noi_agent import analyze_student_turn, L2_SLOTS
+from noi_agent import analyze_student_turn, L2_SLOTS, should_call_classifier
 
 
 def test_l1_direct_request():
@@ -236,6 +236,54 @@ def test_l2_slot_tracking():
     return True
 
 
+def test_classifier_trigger_policy():
+    """测试分类器按条件触发策略"""
+    print("=" * 70)
+    print("测试分类器触发策略")
+    print("=" * 70)
+
+    l1_control = analyze_student_turn("给我代码", [])
+    should_call, reason = should_call_classifier(l1_control, "给我代码")
+    assert not should_call and reason == "skip_l1", "L1 强拦时不应调用分类器"
+    print("✅ L1 强拦 -> skip_l1")
+
+    l3_text = "我定义dp[i]为前i个物品最大价值，转移是dp[i]=max(dp[i-1], dp[i-2]+v[i])，但WA了"
+    l3_control = analyze_student_turn(l3_text, [])
+    should_call, reason = should_call_classifier(l3_control, l3_text)
+    assert not should_call and reason == "skip_l3", "明确 L3 证据时不应调用分类器"
+    print("✅ 明确 L3 -> skip_l3")
+
+    code_no_target_text = """
+#include <bits/stdc++.h>
+using namespace std;
+int main() {
+    int n;
+    cin >> n;
+    return 0;
+}
+你帮我看看哪里错了
+"""
+    code_no_target_control = analyze_student_turn(code_no_target_text, [])
+    should_call, reason = should_call_classifier(code_no_target_control, code_no_target_text)
+    assert not should_call and reason == "skip_code_no_target", "code_no_target 时不应调用分类器"
+    print("✅ 贴代码无怀疑点 -> skip_code_no_target")
+
+    cross_slot_text = "这是背包，物品是药草，容量是时间，每步选拿或不拿，目标是最大价值"
+    cross_slot_control = analyze_student_turn(cross_slot_text, [])
+    should_call, reason = should_call_classifier(cross_slot_control, cross_slot_text)
+    assert not should_call and reason == "skip_cross_slot_dump", "cross_slot_dump 时不应调用分类器"
+    print("✅ 跨槽位拼凑 -> skip_cross_slot_dump")
+
+    ambiguous_l2_text = "这题是DP吗？"
+    ambiguous_l2_control = analyze_student_turn(ambiguous_l2_text, [])
+    should_call, reason = should_call_classifier(ambiguous_l2_control, ambiguous_l2_text)
+    assert should_call and reason == "call_semantic_risk", "模糊 L2 时应调用分类器"
+    print("✅ 模糊 L2 -> call_semantic_risk")
+
+    print()
+    return True
+
+
 def main():
     print("=" * 70)
     print("代码层判级逻辑回归测试")
@@ -254,6 +302,7 @@ def main():
         test_code_no_target,
         test_cross_slot_dump,
         test_l2_slot_tracking,
+        test_classifier_trigger_policy,
     ]
     
     for test_func in tests:

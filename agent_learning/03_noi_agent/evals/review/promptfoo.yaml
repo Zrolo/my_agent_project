@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: NOI review baseline vs mode-route eval
+
+prompts:
+  - id: review-case
+    raw: "{{case}}"
+
+providers:
+  - id: exec:/bin/zsh -lc 'REVIEW_EVAL_FORCE_MODE=independent_reflect python3 /Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/evals/review/run_review_case.py'
+    label: baseline_current
+  - id: exec:python3 /Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/evals/review/run_review_case.py
+    label: mode_route
+
+tests: file:///Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/evals/review/promptfoo_tests.jsonl

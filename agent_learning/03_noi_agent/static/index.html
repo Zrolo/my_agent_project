@@ -4,27 +4,73 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NOI 竞赛教练 Agent</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <h1>NOI 竞赛教练 Agent</h1>
+    <div class="container app-shell">
+        <header class="app-masthead">
+            <div class="app-masthead-copy">
+                <p class="app-kicker">Competition Learning Studio</p>
+                <h1>NOI 竞赛教练 Agent</h1>
+                <p class="app-masthead-note">把答疑、打卡复盘、理解检查、教师复核放进同一个训练工作台，让每道题都留下可追踪的学习证据。</p>
+            </div>
+            <div class="app-masthead-meta">
+                <div class="app-meta-chip">学生端：提问、打卡、复盘、小测</div>
+                <div class="app-meta-chip">教师端：统计、抽样、复核、跟进</div>
+            </div>
+        </header>
         
-        <!-- 登录区 -->
-        <div id="login-section" class="section">
-            <h2>登录</h2>
-            <form id="login-form">
-                <div class="form-group">
-                    <label>用户 ID:</label>
-                    <input type="text" id="user-id" placeholder="teacher 或 student_a" required>
+        <!-- 进入区 -->
+        <div id="login-section" class="section login-shell">
+            <div class="login-stage">
+                <div class="login-story">
+                    <p class="app-kicker">Start Here</p>
+                    <h2>用同一套训练工作台，持续记录“哪里没懂、为什么懂了、下一步做什么”</h2>
+                    <p class="login-story-copy">学生端适合做题后立刻复盘，教师端适合看整体模式、抽样复核、盯住真正需要干预的学生。它不是普通聊天框，而是一套围绕竞赛学习过程设计的工作流。</p>
+                    <div class="login-benefits">
+                        <div class="login-benefit">
+                            <strong>学生视角</strong>
+                            <span>先问、再打卡、再复盘、再做理解检查</span>
+                        </div>
+                        <div class="login-benefit">
+                            <strong>教师视角</strong>
+                            <span>看统计、抽样 drill-down、做人工复核</span>
+                        </div>
+                        <div class="login-benefit">
+                            <strong>当前演示</strong>
+                            <span>支持不同复盘 family，用不同展示节奏帮助学生真正迈出下一步</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>密码:</label>
-                    <input type="password" id="password" placeholder="password" required>
+                <div class="login-panel">
+                    <div class="login-panel-head">
+                        <p class="panel-eyebrow">Login</p>
+                        <h3>登录 NOI Agent</h3>
+                        <p class="panel-note">演示环境支持学生与教师两种身份，进入后会自动创建新的会话。</p>
+                    </div>
+                    <div class="form-group">
+                        <label>账号 ID:</label>
+                        <input type="text" id="student-id" placeholder="例如: student_a / teacher" required>
+                    </div>
+                    <div class="form-group">
+                        <label>密码:</label>
+                        <input type="password" id="login-password" placeholder="演示环境默认是 password" required>
+                    </div>
+                    <div class="form-group">
+                        <label>默认题目 ID:</label>
+                        <input type="text" id="login-problem-id" placeholder="例如: P1001" value="P1001">
+                    </div>
+                    <button id="enter-btn">登录进入</button>
+                    <p class="hint">演示账号：`student_a` / `student_b` / `teacher`，演示密码：`password`。每次进入会自动生成新的会话 ID，不同页面不会串历史。</p>
+                    <div id="login-error" class="error"></div>
                 </div>
-                <button type="submit">登录</button>
-            </form>
-            <div id="login-error" class="error"></div>
+            </div>
         </div>
 
         <!-- 已登录状态栏 -->
@@ -36,173 +82,383 @@
 
         <!-- 学生区 -->
         <div id="student-section" class="section hidden">
-            <h2>学生练习区</h2>
-            
-            <!-- 标签页 -->
-            <div id="student-tabs" class="tabs">
-                <button class="tab-btn active" data-tab="chat-tab">AI 答疑</button>
-                <button class="tab-btn" data-tab="checkin-tab">打卡复盘</button>
-                <button class="tab-btn" data-tab="history-tab">历史记录</button>
-            </div>
-            
-            <!-- AI 答疑标签 -->
-            <div id="chat-tab" class="tab-content">
-                <div class="form-group">
-                    <label>题目编号:</label>
-                    <input type="text" id="student-problem-id" placeholder="例如: P1001" value="P1001">
-                    <button id="check-quota-btn">查询配额</button>
-                </div>
-                
-                <div id="quota-info" class="quota-info"></div>
-                
-                <div class="chat-container">
-                    <h3>对话记录</h3>
-                    <div id="chat-history" class="chat-history"></div>
-                    
-                    <div class="chat-input">
-                        <textarea id="student-message" placeholder="输入你的问题..." rows="3"></textarea>
-                        <button id="send-btn">发送</button>
+            <div class="student-shell">
+                <div class="student-shell-head">
+                    <div>
+                        <p class="shell-eyebrow">Student Workspace</p>
+                        <h2>学生练习区</h2>
+                        <p class="shell-subtitle">把答疑、打卡、历史复盘放到一个统一工作台里，先定位卡点，再用小测确认这一步是不是真的站稳了。</p>
+                    </div>
+                    <div id="student-tabs" class="tabs student-nav">
+                        <button class="tab-btn active" data-tab="chat-tab">AI 解答</button>
+                        <button class="tab-btn" data-tab="checkin-tab">打卡复盘</button>
+                        <button class="tab-btn" data-tab="history-tab">历史打卡</button>
                     </div>
                 </div>
-                
-                <button id="clear-history-btn" class="secondary">清空对话</button>
-            </div>
-            
-            <!-- 打卡复盘标签 -->
-            <div id="checkin-tab" class="tab-content hidden">
-                <h3>刷题打卡</h3>
-                <p class="hint">完成题目后打卡，AI 将自动生成复盘报告</p>
-                
-                <div class="form-group">
-                    <label>题目链接:</label>
-                    <input type="url" id="checkin-url" placeholder="https://www.luogu.com.cn/problem/P1001">
-                </div>
-                
-                <div class="form-group">
-                    <label>题目标题:</label>
-                    <input type="text" id="checkin-title" placeholder="例如：A+B Problem">
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>OJ 来源:</label>
-                        <select id="checkin-oj">
-                            <option value="luogu">洛谷</option>
-                            <option value="codeforces">Codeforces</option>
-                            <option value="atcoder">AtCoder</option>
-                            <option value="other">其他</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>完成状态:</label>
-                        <select id="checkin-status">
-                            <option value="independent">独立完成</option>
-                            <option value="hinted">需要提示</option>
-                            <option value="editorial">看题解</option>
-                            <option value="unfinished">未完成</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <!-- 卡点描述优化区 -->
-                <div class="form-group bottleneck-section">
-                    <label>
-                        卡点描述 
-                        <span class="word-count" id="bottleneck-count">0 字</span>
-                    </label>
-                    
-                    <!-- 填写示例对比 -->
-                    <div class="example-box">
-                        <div class="example-header" onclick="toggleExample()">
-                            <span>📋 点击查看：什么是好的卡点描述？</span>
-                            <span class="toggle-icon">▼</span>
+
+                <!-- AI 答疑标签 -->
+                <div id="chat-tab" class="tab-content student-view">
+                    <div class="student-surface hero-surface chat-hero">
+                        <div class="surface-copy">
+                            <p class="surface-kicker">Ask the Coach</p>
+                            <h3>先问清这一题，再决定要不要打卡复盘</h3>
+                            <p>适合卡在局部细节、想确认某一步为什么不对，或者希望先问一句再继续自己想的时候使用。</p>
                         </div>
-                        <div class="example-content hidden" id="example-content">
-                            <div class="example-bad">
-                                <strong>❌ 不够具体（会被拒绝）：</strong>
-                                <p>"不会"、"没思路"、"太难了"、"DP不会"</p>
+                        <div class="surface-meta">
+                            <div class="form-group compact-inline">
+                                <label>题目编号</label>
+                                <div class="compact-inline-row">
+                                    <input type="text" id="student-problem-id" placeholder="例如: P1001" value="P1001">
+                                    <button id="check-quota-btn">查询配额</button>
+                                </div>
                             </div>
-                            <div class="example-good">
-                                <strong>✅ 好的示例：</strong>
-                                <ul>
-                                    <li>"知道是背包问题，但不确定状态是 dp[i][j] 还是 dp[i][j][k]，看了题解才知道只需要二维"</li>
-                                    <li>"区间DP的枚举顺序搞错了，我是从左到右枚举，后来发现应该从小区间到大区间"</li>
-                                    <li>"代码过了样例但WA，调试发现是边界情况 n=1 时数组越界，加了个特判就过了"</li>
-                                </ul>
+                            <div id="quota-info" class="quota-info"></div>
+                        </div>
+                    </div>
+
+                    <div class="student-surface chat-surface">
+                        <div class="workspace-panel-head">
+                            <div>
+                                <p class="panel-eyebrow">Conversation</p>
+                                <h3>AI 解答</h3>
+                            </div>
+                            <button id="clear-history-btn" class="secondary ghost-btn">清空对话</button>
+                        </div>
+
+                        <div class="chat-container refined-chat">
+                            <div id="chat-history" class="chat-history"></div>
+
+                            <div class="chat-input">
+                                <textarea id="student-message" placeholder="输入你的问题..." rows="3"></textarea>
+                                <button id="send-btn">发送</button>
                             </div>
                         </div>
                     </div>
-                    
-                    <textarea 
-                        id="checkin-bottleneck" 
-                        rows="4" 
-                        placeholder="描述你卡在哪一步、用了什么方法、遇到什么错误。参考格式：&#10;我想用XX方法，尝试了XX，但遇到了XX问题，现象是XX"
-                    ></textarea>
-                    <div class="input-hint" id="bottleneck-hint">至少15字，越具体越好</div>
                 </div>
-                
-                <!-- 错误类型重新组织 -->
-                <div class="form-group">
-                    <label>错误类型（多选，选最相关1-2个）:</label>
-                    <div class="checkbox-group error-types">
-                        <div class="error-category">
-                            <strong>读题/建模：</strong>
-                            <label><input type="checkbox" name="error_type" value="题意理解"> 题意理解</label>
-                            <label><input type="checkbox" name="error_type" value="模型转化"> 模型转化</label>
-                        </div>
-                        <div class="error-category">
-                            <strong>算法/思路：</strong>
-                            <label><input type="checkbox" name="error_type" value="不知道用什么算法"> 不知道用什么算法</label>
-                            <label><input type="checkbox" name="error_type" value="知道算法但不知道怎么用"> 知道算法但不知道怎么用</label>
-                            <label><input type="checkbox" name="error_type" value="状态设计"> 状态设计</label>
-                            <label><input type="checkbox" name="error_type" value="状态转移"> 状态转移</label>
-                            <label><input type="checkbox" name="error_type" value="优化策略"> 优化策略</label>
-                        </div>
-                        <div class="error-category">
-                            <strong>代码/调试：</strong>
-                            <label><input type="checkbox" name="error_type" value="语法/API"> 语法/API</label>
-                            <label><input type="checkbox" name="error_type" value="边界条件"> 边界条件</label>
-                            <label><input type="checkbox" name="error_type" value="数组越界"> 数组越界</label>
-                            <label><input type="checkbox" name="error_type" value="精度/溢出"> 精度/溢出</label>
-                        </div>
-                        <div class="error-category">
-                            <label><input type="checkbox" name="error_type" value="其他"> 其他</label>
-                        </div>
+
+                <!-- 打卡复盘标签 -->
+                <div id="checkin-tab" class="tab-content student-view hidden">
+                    <div class="student-workspace">
+                        <aside class="workspace-sidebar">
+                            <section class="student-surface workspace-panel submit-surface">
+                                <div class="workspace-panel-head">
+                                    <div>
+                                        <p class="panel-eyebrow">Check In</p>
+                                        <h3>打卡复盘</h3>
+                                        <p class="panel-note">把题目背景、当前状态、卡点和证据按顺序填清楚。提交后右侧会进入复盘工作区，不需要再跳页面。</p>
+                                    </div>
+                                </div>
+                                <div class="submit-band">
+                                    <div class="submit-band-head">
+                                        <div>
+                                            <p class="submit-band-kicker">Problem Setup</p>
+                                            <h4>先把题目背景说明白</h4>
+                                        </div>
+                                        <p class="submit-band-note">这部分决定复盘有没有足够题面信息，不要只写题号。</p>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>题目标题 / 题号:</label>
+                                        <input type="text" id="checkin-title" placeholder="例如：P1001 A+B Problem">
+                                        <div class="input-hint">洛谷链接导入成功后会自动补全标题；其他来源建议先写题号或标题。</div>
+                                    </div>
+
+                                    <div class="form-group hidden" id="luogu-import-group">
+                                        <label>洛谷题号 / 链接：</label>
+                                        <div class="form-row compact-row">
+                                            <input
+                                                type="text"
+                                                id="checkin-url"
+                                                placeholder="例如：P1001 或 https://www.luogu.com.cn/problem/P1001"
+                                                style="flex: 1;"
+                                            >
+                                            <button type="button" id="import-problem-btn" class="secondary ghost-btn">自动导入题面</button>
+                                        </div>
+                                        <div class="input-hint" id="problem-import-status">输入洛谷题号或公开题目链接后，可自动导入标题、题面和标签。</div>
+                                        <div class="input-hint hidden" id="problem-tags-preview"></div>
+                                    </div>
+
+                                    <div class="form-group hidden" id="luogu-context-toggle-row">
+                                        <button type="button" id="toggle-luogu-context-btn" class="secondary ghost-btn">补充我对题意的理解（可选）</button>
+                                    </div>
+
+                                    <div id="linked-chat-context-card" class="context-link-card hidden">
+                                        <div class="context-link-head">
+                                            <div>
+                                                <p class="panel-eyebrow">Linked Context</p>
+                                                <h4>同题最近 AI 解答</h4>
+                                            </div>
+                                            <span id="linked-chat-context-time" class="status-pill"></span>
+                                        </div>
+                                        <p id="linked-chat-context-text" class="context-link-body"></p>
+                                        <p class="input-hint">这条摘要会作为辅助线索一起带进本次复盘，不会替代你现在填写的卡点描述。</p>
+                                    </div>
+
+                                    <div class="submission-meta-grid">
+                                        <div class="form-group">
+                                            <label>来源（可选）:</label>
+                                            <select id="checkin-oj">
+                                                <option value="other">未区分 / 其他</option>
+                                                <option value="luogu">洛谷</option>
+                                                <option value="codeforces">Codeforces</option>
+                                                <option value="atcoder">AtCoder</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label>完成状态:</label>
+                                            <select id="checkin-status">
+                                                <option value="independent">独立完成</option>
+                                                <option value="hinted">需要提示</option>
+                                                <option value="editorial">看题解</option>
+                                                <option value="unfinished">未完成</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label>提交现象:</label>
+                                            <select id="checkin-submission-result">
+                                                <option value="not_submitted">未提交</option>
+                                                <option value="wa">WA（答案错误）</option>
+                                                <option value="tle">TLE（超时）</option>
+                                                <option value="re">RE（运行错误）</option>
+                                                <option value="ce">CE（编译错误）</option>
+                                                <option value="unknown">不确定</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group" id="problem-context-group">
+                                        <label>
+                                            <span id="problem-context-label">题面 / Markdown</span>
+                                            <span class="word-count" id="context-count">0 字</span>
+                                            <span style="color: #e74c3c; font-size: 0.85em;" id="context-required-flag">（必填）</span>
+                                        </label>
+                                        <textarea
+                                            id="checkin-problem-context"
+                                            rows="6"
+                                            placeholder="来源为未区分 / 其他时，请直接粘贴题面正文、网页复制内容或 Markdown。&#10;建议至少包含：题意、输入输出、样例或关键约束。"
+                                        ></textarea>
+                                        <div class="input-hint" id="context-hint">来源为未区分 / 其他时至少10字；洛谷链接可自动导入。</div>
+                                    </div>
+                                </div>
+
+                                <div class="submit-band submit-band-emphasis">
+                                    <div class="submit-band-head">
+                                        <div>
+                                            <p class="submit-band-kicker">Diagnosis</p>
+                                            <h4>再描述你真正卡住的地方</h4>
+                                        </div>
+                                        <p class="submit-band-note">这里越具体，右侧复盘越像一位真的看过你过程的教练。</p>
+                                    </div>
+
+                                    <div class="form-group bottleneck-section">
+                                        <label>
+                                            卡点描述
+                                            <span class="word-count" id="bottleneck-count">0 字</span>
+                                        </label>
+
+                                        <div class="example-box">
+                                            <div class="example-header" onclick="toggleExample()">
+                                                <span>📋 点击查看：什么是好的卡点描述？</span>
+                                                <span class="toggle-icon">▼</span>
+                                            </div>
+                                            <div class="example-content hidden" id="example-content">
+                                                <div class="example-bad">
+                                                    <strong>❌ 不够具体（会被拒绝）：</strong>
+                                                    <p>"不会"、"没思路"、"太难了"、"DP不会"</p>
+                                                </div>
+                                                <div class="example-good">
+                                                    <strong>✅ 好的示例：</strong>
+                                                    <ul>
+                                                        <li>"知道是背包问题，但不确定状态是 dp[i][j] 还是 dp[i][j][k]，看了题解才知道只需要二维"</li>
+                                                        <li>"区间DP的枚举顺序搞错了，我是从左到右枚举，后来发现应该从小区间到大区间"</li>
+                                                        <li>"代码过了样例但WA，调试发现是边界情况 n=1 时数组越界，加了个特判就过了"</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <textarea
+                                            id="checkin-bottleneck"
+                                            rows="4"
+                                            placeholder="描述你卡在哪一步、用了什么方法、遇到什么错误。参考格式：&#10;我想用XX方法，尝试了XX，但遇到了XX问题，现象是XX"
+                                        ></textarea>
+                                        <div class="input-hint" id="bottleneck-hint">至少15字，越具体越好</div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>错误类型（多选，选最相关1-2个）:</label>
+                                        <div class="checkbox-group error-types">
+                                            <div class="error-category">
+                                                <strong>读题/建模：</strong>
+                                                <label><input type="checkbox" name="error_type" value="题意理解"> 题意理解</label>
+                                                <label><input type="checkbox" name="error_type" value="模型转化"> 模型转化</label>
+                                            </div>
+                                            <div class="error-category">
+                                                <strong>算法/思路：</strong>
+                                                <label><input type="checkbox" name="error_type" value="不知道用什么算法"> 不知道用什么算法</label>
+                                                <label><input type="checkbox" name="error_type" value="知道算法但不知道怎么用"> 知道算法但不知道怎么用</label>
+                                                <label><input type="checkbox" name="error_type" value="状态设计"> 状态设计</label>
+                                                <label><input type="checkbox" name="error_type" value="状态转移"> 状态转移</label>
+                                                <label><input type="checkbox" name="error_type" value="优化策略"> 优化策略</label>
+                                            </div>
+                                            <div class="error-category">
+                                                <strong>代码/调试：</strong>
+                                                <label><input type="checkbox" name="error_type" value="语法/API"> 语法/API</label>
+                                                <label><input type="checkbox" name="error_type" value="边界条件"> 边界条件</label>
+                                                <label><input type="checkbox" name="error_type" value="数组越界"> 数组越界</label>
+                                                <label><input type="checkbox" name="error_type" value="精度/溢出"> 精度/溢出</label>
+                                            </div>
+                                            <div class="error-category">
+                                                <label><input type="checkbox" name="error_type" value="其他"> 其他</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="submit-band">
+                                    <div class="submit-band-head">
+                                        <div>
+                                            <p class="submit-band-kicker">Evidence</p>
+                                            <h4>最后补充你的思路和代码证据</h4>
+                                        </div>
+                                        <p class="submit-band-note">如果有代码或已经形成一点反思，这里会让复盘更精准。</p>
+                                    </div>
+
+                                    <div class="submission-evidence-grid">
+                                        <div class="form-group">
+                                            <label>反思总结（可选）:</label>
+                                            <textarea id="checkin-reflection" rows="4" placeholder="这道题给你的收获是什么？下次遇到类似题你会怎么做？"></textarea>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label>粘贴代码（可选）:</label>
+                                            <textarea
+                                                id="checkin-student-code"
+                                                rows="6"
+                                                placeholder="如果你有代码，可以粘贴在这里，AI 会结合代码给出更精准的复盘（最多粘贴 1500 字符）"
+                                                style="font-family: monospace; font-size: 12px;"
+                                            ></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="submit-cluster">
+                                    <button id="submit-checkin-btn" class="primary" disabled>提交打卡</button>
+                                    <button id="open-history-tab-btn" class="secondary ghost-btn" type="button">查看历史打卡</button>
+                                    <div class="submit-note">提交后会自动切到右侧复盘工作区生成内容。</div>
+                                </div>
+                                <div id="checkin-result" class="result-box hidden"></div>
+                            </section>
+                        </aside>
+
+                        <section class="workspace-stage">
+                            <div class="student-surface stage-hero">
+                                <div>
+                                    <p class="surface-kicker">Review Workspace</p>
+                                    <h3>右侧不是结果页，而是你的题后训练台</h3>
+                                    <p>提交后，这里会把“问题定位、关键一步、理解检查、后续练习”排成一条连续学习链，让你从一道题真正走到下一步。</p>
+                                </div>
+                                <div id="workspace-stage-status" class="workspace-stage-status"></div>
+                            </div>
+
+                            <div id="review-stage-empty" class="student-surface review-stage-empty">
+                                <div class="empty-glow"></div>
+                                <p class="empty-kicker">Ready</p>
+                                <h3>先提交一条打卡，或从左侧历史记录里选择一条继续。</h3>
+                                <p>提交成功后，这里会自动切到复盘页：右侧看复盘内容，中间做理解检查，并带上同类型题目继续练。</p>
+                            </div>
+
+                            <div id="review-stage-content" class="review-stage-content hidden">
+                                <div class="student-surface review-stage-header">
+                                    <div class="workspace-panel-head">
+                                        <div>
+                                            <p class="panel-eyebrow">Current Review</p>
+                                            <h3 id="active-review-title">复盘工作区</h3>
+                                            <p id="active-review-subtitle" class="panel-note">这里会展示当前选择的打卡、AI 复盘和理解检查。</p>
+                                        </div>
+                                        <div id="active-review-meta" class="active-review-meta"></div>
+                                    </div>
+                                </div>
+
+                                <div class="review-stage-layout">
+                                    <div class="stage-center-column">
+                                        <div class="student-surface stage-panel quiz-stage-panel">
+                                            <div class="workspace-panel-head">
+                                                <div>
+                                                    <p class="panel-eyebrow">Quiz</p>
+                                                    <h3>理解检查</h3>
+                                                </div>
+                                            </div>
+                                            <div id="active-review-quiz-slot"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="stage-right-column">
+                                        <div id="active-review-chat-context" class="student-surface stage-panel context-stage-panel hidden"></div>
+
+                                        <div class="student-surface stage-panel review-stage-panel">
+                                            <div class="workspace-panel-head">
+                                                <div>
+                                                    <p class="panel-eyebrow">Review</p>
+                                                    <h3>AI 复盘内容</h3>
+                                                </div>
+                                            </div>
+                                            <div id="active-review-report"></div>
+                                        </div>
+
+                                        <div class="student-surface stage-panel related-stage-panel">
+                                            <div class="workspace-panel-head">
+                                                <div>
+                                                    <p class="panel-eyebrow">Similar Practice</p>
+                                                    <h3>同类型题目</h3>
+                                                </div>
+                                            </div>
+                                            <div id="active-review-related"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
                     </div>
                 </div>
-                
-                <div class="form-group">
-                    <label>反思总结（可选）:</label>
-                    <textarea id="checkin-reflection" rows="2" placeholder="这道题给你的收获是什么？下次遇到类似题你会怎么做？"></textarea>
+
+                <div id="history-tab" class="tab-content student-view hidden">
+                    <div class="student-surface workspace-panel history-page-surface">
+                        <div class="workspace-panel-head">
+                            <div>
+                                <p class="panel-eyebrow">History</p>
+                                <h3>历史打卡</h3>
+                                <p class="panel-note">这里集中看最近打卡。点开任意一条后，会自动切回打卡复盘工作台继续看完整复盘和小测。</p>
+                            </div>
+                            <button id="load-my-checkins-btn" class="secondary ghost-btn">刷新</button>
+                        </div>
+                        <div id="checkin-history-list" class="checkin-history-stack history-page-stack"></div>
+                    </div>
                 </div>
-                
-                <button id="submit-checkin-btn" class="primary" disabled>提交打卡</button>
-                <div id="checkin-result" class="result-box"></div>
-            </div>
-            
-            <!-- 历史记录标签 -->
-            <div id="history-tab" class="tab-content hidden">
-                <h3>我的打卡历史</h3>
-                <button id="load-my-checkins-btn" class="secondary">刷新</button>
-                <div id="checkin-history-list" class="checkin-list"></div>
             </div>
         </div>
 
         <!-- 教师区 -->
         <div id="teacher-section" class="section hidden">
-            <h2>教师管理区</h2>
-            
-            <!-- 标签页 -->
-            <div id="teacher-tabs" class="tabs">
-                <button class="tab-btn active" data-tab="quota-tab">配额管理</button>
-                <button class="tab-btn" data-tab="checkins-tab">学员打卡</button>
-                <button class="tab-btn" data-tab="stats-tab">错误统计</button>
-                <button class="tab-btn" data-tab="flags-tab">关注学员</button>
+            <div class="teacher-shell-head">
+                <div>
+                    <p class="shell-eyebrow">Teacher Control Room</p>
+                    <h2>教师管理区</h2>
+                    <p class="shell-subtitle">这里优先解决三件事：看哪类学生最需要跟进、看哪类复盘最不可靠、把最有价值的样本快速抽出来人工复核。</p>
+                </div>
+                <div id="teacher-tabs" class="tabs teacher-nav">
+                    <button class="tab-btn active" data-tab="quota-tab">配额管理</button>
+                    <button class="tab-btn" data-tab="checkins-tab">学员打卡</button>
+                    <button class="tab-btn" data-tab="stats-tab">错误统计</button>
+                    <button class="tab-btn" data-tab="manual-review-tab">人工复核</button>
+                    <button class="tab-btn" data-tab="flags-tab">关注学员</button>
+                </div>
             </div>
             
             <!-- 配额管理标签 -->
-            <div id="quota-tab" class="tab-content">
+            <div id="quota-tab" class="tab-content teacher-view">
                 <div class="teacher-tools">
                     <h3>查询学生配额</h3>
                     <div class="form-row">
@@ -218,6 +474,9 @@
                     <div class="form-row">
                         <input type="text" id="reset-student-id" placeholder="学生 ID">
                         <input type="text" id="reset-problem-id" placeholder="题目 ID" value="P1001">
+                    </div>
+                    <div class="form-row">
+                        <input type="password" id="teacher-secret" placeholder="教师密钥" style="flex: 2;">
                         <button id="reset-quota-btn" class="warning">重置配额</button>
                     </div>
                     <div id="reset-result" class="result"></div>
@@ -225,25 +484,57 @@
             </div>
             
             <!-- 学员打卡标签 -->
-            <div id="checkins-tab" class="tab-content hidden">
+            <div id="checkins-tab" class="tab-content teacher-view hidden">
                 <h3>最近打卡记录</h3>
                 <button id="load-all-checkins-btn" class="secondary">刷新</button>
                 <div id="teacher-checkins-list" class="checkin-list"></div>
             </div>
             
             <!-- 错误统计标签 -->
-            <div id="stats-tab" class="tab-content hidden">
-                <h3>错误类型统计</h3>
+            <div id="stats-tab" class="tab-content teacher-view hidden">
+                <h3>统计总览</h3>
                 <button id="load-stats-btn" class="secondary">刷新</button>
                 <div id="error-stats" class="stats-container"></div>
+
+                <h3 style="margin-top: 30px;">待生成复盘处理</h3>
+                <div class="form-row">
+                    <input type="number" id="retry-pending-limit" value="10" min="1" max="100" style="max-width: 140px;">
+                    <button id="retry-pending-btn" class="warning">重试待生成复盘</button>
+                </div>
+                <div id="retry-pending-result" class="result"></div>
+
+                <h3 style="margin-top: 30px;">失败题目分析处理</h3>
+                <div class="form-row">
+                    <input type="text" id="retry-problem-analysis-pid" placeholder="输入洛谷题号，如 P1003" style="max-width: 240px;">
+                    <button id="retry-problem-analysis-btn" class="warning">重试题目分析</button>
+                    <button id="load-analysis-failures-btn" class="secondary">刷新失败列表</button>
+                </div>
+                <div id="retry-problem-analysis-result" class="result"></div>
+                <div id="problem-analysis-failures" class="stats-container"></div>
                 
                 <h3 style="margin-top: 30px;">使用统计（最近7天）</h3>
                 <button id="load-usage-btn" class="secondary">刷新</button>
                 <div id="usage-stats" class="stats-container"></div>
             </div>
+
+            <!-- 人工复核标签 -->
+            <div id="manual-review-tab" class="tab-content teacher-view hidden">
+                <div class="teacher-tools">
+                    <div class="workspace-panel-head">
+                        <div>
+                            <p class="panel-eyebrow">Manual Review</p>
+                            <h3>人工复核</h3>
+                            <p class="panel-note">这里展示最近的 review 样本，快速打 3 个枚举字段和一句备注即可。</p>
+                        </div>
+                        <button id="load-manual-review-btn" class="secondary">刷新</button>
+                    </div>
+                    <div id="teacher-manual-review-filter"></div>
+                    <div id="teacher-manual-review-panel"></div>
+                </div>
+            </div>
             
             <!-- 关注学员标签 -->
-            <div id="flags-tab" class="tab-content hidden">
+            <div id="flags-tab" class="tab-content teacher-view hidden">
                 <h3>需要关注的学员</h3>
                 <button id="load-flags-btn" class="secondary">刷新</button>
                 <div id="student-flags" class="flags-container"></div>
@@ -251,6 +542,8 @@
         </div>
     </div>
 
+    <script src="/static/review_family_ui.js"></script>
+    <script src="/static/teacher_manual_review_ui.js"></script>
     <script src="/static/app.js"></script>
 </body>
 </html>

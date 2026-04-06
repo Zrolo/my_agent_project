@@ -116,6 +116,55 @@ class LearningRoutingTests(unittest.TestCase):
         }
         self.assertTrue(api_server.has_explicit_help_signal(route_failed))
 
+    def test_generate_quiz_routes_explicit_help_signal_to_remedy(self):
+        checkin_id = self._create_checkin(
+            bottleneck_text="我不会做这题，已经卡住了，完全看不懂这些约束怎么统一。",
+        )
+        self._create_completed_review(checkin_id)
+        detail = api_server.get_checkin_detail(checkin_id)
+        review_id = detail["review"]["review_id"]
+
+        response = self.client.post(
+            f"/api/reviews/{review_id}/quiz/generate",
+            headers=auth_headers(self.student_id),
+        )
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("remedy_available", response.json()["next_state"])
+        self.assertEqual("remedy_available", response.json()["learning_status"])
+        self.assertIn("先回到卡住点", response.json()["message"])
+
+    def test_a_route_can_resolve_after_remedy(self):
+        checkin_id = self._create_checkin(
+            bottleneck_text="我不会做这题，已经卡住了，完全看不懂这些约束怎么统一。",
+        )
+        self._create_completed_review(checkin_id)
+        detail = api_server.get_checkin_detail(checkin_id)
+        review_id = detail["review"]["review_id"]
+
+        quiz_response = self.client.post(
+            f"/api/reviews/{review_id}/quiz/generate",
+            headers=auth_headers(self.student_id),
+        )
+        self.assertEqual(200, quiz_response.status_code)
+        self.assertEqual("remedy_available", quiz_response.json()["next_state"])
+
+        remedy_response = self.client.post(
+            f"/api/reviews/{review_id}/remedy",
+            json={"action_type": "dynamic_bridge_help"},
+            headers=auth_headers(self.student_id),
+        )
+        self.assertEqual(200, remedy_response.status_code)
+        self.assertEqual("remedy_in_progress", remedy_response.json()["learning_status"])
+
+        resolve_response = self.client.post(
+            f"/api/reviews/{review_id}/remedy/resolve",
+            json={"status": "resolved"},
+            headers=auth_headers(self.student_id),
+        )
+        self.assertEqual(200, resolve_response.status_code)
+        self.assertEqual("resolved", resolve_response.json()["learning_status"])
+
     def test_b_gate_requires_main_followup_optional_and_self_check_clear(self):
         review_context = {
             "completion_status": "independent",
@@ -233,6 +282,55 @@ class LearningRoutingTests(unittest.TestCase):
         self.assertEqual("confirm", response.json()["quiz"]["quiz_role"])
         self.assertEqual("fixed_pool", response.json()["quiz"]["meta"]["confirm_mode"])
         self.assertEqual("difference_constraints", response.json()["quiz"]["meta"]["structure_type"])
+
+    def test_confirm_correct_answer_resolves_review(self):
+        checkin_id = self._create_checkin()
+        self._create_completed_review(checkin_id)
+        detail = api_server.get_checkin_detail(checkin_id)
+        review_id = detail["review"]["review_id"]
+        self._create_main_quiz_passed(review_id, checkin_id)
+        update_review_learning_status(review_id, LEARNING_STATUS_SELF_CHECK_REQUIRED)
+
+        problem_id = upsert_luogu_problemset(
+            {
+                "pid": f"PY{int(time.time() * 1000)}",
+                "title": "差分约束 confirm 题2",
+                "difficulty": 3,
+                "tags": ["差分约束"],
+                "description": "desc",
+                "inputFormat": "",
+                "outputFormat": "",
+                "samples": [],
+                "limits": {"time": [1000], "memory": [128]},
+            },
+            classify_tag,
+        )
+        upsert_confirm_pool_entry(
+            problem_id=problem_id,
+            problem_url="https://www.luogu.com.cn/problem/PY",
+            structure_type="difference_constraints",
+            difficulty=3,
+            bridge_note="不等式约束转有向边，矛盾即正环",
+            status="usable",
+        )
+
+        confirm_response = self.client.post(
+            f"/api/reviews/{review_id}/self-check",
+            json={"status": "clear"},
+            headers=auth_headers(self.student_id),
+        )
+        self.assertEqual(200, confirm_response.status_code)
+        quiz_id = confirm_response.json()["quiz"]["quiz_id"]
+
+        answer_response = self.client.post(
+            f"/api/quizzes/{quiz_id}/answer",
+            json={"answer_text": "A"},
+            headers=auth_headers(self.student_id),
+        )
+        self.assertEqual(200, answer_response.status_code)
+        self.assertTrue(answer_response.json()["is_correct"])
+        self.assertEqual("resolved", answer_response.json()["learning_status"])
+        self.assertEqual("resolved", answer_response.json()["next_state"])
 
     def test_self_check_guessed_goes_to_remedy_not_confirm(self):
         checkin_id = self._create_checkin()

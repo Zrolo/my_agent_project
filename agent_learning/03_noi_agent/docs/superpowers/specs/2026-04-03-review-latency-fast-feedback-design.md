@@ -152,6 +152,12 @@ messages = [
 - 让前端轮询成本更小
 - 不必每次刷新整份历史记录
 
+鉴权约束：
+
+- 该接口必须通过 `require_student` 鉴权
+- 只允许返回属于当前登录学生的 checkin 数据
+- 如果 `checkin_id` 不属于当前学生，统一返回 `404`
+
 ### 5. `failed` 状态定义
 
 既然前端要显示失败卡，就必须先定义失败状态。
@@ -167,6 +173,7 @@ messages = [
 - 数据库保留 `last_error`
 - 学生端只显示统一失败文案
 - 原始报错不直接暴露给学生
+- `review_last_error` 仅供老师端或内部调试使用；学生端调用 `GET /api/checkins/{checkin_id}` 时，该字段固定返回 `null`
 
 ### 6. 学生端重试入口
 
@@ -179,6 +186,9 @@ messages = [
 行为：
 
 - 仅允许该 checkin 所属学生触发
+- 仅当 `review_status = failed` 时允许触发
+- 如果当前状态是 `pending`，返回 `400`，提示“复盘正在生成中，请稍候”
+- 如果当前状态是 `completed`，返回 `400`，提示“复盘已生成，无需重试”
 - 把 review 状态重置回 `pending`
 - 再次进入后台生成
 
