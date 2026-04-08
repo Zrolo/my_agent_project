@@ -967,15 +967,7 @@ function renderActiveCheckinWorkspace(item) {
         `;
     }
     if (quizEl) {
-        quizEl.innerHTML = renderLearningSection(item) || `
-            <div class="learning-stage-card learning-stage-entry">
-                <div class="learning-stage-header">
-                    <div class="learning-stage-kicker">学习路径入口</div>
-                    <div class="learning-stage-question">复盘生成后，这里会出现这一小步的理解检查</div>
-                    <div class="learning-stage-subtitle">我们会把讲义、自评和补救收成同一条路径，等复盘出来就能继续往下走。</div>
-                </div>
-            </div>
-        `;
+        quizEl.innerHTML = renderLearningSection(item) || renderLearningPathPlaceholder(item);
     }
     if (reportEl) {
         if (item.review_status === 'completed') {
@@ -2214,7 +2206,9 @@ function setupCheckinValidation() {
 
 function renderReviewHtml(review, family = reviewFamilyUi.resolveReviewFamily(review)) {
     if (!review) return '';
-    const orderedSections = reviewFamilyUi.orderedReviewSections(review, family);
+    const orderedSections = reviewFamilyUi
+        .orderedReviewSections(review, family)
+        .filter((section) => String(section?.value || '').trim());
     const detailsDrawerHtml = renderReviewDetailsDrawer(review);
 
     return `
@@ -2225,6 +2219,40 @@ function renderReviewHtml(review, family = reviewFamilyUi.resolveReviewFamily(re
                 </div>
             </section>
             ${detailsDrawerHtml}
+        </div>
+    `;
+}
+
+function renderLearningPathPlaceholder(item = {}) {
+    if (item.review_status === 'failed') {
+        return `
+            <div class="learning-stage-card learning-stage-entry">
+                <div class="learning-stage-header">
+                    <div class="learning-stage-kicker">学习路径暂停</div>
+                    <div class="learning-stage-question">这次复盘暂时没有生成成功</div>
+                    <div class="learning-stage-subtitle">你的打卡已经保存下来了，可以先看右侧提示，稍后重新生成后再继续这条路径。</div>
+                </div>
+            </div>
+        `;
+    }
+    if (item.poll_timed_out) {
+        return `
+            <div class="learning-stage-card learning-stage-entry">
+                <div class="learning-stage-header">
+                    <div class="learning-stage-kicker">学习路径等待中</div>
+                    <div class="learning-stage-question">这次复盘生成时间有点长</div>
+                    <div class="learning-stage-subtitle">可以先刷新，或者稍后从历史记录回来继续；理解检查会在复盘就绪后接上。</div>
+                </div>
+            </div>
+        `;
+    }
+    return `
+        <div class="learning-stage-card learning-stage-entry">
+            <div class="learning-stage-header">
+                <div class="learning-stage-kicker">学习路径入口</div>
+                <div class="learning-stage-question">复盘生成后，这里会出现这一小步的理解检查</div>
+                <div class="learning-stage-subtitle">我们会把讲义、自评和补救收成同一条路径，等复盘出来就能继续往下走。</div>
+            </div>
         </div>
     `;
 }
@@ -2555,22 +2583,21 @@ function renderKnowledgeBailoutCard(card = {}) {
 }
 
 function renderSelfCheckCard(reviewId, family = 'failure_diagnosis') {
-    const copy = {
-        clearLabel: family === 'success_reflection' ? '我能自己说清了' : '我是真的懂了',
-        guessedLabel: '刚才有点猜中',
-        confusedLabel: family === 'success_reflection' ? '还说不清' : '还差一点',
-    };
+    const copy = reviewFamilyUi.reviewFeedbackCopy(family);
+    const subtitle = family === 'success_reflection'
+        ? '试着用自己的话说清这条思路为什么成立，再决定要不要继续往下走。'
+        : '先判断你现在是不是真的知道该先查哪一步，再决定下一步怎么走。';
     return `
         <div class="learning-stage-card self-check-card-v2">
             <div class="learning-stage-header">
                 <div class="learning-stage-kicker">自我确认</div>
-                <div class="learning-stage-question">你现在觉得，这一步是真的懂了，还是刚才有点猜中？</div>
-                <div class="learning-stage-subtitle">先把这一步在心里过一遍，再决定要不要继续往下走。</div>
+                <div class="learning-stage-question">${escapeHtml(copy.title)}</div>
+                <div class="learning-stage-subtitle">${escapeHtml(subtitle)}</div>
             </div>
             <div class="self-check-actions-v2">
-                <button class="self-check-option-v2 tone-clear" onclick="submitSelfCheck(${Number(reviewId)}, 'clear')">${escapeHtml(copy.clearLabel || '我是真的懂了')}</button>
-                <button class="self-check-option-v2 tone-guessed" onclick="submitSelfCheck(${Number(reviewId)}, 'guessed')">${escapeHtml(copy.guessedLabel || '刚才有点猜中')}</button>
-                <button class="self-check-option-v2 tone-confused" onclick="submitSelfCheck(${Number(reviewId)}, 'confused')">${escapeHtml(copy.confusedLabel || '还差一点')}</button>
+                <button class="self-check-option-v2 tone-clear" onclick="submitSelfCheck(${Number(reviewId)}, 'clear')">${escapeHtml(copy.clearLabel)}</button>
+                <button class="self-check-option-v2 tone-guessed" onclick="submitSelfCheck(${Number(reviewId)}, 'guessed')">${escapeHtml(copy.guessedLabel)}</button>
+                <button class="self-check-option-v2 tone-confused" onclick="submitSelfCheck(${Number(reviewId)}, 'confused')">${escapeHtml(copy.confusedLabel)}</button>
             </div>
         </div>
     `;
@@ -2606,15 +2633,7 @@ function renderLearningSection(item) {
     let content = '';
 
     if (item.review_status !== 'completed') {
-        content = `
-            <div class="learning-stage-card learning-stage-entry">
-                <div class="learning-stage-header">
-                    <div class="learning-stage-kicker">学习路径入口</div>
-                    <div class="learning-stage-question">复盘生成后，这里会出现这一小步的理解检查</div>
-                    <div class="learning-stage-subtitle">我们会把讲义、自评和补救收成同一条路径，等复盘出来就能继续往下走。</div>
-                </div>
-            </div>
-        `;
+        content = renderLearningPathPlaceholder(item);
     } else if (item.review_learning_status === 'self_check_required') {
         content = `
             ${renderQuizFeedbackBlock({
@@ -2915,12 +2934,14 @@ function renderCheckinCard(item, isTeacher = false) {
             `;
         } else {
             const reviewFamily = reviewFamilyUi.resolveReviewFamily(item);
-            const orderedSections = reviewFamilyUi.orderedReviewSections({
-                main_block: item.review_main_block || '',
-                key_bridge: item.review_key_bridge || '',
-                next_step: item.review_next_step || '',
-                transfer_signal: item.review_transfer_signal || '',
-            }, reviewFamily);
+            const orderedSections = reviewFamilyUi
+                .orderedReviewSections({
+                    main_block: item.review_main_block || '',
+                    key_bridge: item.review_key_bridge || '',
+                    next_step: item.review_next_step || '',
+                    transfer_signal: item.review_transfer_signal || '',
+                }, reviewFamily)
+                .filter((section) => String(section?.value || '').trim());
             reviewBlock += `
                 ${orderedSections.map((section) => `
                     <div class="${section.field === 'transfer_signal' ? 'archive-note' : 'archive-line'}"><strong>${escapeHtml(section.label)}：</strong>${renderRichTextInline(section.value || '')}</div>
@@ -3063,6 +3084,7 @@ async function startReviewQuiz(reviewId) {
         if (container && err.message === '请先完成这一步的理解确认') {
             const checkinId = itemCheckinIdFromReview(reviewId);
             const checkinItem = checkinId ? await fetchMyCheckinById(checkinId) : null;
+            const reviewFamily = reviewFamilyUi.resolveReviewFamily(checkinItem || {});
             container.innerHTML = `
                 ${renderQuizFeedbackBlock({
                     title: checkinItem?.quiz_latest_feedback || '答对了，这一步你跨过去了。',
@@ -3070,7 +3092,7 @@ async function startReviewQuiz(reviewId) {
                     explanation: checkinItem?.quiz_explanation,
                     tone: 'success',
                 })}
-                ${renderSelfCheckCard(reviewId)}
+                ${renderSelfCheckCard(reviewId, reviewFamily)}
             `;
             loadMyCheckins();
             return;
@@ -3120,6 +3142,8 @@ async function submitQuizAnswer(quizId, reviewId) {
             body: JSON.stringify({ answer_text: answerText }),
         });
         const data = await res.json();
+        const currentCheckinItem = await fetchMyCheckinById(itemCheckinIdFromReview(reviewId));
+        const reviewFamily = reviewFamilyUi.resolveReviewFamily(currentCheckinItem || {});
 
         if (data.next_state === 'self_check_required') {
             container.innerHTML = `
@@ -3129,7 +3153,7 @@ async function submitQuizAnswer(quizId, reviewId) {
                     explanation: data.explanation || '',
                     tone: 'success',
                 })}
-                ${renderSelfCheckCard(reviewId)}
+                ${renderSelfCheckCard(reviewId, reviewFamily)}
             `;
             loadMyCheckins();
         } else if (data.next_state === 'resolved') {
