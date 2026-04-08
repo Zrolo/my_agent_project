@@ -652,6 +652,125 @@ button.primary:hover {
     margin-bottom: 0;
 }
 
+.review-note-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.review-note-sheet {
+    border: 1px solid rgba(120, 150, 158, 0.18);
+    border-radius: 22px;
+    background: linear-gradient(180deg, #f8fbfc 0%, #ffffff 100%);
+    box-shadow: 0 14px 32px rgba(31, 58, 88, 0.06);
+    padding: 20px;
+}
+
+.review-note-sheet-primary {
+    position: relative;
+}
+
+.review-note-body {
+    display: grid;
+    gap: 12px;
+}
+
+.review-note-section {
+    padding: 14px 16px;
+    border: 1px solid rgba(126, 153, 160, 0.16);
+    border-left: 3px solid rgba(53, 87, 214, 0.22);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.78);
+}
+
+.review-note-section.is-action {
+    background: rgba(22, 88, 106, 0.06);
+    border-color: rgba(22, 88, 106, 0.16);
+    border-left-color: rgba(22, 88, 106, 0.4);
+}
+
+.review-note-section.is-aside {
+    background: rgba(53, 87, 214, 0.05);
+    border-left-color: rgba(53, 87, 214, 0.34);
+}
+
+.review-note-label {
+    margin-bottom: 6px;
+    color: #1f3447;
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.review-note-content {
+    color: #365066;
+    line-height: 1.72;
+    overflow-wrap: anywhere;
+}
+
+.review-note-content .rich-text {
+    margin: 0;
+}
+
+.review-inline-rich-block {
+    font-size: 0.97rem;
+}
+
+.review-visual-hint {
+    margin: 0;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: #102235;
+    color: #e8f1ff;
+    font-size: 0.94rem;
+    line-height: 1.7;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.review-note-drawer {
+    border: 1px solid rgba(120, 150, 158, 0.18);
+    border-radius: 18px;
+    background: rgba(248, 251, 252, 0.96);
+    padding: 14px 16px;
+}
+
+.review-note-drawer summary {
+    cursor: pointer;
+    font-weight: 700;
+    color: #1f4b96;
+    list-style: none;
+}
+
+.review-note-drawer summary::-webkit-details-marker {
+    display: none;
+}
+
+.review-note-drawer-body {
+    display: grid;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.review-note-drawer-row {
+    display: grid;
+    gap: 6px;
+}
+
+.review-note-drawer-label {
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: #5c7287;
+    letter-spacing: 0.02em;
+}
+
+.review-note-drawer-value {
+    color: #24394d;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
 /* ============ 打卡卡片样式 ============ */
 .checkin-list {
     display: flex;

@@ -751,8 +751,12 @@ function showStudentTab(targetId) {
 
 function buildReviewView(review) {
     return {
+        problem_focus: review?.problem_focus || review?.review_problem_focus || review?.main_block || review?.review_main_block || '',
         main_block: review?.main_block || review?.review_main_block || '',
         key_bridge: review?.key_bridge || review?.review_key_bridge || '',
+        visual_hint: review?.visual_hint || review?.review_visual_hint || '',
+        guided_walkthrough: review?.guided_walkthrough || review?.review_guided_walkthrough || '',
+        try_now: review?.try_now || review?.review_try_now || review?.next_step || review?.review_next_step || '',
         next_step: review?.next_step || review?.review_next_step || '',
         transfer_signal: review?.transfer_signal || review?.review_transfer_signal || '',
         review_mode: review?.review_mode || review?.mode || '',
@@ -1135,6 +1139,99 @@ function renderRichTextBlock(text, className = '') {
     if (!text) return '';
     const extra = className ? ` ${className}` : '';
     return `<div class="rich-text${extra}" data-rich-ready="0">${formatBlockRichText(text)}</div>`;
+}
+
+function renderReviewNoteSection(section) {
+    const emphasisClass = section.field === 'try_now'
+        ? 'is-action'
+        : section.field === 'transfer_signal'
+            ? 'is-aside'
+            : '';
+    const content = section.field === 'visual_hint'
+        ? `<pre class="review-visual-hint review-note-visual">${escapeHtml(section.value || '')}</pre>`
+        : renderRichTextBlock(section.value || '', 'review-inline-rich-block');
+    return `
+        <article class="review-note-section${emphasisClass ? ` ${emphasisClass}` : ''}">
+            <div class="review-note-label">${escapeHtml(section.label || '')}</div>
+            <div class="review-note-content">
+                ${content}
+            </div>
+        </article>
+    `;
+}
+
+function renderReviewDetailsDrawer(item = {}) {
+    const errorTags = item.error_tags || item.review_error_tags || [];
+    const subTags = item.core_design_subtags || item.review_core_design_subtags || [];
+    const parts = [];
+
+    if (errorTags.length) {
+        parts.push(`
+            <div class="review-note-drawer-row">
+                <div class="review-note-drawer-label">错误标签</div>
+                <div class="archive-chip-row">${renderPillRow(errorTags, 'tag-pill ai-tag')}</div>
+            </div>
+        `);
+    }
+    if (item.error_layer) {
+        parts.push(`
+            <div class="review-note-drawer-row">
+                <div class="review-note-drawer-label">统一归类</div>
+                <div class="review-note-drawer-value">${escapeHtml(errorLayerText(item.error_layer))}</div>
+            </div>
+        `);
+    }
+    if (item.error_layer_confidence) {
+        parts.push(`
+            <div class="review-note-drawer-row">
+                <div class="review-note-drawer-label">判断把握</div>
+                <div class="review-note-drawer-value">${escapeHtml(confidenceText(item.error_layer_confidence))}</div>
+            </div>
+        `);
+    }
+    if (subTags.length) {
+        parts.push(`
+            <div class="review-note-drawer-row">
+                <div class="review-note-drawer-label">核心设计子标签</div>
+                <div class="archive-chip-row">${renderPillRow(subTags, 'tag-pill subtle-tag')}</div>
+            </div>
+        `);
+    }
+    if (item.diagnosis) {
+        parts.push(`
+            <div class="review-note-drawer-row">
+                <div class="review-note-drawer-label">问题诊断</div>
+                <div class="review-note-drawer-value">${renderRichTextInline(item.diagnosis || '')}</div>
+            </div>
+        `);
+    }
+    if (item.next_action) {
+        parts.push(`
+            <div class="review-note-drawer-row">
+                <div class="review-note-drawer-label">下一步行动</div>
+                <div class="review-note-drawer-value">${renderRichTextInline(item.next_action || '')}</div>
+            </div>
+        `);
+    }
+    if (item.suggested_topic) {
+        parts.push(`
+            <div class="review-note-drawer-row">
+                <div class="review-note-drawer-label">推荐专题</div>
+                <div class="review-note-drawer-value">${renderRichTextInline(item.suggested_topic || '')}</div>
+            </div>
+        `);
+    }
+
+    if (!parts.length) return '';
+
+    return `
+        <details class="review-note-drawer">
+            <summary>展开看老师批注</summary>
+            <div class="review-note-drawer-body">
+                ${parts.join('')}
+            </div>
+        </details>
+    `;
 }
 
 function hydrateMath(root = document) {
@@ -2105,46 +2202,17 @@ function setupCheckinValidation() {
 
 function renderReviewHtml(review, family = reviewFamilyUi.resolveReviewFamily(review)) {
     if (!review) return '';
-    const tags = review.error_tags?.length ? review.error_tags.join(', ') : '';
-    const subtags = review.core_design_subtags?.length ? review.core_design_subtags.join(', ') : '';
-    const correctionRows = reviewFamilyUi
-        .orderedReviewSections(review, family)
-        .map((section) => `
-            <div${section.field === 'transfer_signal' ? ' class="review-transfer-signal"' : ''}>
-                <strong>${escapeHtml(section.label)}：</strong> ${renderRichTextInline(section.value || '')}
-            </div>
-        `)
-        .join('');
-
-    // 学生纠偏层（主要展示）
-    const correctionHtml = `
-        <div class="review-correction">
-            ${correctionRows}
-        </div>
-    `;
-
-    const detailRows = [];
-    if (tags) detailRows.push(`<p><strong>错误标签:</strong> ${escapeHtml(tags)}</p>`);
-    if (review.error_layer) detailRows.push(`<p><strong>统一归类:</strong> ${escapeHtml(errorLayerText(review.error_layer))}</p>`);
-    if (review.error_layer_confidence) detailRows.push(`<p><strong>判断把握:</strong> ${escapeHtml(confidenceText(review.error_layer_confidence))}</p>`);
-    if (subtags) detailRows.push(`<p><strong>核心设计子标签:</strong> ${escapeHtml(subtags)}</p>`);
-    if (review.diagnosis) detailRows.push(`<div><strong>问题诊断:</strong> ${renderRichTextInline(review.diagnosis || '')}</div>`);
-    if (review.next_action) detailRows.push(`<div><strong>下一步行动:</strong> ${renderRichTextInline(review.next_action || '')}</div>`);
-    if (review.suggested_topic) detailRows.push(`<div><strong>推荐专题:</strong> ${renderRichTextInline(review.suggested_topic || '')}</div>`);
-
-    // 结构化诊断层（折叠展示）
-    const diagnosisHtml = detailRows.length ? `
-        <details class="review-diagnosis-detail">
-            <summary>查看诊断依据</summary>
-            ${detailRows.join('')}
-        </details>
-    ` : '';
+    const orderedSections = reviewFamilyUi.orderedReviewSections(review, family);
+    const detailsDrawerHtml = renderReviewDetailsDrawer(review);
 
     return `
-        <div class="review-box family-${escapeHtml(family)}">
-            <h4>${family === 'success_reflection' ? 'AI 理解复盘' : 'AI 复盘报告'}</h4>
-            ${correctionHtml}
-            ${diagnosisHtml}
+        <div class="review-note-flow family-${escapeHtml(family)}">
+            <section class="review-note-sheet review-note-sheet-primary">
+                <div class="review-note-body">
+                    ${orderedSections.map((section) => renderReviewNoteSection(section)).join('')}
+                </div>
+            </section>
+            ${detailsDrawerHtml}
         </div>
     `;
 }
