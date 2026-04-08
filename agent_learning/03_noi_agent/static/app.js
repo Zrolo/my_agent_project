@@ -967,7 +967,15 @@ function renderActiveCheckinWorkspace(item) {
         `;
     }
     if (quizEl) {
-        quizEl.innerHTML = renderLearningSection(item) || '<div class="quiz-card"><div class="quiz-title">复盘生成后，这里会出现小测。</div></div>';
+        quizEl.innerHTML = renderLearningSection(item) || `
+            <div class="learning-stage-card learning-stage-entry">
+                <div class="learning-stage-header">
+                    <div class="learning-stage-kicker">学习路径入口</div>
+                    <div class="learning-stage-question">复盘生成后，这里会出现这一小步的理解检查</div>
+                    <div class="learning-stage-subtitle">我们会把讲义、自评和补救收成同一条路径，等复盘出来就能继续往下走。</div>
+                </div>
+            </div>
+        `;
     }
     if (reportEl) {
         if (item.review_status === 'completed') {
@@ -2361,44 +2369,95 @@ function renderQuizOptions(quiz, reviewId) {
 }
 
 function quizCardTitle(quiz) {
-    const level = quiz?.meta?.difficulty_level || quiz?.difficulty_level || 'main';
-    if (level === 'followup') return '这一步还差一点，我们再拆小一点';
-    if (level === 'confirm') return '你刚才像是有点蒙，我们换个角度再确认一下';
-    if (level === 'easier') return '再来一道更小的小题';
-    return '试试看你是不是已经懂这一步了';
+    return learningQuizStageCopy(quiz).title;
 }
 
 function quizCardLead(quiz) {
-    const level = quiz?.meta?.difficulty_level || quiz?.difficulty_level || 'main';
+    const level = normalizeLearningQuizStage(quiz);
     if (level === 'followup') {
-        return '我们不重讲整题，只再盯这一小步。';
+        return '我们只再盯这一小步，不把整题一下子展开。';
     }
     if (level === 'confirm') {
-        return '这不是更简单的一题，而是换个角度确认你是不是真的懂了。';
+        return '换个角度再看一眼，确认你真的抓住了。';
     }
-    if (level === 'easier') {
-        return '如果刚才那题还是有点卡，我们先做一个更小、更具体的小题。';
+    if (level === 'knowledge_confirm') {
+        return '先看讲解，再把这一问收一收。';
     }
-    return '';
+    if (level === 'final_micro_confirm') {
+        return '只做最后一个最小确认，看看这一步是不是已经稳了。';
+    }
+    return '先把这一小步抓稳，我们再往下。';
+}
+
+function normalizeLearningQuizStage(quiz) {
+    const rawLevel = String(quiz?.meta?.difficulty_level || quiz?.difficulty_level || 'main').trim();
+    if (rawLevel === 'easier') return 'followup';
+    return rawLevel || 'main';
+}
+
+function learningQuizStageCopy(quiz) {
+    const stage = normalizeLearningQuizStage(quiz);
+    const copy = {
+        main: {
+            label: '主线确认',
+            title: '先确认你是不是已经抓住了这一步了',
+            subtitle: '我们先只盯这一小步，不把整题一下子铺开。',
+        },
+        followup: {
+            label: '再拆小一点',
+            title: '这一步还差一点，我们再拆小一点',
+            subtitle: '先把这一步缩到更具体的动作，再来确认一次。',
+        },
+        confirm: {
+            label: '换个角度',
+            title: '换个角度，再确认一次',
+            subtitle: '这不是重讲一遍，而是换一条路再看你有没有真的抓住。',
+        },
+        knowledge_confirm: {
+            label: '讲解后确认',
+            title: '看完上面的讲解，再做最后一次确认',
+            subtitle: '先把讲义里的解释吃透，再用这一题收个尾。',
+        },
+        final_micro_confirm: {
+            label: '最小收尾',
+            title: '最后用一个最小问题收尾确认',
+            subtitle: '只做最后一个最小确认，看看这一小步是不是已经稳了。',
+        },
+    };
+    return { stage, ...((copy[stage] || copy.main)) };
+}
+
+function renderLearningStageHeader(quiz) {
+    const stageCopy = learningQuizStageCopy(quiz);
+    return `
+        <div class="learning-stage-header">
+            <div class="learning-stage-kicker">理解检查 · ${escapeHtml(stageCopy.label)}</div>
+            <div class="learning-stage-question">${escapeHtml(stageCopy.title)}</div>
+            <div class="learning-stage-subtitle">${escapeHtml(stageCopy.subtitle)}</div>
+        </div>
+    `;
 }
 
 function renderQuizCard(quiz, reviewId) {
     if (!quiz) return '';
+    const stageCopy = learningQuizStageCopy(quiz);
     const microHint = quiz.meta?.micro_hint
-        ? `<div class="quiz-hint">先提醒一句：${renderRichTextInline(quiz.meta.micro_hint)}</div>`
+        ? `<div class="learning-stage-note">先提醒一句：${renderRichTextInline(quiz.meta.micro_hint)}</div>`
         : '';
     const lead = quizCardLead(quiz)
-        ? `<div class="quiz-lead">${escapeHtml(quizCardLead(quiz))}</div>`
+        ? `<div class="learning-stage-lead">${escapeHtml(quizCardLead(quiz))}</div>`
         : '';
     return `
-        <div class="quiz-card">
-            <div class="quiz-title">${escapeHtml(quizCardTitle(quiz))}</div>
+        <div class="learning-stage-card learning-stage-quiz" data-quiz-stage="${escapeHtml(stageCopy.stage)}">
+            ${renderLearningStageHeader(quiz)}
             ${lead}
             ${microHint}
-            <div class="quiz-question">${renderRichTextBlock(quiz.question_text)}</div>
-            ${renderQuizOptions(quiz, reviewId)}
-            <div class="quiz-actions">
-                <button class="secondary" onclick="submitQuizAnswer(${Number(quiz.quiz_id)}, ${Number(reviewId)})">提交答案</button>
+            <div class="learning-stage-question">${renderRichTextBlock(quiz.question_text)}</div>
+            <div class="learning-stage-body">
+                ${renderQuizOptions(quiz, reviewId)}
+            </div>
+            <div class="learning-stage-submit">
+                <button class="secondary learning-stage-submit-btn" onclick="submitQuizAnswer(${Number(quiz.quiz_id)}, ${Number(reviewId)})">提交答案</button>
             </div>
         </div>
     `;
@@ -2406,24 +2465,36 @@ function renderQuizCard(quiz, reviewId) {
 
 function renderQuizFeedbackBlock({ title, feedbackText = '', bridgeFeedback = '', explanation = '', tone = 'success' }) {
     return `
-        <div class="quiz-card quiz-result ${escapeHtml(tone)}">
-            <div class="quiz-title">${escapeHtml(title)}</div>
-            ${feedbackText ? `<div class="quiz-explanation">${renderRichTextBlock(feedbackText)}</div>` : ''}
-            ${bridgeFeedback ? `<div class="quiz-explanation"><strong>你刚才真正答对的是：</strong>${renderRichTextInline(bridgeFeedback)}</div>` : ''}
-            ${explanation ? `<div class="quiz-explanation">${renderRichTextBlock(explanation)}</div>` : ''}
+        <div class="learning-stage-card learning-path-feedback ${escapeHtml(tone)}">
+            <div class="learning-stage-header">
+                <div class="learning-stage-kicker">讲义批注</div>
+                <div class="learning-stage-question">${escapeHtml(title)}</div>
+                <div class="learning-stage-subtitle">这里不是在重新判分，只是在这一步上多写一条批注，帮你把路走顺。</div>
+            </div>
+            ${feedbackText ? `<div class="learning-path-feedback-text">${renderRichTextBlock(feedbackText)}</div>` : ''}
+            ${bridgeFeedback ? `<div class="learning-path-feedback-bridge"><strong>这里真正抓住的是：</strong>${renderRichTextInline(bridgeFeedback)}</div>` : ''}
+            ${explanation ? `<div class="learning-path-feedback-explanation">${renderRichTextBlock(explanation)}</div>` : ''}
         </div>
     `;
 }
 
 function renderSelfCheckCard(reviewId, family = 'failure_diagnosis') {
-    const copy = reviewFamilyUi.reviewFeedbackCopy(family);
+    const copy = {
+        clearLabel: family === 'success_reflection' ? '我能自己说清了' : '我是真的懂了',
+        guessedLabel: '刚才有点猜中',
+        confusedLabel: family === 'success_reflection' ? '还说不清' : '还差一点',
+    };
     return `
-        <div class="self-check-card">
-            <div class="self-check-title">${escapeHtml(copy.title)}</div>
-            <div class="self-check-actions">
-                <button class="self-check-pill tone-clear" onclick="submitSelfCheck(${Number(reviewId)}, 'clear')">${escapeHtml(copy.clearLabel)}</button>
-                <button class="self-check-pill tone-guessed" onclick="submitSelfCheck(${Number(reviewId)}, 'guessed')">${escapeHtml(copy.guessedLabel)}</button>
-                <button class="self-check-pill tone-confused" onclick="submitSelfCheck(${Number(reviewId)}, 'confused')">${escapeHtml(copy.confusedLabel)}</button>
+        <div class="learning-stage-card self-check-card-v2">
+            <div class="learning-stage-header">
+                <div class="learning-stage-kicker">自我确认</div>
+                <div class="learning-stage-question">你现在觉得，这一步是真的懂了，还是刚才有点猜中？</div>
+                <div class="learning-stage-subtitle">先把这一步在心里过一遍，再决定要不要继续往下走。</div>
+            </div>
+            <div class="self-check-actions-v2">
+                <button class="self-check-option-v2 tone-clear" onclick="submitSelfCheck(${Number(reviewId)}, 'clear')">${escapeHtml(copy.clearLabel || '我是真的懂了')}</button>
+                <button class="self-check-option-v2 tone-guessed" onclick="submitSelfCheck(${Number(reviewId)}, 'guessed')">${escapeHtml(copy.guessedLabel || '刚才有点猜中')}</button>
+                <button class="self-check-option-v2 tone-confused" onclick="submitSelfCheck(${Number(reviewId)}, 'confused')">${escapeHtml(copy.confusedLabel || '还差一点')}</button>
             </div>
         </div>
     `;
@@ -2433,13 +2504,17 @@ function renderRemedyButtons(reviewId, errorLayer, options = {}) {
     const dynamicLabel = options.dynamicLabel || dynamicRemedyLabel(errorLayer);
     const includeResolve = options.includeResolve === true;
     return `
-        <div class="quiz-card">
-            <div class="quiz-title">这一步还没完全打通，我们换一种方式继续带你一下</div>
-            <div class="quiz-actions remedy-actions">
-                ${includeResolve ? `<button class="secondary" onclick="resolveRemedy(${Number(reviewId)}, 'resolved')">我懂了</button>` : ''}
-                <button class="secondary" onclick="triggerRemedy(${Number(reviewId)}, 'rephrase')">再换一种说法讲这一步</button>
-                <button class="secondary" onclick="triggerRemedy(${Number(reviewId)}, 'smaller_example')">给我一个更小的例子</button>
-                <button class="secondary" onclick="triggerRemedy(${Number(reviewId)}, 'easier_quiz')">再出一道更简单的小题</button>
+        <div class="learning-stage-card learning-remedy-card">
+            <div class="learning-stage-header">
+                <div class="learning-stage-kicker">继续带一遍</div>
+                <div class="learning-stage-question">我们换一种带法，继续过这一步</div>
+                <div class="learning-stage-subtitle">不用一次把整题推完，我们先沿着这一小步往前走。</div>
+            </div>
+            <div class="learning-remedy-actions">
+                ${includeResolve ? `<button class="secondary" onclick="resolveRemedy(${Number(reviewId)}, 'resolved')">这一步我现在懂了</button>` : ''}
+                <button class="secondary" onclick="triggerRemedy(${Number(reviewId)}, 'rephrase')">换个说法再讲一遍</button>
+                <button class="secondary" onclick="triggerRemedy(${Number(reviewId)}, 'smaller_example')">先换一个更小的例子</button>
+                <button class="secondary" onclick="triggerRemedy(${Number(reviewId)}, 'easier_quiz')">再来一道更小的问题</button>
                 <button class="secondary" onclick="triggerRemedy(${Number(reviewId)}, 'dynamic_bridge_help')">${escapeHtml(dynamicLabel)}</button>
             </div>
         </div>
@@ -2448,13 +2523,23 @@ function renderRemedyButtons(reviewId, errorLayer, options = {}) {
 
 function renderLearningSection(item) {
     const reviewId = item.review_id;
-    if (!reviewId || item.review_status !== 'completed') return '';
+    if (!reviewId) return '';
     const reviewFamily = reviewFamilyUi.resolveReviewFamily(item);
 
     const sectionId = `review-quiz-${reviewId}`;
     let content = '';
 
-    if (item.review_learning_status === 'self_check_required') {
+    if (item.review_status !== 'completed') {
+        content = `
+            <div class="learning-stage-card learning-stage-entry">
+                <div class="learning-stage-header">
+                    <div class="learning-stage-kicker">学习路径入口</div>
+                    <div class="learning-stage-question">复盘生成后，这里会出现这一小步的理解检查</div>
+                    <div class="learning-stage-subtitle">我们会把讲义、自评和补救收成同一条路径，等复盘出来就能继续往下走。</div>
+                </div>
+            </div>
+        `;
+    } else if (item.review_learning_status === 'self_check_required') {
         content = `
             ${renderQuizFeedbackBlock({
                 title: item.quiz_latest_feedback || '答对了，这一步你跨过去了。',
@@ -2501,10 +2586,14 @@ function renderLearningSection(item) {
         `;
     } else {
         content = `
-            <div class="quiz-card">
-                <div class="quiz-title">复盘看完后，再来一道小题确认你是不是真的懂了</div>
-                <div class="quiz-actions">
-                    <button class="secondary" onclick="startReviewQuiz(${Number(reviewId)})">试试看你是不是已经懂这一步了</button>
+            <div class="learning-stage-card learning-stage-entry">
+                <div class="learning-stage-header">
+                    <div class="learning-stage-kicker">学习路径入口</div>
+                    <div class="learning-stage-question">复盘看完后，再来一道小题确认你是不是已经懂了</div>
+                    <div class="learning-stage-subtitle">先点开这一小步，我们会继续沿着同一条路径往下走。</div>
+                </div>
+                <div class="learning-stage-submit">
+                    <button class="secondary learning-stage-submit-btn" onclick="startReviewQuiz(${Number(reviewId)})">开始这一小步的理解检查</button>
                 </div>
             </div>
         `;
@@ -2872,7 +2961,17 @@ async function loadMyCheckins(preferredCheckinId = null) {
 
 async function startReviewQuiz(reviewId) {
     const container = document.getElementById(`review-quiz-${reviewId}`);
-    if (container) container.innerHTML = '<div class="quiz-card"><div class="quiz-title">正在生成理解小测...</div></div>';
+    if (container) {
+        container.innerHTML = `
+            <div class="learning-stage-card learning-stage-entry">
+                <div class="learning-stage-header">
+                    <div class="learning-stage-kicker">理解检查</div>
+                    <div class="learning-stage-question">正在生成这一小步的小测...</div>
+                    <div class="learning-stage-subtitle">我们先把这一步收进同一条路径里，很快就好。</div>
+                </div>
+            </div>
+        `;
+    }
 
     try {
         const res = await apiFetch(`${API_BASE}/api/reviews/${reviewId}/quiz/generate`, {
@@ -2901,7 +3000,15 @@ async function startReviewQuiz(reviewId) {
             return;
         }
         if (container) {
-            container.innerHTML = `<div class="quiz-card quiz-result final"><div class="quiz-title" style="color:#c0392b">生成失败：${escapeHtml(err.message)}</div></div>`;
+            container.innerHTML = `
+                <div class="learning-stage-card learning-path-feedback final">
+                    <div class="learning-stage-header">
+                        <div class="learning-stage-kicker">生成失败</div>
+                        <div class="learning-stage-question">这一小步的小测没生成成功</div>
+                    </div>
+                    <div class="learning-path-feedback-explanation" style="color:#c0392b">${escapeHtml(err.message)}</div>
+                </div>
+            `;
         }
     }
 }
@@ -2919,7 +3026,17 @@ async function submitQuizAnswer(quizId, reviewId) {
     }
 
     const container = document.getElementById(`review-quiz-${reviewId}`);
-    if (container) container.innerHTML = '<div class="quiz-card"><div class="quiz-title">正在检查你的答案...</div></div>';
+    if (container) {
+        container.innerHTML = `
+            <div class="learning-stage-card learning-stage-entry">
+                <div class="learning-stage-header">
+                    <div class="learning-stage-kicker">理解检查</div>
+                    <div class="learning-stage-question">正在检查你这一小步的答案...</div>
+                    <div class="learning-stage-subtitle">我们先看这一层是不是已经抓稳了。</div>
+                </div>
+            </div>
+        `;
+    }
 
     try {
         const res = await apiFetch(`${API_BASE}/api/quizzes/${quizId}/answer`, {
@@ -2985,14 +3102,32 @@ async function submitQuizAnswer(quizId, reviewId) {
         }
     } catch (err) {
         if (container) {
-            container.innerHTML = `<div class="quiz-card quiz-result final"><div class="quiz-title" style="color:#c0392b">提交失败：${escapeHtml(err.message)}</div></div>`;
+            container.innerHTML = `
+                <div class="learning-stage-card learning-path-feedback final">
+                    <div class="learning-stage-header">
+                        <div class="learning-stage-kicker">提交失败</div>
+                        <div class="learning-stage-question">答案还没成功送出去</div>
+                    </div>
+                    <div class="learning-path-feedback-explanation" style="color:#c0392b">${escapeHtml(err.message)}</div>
+                </div>
+            `;
         }
     }
 }
 
 async function submitSelfCheck(reviewId, status) {
     const container = document.getElementById(`review-quiz-${reviewId}`);
-    if (container) container.innerHTML = '<div class="quiz-card"><div class="quiz-title">正在记录你的理解状态...</div></div>';
+    if (container) {
+        container.innerHTML = `
+            <div class="learning-stage-card learning-stage-entry">
+                <div class="learning-stage-header">
+                    <div class="learning-stage-kicker">自我确认</div>
+                    <div class="learning-stage-question">正在记录你刚才的自我确认...</div>
+                    <div class="learning-stage-subtitle">这会帮我们接上后面的下一步。</div>
+                </div>
+            </div>
+        `;
+    }
     const checkinId = itemCheckinIdFromReview(reviewId);
 
     try {
@@ -3004,8 +3139,11 @@ async function submitSelfCheck(reviewId, status) {
 
         if (data.next_state === 'resolved') {
             container.innerHTML = `
-                <div class="quiz-card quiz-result success">
-                    <div class="quiz-title">${escapeHtml(data.feedback_text || '答对了，这一步你跨过去了。')}</div>
+                <div class="learning-stage-card learning-path-feedback success">
+                    <div class="learning-stage-header">
+                        <div class="learning-stage-kicker">已确认</div>
+                        <div class="learning-stage-question">${escapeHtml(data.feedback_text || '答对了，这一步你跨过去了。')}</div>
+                    </div>
                 </div>
             `;
         } else if (data.next_state === 'confirm_quiz') {
@@ -3038,7 +3176,15 @@ async function submitSelfCheck(reviewId, status) {
         loadMyCheckins();
     } catch (err) {
         if (container) {
-            container.innerHTML = `<div class="quiz-card quiz-result final"><div class="quiz-title" style="color:#c0392b">提交失败：${escapeHtml(err.message)}</div></div>`;
+            container.innerHTML = `
+                <div class="learning-stage-card learning-path-feedback final">
+                    <div class="learning-stage-header">
+                        <div class="learning-stage-kicker">提交失败</div>
+                        <div class="learning-stage-question">自我确认还没有记录上</div>
+                    </div>
+                    <div class="learning-path-feedback-explanation" style="color:#c0392b">${escapeHtml(err.message)}</div>
+                </div>
+            `;
         }
     }
 }
@@ -3050,7 +3196,17 @@ function itemCheckinIdFromReview(reviewId) {
 
 async function triggerRemedy(reviewId, actionType) {
     const container = document.getElementById(`review-quiz-${reviewId}`);
-    if (container) container.innerHTML = '<div class="quiz-card"><div class="quiz-title">正在换一种方式帮你拆这一步...</div></div>';
+    if (container) {
+        container.innerHTML = `
+            <div class="learning-stage-card learning-stage-entry">
+                <div class="learning-stage-header">
+                    <div class="learning-stage-kicker">继续带一遍</div>
+                    <div class="learning-stage-question">正在换一种方式帮你拆这一步...</div>
+                    <div class="learning-stage-subtitle">我们先把这一小步换个讲法，再往下接。</div>
+                </div>
+            </div>
+        `;
+    }
 
     try {
         const res = await apiFetch(`${API_BASE}/api/reviews/${reviewId}/remedy`, {
@@ -3060,16 +3216,22 @@ async function triggerRemedy(reviewId, actionType) {
         const data = await res.json();
         if (data.mode === 'quiz') {
             container.innerHTML = `
-                <div class="quiz-card quiz-result warn">
-                    <div class="quiz-title">我们把这一步再缩小一点，试一题更简单的小题。</div>
+                <div class="learning-stage-card learning-path-feedback warn">
+                    <div class="learning-stage-header">
+                        <div class="learning-stage-kicker">再缩小一点</div>
+                        <div class="learning-stage-question">我们把这一步再缩小一点，试一题更简单的小题。</div>
+                    </div>
                 </div>
                 ${renderQuizCard(data.quiz, reviewId)}
             `;
             loadMyCheckins();
         } else if (data.mode === 'final') {
             container.innerHTML = `
-                <div class="quiz-card quiz-result final">
-                    <div class="quiz-title">${escapeHtml(data.feedback_text)}</div>
+                <div class="learning-stage-card learning-path-feedback final">
+                    <div class="learning-stage-header">
+                        <div class="learning-stage-kicker">补救结束</div>
+                        <div class="learning-stage-question">${escapeHtml(data.feedback_text)}</div>
+                    </div>
                 </div>
             `;
             loadMyCheckins();
@@ -3077,10 +3239,13 @@ async function triggerRemedy(reviewId, actionType) {
             const checkinItem = await fetchMyCheckinById(itemCheckinIdFromReview(reviewId));
             const errorLayer = checkinItem?.review_error_layer || 'insufficient';
             container.innerHTML = `
-                <div class="quiz-card quiz-result info">
-                    <div class="quiz-title">我们只讲这一步</div>
-                    <div class="quiz-explanation">${escapeHtml(data.remedy_text || '')}</div>
-                    <div class="quiz-explanation"><strong>你现在先做：</strong>${escapeHtml(data.micro_action || '')}</div>
+                <div class="learning-stage-card learning-path-feedback info">
+                    <div class="learning-stage-header">
+                        <div class="learning-stage-kicker">只讲这一步</div>
+                        <div class="learning-stage-question">我们先把这一小步讲顺</div>
+                    </div>
+                    <div class="learning-path-feedback-text">${escapeHtml(data.remedy_text || '')}</div>
+                    <div class="learning-path-feedback-explanation"><strong>你现在先做：</strong>${escapeHtml(data.micro_action || '')}</div>
                     ${renderRemedyButtons(reviewId, errorLayer, {
                         includeResolve: true,
                     })}
@@ -3089,7 +3254,15 @@ async function triggerRemedy(reviewId, actionType) {
         }
     } catch (err) {
         if (container) {
-            container.innerHTML = `<div class="quiz-card quiz-result final"><div class="quiz-title" style="color:#c0392b">补救失败：${escapeHtml(err.message)}</div></div>`;
+            container.innerHTML = `
+                <div class="learning-stage-card learning-path-feedback final">
+                    <div class="learning-stage-header">
+                        <div class="learning-stage-kicker">补救失败</div>
+                        <div class="learning-stage-question">这一步的补救暂时没接上</div>
+                    </div>
+                    <div class="learning-path-feedback-explanation" style="color:#c0392b">${escapeHtml(err.message)}</div>
+                </div>
+            `;
         }
     }
 }
@@ -3103,13 +3276,35 @@ async function resolveRemedy(reviewId, status) {
         });
         if (container) {
             container.innerHTML = status === 'resolved'
-                ? `<div class="quiz-card quiz-result success"><div class="quiz-title">答对了，这一步你跨过去了。</div></div>`
-                : `<div class="quiz-card quiz-result final"><div class="quiz-title">这道题我们先停在这里，你的老师会来和你一起看一看。</div></div>`;
+                ? `
+                    <div class="learning-stage-card learning-path-feedback success">
+                        <div class="learning-stage-header">
+                            <div class="learning-stage-kicker">已收束</div>
+                            <div class="learning-stage-question">好，这一步我们先走到这里。</div>
+                        </div>
+                    </div>
+                `
+                : `
+                    <div class="learning-stage-card learning-path-feedback info">
+                        <div class="learning-stage-header">
+                            <div class="learning-stage-kicker">继续停留</div>
+                            <div class="learning-stage-question">我们继续留在这一步，等你准备好了再往下走。</div>
+                        </div>
+                    </div>
+                `;
         }
         loadMyCheckins();
     } catch (err) {
         if (container) {
-            container.innerHTML = `<div class="quiz-card quiz-result final"><div class="quiz-title" style="color:#c0392b">提交失败：${escapeHtml(err.message)}</div></div>`;
+            container.innerHTML = `
+                <div class="learning-stage-card learning-path-feedback final">
+                    <div class="learning-stage-header">
+                        <div class="learning-stage-kicker">提交失败</div>
+                        <div class="learning-stage-question">这一步暂时没法收束</div>
+                    </div>
+                    <div class="learning-path-feedback-explanation" style="color:#c0392b">${escapeHtml(err.message)}</div>
+                </div>
+            `;
         }
     }
 }
