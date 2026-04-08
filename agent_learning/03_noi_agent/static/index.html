@@ -203,6 +203,28 @@
                                                     </select>
                                                 </div>
                                             </div>
+                                            <div class="form-row" style="margin-top: 12px;">
+                                                <div class="form-group">
+                                                    <label for="checkin-status">完成状态</label>
+                                                    <select id="checkin-status">
+                                                        <option value="independent">独立完成</option>
+                                                        <option value="hinted">需要提示</option>
+                                                        <option value="editorial">看题解</option>
+                                                        <option value="unfinished">未完成</option>
+                                                    </select>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="checkin-submission-result">提交结果</label>
+                                                    <select id="checkin-submission-result">
+                                                        <option value="not_submitted">未提交</option>
+                                                        <option value="wa">WA（答案错误）</option>
+                                                        <option value="tle">TLE（超时）</option>
+                                                        <option value="re">RE（运行错误）</option>
+                                                        <option value="ce">CE（编译错误）</option>
+                                                        <option value="unknown">不确定</option>
+                                                    </select>
+                                                </div>
+                                            </div>
                                             <div id="luogu-import-group" class="form-group hidden" style="margin-top: 12px;">
                                                 <label for="checkin-url">题面链接 <span class="optional">洛谷题号或链接</span></label>
                                                 <div style="display: flex; gap: 8px;">
@@ -473,6 +495,7 @@ int main() {
     </div>
 
     <script src="/static/review_family_ui.js"></script>
+    <script src="/static/checkin_review_ui.js"></script>
     <script src="/static/teacher_manual_review_ui.js"></script>
     <script src="/static/app.js"></script>
 </body>

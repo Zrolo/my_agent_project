@@ -49,44 +49,7 @@ const reviewFamilyUi = window.reviewFamilyUi || {
             : '右侧先看问题定位和最小下一步，再用中间的小测确认你知不知道该先查哪一步。';
     },
 };
-const checkinReviewUi = window.checkinReviewUi || {
-    INPUT_STAGE: 'input',
-    REVIEW_STAGE: 'review',
-    checkinStage(item = null) {
-        return item ? 'review' : 'input';
-    },
-    checkinSummaryPills(item = {}) {
-        const pills = [];
-        if (item.problem_title) pills.push({ label: '题目', value: item.problem_title });
-        if (item.completion_status_text) pills.push({ label: '状态', value: item.completion_status_text });
-        if (item.submission_result_text) pills.push({ label: '提交', value: item.submission_result_text });
-        if (item.oj_source_text) pills.push({ label: '来源', value: item.oj_source_text });
-        return pills;
-    },
-    compactStudentInputSections(item = {}) {
-        return [
-            { label: '题面 / 题意', value: item.problem_context || '' },
-            { label: '卡点描述', value: item.bottleneck_text || '' },
-            { label: '反思总结', value: item.reflection || '' },
-            { label: '代码', value: item.student_code || '' },
-        ].filter((section) => String(section.value || '').trim());
-    },
-    reviewStageHeading(item = {}) {
-        return item.problem_title || '这次打卡复盘';
-    },
-    entryStageLead() {
-        return '把这次卡住的地方记下来，我们会把它整理成一页可继续往下学的复盘讲义。';
-    },
-    reviewStageLead(item = {}) {
-        if (item.review_status === 'failed') {
-            return '这次复盘暂时没有成功生成，你可以先看错误提示，稍后再回来继续。';
-        }
-        if (item.review_status !== 'completed') {
-            return '复盘讲义正在生成中，生成完成后这里会自动更新。';
-        }
-        return '先读这次复盘，再继续做下面这一小步。';
-    },
-};
+const checkinReviewUi = window.checkinReviewUi;
 const teacherManualReviewUi = window.teacherManualReviewUi || {
     renderTeacherReviewSamplesPanel(samples = []) {
         return samples.length ? '<div></div>' : '<p>暂无可复核的 review 样本</p>';
@@ -898,6 +861,8 @@ async function loadRelatedProblems(item) {
 }
 
 function setReviewStageEmpty() {
+    const entryStage = document.getElementById('checkin-entry-stage');
+    const reviewStage = document.getElementById('checkin-review-stage');
     const empty = document.getElementById('review-stage-empty');
     const content = document.getElementById('review-stage-content');
     const status = document.getElementById('workspace-stage-status');
@@ -905,6 +870,8 @@ function setReviewStageEmpty() {
     const titleEl = document.getElementById('active-review-title');
     const subtitleEl = document.getElementById('active-review-subtitle');
     const metaEl = document.getElementById('active-review-meta');
+    if (entryStage) entryStage.classList.remove('hidden');
+    if (reviewStage) reviewStage.classList.add('hidden');
     if (empty) empty.classList.remove('hidden');
     if (content) content.classList.add('hidden');
     if (status) status.innerHTML = '';
@@ -918,6 +885,8 @@ function setReviewStageEmpty() {
 }
 
 function renderCheckinEntryStage() {
+    const entryStage = document.getElementById('checkin-entry-stage');
+    const reviewStage = document.getElementById('checkin-review-stage');
     const empty = document.getElementById('review-stage-empty');
     const content = document.getElementById('review-stage-content');
     const status = document.getElementById('workspace-stage-status');
@@ -929,6 +898,8 @@ function renderCheckinEntryStage() {
     const reportEl = document.getElementById('active-review-report');
     const relatedEl = document.getElementById('active-review-related');
     setReviewStageEmpty();
+    if (entryStage) entryStage.classList.remove('hidden');
+    if (reviewStage) reviewStage.classList.add('hidden');
     if (titleEl) titleEl.textContent = '这次打卡复盘';
     if (subtitleEl) subtitleEl.textContent = checkinReviewUi.entryStageLead();
     if (metaEl) metaEl.innerHTML = '';
@@ -945,6 +916,8 @@ function renderCheckinEntryStage() {
 }
 
 function renderActiveCheckinWorkspace(item) {
+    const entryStage = document.getElementById('checkin-entry-stage');
+    const reviewStage = document.getElementById('checkin-review-stage');
     const empty = document.getElementById('review-stage-empty');
     const content = document.getElementById('review-stage-content');
     const titleEl = document.getElementById('active-review-title');
@@ -968,6 +941,8 @@ function renderActiveCheckinWorkspace(item) {
         return;
     }
 
+    if (entryStage) entryStage.classList.add('hidden');
+    if (reviewStage) reviewStage.classList.remove('hidden');
     if (empty) empty.classList.add('hidden');
     if (content) content.classList.remove('hidden');
     if (titleEl) titleEl.textContent = item.problem_title || '复盘工作区';
