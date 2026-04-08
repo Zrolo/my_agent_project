@@ -1377,14 +1377,6 @@ button.primary:hover {
     line-height: 1.6;
 }
 
-.learning-kicker {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #5d7880;
-}
-
 .knowledge-note-sheet {
     margin-top: 14px;
     padding: 18px;
