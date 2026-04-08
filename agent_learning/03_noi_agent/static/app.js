@@ -2445,6 +2445,9 @@ function renderLearningStageHeader(quiz) {
 function renderQuizCard(quiz, reviewId) {
     if (!quiz) return '';
     const stageCopy = learningQuizStageCopy(quiz);
+    const knowledgeBailoutCard = stageCopy.stage === 'knowledge_confirm' && quiz.meta?.knowledge_bailout && quiz.meta?.knowledge_card
+        ? renderKnowledgeBailoutCard(quiz.meta.knowledge_card)
+        : '';
     const microHint = quiz.meta?.micro_hint
         ? `<div class="learning-stage-note">先提醒一句：${renderRichTextInline(quiz.meta.micro_hint)}</div>`
         : '';
@@ -2454,6 +2457,7 @@ function renderQuizCard(quiz, reviewId) {
     return `
         <div class="learning-stage-card learning-stage-quiz" data-quiz-stage="${escapeHtml(stageCopy.stage)}">
             ${renderLearningStageHeader(quiz)}
+            ${knowledgeBailoutCard}
             ${lead}
             ${microHint}
             <div class="learning-stage-question">${renderRichTextBlock(quiz.question_text)}</div>
@@ -2478,6 +2482,74 @@ function renderQuizFeedbackBlock({ title, feedbackText = '', bridgeFeedback = ''
             ${feedbackText ? `<div class="learning-path-feedback-text">${renderRichTextBlock(feedbackText)}</div>` : ''}
             ${bridgeFeedback ? `<div class="learning-path-feedback-bridge"><strong>这里真正抓住的是：</strong>${renderRichTextInline(bridgeFeedback)}</div>` : ''}
             ${explanation ? `<div class="learning-path-feedback-explanation">${renderRichTextBlock(explanation)}</div>` : ''}
+        </div>
+    `;
+}
+
+function renderKnowledgeBailoutCard(card = {}) {
+    if (!card || typeof card !== 'object') return '';
+
+    const opening = String(card.opening || card.knowledge_opening || '').trim();
+    const bridge = String(card.bridge_explanation || card.bridge || '').trim();
+    const wrongThinking = String(card.wrong_thinking || card.common_misunderstanding || '').trim();
+    const rightThinking = String(card.right_thinking || card.correct_understanding || '').trim();
+    const visualHint = String(card.visual_hint || '').trim();
+    const microAction = String(card.micro_action || card.micro_action_text || '').trim();
+    const overview = String(card.algorithm_overview || card.overview || '').trim();
+
+    const comparisonHtml = (wrongThinking || rightThinking) ? `
+        <div class="knowledge-note-comparison">
+            <div class="knowledge-note-comparison-col">
+                <div class="knowledge-note-section-title">常见误解</div>
+                <div class="knowledge-note-comparison-body">${wrongThinking ? renderRichTextBlock(wrongThinking) : '<p class="mb-0 text-slate-400">先看这一步容易想偏在哪里。</p>'}</div>
+            </div>
+            <div class="knowledge-note-comparison-col">
+                <div class="knowledge-note-section-title">正确理解</div>
+                <div class="knowledge-note-comparison-body">${rightThinking ? renderRichTextBlock(rightThinking) : '<p class="mb-0 text-slate-400">这里才是这一步真正要抓住的意思。</p>'}</div>
+            </div>
+        </div>
+    ` : '';
+
+    const visualHtml = visualHint ? `
+        <div class="knowledge-note-visual">
+            <div class="knowledge-note-section-title">看一眼图景</div>
+            <pre>${escapeHtml(visualHint)}</pre>
+        </div>
+    ` : '';
+
+    const summaryHtml = microAction ? `
+        <div class="knowledge-note-summary">
+            <div class="knowledge-note-section-title">你现在先做</div>
+            <div>${renderRichTextInline(microAction)}</div>
+        </div>
+    ` : '';
+
+    const overviewHtml = overview ? `
+        <div class="knowledge-note-overview">
+            <div class="knowledge-note-section-title">整体收束</div>
+            <div>${renderRichTextBlock(overview)}</div>
+        </div>
+    ` : '';
+
+    return `
+        <div class="knowledge-note-sheet">
+            <div class="knowledge-note-header">
+                <div class="learning-kicker">知识兜底 · 学习手册</div>
+                <div class="knowledge-note-title">先把这块知识单独讲清楚</div>
+                <div class="knowledge-note-opening">${opening ? renderRichTextBlock(opening) : '我们先把这块知识拆出来单独看，再回到题目里收口。'}</div>
+            </div>
+            <div class="knowledge-note-body">
+                ${bridge ? `
+                    <div class="knowledge-note-bridge">
+                        <div class="knowledge-note-section-title">这一步怎么接上</div>
+                        <div>${renderRichTextBlock(bridge)}</div>
+                    </div>
+                ` : ''}
+                ${comparisonHtml}
+                ${visualHtml}
+                ${summaryHtml}
+                ${overviewHtml}
+            </div>
         </div>
     `;
 }

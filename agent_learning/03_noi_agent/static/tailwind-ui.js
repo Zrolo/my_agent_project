@@ -212,6 +212,7 @@ function renderTwKnowledgeCard(card = {}) {
     const opening = String(card.opening || '').trim();
     const bridgeExplanation = String(card.bridge_explanation || '').trim();
     const visualHint = String(card.visual_hint || '').trim();
+    const microAction = String(card.micro_action || card.micro_action_text || '').trim();
     const algorithmOverview = String(card.algorithm_overview || '').trim();
     
     // 对比表格
@@ -220,14 +221,14 @@ function renderTwKnowledgeCard(card = {}) {
             <div class="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-400 rounded-r-xl p-4">
                 <div class="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold text-xs uppercase tracking-wider mb-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                    这样想
+                    常见误解
                 </div>
                 <div class="text-sm text-slate-700 dark:text-slate-300">${renderRichTextInline(card.wrong_thinking)}</div>
             </div>
             <div class="bg-emerald-50 dark:bg-emerald-900/20 border-l-4 border-emerald-400 rounded-r-xl p-4">
                 <div class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-xs uppercase tracking-wider mb-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                    其实应该
+                    正确理解
                 </div>
                 <div class="text-sm text-slate-700 dark:text-slate-300">${renderRichTextInline(card.right_thinking)}</div>
             </div>
@@ -258,7 +259,7 @@ function renderTwKnowledgeCard(card = {}) {
                     ${Icons.book}
                 </div>
                 <div>
-                    <div class="text-sm font-bold text-amber-800 dark:text-amber-200">📚 补课时间</div>
+                    <div class="text-sm font-bold text-amber-800 dark:text-amber-200">先把这块知识单独讲清楚</div>
                     <div class="text-xs text-amber-600 dark:text-amber-400">换个方式讲清楚这一步</div>
                 </div>
             </div>
@@ -275,6 +276,7 @@ function renderTwKnowledgeCard(card = {}) {
                     ${bridgeExplanation ? `<div class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">${renderRichTextInline(bridgeExplanation)}</div>` : ''}
                     ${comparisonHtml}
                     ${visualHint ? `<pre class="mt-4 p-3 bg-slate-800 rounded-lg text-xs font-mono text-slate-200 overflow-x-auto">${escapeHtml(visualHint)}</pre>` : ''}
+                    ${microAction ? `<div class="mt-4 text-sm text-slate-600 dark:text-slate-400 leading-relaxed"><strong class="text-slate-800 dark:text-slate-200">你现在先做：</strong>${renderRichTextInline(microAction)}</div>` : ''}
                 </div>
                 
                 ${overviewHtml}
