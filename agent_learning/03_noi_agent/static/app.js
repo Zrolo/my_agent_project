@@ -1488,9 +1488,13 @@ function resolveRemedyTransition({ understandingSelfCheck, quizRole, feedbackTex
 function renderRemedyTransitionCard(config) {
     if (!config?.title) return '';
     return `
-        <div class="quiz-card quiz-result warn">
-            <div class="quiz-title">${escapeHtml(config.title)}</div>
-            ${config.explanation ? `<div class="quiz-explanation">${escapeHtml(config.explanation)}</div>` : ''}
+        <div class="learning-stage-card learning-path-feedback warn">
+            <div class="learning-stage-header">
+                <div class="learning-stage-kicker">补救过渡</div>
+                <div class="learning-stage-question">我们换一种带法，继续过这一步</div>
+                <div class="learning-stage-subtitle">${escapeHtml(config.title)}</div>
+            </div>
+            ${config.explanation ? `<div class="learning-path-feedback-explanation">${escapeHtml(config.explanation)}</div>` : ''}
         </div>
     `;
 }
