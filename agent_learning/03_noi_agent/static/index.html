@@ -3,546 +3,703 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOI 竞赛教练 Agent</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet">
+    <title>NOI Agent</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Theme initialization
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            }
+        })();
+        // Tailwind config for dark mode
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc', 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3', 900: '#312e81' },
+                        success: { 50: '#f0fdf4', 100: '#dcfce7', 200: '#bbf7d0', 300: '#86efac', 400: '#4ade80', 500: '#22c55e', 600: '#16a34a', 700: '#15803d' },
+                        warning: { 50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 300: '#fcd34d', 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706' },
+                    }
+                }
+            }
+        }
+    </script>
     <link rel="stylesheet" href="/static/style.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 </head>
 <body>
-    <div class="container app-shell">
-        <header class="app-masthead">
-            <div class="app-masthead-copy">
-                <p class="app-kicker">Competition Learning Studio</p>
-                <h1>NOI 竞赛教练 Agent</h1>
-                <p class="app-masthead-note">把答疑、打卡复盘、理解检查、教师复核放进同一个训练工作台，让每道题都留下可追踪的学习证据。</p>
-            </div>
-            <div class="app-masthead-meta">
-                <div class="app-meta-chip">学生端：提问、打卡、复盘、小测</div>
-                <div class="app-meta-chip">教师端：统计、抽样、复核、跟进</div>
-            </div>
-        </header>
-        
-        <!-- 进入区 -->
-        <div id="login-section" class="section login-shell">
-            <div class="login-stage">
-                <div class="login-story">
-                    <p class="app-kicker">Start Here</p>
-                    <h2>用同一套训练工作台，持续记录“哪里没懂、为什么懂了、下一步做什么”</h2>
-                    <p class="login-story-copy">学生端适合做题后立刻复盘，教师端适合看整体模式、抽样复核、盯住真正需要干预的学生。它不是普通聊天框，而是一套围绕竞赛学习过程设计的工作流。</p>
-                    <div class="login-benefits">
-                        <div class="login-benefit">
-                            <strong>学生视角</strong>
-                            <span>先问、再打卡、再复盘、再做理解检查</span>
-                        </div>
-                        <div class="login-benefit">
-                            <strong>教师视角</strong>
-                            <span>看统计、抽样 drill-down、做人工复核</span>
-                        </div>
-                        <div class="login-benefit">
-                            <strong>当前演示</strong>
-                            <span>支持不同复盘 family，用不同展示节奏帮助学生真正迈出下一步</span>
-                        </div>
-                    </div>
+    <!-- Login Section -->
+    <div id="login-section" class="login-shell">
+        <div class="login-card">
+            <div style="text-align: center; margin-bottom: 24px;">
+                <div style="width: 64px; height: 64px; margin: 0 auto 16px; background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%); border-radius: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                    </svg>
                 </div>
-                <div class="login-panel">
-                    <div class="login-panel-head">
-                        <p class="panel-eyebrow">Login</p>
-                        <h3>登录 NOI Agent</h3>
-                        <p class="panel-note">演示环境支持学生与教师两种身份，进入后会自动创建新的会话。</p>
-                    </div>
-                    <div class="form-group">
-                        <label>账号 ID:</label>
-                        <input type="text" id="student-id" placeholder="例如: student_a / teacher" required>
-                    </div>
-                    <div class="form-group">
-                        <label>密码:</label>
-                        <input type="password" id="login-password" placeholder="演示环境默认是 password" required>
-                    </div>
-                    <div class="form-group">
-                        <label>默认题目 ID:</label>
-                        <input type="text" id="login-problem-id" placeholder="例如: P1001" value="P1001">
-                    </div>
-                    <button id="enter-btn">登录进入</button>
-                    <p class="hint">演示账号：`student_a` / `student_b` / `teacher`，演示密码：`password`。每次进入会自动生成新的会话 ID，不同页面不会串历史。</p>
-                    <div id="login-error" class="error"></div>
-                </div>
+                <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 4px;">NOI Agent</h2>
+                <p style="color: var(--text-secondary); font-size: 13px;">智能竞赛教练系统</p>
+            </div>
+            
+            <div class="form-group">
+                <label for="student-id">账号 ID</label>
+                <input type="text" id="student-id" placeholder="student_a / teacher" required>
+            </div>
+            <div class="form-group">
+                <label for="login-password">密码</label>
+                <input type="password" id="login-password" placeholder="password" required>
+            </div>
+            
+            <button id="enter-btn" class="primary lg" style="width: 100%; margin-top: 8px;">登录</button>
+            
+            <div id="login-error" class="alert alert-error hidden" style="margin-top: 16px;"></div>
+            
+            <div class="login-hint">
+                <span class="badge badge-blue">student_a</span>
+                <span class="badge badge-green">student_b</span>
+                <span class="badge badge-purple">teacher</span>
+                <span style="color: var(--text-tertiary);">密码: password</span>
             </div>
         </div>
+    </div>
 
-        <!-- 已登录状态栏 -->
-        <div id="user-bar" class="user-bar hidden">
-            <span>当前用户: <strong id="current-user"></strong></span>
-            <span>角色: <strong id="current-role"></strong></span>
-            <button id="logout-btn">退出</button>
-        </div>
+    <!-- Main Application -->
+    <div id="main-app" class="app-wrapper hidden">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <button class="sidebar-toggle" id="sidebar-toggle" title="折叠/展开侧边栏">
+                <svg class="toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+            </button>
+            
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                    </svg>
+                    <span class="sidebar-logo-text">NOI Agent</span>
+                </div>
+            </div>
 
-        <!-- 学生区 -->
-        <div id="student-section" class="section hidden">
-            <div class="student-shell">
-                <div class="student-shell-head">
-                    <div>
-                        <p class="shell-eyebrow">Student Workspace</p>
-                        <h2>学生练习区</h2>
-                        <p class="shell-subtitle">把答疑、打卡、历史复盘放到一个统一工作台里，先定位卡点，再用小测确认这一步是不是真的站稳了。</p>
-                    </div>
-                    <div id="student-tabs" class="tabs student-nav">
-                        <button class="tab-btn active" data-tab="chat-tab">AI 解答</button>
-                        <button class="tab-btn" data-tab="checkin-tab">打卡复盘</button>
-                        <button class="tab-btn" data-tab="history-tab">历史打卡</button>
+            <nav class="sidebar-nav" id="sidebar-nav">
+                <!-- Student Nav -->
+                <div id="student-nav" class="hidden">
+                    <div class="sidebar-section">
+                        <div class="sidebar-section-title">学习工具</div>
+                        <button class="sidebar-link active" data-tab="chat-tab" data-section="student">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                            <span>AI 解答</span>
+                        </button>
+                        <button class="sidebar-link" data-tab="checkin-tab" data-section="student">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9 2 2 4-4"/>
+                            </svg>
+                            <span>打卡复盘</span>
+                        </button>
+                        <button class="sidebar-link" data-tab="history-tab" data-section="student">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
+                            </svg>
+                            <span>历史记录</span>
+                        </button>
                     </div>
                 </div>
 
-                <!-- AI 答疑标签 -->
-                <div id="chat-tab" class="tab-content student-view">
-                    <div class="student-surface hero-surface chat-hero">
-                        <div class="surface-copy">
-                            <p class="surface-kicker">Ask the Coach</p>
-                            <h3>先问清这一题，再决定要不要打卡复盘</h3>
-                            <p>适合卡在局部细节、想确认某一步为什么不对，或者希望先问一句再继续自己想的时候使用。</p>
-                        </div>
-                        <div class="surface-meta">
-                            <div class="form-group compact-inline">
-                                <label>题目编号</label>
-                                <div class="compact-inline-row">
-                                    <input type="text" id="student-problem-id" placeholder="例如: P1001" value="P1001">
-                                    <button id="check-quota-btn">查询配额</button>
-                                </div>
-                            </div>
-                            <div id="quota-info" class="quota-info"></div>
+                <!-- Teacher Nav -->
+                <div id="teacher-nav" class="hidden">
+                    <div class="sidebar-section">
+                        <div class="sidebar-section-title">教学管理</div>
+                        <button class="sidebar-link active" data-tab="quota-tab" data-section="teacher">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M12 6v6l4 2"/>
+                            </svg>
+                            <span>配额管理</span>
+                        </button>
+                        <button class="sidebar-link" data-tab="checkins-tab" data-section="teacher">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                            </svg>
+                            <span>学员打卡</span>
+                        </button>
+                        <button class="sidebar-link" data-tab="stats-tab" data-section="teacher">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="20" x2="18" y2="10"/>
+                                <line x1="12" y1="20" x2="12" y2="4"/>
+                                <line x1="6" y1="20" x2="6" y2="14"/>
+                            </svg>
+                            <span>数据统计</span>
+                        </button>
+                        <button class="sidebar-link" data-tab="manual-review-tab" data-section="teacher">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            </svg>
+                            <span>人工复核</span>
+                        </button>
+                        <button class="sidebar-link" data-tab="flags-tab" data-section="teacher">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                                <line x1="4" y1="22" x2="4" y2="15"/>
+                            </svg>
+                            <span>关注学员</span>
+                        </button>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user" style="display: flex; align-items: center; gap: 10px; padding: 8px; margin-bottom: 8px;">
+                    <div style="width: 28px; height: 28px; background: linear-gradient(135deg, #FF2D55 0%, #FF9500 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 600;" id="user-avatar">U</div>
+                    <div class="sidebar-user-info" style="flex: 1; min-width: 0;">
+                        <div style="font-size: 13px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="current-user">-</div>
+                        <div style="font-size: 11px; color: var(--text-tertiary);" id="current-role">-</div>
+                    </div>
+                </div>
+                <div class="sidebar-actions" style="display: flex; gap: 6px;">
+                    <button id="theme-toggle" class="theme-toggle" title="切换主题">
+                        <svg class="sun-icon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: none;">
+                            <circle cx="12" cy="12" r="5"/>
+                            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                        </svg>
+                        <svg class="moon-icon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                        </svg>
+                    </button>
+                    <button id="logout-btn" class="ghost-btn sidebar-logout-btn" style="flex: 1;" title="退出登录">
+                        <span class="logout-text">退出</span>
+                        <svg class="logout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                            <polyline points="16 17 21 12 16 7"/>
+                            <line x1="21" y1="12" x2="9" y2="12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Student Section -->
+            <div id="student-section" class="page-content hidden">
+                <!-- AI Chat -->
+                <div id="chat-tab" class="tab-content active">
+                    <div class="page-header">
+                        <div class="page-header-left">
+                            <h1 class="page-title">AI 解答</h1>
+                            <p class="page-subtitle">向智能教练提问，获取题目思路和解答帮助</p>
                         </div>
                     </div>
 
-                    <div class="student-surface chat-surface">
-                        <div class="workspace-panel-head">
-                            <div>
-                                <p class="panel-eyebrow">Conversation</p>
-                                <h3>AI 解答</h3>
+                    <div class="ai-chat-layout">
+                        <div class="ai-chat-header">
+                            <div class="ai-chat-model-selector">
+                                <select id="chat-model-select">
+                                    <option value="kimi-k2.5">🧠 Kimi K2.5</option>
+                                </select>
                             </div>
-                            <button id="clear-history-btn" class="secondary ghost-btn">清空对话</button>
+                            <div class="ai-chat-actions">
+                                <button id="check-quota-btn" class="ghost-btn sm">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <path d="M12 6v6l4 2"/>
+                                    </svg>
+                                    配额
+                                </button>
+                                <button id="clear-history-btn" class="ghost-btn sm">清空</button>
+                            </div>
                         </div>
 
-                        <div class="chat-container refined-chat">
-                            <div id="chat-history" class="chat-history"></div>
-
-                            <div class="chat-input">
-                                <textarea id="student-message" placeholder="输入你的问题..." rows="3"></textarea>
-                                <button id="send-btn">发送</button>
+                        <div class="ai-chat-problem-bar">
+                            <div class="ai-chat-problem-input">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--system-blue);">
+                                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                                </svg>
+                                <input type="text" id="student-problem-id" placeholder="题号 (如: P1001)" value="P1001">
                             </div>
+                            <div id="quota-info" class="ai-chat-quota"></div>
+                        </div>
+
+                        <div class="ai-chat-messages" id="chat-history">
+                            <div class="ai-message">
+                                <div class="ai-avatar">🤖</div>
+                                <div class="ai-message-content">
+                                    <div class="ai-message-header">
+                                        <span class="ai-name">AI 教练</span>
+                                        <span class="ai-time">刚刚</span>
+                                    </div>
+                                    <div class="ai-message-body">
+                                        <p>你好！我是你的 NOI 竞赛教练 🎯</p>
+                                        <p style="margin-top: 8px;">我可以帮你：</p>
+                                        <p style="margin-left: 8px;">• 分析题目思路和算法选择</p>
+                                        <p style="margin-left: 8px;">• 讲解具体算法原理和实现</p>
+                                        <p style="margin-left: 8px;">• 调试代码错误和优化建议</p>
+                                        <p style="margin-top: 8px;">请输入题目编号，然后开始提问吧！</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="ai-chat-input-wrapper">
+                            <div class="ai-chat-input">
+                                <textarea id="student-message" placeholder="输入你的问题，按 Enter 发送..." rows="1"></textarea>
+                                <button id="send-btn" class="ai-send-btn" disabled>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="ai-chat-footer">按 Enter 发送 · Shift + Enter 换行</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 打卡复盘标签 -->
-                <div id="checkin-tab" class="tab-content student-view hidden">
-                    <div class="student-workspace">
-                        <aside class="workspace-sidebar">
-                            <section class="student-surface workspace-panel submit-surface">
-                                <div class="workspace-panel-head">
-                                    <div>
-                                        <p class="panel-eyebrow">Check In</p>
-                                        <h3>打卡复盘</h3>
-                                        <p class="panel-note">把题目背景、当前状态、卡点和证据按顺序填清楚。提交后右侧会进入复盘工作区，不需要再跳页面。</p>
-                                    </div>
-                                </div>
-                                <div class="submit-band">
-                                    <div class="submit-band-head">
-                                        <div>
-                                            <p class="submit-band-kicker">Problem Setup</p>
-                                            <h4>先把题目背景说明白</h4>
-                                        </div>
-                                        <p class="submit-band-note">这部分决定复盘有没有足够题面信息，不要只写题号。</p>
-                                    </div>
+                <!-- Checkin -->
+                <div id="checkin-tab" class="tab-content">
+                    <div class="page-header">
+                        <div class="page-header-left">
+                            <h1 class="page-title" id="checkin-page-title">打卡复盘</h1>
+                            <p class="page-subtitle">把这道题当前卡住的位置写清楚，我们会把它整理成一页可继续往下学的复盘讲义。</p>
+                        </div>
+                        <div class="page-header-right" id="checkin-header-actions" style="display: none;">
+                            <button class="secondary sm" onclick="showCheckinForm()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 4px;">
+                                    <path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/>
+                                </svg>
+                                返回表单
+                            </button>
+                        </div>
+                    </div>
 
-                                    <div class="form-group">
-                                        <label>题目标题 / 题号:</label>
-                                        <input type="text" id="checkin-title" placeholder="例如：P1001 A+B Problem">
-                                        <div class="input-hint">洛谷链接导入成功后会自动补全标题；其他来源建议先写题号或标题。</div>
-                                    </div>
-
-                                    <div class="form-group hidden" id="luogu-import-group">
-                                        <label>洛谷题号 / 链接：</label>
-                                        <div class="form-row compact-row">
-                                            <input
-                                                type="text"
-                                                id="checkin-url"
-                                                placeholder="例如：P1001 或 https://www.luogu.com.cn/problem/P1001"
-                                                style="flex: 1;"
-                                            >
-                                            <button type="button" id="import-problem-btn" class="secondary ghost-btn">自动导入题面</button>
-                                        </div>
-                                        <div class="input-hint" id="problem-import-status">输入洛谷题号或公开题目链接后，可自动导入标题、题面和标签。</div>
-                                        <div class="input-hint hidden" id="problem-tags-preview"></div>
-                                    </div>
-
-                                    <div class="form-group hidden" id="luogu-context-toggle-row">
-                                        <button type="button" id="toggle-luogu-context-btn" class="secondary ghost-btn">补充我对题意的理解（可选）</button>
-                                    </div>
-
-                                    <div id="linked-chat-context-card" class="context-link-card hidden">
-                                        <div class="context-link-head">
-                                            <div>
-                                                <p class="panel-eyebrow">Linked Context</p>
-                                                <h4>同题最近 AI 解答</h4>
-                                            </div>
-                                            <span id="linked-chat-context-time" class="status-pill"></span>
-                                        </div>
-                                        <p id="linked-chat-context-text" class="context-link-body"></p>
-                                        <p class="input-hint">这条摘要会作为辅助线索一起带进本次复盘，不会替代你现在填写的卡点描述。</p>
-                                    </div>
-
-                                    <div class="submission-meta-grid">
-                                        <div class="form-group">
-                                            <label>来源（可选）:</label>
-                                            <select id="checkin-oj">
-                                                <option value="other">未区分 / 其他</option>
-                                                <option value="luogu">洛谷</option>
-                                                <option value="codeforces">Codeforces</option>
-                                                <option value="atcoder">AtCoder</option>
-                                            </select>
-                                        </div>
-
-                                        <div class="form-group">
-                                            <label>完成状态:</label>
-                                            <select id="checkin-status">
-                                                <option value="independent">独立完成</option>
-                                                <option value="hinted">需要提示</option>
-                                                <option value="editorial">看题解</option>
-                                                <option value="unfinished">未完成</option>
-                                            </select>
-                                        </div>
-
-                                        <div class="form-group">
-                                            <label>提交现象:</label>
-                                            <select id="checkin-submission-result">
-                                                <option value="not_submitted">未提交</option>
-                                                <option value="wa">WA（答案错误）</option>
-                                                <option value="tle">TLE（超时）</option>
-                                                <option value="re">RE（运行错误）</option>
-                                                <option value="ce">CE（编译错误）</option>
-                                                <option value="unknown">不确定</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div class="form-group" id="problem-context-group">
-                                        <label>
-                                            <span id="problem-context-label">题面 / Markdown</span>
-                                            <span class="word-count" id="context-count">0 字</span>
-                                            <span style="color: #e74c3c; font-size: 0.85em;" id="context-required-flag">（必填）</span>
-                                        </label>
-                                        <textarea
-                                            id="checkin-problem-context"
-                                            rows="6"
-                                            placeholder="来源为未区分 / 其他时，请直接粘贴题面正文、网页复制内容或 Markdown。&#10;建议至少包含：题意、输入输出、样例或关键约束。"
-                                        ></textarea>
-                                        <div class="input-hint" id="context-hint">来源为未区分 / 其他时至少10字；洛谷链接可自动导入。</div>
-                                    </div>
-                                </div>
-
-                                <div class="submit-band submit-band-emphasis">
-                                    <div class="submit-band-head">
-                                        <div>
-                                            <p class="submit-band-kicker">Diagnosis</p>
-                                            <h4>再描述你真正卡住的地方</h4>
-                                        </div>
-                                        <p class="submit-band-note">这里越具体，右侧复盘越像一位真的看过你过程的教练。</p>
-                                    </div>
-
-                                    <div class="form-group bottleneck-section">
-                                        <label>
-                                            卡点描述
-                                            <span class="word-count" id="bottleneck-count">0 字</span>
-                                        </label>
-
-                                        <div class="example-box">
-                                            <div class="example-header" onclick="toggleExample()">
-                                                <span>📋 点击查看：什么是好的卡点描述？</span>
-                                                <span class="toggle-icon">▼</span>
-                                            </div>
-                                            <div class="example-content hidden" id="example-content">
-                                                <div class="example-bad">
-                                                    <strong>❌ 不够具体（会被拒绝）：</strong>
-                                                    <p>"不会"、"没思路"、"太难了"、"DP不会"</p>
-                                                </div>
-                                                <div class="example-good">
-                                                    <strong>✅ 好的示例：</strong>
-                                                    <ul>
-                                                        <li>"知道是背包问题，但不确定状态是 dp[i][j] 还是 dp[i][j][k]，看了题解才知道只需要二维"</li>
-                                                        <li>"区间DP的枚举顺序搞错了，我是从左到右枚举，后来发现应该从小区间到大区间"</li>
-                                                        <li>"代码过了样例但WA，调试发现是边界情况 n=1 时数组越界，加了个特判就过了"</li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <textarea
-                                            id="checkin-bottleneck"
-                                            rows="4"
-                                            placeholder="描述你卡在哪一步、用了什么方法、遇到什么错误。参考格式：&#10;我想用XX方法，尝试了XX，但遇到了XX问题，现象是XX"
-                                        ></textarea>
-                                        <div class="input-hint" id="bottleneck-hint">至少15字，越具体越好</div>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label>错误类型（多选，选最相关1-2个）:</label>
-                                        <div class="checkbox-group error-types">
-                                            <div class="error-category">
-                                                <strong>读题/建模：</strong>
-                                                <label><input type="checkbox" name="error_type" value="题意理解"> 题意理解</label>
-                                                <label><input type="checkbox" name="error_type" value="模型转化"> 模型转化</label>
-                                            </div>
-                                            <div class="error-category">
-                                                <strong>算法/思路：</strong>
-                                                <label><input type="checkbox" name="error_type" value="不知道用什么算法"> 不知道用什么算法</label>
-                                                <label><input type="checkbox" name="error_type" value="知道算法但不知道怎么用"> 知道算法但不知道怎么用</label>
-                                                <label><input type="checkbox" name="error_type" value="状态设计"> 状态设计</label>
-                                                <label><input type="checkbox" name="error_type" value="状态转移"> 状态转移</label>
-                                                <label><input type="checkbox" name="error_type" value="优化策略"> 优化策略</label>
-                                            </div>
-                                            <div class="error-category">
-                                                <strong>代码/调试：</strong>
-                                                <label><input type="checkbox" name="error_type" value="语法/API"> 语法/API</label>
-                                                <label><input type="checkbox" name="error_type" value="边界条件"> 边界条件</label>
-                                                <label><input type="checkbox" name="error_type" value="数组越界"> 数组越界</label>
-                                                <label><input type="checkbox" name="error_type" value="精度/溢出"> 精度/溢出</label>
-                                            </div>
-                                            <div class="error-category">
-                                                <label><input type="checkbox" name="error_type" value="其他"> 其他</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="submit-band">
-                                    <div class="submit-band-head">
-                                        <div>
-                                            <p class="submit-band-kicker">Evidence</p>
-                                            <h4>最后补充你的思路和代码证据</h4>
-                                        </div>
-                                        <p class="submit-band-note">如果有代码或已经形成一点反思，这里会让复盘更精准。</p>
-                                    </div>
-
-                                    <div class="submission-evidence-grid">
-                                        <div class="form-group">
-                                            <label>反思总结（可选）:</label>
-                                            <textarea id="checkin-reflection" rows="4" placeholder="这道题给你的收获是什么？下次遇到类似题你会怎么做？"></textarea>
-                                        </div>
-
-                                        <div class="form-group">
-                                            <label>粘贴代码（可选）:</label>
-                                            <textarea
-                                                id="checkin-student-code"
-                                                rows="6"
-                                                placeholder="如果你有代码，可以粘贴在这里，AI 会结合代码给出更精准的复盘（最多粘贴 1500 字符）"
-                                                style="font-family: monospace; font-size: 12px;"
-                                            ></textarea>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="submit-cluster">
-                                    <button id="submit-checkin-btn" class="primary" disabled>提交打卡</button>
-                                    <button id="open-history-tab-btn" class="secondary ghost-btn" type="button">查看历史打卡</button>
-                                    <div class="submit-note">提交后会自动切到右侧复盘工作区生成内容。</div>
-                                </div>
-                                <div id="checkin-result" class="result-box hidden"></div>
-                            </section>
-                        </aside>
-
-                        <section class="workspace-stage">
-                            <div class="student-surface stage-hero">
+                    <div class="checkin-canvas-page">
+                        <section class="learning-record-shell">
+                            <div class="learning-record-header">
                                 <div>
-                                    <p class="surface-kicker">Review Workspace</p>
-                                    <h3>右侧不是结果页，而是你的题后训练台</h3>
-                                    <p>提交后，这里会把“问题定位、关键一步、理解检查、后续练习”排成一条连续学习链，让你从一道题真正走到下一步。</p>
+                                    <p class="learning-kicker">学习记录</p>
+                                    <h2 class="learning-record-title">把这次卡住的地方记下来</h2>
+                                    <p class="learning-record-subtitle" id="checkin-page-subtitle">
+                                        把这道题当前卡住的位置写清楚，我们会把它整理成一页可继续往下学的复盘讲义。
+                                    </p>
                                 </div>
-                                <div id="workspace-stage-status" class="workspace-stage-status"></div>
                             </div>
+                            <div id="active-checkin-summary" class="hidden"></div>
+                            <details id="active-checkin-inputs" class="hidden">
+                                <summary>本次打卡记录</summary>
+                                <div id="active-checkin-inputs-body"></div>
+                            </details>
 
-                            <div id="review-stage-empty" class="student-surface review-stage-empty">
-                                <div class="empty-glow"></div>
-                                <p class="empty-kicker">Ready</p>
-                                <h3>先提交一条打卡，或从左侧历史记录里选择一条继续。</h3>
-                                <p>提交成功后，这里会自动切到复盘页：右侧看复盘内容，中间做理解检查，并带上同类型题目继续练。</p>
-                            </div>
-
-                            <div id="review-stage-content" class="review-stage-content hidden">
-                                <div class="student-surface review-stage-header">
-                                    <div class="workspace-panel-head">
-                                        <div>
-                                            <p class="panel-eyebrow">Current Review</p>
-                                            <h3 id="active-review-title">复盘工作区</h3>
-                                            <p id="active-review-subtitle" class="panel-note">这里会展示当前选择的打卡、AI 复盘和理解检查。</p>
-                                        </div>
-                                        <div id="active-review-meta" class="active-review-meta"></div>
-                                    </div>
-                                </div>
-
-                                <div class="review-stage-layout">
-                                    <div class="stage-center-column">
-                                        <div class="student-surface stage-panel quiz-stage-panel">
-                                            <div class="workspace-panel-head">
-                                                <div>
-                                                    <p class="panel-eyebrow">Quiz</p>
-                                                    <h3>理解检查</h3>
+                            <div id="checkin-entry-stage">
+                                <div id="checkin-form-container">
+                                    <div class="card" style="margin-bottom: 16px;">
+                                        <div class="card-body">
+                                            <div style="display: flex; align-items: center; gap: 8px;">
+                                                <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                                                    <div style="width: 28px; height: 28px; background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">1</div>
+                                                    <span style="font-size: 11px; color: var(--text-secondary);">题目信息</span>
+                                                </div>
+                                                <div style="flex: 1; height: 2px; background: linear-gradient(90deg, #007AFF, #34C759); border-radius: 1px;"></div>
+                                                <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                                                    <div style="width: 28px; height: 28px; background: var(--bg-tertiary); color: var(--text-secondary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">2</div>
+                                                    <span style="font-size: 11px; color: var(--text-secondary);">卡点诊断</span>
+                                                </div>
+                                                <div style="flex: 1; height: 2px; background: var(--border-light); border-radius: 1px;"></div>
+                                                <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                                                    <div style="width: 28px; height: 28px; background: var(--bg-tertiary); color: var(--text-secondary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">3</div>
+                                                    <span style="font-size: 11px; color: var(--text-secondary);">提交复盘</span>
                                                 </div>
                                             </div>
-                                            <div id="active-review-quiz-slot"></div>
                                         </div>
                                     </div>
 
-                                    <div class="stage-right-column">
-                                        <div id="active-review-chat-context" class="student-surface stage-panel context-stage-panel hidden"></div>
-
-                                        <div class="student-surface stage-panel review-stage-panel">
-                                            <div class="workspace-panel-head">
-                                                <div>
-                                                    <p class="panel-eyebrow">Review</p>
-                                                    <h3>AI 复盘内容</h3>
+                                    <div class="card" style="margin-bottom: 16px;">
+                                        <div class="card-header">
+                                            <span class="card-title">📌 题目信息</span>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="form-row">
+                                                <div class="form-group" style="flex: 2;">
+                                                    <label for="checkin-title">题目标题 / 题号</label>
+                                                    <input type="text" id="checkin-title" placeholder="例如：P1001 A+B Problem">
                                                 </div>
+                                                <div class="form-group">
+                                                    <label for="checkin-oj">来源</label>
+                                                    <select id="checkin-oj">
+                                                        <option value="other">其他</option>
+                                                        <option value="luogu">洛谷</option>
+                                                        <option value="codeforces">Codeforces</option>
+                                                        <option value="atcoder">AtCoder</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div id="luogu-import-group" class="form-group hidden" style="margin-top: 12px;">
+                                                <label for="checkin-url">题面链接 <span class="optional">洛谷题号或链接</span></label>
+                                                <div style="display: flex; gap: 8px;">
+                                                    <input type="text" id="checkin-url" placeholder="如：P1001 或 https://www.luogu.com.cn/problem/P1001" style="flex: 1;">
+                                                    <button type="button" id="import-problem-btn" class="secondary">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                                            <polyline points="7 10 12 15 17 10"/>
+                                                            <line x1="12" y1="15" x2="12" y2="3"/>
+                                                        </svg>
+                                                        导入
+                                                    </button>
+                                                </div>
+                                                <div id="problem-import-status" style="margin-top: 6px; font-size: 12px; color: var(--text-secondary);"></div>
+                                                <div id="problem-tags-preview" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px;"></div>
+                                            </div>
+                                            <div class="form-row" style="margin-top: 12px;">
+                                                <div class="form-group">
+                                                    <label for="checkin-status">完成状态</label>
+                                                    <select id="checkin-status">
+                                                        <option value="independent">独立完成</option>
+                                                        <option value="hinted">需要提示</option>
+                                                        <option value="editorial">看题解</option>
+                                                        <option value="unfinished">未完成</option>
+                                                    </select>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="checkin-submission-result">提交结果</label>
+                                                    <select id="checkin-submission-result">
+                                                        <option value="not_submitted">未提交</option>
+                                                        <option value="wa">❌ WA</option>
+                                                        <option value="tle">⏱️ TLE</option>
+                                                        <option value="re">💥 RE</option>
+                                                        <option value="ce">📝 CE</option>
+                                                        <option value="unknown">❓ 未知</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card" style="margin-bottom: 16px;">
+                                        <div class="card-header">
+                                            <span class="card-title">🔍 卡点诊断</span>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="form-group">
+                                                <label for="checkin-bottleneck">卡点描述 <span class="optional">至少 15 字</span></label>
+                                                <textarea id="checkin-bottleneck" rows="3" placeholder="描述你卡在哪一步、用了什么方法、遇到什么错误..."></textarea>
+                                                <div style="display: flex; justify-content: space-between; margin-top: 4px;">
+                                                    <span class="input-hint" id="bottleneck-hint">越具体越好</span>
+                                                    <span class="input-hint" id="bottleneck-count">0 字</span>
+                                                </div>
+                                            </div>
+                                            <div class="form-group" style="margin-bottom: 0;">
+                                                <label>错误类型（多选）</label>
+                                                <div class="error-tags">
+                                                    <label class="error-tag"><input type="checkbox" name="error_type" value="题意理解"> 📖 题意理解</label>
+                                                    <label class="error-tag"><input type="checkbox" name="error_type" value="模型转化"> 🔄 模型转化</label>
+                                                    <label class="error-tag"><input type="checkbox" name="error_type" value="不知道用什么算法"> ❓ 不知算法</label>
+                                                    <label class="error-tag"><input type="checkbox" name="error_type" value="知道算法但不知道怎么用"> 🤔 不会用算法</label>
+                                                    <label class="error-tag"><input type="checkbox" name="error_type" value="状态设计"> 📊 状态设计</label>
+                                                    <label class="error-tag"><input type="checkbox" name="error_type" value="状态转移"> ➡️ 状态转移</label>
+                                                    <label class="error-tag"><input type="checkbox" name="error_type" value="边界条件"> ⚠️ 边界条件</label>
+                                                    <label class="error-tag"><input type="checkbox" name="error_type" value="数组越界"> 📏 数组越界</label>
+                                                    <label class="error-tag"><input type="checkbox" name="error_type" value="其他"> ✏️ 其他</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card" style="margin-bottom: 16px;">
+                                        <div class="card-header">
+                                            <span class="card-title">📝 补充信息 <span class="optional">可选</span></span>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="form-group" id="problem-context-group">
+                                                <label for="checkin-problem-context" id="problem-context-label">
+                                                    题面内容 <span id="context-required-flag" class="optional">（没有题号 / 链接时可手动补充）</span>
+                                                </label>
+                                                <textarea id="checkin-problem-context" rows="2" placeholder="粘贴题面正文..."></textarea>
+                                                <div style="display: flex; justify-content: space-between; margin-top: 4px;">
+                                                    <span class="input-hint" id="context-hint">可输入洛谷题号 / 链接自动导入；如果暂时没有，也可以手动补题面。</span>
+                                                </div>
+                                            </div>
+                                            <div id="luogu-context-toggle-row" class="hidden" style="margin-top: 8px;">
+                                                <button type="button" id="toggle-luogu-context-btn" class="secondary sm">
+                                                    补充我对题意的理解（可选）
+                                                </button>
+                                            </div>
+                                            <div class="form-group" style="margin-top: 16px;">
+                                                <label for="checkin-reflection">反思总结</label>
+                                                <input type="text" id="checkin-reflection" placeholder="收获是...">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card" style="margin-bottom: 16px;">
+                                        <div class="card-header" style="background: linear-gradient(135deg, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.01) 100%);">
+                                            <span class="card-title">💻 代码片段</span>
+                                            <span class="optional">支持 C++/Python/Java 等</span>
+                                        </div>
+                                        <div class="card-body" style="padding: 0;">
+                                            <div class="code-editor-container">
+                                                <div class="code-editor-header">
+                                                    <div class="code-editor-dots">
+                                                        <span class="dot red"></span>
+                                                        <span class="dot yellow"></span>
+                                                        <span class="dot green"></span>
+                                                    </div>
+                                                    <div class="code-editor-lang">main.cpp</div>
+                                                </div>
+                                                <div class="code-editor-wrapper">
+                                                    <div class="code-line-numbers" id="code-line-numbers">1</div>
+                                                    <textarea
+                                                        id="checkin-student-code"
+                                                        class="code-editor-textarea"
+                                                        placeholder="// 粘贴你的代码片段...
+// 例如：
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int a, b;
+    cin >> a >> b;
+    cout << a + b << endl;
+    return 0;
+}"
+                                                        spellcheck="false"
+                                                        autocapitalize="off"
+                                                        autocomplete="off"
+                                                        autocorrect="off"
+                                                    ></textarea>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div style="display: flex; justify-content: center; gap: 12px;">
+                                        <button id="submit-checkin-btn" class="primary lg" disabled>
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                                <polyline points="22 4 12 14.01 9 11.01"/>
+                                            </svg>
+                                            提交打卡
+                                        </button>
+                                    </div>
+
+                                    <div id="checkin-result" class="alert hidden" style="margin-top: 16px;"></div>
+                                </div>
+                            </div>
+
+                            <div id="checkin-review-stage" class="hidden">
+                                <section class="learning-workspace-shell">
+                                    <div id="review-stage-empty" class="learning-workspace-empty"></div>
+                                    <div id="review-stage-content" class="learning-workspace hidden">
+                                        <aside class="workspace-context-rail">
+                                            <div id="workspace-stage-status"></div>
+                                            <div id="active-review-chat-context" class="hidden"></div>
+                                            <div id="active-review-related"></div>
+                                        </aside>
+                                        <main class="workspace-learning-stage">
+                                            <div id="active-review-quiz-slot"></div>
+                                        </main>
+                                        <aside class="workspace-review-rail">
+                                            <div class="workspace-review-header">
+                                                <p class="learning-kicker">复盘讲义</p>
+                                                <h3 id="active-review-title">这次打卡复盘</h3>
+                                                <p id="active-review-subtitle"></p>
+                                                <div id="active-review-meta"></div>
                                             </div>
                                             <div id="active-review-report"></div>
-                                        </div>
-
-                                        <div class="student-surface stage-panel related-stage-panel">
-                                            <div class="workspace-panel-head">
-                                                <div>
-                                                    <p class="panel-eyebrow">Similar Practice</p>
-                                                    <h3>同类型题目</h3>
-                                                </div>
-                                            </div>
-                                            <div id="active-review-related"></div>
-                                        </div>
+                                        </aside>
                                     </div>
-                                </div>
+                                </section>
                             </div>
                         </section>
                     </div>
                 </div>
 
-                <div id="history-tab" class="tab-content student-view hidden">
-                    <div class="student-surface workspace-panel history-page-surface">
-                        <div class="workspace-panel-head">
-                            <div>
-                                <p class="panel-eyebrow">History</p>
-                                <h3>历史打卡</h3>
-                                <p class="panel-note">这里集中看最近打卡。点开任意一条后，会自动切回打卡复盘工作台继续看完整复盘和小测。</p>
+                <!-- History -->
+                <div id="history-tab" class="tab-content">
+                    <div class="page-header">
+                        <div class="page-header-left">
+                            <h1 class="page-title">历史记录</h1>
+                            <p class="page-subtitle">查看你之前的打卡记录和 AI 复盘</p>
+                        </div>
+                        <div class="page-header-right">
+                            <button id="load-my-checkins-btn" class="secondary sm">刷新</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Search Filter -->
+                    <div class="card" style="margin-bottom: 16px;">
+                        <div class="card-body">
+                            <div style="display: grid; grid-template-columns: 1fr 180px 100px; gap: 12px; align-items: flex-end;">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label for="history-search-keyword" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">搜索题目</label>
+                                    <input type="text" id="history-search-keyword" placeholder="输入题目名称或题号..." style="width: 100%;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label for="history-search-algorithm" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">算法标签</label>
+                                    <select id="history-search-algorithm" style="width: 100%;">
+                                        <option value="">全部算法</option>
+                                        <option value="模拟">模拟</option>
+                                        <option value="排序">排序</option>
+                                        <option value="贪心">贪心</option>
+                                        <option value="递归">递归</option>
+                                        <option value="二分">二分</option>
+                                        <option value="分治">分治</option>
+                                        <option value="搜索">搜索</option>
+                                        <option value="动态规划">动态规划</option>
+                                        <option value="图论">图论</option>
+                                        <option value="树">树</option>
+                                        <option value="字符串">字符串</option>
+                                        <option value="数学">数学</option>
+                                        <option value="数论">数论</option>
+                                        <option value="组合数学">组合数学</option>
+                                        <option value="数据结构">数据结构</option>
+                                        <option value="并查集">并查集</option>
+                                        <option value="线段树">线段树</option>
+                                        <option value="树状数组">树状数组</option>
+                                    </select>
+                                </div>
+                                <button id="history-search-btn" class="primary" style="height: 36px;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 4px;">
+                                        <circle cx="11" cy="11" r="8"/>
+                                        <path d="m21 21-4.35-4.35"/>
+                                    </svg>
+                                    搜索
+                                </button>
                             </div>
-                            <button id="load-my-checkins-btn" class="secondary ghost-btn">刷新</button>
+                            <div id="history-search-result-info" style="margin-top: 10px; font-size: 12px; color: var(--text-secondary);"></div>
                         </div>
-                        <div id="checkin-history-list" class="checkin-history-stack history-page-stack"></div>
                     </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- 教师区 -->
-        <div id="teacher-section" class="section hidden">
-            <div class="teacher-shell-head">
-                <div>
-                    <p class="shell-eyebrow">Teacher Control Room</p>
-                    <h2>教师管理区</h2>
-                    <p class="shell-subtitle">这里优先解决三件事：看哪类学生最需要跟进、看哪类复盘最不可靠、把最有价值的样本快速抽出来人工复核。</p>
-                </div>
-                <div id="teacher-tabs" class="tabs teacher-nav">
-                    <button class="tab-btn active" data-tab="quota-tab">配额管理</button>
-                    <button class="tab-btn" data-tab="checkins-tab">学员打卡</button>
-                    <button class="tab-btn" data-tab="stats-tab">错误统计</button>
-                    <button class="tab-btn" data-tab="manual-review-tab">人工复核</button>
-                    <button class="tab-btn" data-tab="flags-tab">关注学员</button>
-                </div>
-            </div>
-            
-            <!-- 配额管理标签 -->
-            <div id="quota-tab" class="tab-content teacher-view">
-                <div class="teacher-tools">
-                    <h3>查询学生配额</h3>
-                    <div class="form-row">
-                        <input type="text" id="query-student-id" placeholder="学生 ID">
-                        <input type="text" id="query-problem-id" placeholder="题目 ID" value="P1001">
-                        <button id="teacher-check-quota-btn">查询</button>
-                    </div>
-                    <div id="teacher-quota-result" class="quota-info"></div>
-                </div>
-                
-                <div class="teacher-tools">
-                    <h3>重置学生配额</h3>
-                    <div class="form-row">
-                        <input type="text" id="reset-student-id" placeholder="学生 ID">
-                        <input type="text" id="reset-problem-id" placeholder="题目 ID" value="P1001">
-                    </div>
-                    <div class="form-row">
-                        <input type="password" id="teacher-secret" placeholder="教师密钥" style="flex: 2;">
-                        <button id="reset-quota-btn" class="warning">重置配额</button>
-                    </div>
-                    <div id="reset-result" class="result"></div>
-                </div>
-            </div>
-            
-            <!-- 学员打卡标签 -->
-            <div id="checkins-tab" class="tab-content teacher-view hidden">
-                <h3>最近打卡记录</h3>
-                <button id="load-all-checkins-btn" class="secondary">刷新</button>
-                <div id="teacher-checkins-list" class="checkin-list"></div>
-            </div>
-            
-            <!-- 错误统计标签 -->
-            <div id="stats-tab" class="tab-content teacher-view hidden">
-                <h3>统计总览</h3>
-                <button id="load-stats-btn" class="secondary">刷新</button>
-                <div id="error-stats" class="stats-container"></div>
-
-                <h3 style="margin-top: 30px;">待生成复盘处理</h3>
-                <div class="form-row">
-                    <input type="number" id="retry-pending-limit" value="10" min="1" max="100" style="max-width: 140px;">
-                    <button id="retry-pending-btn" class="warning">重试待生成复盘</button>
-                </div>
-                <div id="retry-pending-result" class="result"></div>
-
-                <h3 style="margin-top: 30px;">失败题目分析处理</h3>
-                <div class="form-row">
-                    <input type="text" id="retry-problem-analysis-pid" placeholder="输入洛谷题号，如 P1003" style="max-width: 240px;">
-                    <button id="retry-problem-analysis-btn" class="warning">重试题目分析</button>
-                    <button id="load-analysis-failures-btn" class="secondary">刷新失败列表</button>
-                </div>
-                <div id="retry-problem-analysis-result" class="result"></div>
-                <div id="problem-analysis-failures" class="stats-container"></div>
-                
-                <h3 style="margin-top: 30px;">使用统计（最近7天）</h3>
-                <button id="load-usage-btn" class="secondary">刷新</button>
-                <div id="usage-stats" class="stats-container"></div>
-            </div>
-
-            <!-- 人工复核标签 -->
-            <div id="manual-review-tab" class="tab-content teacher-view hidden">
-                <div class="teacher-tools">
-                    <div class="workspace-panel-head">
-                        <div>
-                            <p class="panel-eyebrow">Manual Review</p>
-                            <h3>人工复核</h3>
-                            <p class="panel-note">这里展示最近的 review 样本，快速打 3 个枚举字段和一句备注即可。</p>
+                    <div class="card">
+                        <div class="card-body">
+                            <div id="checkin-history-list" class="history-list"></div>
                         </div>
-                        <button id="load-manual-review-btn" class="secondary">刷新</button>
                     </div>
-                    <div id="teacher-manual-review-filter"></div>
-                    <div id="teacher-manual-review-panel"></div>
                 </div>
             </div>
-            
-            <!-- 关注学员标签 -->
-            <div id="flags-tab" class="tab-content teacher-view hidden">
-                <h3>需要关注的学员</h3>
-                <button id="load-flags-btn" class="secondary">刷新</button>
-                <div id="student-flags" class="flags-container"></div>
+
+            <!-- Teacher Section -->
+            <div id="teacher-section" class="page-content hidden">
+                <!-- Quota -->
+                <div id="quota-tab" class="tab-content active">
+                    <div class="page-header">
+                        <div class="page-header-left">
+                            <h1 class="page-title">配额管理</h1>
+                            <p class="page-subtitle">查询和管理学生配额使用情况</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="card">
+                            <div class="card-header" style="border-left: 3px solid var(--system-blue);">
+                                <span class="card-title">🔍 查询配额</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-row">
+                                    <input type="text" id="query-student-id" placeholder="学生 ID">
+                                    <input type="text" id="query-problem-id" placeholder="题目 ID" value="P1001">
+                                </div>
+                                <button id="teacher-check-quota-btn" style="margin-top: 12px; width: 100%;">查询</button>
+                                <div id="teacher-quota-result" style="margin-top: 12px;"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-header" style="border-left: 3px solid var(--system-orange);">
+                                <span class="card-title">🔄 重置配额</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-row">
+                                    <input type="text" id="reset-student-id" placeholder="学生 ID">
+                                    <input type="text" id="reset-problem-id" placeholder="题目 ID" value="P1001">
+                                </div>
+                                <div class="form-group" style="margin-top: 12px;">
+                                    <input type="password" id="teacher-secret" placeholder="教师密钥">
+                                </div>
+                                <button id="reset-quota-btn" class="warning" style="width: 100%;">重置配额</button>
+                                <div id="reset-result" style="margin-top: 12px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Checkins -->
+                <div id="checkins-tab" class="tab-content">
+                    <div class="page-header">
+                        <div class="page-header-left">
+                            <h1 class="page-title">学员打卡</h1>
+                            <p class="page-subtitle">查看所有学员的打卡记录</p>
+                        </div>
+                        <div class="page-header-right">
+                            <button id="load-all-checkins-btn" class="secondary sm">刷新</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body">
+                            <div id="teacher-checkins-list"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div id="stats-tab" class="tab-content">
+                    <div class="page-header">
+                        <div class="page-header-left">
+                            <h1 class="page-title">数据统计</h1>
+                            <p class="page-subtitle">查看学习数据统计和分析</p>
+                        </div>
+                        <div class="page-header-right">
+                            <button id="load-stats-btn" class="secondary sm">刷新</button>
+                        </div>
+                    </div>
+                    <div id="error-stats" class="stats-grid"></div>
+                </div>
+
+                <!-- Manual Review -->
+                <div id="manual-review-tab" class="tab-content">
+                    <div class="page-header">
+                        <div class="page-header-left">
+                            <h1 class="page-title">人工复核</h1>
+                            <p class="page-subtitle">复核 AI 生成的复盘报告</p>
+                        </div>
+                        <div class="page-header-right">
+                            <button id="load-manual-review-btn" class="secondary sm">刷新</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body">
+                            <div id="teacher-manual-review-panel"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Flags -->
+                <div id="flags-tab" class="tab-content">
+                    <div class="page-header">
+                        <div class="page-header-left">
+                            <h1 class="page-title">关注学员</h1>
+                            <p class="page-subtitle">需要特别关注的学员列表</p>
+                        </div>
+                        <div class="page-header-right">
+                            <button id="load-flags-btn" class="secondary sm">刷新</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body">
+                            <div id="student-flags"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+        </main>
     </div>
 
     <script src="/static/review_family_ui.js"></script>
+    <script src="/static/checkin_review_ui.js"></script>
+    <script src="/static/tailwind-ui.js"></script>
     <script src="/static/teacher_manual_review_ui.js"></script>
     <script src="/static/app.js"></script>
 </body>

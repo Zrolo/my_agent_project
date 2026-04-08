@@ -12,17 +12,46 @@ const reviewFamilyUi = window.reviewFamilyUi || {
         if (item.review_family) return item.review_family;
         return item.review_mode === 'independent_reflect' ? 'success_reflection' : 'failure_diagnosis';
     },
-    orderedReviewSections(review = {}, family = 'failure_diagnosis') {
-        const order = family === 'success_reflection'
-            ? ['main_block', 'key_bridge', 'transfer_signal', 'next_step']
-            : ['main_block', 'key_bridge', 'next_step', 'transfer_signal'];
+    isVisualHintDiagramLike(value = '') {
+        const text = String(value || '').trim();
+        if (!text) return false;
+        const lines = text.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+        if (lines.length < 2) return false;
+        const structuredLineCount = lines.filter((line) => /[:：=→←↔|├└┌┐┘─\-×]/.test(line)).length;
+        const compactLineCount = lines.filter((line) => line.length <= 30).length;
+        return structuredLineCount >= 2 || (structuredLineCount >= 1 && compactLineCount >= 2 && lines.length >= 3);
+    },
+    reviewFieldLabel(field, value = '') {
+        if (field === 'visual_hint') {
+            return this.isVisualHintDiagramLike(value) ? '看图想一想' : '先看这个对比';
+        }
         const labels = {
+            problem_focus: '你卡在哪',
             main_block: '你卡在哪',
-            key_bridge: '关键一步',
-            next_step: '现在先做',
-            transfer_signal: '下次提醒',
+            key_bridge: '先抓住什么',
+            guided_walkthrough: '跟我走一遍',
+            try_now: '现在你来试',
+            next_step: '现在你来试',
+            transfer_signal: '下次怎么认出来',
         };
-        return order.map((field) => ({ field, label: labels[field] || field, value: review[field] || '' }));
+        return labels[field] || field;
+    },
+    orderedReviewSections(review = {}, family = 'failure_diagnosis') {
+        const order = ['problem_focus', 'key_bridge', 'visual_hint', 'guided_walkthrough', 'try_now', 'transfer_signal'];
+        return order.map((field) => ({
+            field,
+            label: this.reviewFieldLabel(
+                field,
+                review[field]
+                || (field === 'problem_focus' ? review.main_block : '')
+                || (field === 'try_now' ? review.next_step : '')
+                || '',
+            ),
+            value: review[field]
+                || (field === 'problem_focus' ? review.main_block : '')
+                || (field === 'try_now' ? review.next_step : '')
+                || '',
+        }));
     },
     reviewFeedbackCopy(family = 'failure_diagnosis') {
         if (family === 'success_reflection') {
@@ -47,6 +76,40 @@ const reviewFamilyUi = window.reviewFamilyUi || {
         return this.resolveReviewFamily(item) === 'success_reflection'
             ? '右侧先看为什么这道题这样做对，再用中间的小测确认你能不能把这条思路说清楚。'
             : '右侧先看问题定位和最小下一步，再用中间的小测确认你知不知道该先查哪一步。';
+    },
+};
+const checkinReviewUi = window.checkinReviewUi || {
+    INPUT_STAGE: 'input',
+    REVIEW_STAGE: 'review',
+    checkinStage(item = null) {
+        return item ? 'review' : 'input';
+    },
+    checkinSummaryPills(item = {}) {
+        const pills = [];
+        if (item.problem_title) pills.push({ label: '题目', value: item.problem_title });
+        if (item.completion_status_text) pills.push({ label: '状态', value: item.completion_status_text });
+        if (item.submission_result_text) pills.push({ label: '提交', value: item.submission_result_text });
+        if (item.oj_source_text) pills.push({ label: '来源', value: item.oj_source_text });
+        return pills;
+    },
+    compactStudentInputSections(item = {}) {
+        return [
+            { label: '题面 / 题意', value: item.problem_context || '' },
+            { label: '卡点描述', value: item.bottleneck_text || '' },
+            { label: '反思总结', value: item.reflection || '' },
+            { label: '代码', value: item.student_code || '' },
+        ].filter((section) => String(section.value || '').trim());
+    },
+    reviewStageHeading(item = {}) {
+        return item.problem_title || '这次打卡复盘';
+    },
+    entryStageLead() {
+        return '把这次卡住的地方记下来，我们会把它整理成一页可继续往下学的复盘讲义。';
+    },
+    reviewStageLead(item = {}) {
+        if (item.review_status === 'failed') return '这次复盘暂时没有成功生成，你可以先看错误提示，稍后再回来继续。';
+        if (item.review_status !== 'completed') return '复盘讲义正在生成中，生成完成后这里会自动更新。';
+        return '先读这次复盘，再继续做下面这一小步。';
     },
 };
 const teacherManualReviewUi = window.teacherManualReviewUi || {
@@ -78,6 +141,9 @@ let importedProblemMeta = {
 let luoguSupplementExpanded = false;
 let myCheckinsCache = [];
 let activeCheckinId = null;
+let activeCheckinStage = checkinReviewUi.INPUT_STAGE;
+let historySearchKeyword = '';
+let historySearchAlgorithm = '';
 let activeRelatedProblemPid = '';
 let activeChatProblemRef = '';
 let teacherReviewSamplesCache = [];
@@ -91,6 +157,37 @@ const loginSection = document.getElementById('login-section');
 const studentSection = document.getElementById('student-section');
 const teacherSection = document.getElementById('teacher-section');
 const userBar = document.getElementById('user-bar');
+
+// Sidebar collapse state
+let sidebarCollapsed = localStorage.getItem('noi_sidebar_collapsed') === 'true';
+
+function initSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const toggleBtn = document.getElementById('sidebar-toggle');
+    
+    if (!sidebar || !toggleBtn) return;
+    
+    // Apply initial state
+    if (sidebarCollapsed) {
+        sidebar.classList.add('collapsed');
+    }
+    
+    // Toggle on click
+    toggleBtn.addEventListener('click', () => {
+        sidebarCollapsed = !sidebarCollapsed;
+        sidebar.classList.toggle('collapsed', sidebarCollapsed);
+        localStorage.setItem('noi_sidebar_collapsed', sidebarCollapsed);
+    });
+}
+
+function toggleSidebar(collapsed) {
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+    
+    sidebarCollapsed = collapsed !== undefined ? collapsed : !sidebarCollapsed;
+    sidebar.classList.toggle('collapsed', sidebarCollapsed);
+    localStorage.setItem('noi_sidebar_collapsed', sidebarCollapsed);
+}
 
 // ============ 工具函数 ============
 
@@ -221,6 +318,22 @@ const MANUAL_REVIEW_BREAKDOWN_TITLES = {
 const MANUAL_REVIEW_FILTER_LABELS = {
     mode: 'mode',
     family: 'family',
+};
+const MASTERY_STATUS_STATS_LABELS = {
+    independent_success: '独立过桥',
+    assisted_success: '辅助后过桥',
+    not_mastered: '仍未掌握',
+    not_assessed: '尚未评估',
+};
+const BRIDGE_PATH_STATS_LABELS = {
+    main_clear: '首轮直接过桥',
+    main_guessed_confirm: '确认后过桥',
+    main_guessed_remedy: '首轮答对但最终补救',
+    main_confused_remedy: '主动承认没懂后补救',
+    followup_correct: '提示后过桥',
+    followup_remedy: '补救后过桥',
+    knowledge_bailout_success: '知识卡后过桥',
+    knowledge_bailout_failed: '知识卡后仍未掌握',
 };
 
 function toFiniteNumber(value) {
@@ -364,6 +477,50 @@ function renderManualReviewRatesCard(source = {}) {
     `;
 }
 
+function renderDistributionStatsCard(title, source = {}, labels = {}) {
+    if (!source || typeof source !== 'object' || !Object.keys(source).length) {
+        return `
+            <div class="teacher-card">
+                <h4>${escapeHtml(title || '分布统计')}</h4>
+                <p>暂无分布统计数据</p>
+            </div>
+        `;
+    }
+    const rows = Object.entries(source)
+        .map(([key, item]) => normalizeManualReviewRateRow({
+            ...(item || {}),
+            label: labels[key] || key,
+            count: item?.count ?? 0,
+            total: item?.total ?? null,
+            rate: item?.rate ?? null,
+        }, key))
+        .filter(Boolean);
+    if (!rows.length) {
+        return `
+            <div class="teacher-card">
+                <h4>${escapeHtml(title || '分布统计')}</h4>
+                <p>暂无分布统计数据</p>
+            </div>
+        `;
+    }
+    return `
+        <div class="teacher-card">
+            <h4>${escapeHtml(title || '分布统计')}</h4>
+            <div class="manual-review-rates-grid">
+                ${rows.map(renderManualReviewRateRow).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function renderMasteryStatusCard(source = {}) {
+    return renderDistributionStatsCard('过桥结果分布', source, MASTERY_STATUS_STATS_LABELS);
+}
+
+function renderBridgePathStatsCard(source = {}) {
+    return renderDistributionStatsCard('过桥路径分布', source, BRIDGE_PATH_STATS_LABELS);
+}
+
 function renderManualReviewBreakdownSection(title, groups = {}, groupBy = 'mode') {
     const entries = Object.entries(groups || {});
     if (!entries.length) {
@@ -500,9 +657,11 @@ function redirectToLogin(message = '登录已失效，请重新登录') {
     document.getElementById('login-password').value = '';
 
     loginSection.classList.remove('hidden');
-    studentSection.classList.add('hidden');
-    teacherSection.classList.add('hidden');
-    userBar.classList.add('hidden');
+    document.getElementById('main-app').classList.add('hidden');
+    document.getElementById('student-section').classList.add('hidden');
+    document.getElementById('teacher-section').classList.add('hidden');
+    document.getElementById('student-nav').classList.add('hidden');
+    document.getElementById('teacher-nav').classList.add('hidden');
     setReviewStageEmpty();
     showError('login-error', message);
 }
@@ -725,16 +884,32 @@ async function importProblemFromUrl() {
 }
 
 function showStudentTab(targetId) {
-    document.querySelectorAll('#student-section .tab-content').forEach((content) => content.classList.add('hidden'));
+    // Hide all tab contents
+    document.querySelectorAll('#student-section .tab-content').forEach((content) => {
+        content.classList.add('hidden');
+        content.classList.remove('active');
+    });
+    
+    // Show target tab
     const target = document.getElementById(targetId);
     if (target) {
         target.classList.remove('hidden');
+        target.classList.add('active');
     }
-    document.querySelectorAll('#student-tabs .tab-btn').forEach((btn) => {
-        btn.classList.toggle('active', btn.dataset.tab === targetId);
+    
+    // Update sidebar active state
+    document.querySelectorAll('#student-nav .sidebar-link').forEach((link) => {
+        link.classList.toggle('active', link.dataset.tab === targetId);
     });
     if (targetId === 'checkin-tab') {
+        loadCheckinStats();
         renderLinkedChatContextCard();
+        if (activeCheckinStage === checkinReviewUi.REVIEW_STAGE && activeCheckinId) {
+            const item = myCheckinsCache.find((candidate) => Number(candidate.id) === Number(activeCheckinId)) || null;
+            renderActiveCheckinWorkspace(item);
+        } else {
+            renderCheckinEntryStage();
+        }
     } else if (targetId === 'history-tab') {
         renderCheckinHistoryList();
     }
@@ -742,8 +917,12 @@ function showStudentTab(targetId) {
 
 function buildReviewView(review) {
     return {
+        problem_focus: review?.problem_focus || review?.review_problem_focus || review?.main_block || review?.review_main_block || '',
         main_block: review?.main_block || review?.review_main_block || '',
         key_bridge: review?.key_bridge || review?.review_key_bridge || '',
+        visual_hint: review?.visual_hint || review?.review_visual_hint || '',
+        guided_walkthrough: review?.guided_walkthrough || review?.review_guided_walkthrough || '',
+        try_now: review?.try_now || review?.review_try_now || review?.next_step || review?.review_next_step || '',
         next_step: review?.next_step || review?.review_next_step || '',
         transfer_signal: review?.transfer_signal || review?.review_transfer_signal || '',
         review_mode: review?.review_mode || review?.mode || '',
@@ -780,20 +959,115 @@ function resolvedProblemTitleFromForm(problemTitle, problemPid) {
 function renderHistoryListItem(item, isActive) {
     const tone = reviewTimelineTone(item);
     const tags = (item.review_error_tags?.length ? item.review_error_tags : item.error_types || []).slice(0, 3);
+    const date = new Date(item.created_at);
+    const dateStr = `${date.getMonth() + 1}月${date.getDate()}日`;
+    const timeStr = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    
+    // Status emoji mapping
+    const statusEmoji = {
+        'completed': '✅',
+        'pending': '⏳',
+        'failed': '❌'
+    };
+    
+    // Completion status emoji - colorful
+    const completionEmoji = {
+        'independent': '🟢',
+        'hinted': '🔵', 
+        'editorial': '🟠',
+        'unfinished': '🟡'
+    };
+    
+    // Color mapping for completion status
+    const completionColor = {
+        'independent': '#34C759',  // green
+        'hinted': '#5856D6',       // indigo
+        'editorial': '#FF9500',    // orange
+        'unfinished': '#FFCC00'    // yellow
+    };
+    
+    const reviewStatus = item.review_status || 'pending';
+    const reviewEmoji = statusEmoji[reviewStatus] || '⏳';
+    const completionIcon = completionEmoji[item.completion_status] || '📝';
+    
+    // Get status color
+    const statusColor = {
+        'completed': 'var(--system-green)',
+        'pending': 'var(--system-orange)',
+        'failed': 'var(--system-red)'
+    }[reviewStatus] || 'var(--text-tertiary)';
+    
+    const completionBgColor = completionColor[item.completion_status] || '#8E8E93';
+    
     return `
-        <div class="history-card ${isActive ? 'active' : ''}" onclick="selectCheckin(${Number(item.id)})">
-            <div class="history-card-top">
-                <span class="history-card-title">${escapeHtml(item.problem_title || '未命名题目')}</span>
-                <span class="status-pill tone-${tone}">${escapeHtml(reviewLearningStateText(item, false))}</span>
+        <details class="history-item ${isActive ? 'active' : ''}" data-checkin-id="${Number(item.id)}" ${isActive ? 'open' : ''}>
+            <summary class="history-item-summary">
+                <div class="history-item-indicator" style="background-color: ${completionBgColor};"></div>
+                <div class="history-item-main">
+                    <div class="history-item-title-row">
+                        <span class="history-item-title">${escapeHtml(item.problem_title || '未命名题目')}</span>
+                        <span class="history-item-status" style="color: ${statusColor};">${reviewEmoji}</span>
+                    </div>
+                    <div class="history-item-meta">
+                        <span class="badge" style="background: ${completionBgColor}20; color: ${completionBgColor};">${escapeHtml(completionStatusText(item.completion_status))}</span>
+                        <span class="badge badge-gray">${escapeHtml(ojSourceText(item.oj_source))}</span>
+                        <span class="badge" style="background: rgba(0,122,255,0.15); color: var(--system-blue);">${dateStr} ${timeStr}</span>
+                        ${tags.length ? tags.slice(0, 2).map(t => `<span class="badge" style="background: rgba(175,82,222,0.15); color: var(--system-purple);">${escapeHtml(t)}</span>`).join('') : ''}
+                    </div>
+                </div>
+                <svg class="history-item-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 18l6-6-6-6"/>
+                </svg>
+            </summary>
+            <div class="history-item-content">
+                <div class="history-item-section">
+                    <div class="history-item-label">📝 卡点描述</div>
+                    <div class="history-item-text">${escapeHtml(item.bottleneck_text || '无描述')}</div>
+                </div>
+                
+                ${item.review_status === 'completed' ? `
+                    <div class="history-item-section">
+                        <div class="history-item-label">🤖 AI 复盘</div>
+                        ${item.review_problem_focus || item.review_main_block ? `<div class="history-item-text"><strong>你卡在哪：</strong>${escapeHtml(item.review_problem_focus || item.review_main_block)}</div>` : ''}
+                        ${item.review_key_bridge ? `<div class="history-item-text"><strong>先抓住什么：</strong>${escapeHtml(item.review_key_bridge)}</div>` : ''}
+                        ${item.review_visual_hint ? `<div class="history-item-text"><strong>${escapeHtml(reviewFamilyUi.reviewFieldLabel('visual_hint', item.review_visual_hint))}：</strong><pre class="review-visual-hint history-visual-hint">${escapeHtml(item.review_visual_hint)}</pre></div>` : ''}
+                        ${item.review_guided_walkthrough ? `<div class="history-item-text"><strong>跟我走一遍：</strong>${renderRichTextBlock(item.review_guided_walkthrough, 'review-inline-rich-block')}</div>` : ''}
+                        ${item.review_try_now || item.review_next_step ? `<div class="history-item-text"><strong>现在你来试：</strong>${escapeHtml(item.review_try_now || item.review_next_step)}</div>` : ''}
+                    </div>
+                ` : item.review_status === 'pending' ? `
+                    <div class="history-item-section">
+                        <div class="alert alert-info" style="margin: 0;">
+                            <span>⏳ AI 复盘生成中，请稍候...</span>
+                        </div>
+                    </div>
+                ` : `
+                    <div class="history-item-section">
+                        <div class="alert alert-error" style="margin: 0;">
+                            <span>❌ 复盘生成失败，请重新提交</span>
+                        </div>
+                    </div>
+                `}
+                
+                <div class="history-item-actions">
+                    <button class="sm" onclick="selectCheckin(${Number(item.id)}); showStudentTab('checkin-tab');">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        查看详情
+                    </button>
+                    ${item.review_status === 'completed' ? `
+                        <button class="secondary sm" onclick="selectCheckin(${Number(item.id)}); startReviewQuiz(${Number(item.review_id)});">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 11l3 3L22 4"/>
+                                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+                            </svg>
+                            理解检查
+                        </button>
+                    ` : ''}
+                </div>
             </div>
-            <div class="history-card-meta">
-                <span class="status-pill">${escapeHtml(ojSourceText(item.oj_source))}</span>
-                <span class="status-pill">${escapeHtml(completionStatusText(item.completion_status))}</span>
-                <span class="status-pill">${escapeHtml(formatDate(item.created_at))}</span>
-            </div>
-            ${tags.length ? `<div class="history-card-tags">${renderPillRow(tags, 'tag-pill ai-tag')}</div>` : ''}
-            <div class="history-card-desc rich-text">${renderRichTextInline(item.bottleneck_text || '')}</div>
-        </div>
+        </details>
     `;
 }
 
@@ -856,9 +1130,48 @@ function setReviewStageEmpty() {
     const content = document.getElementById('review-stage-content');
     const status = document.getElementById('workspace-stage-status');
     const context = document.getElementById('active-review-chat-context');
+    const titleEl = document.getElementById('active-review-title');
+    const subtitleEl = document.getElementById('active-review-subtitle');
+    const metaEl = document.getElementById('active-review-meta');
     if (empty) empty.classList.remove('hidden');
     if (content) content.classList.add('hidden');
     if (status) status.innerHTML = '';
+    if (titleEl) titleEl.textContent = '这次打卡复盘';
+    if (subtitleEl) subtitleEl.textContent = checkinReviewUi.entryStageLead();
+    if (metaEl) metaEl.innerHTML = '';
+    renderActiveCheckinSummary(null);
+    renderActiveCheckinInputs(null);
+    setCheckinStage(checkinReviewUi.INPUT_STAGE);
+    if (context) {
+        context.classList.add('hidden');
+        context.innerHTML = '';
+    }
+}
+
+function renderCheckinEntryStage() {
+    const empty = document.getElementById('review-stage-empty');
+    const content = document.getElementById('review-stage-content');
+    const status = document.getElementById('workspace-stage-status');
+    const context = document.getElementById('active-review-chat-context');
+    const titleEl = document.getElementById('active-review-title');
+    const subtitleEl = document.getElementById('active-review-subtitle');
+    const metaEl = document.getElementById('active-review-meta');
+    const quizEl = document.getElementById('active-review-quiz-slot');
+    const reportEl = document.getElementById('active-review-report');
+    const relatedEl = document.getElementById('active-review-related');
+
+    setCheckinStage(checkinReviewUi.INPUT_STAGE);
+    if (empty) empty.classList.add('hidden');
+    if (content) content.classList.add('hidden');
+    if (status) status.innerHTML = '';
+    if (titleEl) titleEl.textContent = '这次打卡复盘';
+    if (subtitleEl) subtitleEl.textContent = checkinReviewUi.entryStageLead();
+    if (metaEl) metaEl.innerHTML = '';
+    if (quizEl) quizEl.innerHTML = '';
+    if (reportEl) reportEl.innerHTML = '';
+    if (relatedEl) relatedEl.innerHTML = '';
+    renderActiveCheckinSummary(null);
+    renderActiveCheckinInputs(null);
     if (context) {
         context.classList.add('hidden');
         context.innerHTML = '';
@@ -878,22 +1191,18 @@ function renderActiveCheckinWorkspace(item) {
     const chatContextEl = document.getElementById('active-review-chat-context');
 
     if (!item) {
-        setReviewStageEmpty();
-        if (quizEl) quizEl.innerHTML = '';
-        if (reportEl) reportEl.innerHTML = '';
-        if (relatedEl) relatedEl.innerHTML = '';
-        if (chatContextEl) {
-            chatContextEl.classList.add('hidden');
-            chatContextEl.innerHTML = '';
-        }
+        renderCheckinEntryStage();
         return;
     }
 
+    setCheckinStage(checkinReviewUi.REVIEW_STAGE);
     if (empty) empty.classList.add('hidden');
     if (content) content.classList.remove('hidden');
-    if (titleEl) titleEl.textContent = item.problem_title || '复盘工作区';
+    if (titleEl) titleEl.textContent = checkinReviewUi.reviewStageHeading(item);
     if (subtitleEl) {
-        subtitleEl.textContent = reviewFamilyUi.reviewWorkspaceSubtitle(item);
+        subtitleEl.textContent = item.review_status === 'completed'
+            ? reviewFamilyUi.reviewWorkspaceSubtitle(item)
+            : checkinReviewUi.reviewStageLead(item);
     }
     if (metaEl) {
         metaEl.innerHTML = `
@@ -902,6 +1211,8 @@ function renderActiveCheckinWorkspace(item) {
             <span class="status-pill tone-${reviewTimelineTone(item)}">${escapeHtml(reviewLearningStateText(item, false))}</span>
         `;
     }
+    renderActiveCheckinSummary(item);
+    renderActiveCheckinInputs(item);
     if (statusEl) {
         statusEl.innerHTML = `
             <span class="status-pill">${escapeHtml(formatDate(item.created_at))}</span>
@@ -936,22 +1247,374 @@ function renderActiveCheckinWorkspace(item) {
 
 function selectCheckin(checkinId) {
     activeCheckinId = Number(checkinId);
+    activeCheckinStage = checkinReviewUi.REVIEW_STAGE;
     const item = myCheckinsCache.find((candidate) => Number(candidate.id) === activeCheckinId) || null;
     renderCheckinHistoryList();
     showStudentTab('checkin-tab');
+    showCheckinReviewDetail(item);
+    void fetchMyCheckinById(activeCheckinId)
+        .then((detail) => {
+            const merged = mergeCheckinDetailIntoCache(detail);
+            renderCheckinHistoryList();
+            if (shouldRenderReviewUpdate(activeCheckinId)) {
+                renderReviewDetailContent(merged);
+            }
+            if (merged.review_status === 'pending') {
+                startCheckinReviewStream(activeCheckinId);
+            } else {
+                stopCheckinPoll(activeCheckinId);
+                stopCheckinReviewStream(activeCheckinId);
+            }
+        })
+        .catch((err) => {
+            console.warn('failed to refresh selected checkin detail:', err);
+            if (item?.review_status === 'pending') {
+                startCheckinReviewStream(activeCheckinId);
+            }
+        });
+}
+
+function showCheckinReviewDetail(item) {
+    const headerActions = document.getElementById('checkin-header-actions');
+    const pageTitle = document.getElementById('checkin-page-title');
+    const pageSubtitle = document.getElementById('checkin-page-subtitle');
+
+    if (headerActions) headerActions.style.display = 'flex';
+    if (pageTitle) pageTitle.textContent = '复盘详情';
+    if (pageSubtitle) pageSubtitle.textContent = item?.problem_title || '查看打卡记录和 AI 复盘';
+
     renderActiveCheckinWorkspace(item);
+}
+
+function showCheckinForm() {
+    const formContainer = document.getElementById('checkin-form-container');
+    const headerActions = document.getElementById('checkin-header-actions');
+    const pageTitle = document.getElementById('checkin-page-title');
+    const pageSubtitle = document.getElementById('checkin-page-subtitle');
+
+    if (!formContainer) return;
+
+    if (headerActions) headerActions.style.display = 'none';
+    if (pageTitle) pageTitle.textContent = '打卡复盘';
+    if (pageSubtitle) pageSubtitle.textContent = checkinReviewUi.entryStageLead();
+    
+    // Reset active checkin
+    activeCheckinId = null;
+    activeCheckinStage = checkinReviewUi.INPUT_STAGE;
+    renderCheckinHistoryList();
+}
+
+function renderReviewDetailContent(item) {
+    const workspaceEl = document.getElementById('review-stage-content');
+    if (workspaceEl) {
+        renderActiveCheckinWorkspace(item);
+        return;
+    }
+
+    const loadingEl = document.getElementById('review-detail-loading');
+    const bodyEl = document.getElementById('review-detail-body');
+    const titleEl = document.getElementById('active-review-title');
+    const metaEl = document.getElementById('active-review-meta');
+    
+    // Color mapping for completion status
+    const completionColor = {
+        'independent': '#34C759',  // green
+        'hinted': '#5856D6',       // indigo
+        'editorial': '#FF9500',    // orange
+        'unfinished': '#FFCC00'    // yellow
+    };
+    
+    if (!item) {
+        if (loadingEl) loadingEl.classList.remove('hidden');
+        if (bodyEl) bodyEl.classList.add('hidden');
+        return;
+    }
+    
+    if (loadingEl) loadingEl.classList.add('hidden');
+    if (bodyEl) bodyEl.classList.remove('hidden');
+    
+    // Title
+    if (titleEl) titleEl.textContent = item.problem_title || '复盘详情';
+    
+    // Meta badges
+    if (metaEl) {
+        const date = new Date(item.created_at);
+        const dateStr = `${date.getMonth() + 1}月${date.getDate()}日 ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+        metaEl.innerHTML = `
+            <span class="badge" style="background: ${completionColor[item.completion_status] || '#8E8E93'}20; color: ${completionColor[item.completion_status] || '#8E8E93'};">${escapeHtml(completionStatusText(item.completion_status))}</span>
+            <span class="badge badge-gray">${escapeHtml(ojSourceText(item.oj_source))}</span>
+            <span class="badge" style="background: rgba(0,122,255,0.15); color: var(--system-blue);">${dateStr}</span>
+        `;
+    }
+    
+    // Problem info
+    const problemEl = document.getElementById('review-detail-problem');
+    if (problemEl) {
+        const tags = (item.problem_tags || []).slice(0, 3);
+        problemEl.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                ${item.problem_url ? `<a href="${escapeHtml(item.problem_url)}" target="_blank" rel="noopener noreferrer" style="color: var(--system-blue); text-decoration: none;">🔗 ${escapeHtml(item.problem_url)}</a>` : '<span style="color: var(--text-secondary);">无链接</span>'}
+            </div>
+            ${tags.length ? `<div style="margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap;">${tags.map(t => `<span class="tag-pill subtle-tag">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+        `;
+    }
+    
+    // Bottleneck
+    const bottleneckEl = document.getElementById('review-detail-bottleneck');
+    if (bottleneckEl) {
+        bottleneckEl.textContent = item.bottleneck_text || '无描述';
+    }
+    
+    // Error types
+    const errorTypesEl = document.getElementById('review-detail-error-types');
+    if (errorTypesEl) {
+        const errorTypes = item.error_types || [];
+        if (errorTypes.length) {
+            errorTypesEl.innerHTML = errorTypes.map(t => `<span class="badge" style="background: rgba(255,59,48,0.15); color: var(--system-red); margin-right: 6px;">${escapeHtml(t)}</span>`).join('');
+        } else {
+            errorTypesEl.innerHTML = '';
+        }
+    }
+    
+    // AI Review
+    const aiSection = document.getElementById('review-detail-ai-section');
+    const aiContent = document.getElementById('review-detail-ai-content');
+    if (aiSection && aiContent) {
+        if (item.review_status === 'completed' && (item.review_problem_focus || item.review_main_block)) {
+            aiSection.classList.remove('hidden');
+            aiContent.innerHTML = `
+                ${item.review_problem_focus || item.review_main_block ? `<div style="margin-bottom: 12px;"><strong style="color: var(--text-primary);">你卡在哪：</strong><span style="color: var(--text-secondary);">${escapeHtml(item.review_problem_focus || item.review_main_block)}</span></div>` : ''}
+                ${item.review_key_bridge ? `<div style="margin-bottom: 12px;"><strong style="color: var(--text-primary);">先抓住什么：</strong><span style="color: var(--text-secondary);">${escapeHtml(item.review_key_bridge)}</span></div>` : ''}
+                ${item.review_visual_hint ? `<div style="margin-bottom: 12px;"><strong style="color: var(--text-primary);">${escapeHtml(reviewFamilyUi.reviewFieldLabel('visual_hint', item.review_visual_hint))}：</strong><pre class="review-visual-hint history-visual-hint">${escapeHtml(item.review_visual_hint)}</pre></div>` : ''}
+                ${item.review_guided_walkthrough ? `<div style="margin-bottom: 12px;"><strong style="color: var(--text-primary);">跟我走一遍：</strong>${renderRichTextBlock(item.review_guided_walkthrough, 'review-inline-rich-block')}</div>` : ''}
+                ${item.review_try_now || item.review_next_step ? `<div><strong style="color: var(--text-primary);">现在你来试：</strong><span style="color: var(--text-secondary);">${escapeHtml(item.review_try_now || item.review_next_step)}</span></div>` : ''}
+            `;
+        } else if (item.review_status === 'pending') {
+            aiSection.classList.remove('hidden');
+            aiContent.innerHTML = '<div class="alert alert-info">⏳ AI 复盘生成中，请稍候...</div>';
+        } else if (item.review_status === 'failed') {
+            aiSection.classList.remove('hidden');
+            aiContent.innerHTML = '<div class="alert alert-error">❌ 复盘生成失败，请重新提交</div>';
+        } else {
+            aiSection.classList.add('hidden');
+        }
+    }
+    
+    // Code
+    const codeSection = document.getElementById('review-detail-code-section');
+    const codeEl = document.getElementById('review-detail-code');
+    if (codeSection && codeEl) {
+        if (item.student_code) {
+            codeSection.classList.remove('hidden');
+            codeEl.textContent = item.student_code;
+        } else {
+            codeSection.classList.add('hidden');
+        }
+    }
+    
+    // Reflection
+    const reflectionSection = document.getElementById('review-detail-reflection-section');
+    const reflectionEl = document.getElementById('review-detail-reflection');
+    if (reflectionSection && reflectionEl) {
+        if (item.reflection_text) {
+            reflectionSection.classList.remove('hidden');
+            reflectionEl.textContent = item.reflection_text;
+        } else {
+            reflectionSection.classList.add('hidden');
+        }
+    }
+    
+    // Quiz - render learning section based on current state
+    const quizSection = document.getElementById('review-detail-quiz-section');
+    const quizEl = document.getElementById('review-detail-quiz');
+    if (quizSection && quizEl) {
+        const reviewId = item.review_id;
+        if (item.review_status === 'completed' && reviewId) {
+            quizSection.classList.remove('hidden');
+            quizEl.innerHTML = renderReviewDetailQuizTimeline(item);
+        } else {
+            quizSection.classList.add('hidden');
+        }
+    }
+}
+
+function filterCheckinsBySearch(checkins) {
+    if (!historySearchKeyword && !historySearchAlgorithm) return checkins;
+    
+    const keyword = historySearchKeyword.toLowerCase().trim();
+    const algorithm = historySearchAlgorithm.toLowerCase().trim();
+    
+    return checkins.filter(item => {
+        // 关键词搜索：题目名称、题号
+        let matchesKeyword = true;
+        if (keyword) {
+            const title = (item.problem_title || '').toLowerCase();
+            const pid = (item.problem_id || '').toLowerCase();
+            const url = (item.problem_url || '').toLowerCase();
+            matchesKeyword = title.includes(keyword) || 
+                           pid.includes(keyword) || 
+                           url.includes(keyword);
+        }
+        
+        // 算法标签搜索
+        let matchesAlgorithm = true;
+        if (algorithm) {
+            const tags = (item.problem_tags || []).map(t => t.toLowerCase());
+            const title = (item.problem_title || '').toLowerCase();
+            // 检查标签或题目中是否包含算法关键词
+            matchesAlgorithm = tags.some(tag => tag.includes(algorithm)) ||
+                             title.includes(algorithm);
+        }
+        
+        return matchesKeyword && matchesAlgorithm;
+    });
 }
 
 function renderCheckinHistoryList() {
     const listEl = document.getElementById('checkin-history-list');
+    const resultInfoEl = document.getElementById('history-search-result-info');
     if (!listEl) return;
     if (!myCheckinsCache.length) {
-        listEl.innerHTML = '<p>还没有打卡记录</p>';
+        listEl.innerHTML = `
+            <div class="history-empty">
+                <div class="history-empty-icon">📝</div>
+                <div class="history-empty-text">还没有打卡记录</div>
+                <div style="margin-top: 16px;">
+                    <button onclick="showStudentTab('checkin-tab')">去打卡</button>
+                </div>
+            </div>
+        `;
+        if (resultInfoEl) resultInfoEl.textContent = '';
         return;
     }
-    listEl.innerHTML = myCheckinsCache
-        .map((item) => renderHistoryListItem(item, Number(item.id) === Number(activeCheckinId)))
+    
+    // 应用搜索过滤
+    const filteredCheckins = filterCheckinsBySearch(myCheckinsCache);
+    
+    // 更新搜索结果信息
+    if (resultInfoEl) {
+        if (historySearchKeyword || historySearchAlgorithm) {
+            const filterDesc = [];
+            if (historySearchKeyword) filterDesc.push(`关键词"${historySearchKeyword}"`);
+            if (historySearchAlgorithm) filterDesc.push(`算法"${historySearchAlgorithm}"`);
+            resultInfoEl.innerHTML = `🔍 搜索 ${filterDesc.join(' + ')}，找到 <strong>${filteredCheckins.length}</strong> 条记录 / 共 ${myCheckinsCache.length} 条`;
+        } else {
+            resultInfoEl.textContent = `共 ${myCheckinsCache.length} 条打卡记录`;
+        }
+    }
+    
+    if (!filteredCheckins.length) {
+        listEl.innerHTML = `
+            <div class="history-empty">
+                <div class="history-empty-icon">🔍</div>
+                <div class="history-empty-text">没有找到匹配的记录</div>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">尝试调整搜索条件</div>
+            </div>
+        `;
+        return;
+    }
+    
+    // Group by date
+    const grouped = filteredCheckins.reduce((acc, item) => {
+        const date = new Date(item.created_at);
+        const dateKey = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+        if (!acc[dateKey]) acc[dateKey] = [];
+        acc[dateKey].push(item);
+        return acc;
+    }, {});
+    
+    // Sort dates descending
+    const sortedDates = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
+    
+    let html = '';
+    sortedDates.forEach(dateKey => {
+        const items = grouped[dateKey];
+        const date = new Date(dateKey);
+        const today = new Date();
+        const isToday = date.toDateString() === today.toDateString();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const isYesterday = date.toDateString() === yesterday.toDateString();
+        
+        let dateLabel = `${date.getMonth() + 1}月${date.getDate()}日`;
+        if (isToday) dateLabel = '今天';
+        if (isYesterday) dateLabel = '昨天';
+        
+        html += `<div class="history-group">`;
+        html += `<div class="history-group-title">${dateLabel} · ${items.length} 条记录</div>`;
+        html += items
+            .map((item) => renderHistoryListItem(item, Number(item.id) === Number(activeCheckinId)))
+            .join('');
+        html += `</div>`;
+    });
+    
+    listEl.innerHTML = html;
+}
+
+function setCheckinStage(stage) {
+    activeCheckinStage = stage;
+    const entryStage = document.getElementById('checkin-entry-stage');
+    const reviewStage = document.getElementById('checkin-review-stage');
+    entryStage?.classList.toggle('hidden', stage !== checkinReviewUi.INPUT_STAGE);
+    reviewStage?.classList.toggle('hidden', stage !== checkinReviewUi.REVIEW_STAGE);
+}
+
+function renderActiveCheckinSummary(item) {
+    const summaryEl = document.getElementById('active-checkin-summary');
+    if (!summaryEl) return;
+    if (!item) {
+        summaryEl.innerHTML = '';
+        summaryEl.classList.add('hidden');
+        return;
+    }
+    const pills = checkinReviewUi.checkinSummaryPills({
+        ...item,
+        completion_status_text: completionStatusText(item?.completion_status),
+        submission_result_text: item?.submission_result ? reviewStatusLabel(item.submission_result) : '',
+        oj_source_text: ojSourceText(item?.oj_source),
+    });
+    if (!pills.length) {
+        summaryEl.innerHTML = '';
+        summaryEl.classList.add('hidden');
+        return;
+    }
+    summaryEl.innerHTML = pills
+        .map((pill) => `<span class="status-pill"><strong>${escapeHtml(pill.label)}：</strong>${escapeHtml(pill.value)}</span>`)
         .join('');
+    summaryEl.classList.remove('hidden');
+}
+
+function renderActiveCheckinInputs(item) {
+    const detailsEl = document.getElementById('active-checkin-inputs');
+    const bodyEl = document.getElementById('active-checkin-inputs-body');
+    if (!detailsEl || !bodyEl) return;
+    const sections = checkinReviewUi.compactStudentInputSections(item);
+    if (!sections.length) {
+        bodyEl.innerHTML = '';
+        detailsEl.classList.add('hidden');
+        detailsEl.open = false;
+        return;
+    }
+    bodyEl.innerHTML = sections.map((section) => `
+        <div class="student-input-recall-item">
+            <strong>${escapeHtml(section.label)}</strong>
+            <div>${renderRichTextBlock(section.value)}</div>
+        </div>
+    `).join('');
+    detailsEl.classList.remove('hidden');
+}
+
+function reviewStatusLabel(status) {
+    const map = {
+        not_submitted: '未提交',
+        wa: 'WA',
+        tle: 'TLE',
+        re: 'RE',
+        ce: 'CE',
+        ac: 'AC',
+        unknown: '不确定',
+    };
+    return map[status] || status || '';
 }
 
 async function apiFetch(url, options = {}) {
@@ -1186,10 +1849,12 @@ function renderPendingReviewNotice(item = {}) {
     const elapsedSeconds = Number(item.review_stream_elapsed_seconds || 0);
     const elapsedText = elapsedSeconds > 0 ? `已等待 ${Math.max(1, Math.round(elapsedSeconds))} 秒` : '刚刚开始';
     const draftRows = [
-        ['你卡在哪', item.review_stream_draft_main_block],
+        ['你卡在哪', item.review_stream_draft_problem_focus || item.review_stream_draft_main_block],
         ['关键一步', item.review_stream_draft_key_bridge],
-        ['现在先做', item.review_stream_draft_next_step],
-        ['下次提醒', item.review_stream_draft_transfer_signal],
+        [reviewFamilyUi.reviewFieldLabel('visual_hint', item.review_stream_draft_visual_hint), item.review_stream_draft_visual_hint],
+        ['跟我走一遍', item.review_stream_draft_guided_walkthrough],
+        ['现在你来试', item.review_stream_draft_try_now || item.review_stream_draft_next_step],
+        ['下次怎么认出来', item.review_stream_draft_transfer_signal],
     ].filter(([, value]) => String(value || '').trim());
     return `
         <div style="margin-top: 10px; padding: 14px 16px; background: #fff8e1; border: 1px solid #f1c40f; border-radius: 10px;">
@@ -1261,6 +1926,9 @@ function reviewLearningStateText(item, isTeacher = false) {
     if (item.review_learning_status === 'self_check_required') {
         return isTeacher ? '已答对，等待理解确认' : '这一步先别急着结束，再确认一下';
     }
+    if (item.review_learning_status === 'knowledge_bailout') {
+        return isTeacher ? '知识卡兜底中' : '这一步先换成知识讲解再过一遍';
+    }
     if (item.review_learning_status === 'resolved') return isTeacher ? '这一步已过桥' : '这一步你已经过桥了';
     if (item.review_learning_status === 'needs_teacher_followup') return isTeacher ? '建议老师跟进' : '这一步需要老师一起看';
     if (item.review_learning_status === 'remedy_available' || item.review_learning_status === 'remedy_in_progress') {
@@ -1275,6 +1943,7 @@ function reviewTimelineTone(item) {
     if (item.review_status === 'pending') return 'pending';
     if (item.review_status === 'failed') return 'followup';
     if (item.review_learning_status === 'self_check_required') return 'quiz';
+    if (item.review_learning_status === 'knowledge_bailout') return 'remedy';
     if (item.review_learning_status === 'resolved') return 'resolved';
     if (item.review_learning_status === 'needs_teacher_followup') return 'followup';
     if (item.review_learning_status === 'remedy_available' || item.review_learning_status === 'remedy_in_progress') {
@@ -1328,12 +1997,13 @@ function resolveRemedyTransition({ understandingSelfCheck, quizRole, feedbackTex
 
 function renderRemedyTransitionCard(config) {
     if (!config?.title) return '';
-    return `
-        <div class="quiz-card quiz-result warn">
-            <div class="quiz-title">${escapeHtml(config.title)}</div>
-            ${config.explanation ? `<div class="quiz-explanation">${escapeHtml(config.explanation)}</div>` : ''}
-        </div>
-    `;
+    const explanation = [config.title, config.explanation].filter(Boolean).join('\n\n');
+    return renderQuizStageNotice({
+        title: '这一步还没完全打通，我们先换一种方式继续。',
+        explanation,
+        tone: 'warn',
+        kicker: '理解检查',
+    });
 }
 
 async function fetchMyCheckinById(checkinId) {
@@ -1396,6 +2066,16 @@ function stopCheckinPoll(checkinId) {
     pendingReviewPolls.delete(Number(checkinId));
 }
 
+function shouldRenderReviewUpdate(checkinId) {
+    // Check if we're in review stage or showing the review workspace
+    const workspaceContainer = document.getElementById('review-stage-content');
+    const isDetailVisible = workspaceContainer && !workspaceContainer.classList.contains('hidden');
+    return (
+        (activeCheckinStage === checkinReviewUi.REVIEW_STAGE || isDetailVisible) &&
+        Number(activeCheckinId) === Number(checkinId)
+    );
+}
+
 function mergeCheckinStreamPayloadIntoCache(checkinId, payload = {}) {
     const draft = payload.draft_review || {};
     const normalizedId = Number(checkinId || payload.checkin_id || payload.id);
@@ -1407,8 +2087,12 @@ function mergeCheckinStreamPayloadIntoCache(checkinId, payload = {}) {
         review_stream_message: payload.message || '',
         review_stream_elapsed_seconds: payload.elapsed_seconds || 0,
         review_stream_updated_at: payload.updated_at || '',
+        review_stream_draft_problem_focus: draft.problem_focus || draft.main_block || '',
         review_stream_draft_main_block: draft.main_block || '',
         review_stream_draft_key_bridge: draft.key_bridge || '',
+        review_stream_draft_visual_hint: draft.visual_hint || '',
+        review_stream_draft_guided_walkthrough: draft.guided_walkthrough || '',
+        review_stream_draft_try_now: draft.try_now || draft.next_step || '',
         review_stream_draft_next_step: draft.next_step || '',
         review_stream_draft_transfer_signal: draft.transfer_signal || '',
         poll_timed_out: false,
@@ -1426,8 +2110,12 @@ function mergeCheckinDetailIntoCache(detail) {
         review_error_layer: detail.review_error_layer || nestedReview.error_layer || '',
         review_confidence: detail.review_confidence || nestedReview.error_layer_confidence || '',
         review_core_design_subtags: detail.review_core_design_subtags || nestedReview.core_design_subtags || [],
+        review_problem_focus: detail.review_problem_focus || nestedReview.problem_focus || nestedReview.main_block || '',
         review_main_block: detail.review_main_block || nestedReview.main_block || '',
         review_key_bridge: detail.review_key_bridge || nestedReview.key_bridge || '',
+        review_visual_hint: detail.review_visual_hint || nestedReview.visual_hint || '',
+        review_guided_walkthrough: detail.review_guided_walkthrough || nestedReview.guided_walkthrough || '',
+        review_try_now: detail.review_try_now || nestedReview.try_now || nestedReview.next_step || '',
         review_next_step: detail.review_next_step || nestedReview.next_step || '',
         review_transfer_signal: detail.review_transfer_signal || nestedReview.transfer_signal || '',
         review_diagnosis: detail.review_diagnosis || nestedReview.diagnosis || '',
@@ -1438,10 +2126,15 @@ function mergeCheckinDetailIntoCache(detail) {
         review_stream_message: detail.review_stream_message || '',
         review_stream_elapsed_seconds: detail.review_stream_elapsed_seconds || 0,
         review_stream_updated_at: detail.review_stream_updated_at || '',
+        review_stream_draft_problem_focus: detail.review_stream_draft_problem_focus || '',
         review_stream_draft_main_block: detail.review_stream_draft_main_block || '',
         review_stream_draft_key_bridge: detail.review_stream_draft_key_bridge || '',
+        review_stream_draft_visual_hint: detail.review_stream_draft_visual_hint || '',
+        review_stream_draft_guided_walkthrough: detail.review_stream_draft_guided_walkthrough || '',
+        review_stream_draft_try_now: detail.review_stream_draft_try_now || '',
         review_stream_draft_next_step: detail.review_stream_draft_next_step || '',
         review_stream_draft_transfer_signal: detail.review_stream_draft_transfer_signal || '',
+        quiz_history: Array.isArray(detail.quiz_history) ? detail.quiz_history : undefined,
     };
     const targetId = Number(normalized.id);
     const index = myCheckinsCache.findIndex((item) => Number(item.id || item.checkin_id) === targetId);
@@ -1453,12 +2146,28 @@ function mergeCheckinDetailIntoCache(detail) {
     return myCheckinsCache[index >= 0 ? index : 0];
 }
 
+async function refreshReviewDetailByReviewId(reviewId) {
+    const checkinId = itemCheckinIdFromReview(reviewId);
+    if (!checkinId) {
+        await loadMyCheckins();
+        return null;
+    }
+    const item = await fetchMyCheckinById(checkinId);
+    const merged = mergeCheckinDetailIntoCache(item);
+    renderCheckinHistoryList();
+    if (shouldRenderReviewUpdate(checkinId)) {
+        renderReviewDetailContent(merged);
+    }
+    return merged;
+}
+
 async function refreshPendingCheckin(checkinId) {
     const item = await fetchMyCheckinById(checkinId);
     const merged = mergeCheckinDetailIntoCache(item);
-    activeCheckinId = Number(checkinId);
     renderCheckinHistoryList();
-    renderActiveCheckinWorkspace(merged);
+    if (shouldRenderReviewUpdate(checkinId)) {
+        renderActiveCheckinWorkspace(merged);
+    }
     return merged;
 }
 
@@ -1494,6 +2203,137 @@ function schedulePollFallback(checkinId, resultEl) {
         state.fallbackStarted = true;
     }
     pollCheckinReviewStatus(checkinId, resultEl);
+}
+
+function startCheckinReviewStream(checkinId) {
+    const workspaceContainer = document.getElementById('review-stage-content');
+    const isDetailVisible = workspaceContainer && !workspaceContainer.classList.contains('hidden');
+    
+    // If showing detail view, subscribe to stream and update detail view
+    if (isDetailVisible) {
+        subscribeCheckinReviewStreamForDetail(checkinId);
+    } else {
+        subscribeCheckinReviewStream(checkinId, null);
+    }
+}
+
+async function subscribeCheckinReviewStreamForDetail(checkinId) {
+    stopCheckinPoll(checkinId);
+    stopCheckinReviewStream(checkinId);
+
+    const abortController = new AbortController();
+    const streamState = {
+        abortController,
+        closed: false,
+        terminal: false,
+        fallbackStarted: false,
+    };
+    pendingReviewStreams.set(Number(checkinId), streamState);
+
+    try {
+        const res = await apiFetch(`${API_BASE}/api/checkins/${checkinId}/stream`, {
+            signal: abortController.signal,
+            headers: {
+                Accept: 'text/event-stream',
+            },
+        });
+        if (!res.body || typeof res.body.getReader !== 'function') {
+            throw new Error('当前浏览器不支持流式读取');
+        }
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const frames = buffer.split(/\r?\n\r?\n/);
+            buffer = frames.pop() || '';
+
+            for (const frame of frames) {
+                const trimmed = frame.trim();
+                if (!trimmed) continue;
+                const { eventName, payload } = parseSseFrame(trimmed);
+                if (eventName === 'keepalive' || !payload) continue;
+
+                const merged = mergeCheckinStreamPayloadIntoCache(checkinId, payload);
+                renderCheckinHistoryList();
+                if (shouldRenderReviewUpdate(checkinId)) {
+                    // Update detail view instead of workspace
+                    renderReviewDetailContent(merged);
+                }
+
+                if (eventName === 'review_ready' || payload.review_status === 'completed') {
+                    streamState.terminal = true;
+                    stopCheckinReviewStream(checkinId);
+                    await refreshPendingCheckin(checkinId);
+                    return;
+                }
+
+                if (eventName === 'error' || payload.review_status === 'failed') {
+                    streamState.terminal = true;
+                    stopCheckinReviewStream(checkinId);
+                    await refreshPendingCheckin(checkinId);
+                    return;
+                }
+            }
+        }
+    } catch (err) {
+        if (abortController.signal.aborted || streamState.closed) return;
+        console.warn('review stream fallback to polling:', err);
+    } finally {
+        const latest = pendingReviewStreams.get(Number(checkinId));
+        if (latest === streamState) {
+            pendingReviewStreams.delete(Number(checkinId));
+        }
+        if (!streamState.terminal && !streamState.closed && !streamState.fallbackStarted) {
+            schedulePollFallbackForDetail(checkinId);
+        }
+    }
+}
+
+function schedulePollFallbackForDetail(checkinId) {
+    const state = pendingReviewStreams.get(Number(checkinId));
+    if (state) {
+        state.fallbackStarted = true;
+    }
+    pollCheckinReviewStatusForDetail(checkinId);
+}
+
+async function pollCheckinReviewStatusForDetail(checkinId) {
+    const checkinIdNum = Number(checkinId);
+    const pollState = pendingReviewPolls.get(checkinIdNum);
+    if (pollState && pollState.polling) return;
+
+    pendingReviewPolls.set(checkinIdNum, { polling: true, timer: null });
+
+    const doPoll = async () => {
+        try {
+            const item = await fetchMyCheckinById(checkinIdNum);
+            const merged = mergeCheckinDetailIntoCache(item);
+            renderCheckinHistoryList();
+            if (shouldRenderReviewUpdate(checkinIdNum)) {
+                renderReviewDetailContent(merged);
+            }
+
+            if (item.review_status === 'completed' || item.review_status === 'failed') {
+                stopCheckinPoll(checkinIdNum);
+                return;
+            }
+
+            if (!pendingReviewPolls.get(checkinIdNum)?.polling) return;
+            const timer = setTimeout(doPoll, 3000);
+            pendingReviewPolls.set(checkinIdNum, { polling: true, timer });
+        } catch (err) {
+            console.warn('poll error:', err);
+            if (!pendingReviewPolls.get(checkinIdNum)?.polling) return;
+            const timer = setTimeout(doPoll, 5000);
+            pendingReviewPolls.set(checkinIdNum, { polling: true, timer });
+        }
+    };
+
+    doPoll();
 }
 
 async function subscribeCheckinReviewStream(checkinId, resultEl) {
@@ -1537,9 +2377,10 @@ async function subscribeCheckinReviewStream(checkinId, resultEl) {
                 if (eventName === 'keepalive' || !payload) continue;
 
                 const merged = mergeCheckinStreamPayloadIntoCache(checkinId, payload);
-                activeCheckinId = Number(checkinId);
                 renderCheckinHistoryList();
-                renderActiveCheckinWorkspace(merged);
+                if (shouldRenderReviewUpdate(checkinId)) {
+                    renderActiveCheckinWorkspace(merged);
+                }
 
                 if (eventName === 'review_ready' || payload.review_status === 'completed') {
                     streamState.terminal = true;
@@ -1620,9 +2461,10 @@ function pollCheckinReviewStatus(checkinId, resultEl) {
         try {
             const item = await fetchMyCheckinById(checkinId);
             const merged = mergeCheckinDetailIntoCache(item);
-            activeCheckinId = Number(checkinId);
             renderCheckinHistoryList();
-            renderActiveCheckinWorkspace(merged);
+            if (shouldRenderReviewUpdate(checkinId)) {
+                renderActiveCheckinWorkspace(merged);
+            }
 
             if (merged.review_status === 'completed') {
                 stopCheckinPoll(checkinId);
@@ -1653,7 +2495,9 @@ function pollCheckinReviewStatus(checkinId, resultEl) {
                 stopCheckinPoll(checkinId);
                 const timedOut = mergeCheckinDetailIntoCache({ ...merged, poll_timed_out: true });
                 renderCheckinHistoryList();
-                renderActiveCheckinWorkspace(timedOut);
+                if (shouldRenderReviewUpdate(checkinId)) {
+                    renderActiveCheckinWorkspace(timedOut);
+                }
                 if (resultEl) {
                     resultEl.classList.remove('hidden');
                     resultEl.innerHTML = `
@@ -1702,7 +2546,6 @@ window.toggleExample = toggleExample;
 
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('student-id').value = currentUserId || '';
-    document.getElementById('login-problem-id').value = problemId;
     document.getElementById('student-problem-id').value = problemId;
 
     document.getElementById('enter-btn').addEventListener('click', handleEnter);
@@ -1714,6 +2557,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('logout-btn').addEventListener('click', handleLogout);
 
     setupTabs();
+    setupThemeToggle();
+    initSidebar();
 
     document.getElementById('check-quota-btn').addEventListener('click', studentCheckQuota);
     document.getElementById('student-problem-id').addEventListener('input', () => {
@@ -1722,9 +2567,103 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.getElementById('send-btn').addEventListener('click', studentSendMessage);
     document.getElementById('clear-history-btn').addEventListener('click', clearChatHistory);
+    
+    // Setup chat input auto-resize and enter-to-send
+    const chatInput = document.getElementById('student-message');
+    const sendBtn = document.getElementById('send-btn');
+    if (chatInput && sendBtn) {
+        // Auto-resize textarea
+        chatInput.addEventListener('input', () => {
+            chatInput.style.height = 'auto';
+            chatInput.style.height = Math.min(chatInput.scrollHeight, 200) + 'px';
+            // Enable/disable send button
+            sendBtn.disabled = chatInput.value.trim().length === 0;
+        });
+        
+        // Enter to send, Shift+Enter for new line
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (!sendBtn.disabled) {
+                    studentSendMessage();
+                }
+            }
+        });
+    }
     document.getElementById('submit-checkin-btn').addEventListener('click', submitCheckin);
     document.getElementById('load-my-checkins-btn').addEventListener('click', loadMyCheckins);
+    
+    // History search
+    document.getElementById('history-search-btn')?.addEventListener('click', () => {
+        historySearchKeyword = document.getElementById('history-search-keyword')?.value.trim() || '';
+        historySearchAlgorithm = document.getElementById('history-search-algorithm')?.value.trim() || '';
+        renderCheckinHistoryList();
+    });
+    
+    // Enter key to search in history
+    document.getElementById('history-search-keyword')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            historySearchKeyword = e.target.value.trim();
+            historySearchAlgorithm = document.getElementById('history-search-algorithm')?.value.trim() || '';
+            renderCheckinHistoryList();
+        }
+    });
+    
+    document.getElementById('history-search-algorithm')?.addEventListener('change', () => {
+        historySearchKeyword = document.getElementById('history-search-keyword')?.value.trim() || '';
+        historySearchAlgorithm = document.getElementById('history-search-algorithm')?.value.trim() || '';
+        renderCheckinHistoryList();
+    });
+    
+    // Code editor line numbers sync
+    const codeTextarea = document.getElementById('checkin-student-code');
+    const lineNumbersEl = document.getElementById('code-line-numbers');
+    if (codeTextarea && lineNumbersEl) {
+        function updateLineNumbers() {
+            const lines = codeTextarea.value.split('\n').length;
+            const lineNumbers = Array.from({ length: Math.max(lines, 1) }, (_, i) => i + 1).join('\n');
+            lineNumbersEl.textContent = lineNumbers;
+        }
+        
+        codeTextarea.addEventListener('input', updateLineNumbers);
+        codeTextarea.addEventListener('scroll', () => {
+            lineNumbersEl.scrollTop = codeTextarea.scrollTop;
+        });
+        
+        // Support Tab key for indentation
+        codeTextarea.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = codeTextarea.selectionStart;
+                const end = codeTextarea.selectionEnd;
+                codeTextarea.value = codeTextarea.value.substring(0, start) + '    ' + codeTextarea.value.substring(end);
+                codeTextarea.selectionStart = codeTextarea.selectionEnd = start + 4;
+                updateLineNumbers();
+            }
+        });
+        
+        // Initial line numbers
+        updateLineNumbers();
+    }
     document.getElementById('open-history-tab-btn')?.addEventListener('click', () => showStudentTab('history-tab'));
+    document.getElementById('back-to-checkin-form-btn')?.addEventListener('click', () => {
+        const previousCheckinId = activeCheckinId;
+        if (previousCheckinId) {
+            stopCheckinReviewStream(previousCheckinId);
+            stopCheckinPoll(previousCheckinId);
+        }
+        activeCheckinId = null;
+        activeCheckinStage = checkinReviewUi.INPUT_STAGE;
+        activeRelatedProblemPid = '';
+        const resultEl = document.getElementById('checkin-result');
+        if (resultEl) {
+            resultEl.classList.add('hidden');
+            resultEl.innerHTML = '';
+        }
+        renderCheckinHistoryList();
+        renderCheckinEntryStage();
+        document.getElementById('checkin-entry-stage')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
     document.getElementById('import-problem-btn')?.addEventListener('click', importProblemFromUrl);
     document.getElementById('toggle-luogu-context-btn')?.addEventListener('click', () => {
         setLuoguSupplementExpanded(!luoguSupplementExpanded);
@@ -1767,6 +2706,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupRichTextObserver();
     setupTeacherManualReviewPanel();
     setupTeacherStatsInteractions();
+    setupCheckinChatInterface();
 
     if (authToken && currentUserId && userRole) {
         showMainInterface();
@@ -1774,29 +2714,285 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function setupTabs() {
-    const studentTabs = document.querySelectorAll('#student-tabs .tab-btn');
-    studentTabs.forEach((tab) => {
-        tab.addEventListener('click', () => {
-            showStudentTab(tab.dataset.tab);
-        });
-    });
-
-    const teacherTabs = document.querySelectorAll('#teacher-tabs .tab-btn');
-    teacherTabs.forEach((tab) => {
-        tab.addEventListener('click', () => {
-            showTeacherTab(tab.dataset.tab);
+    // Sidebar navigation
+    const sidebarLinks = document.querySelectorAll('.sidebar-link');
+    sidebarLinks.forEach((link) => {
+        link.addEventListener('click', () => {
+            const tab = link.dataset.tab;
+            const section = link.dataset.section;
+            if (section === 'student') {
+                showStudentTab(tab);
+            } else if (section === 'teacher') {
+                showTeacherTab(tab);
+            }
         });
     });
 }
 
 function showTeacherTab(targetId) {
-    const teacherTabs = document.querySelectorAll('#teacher-tabs .tab-btn');
-    document.querySelectorAll('#teacher-section .tab-content').forEach((content) => content.classList.add('hidden'));
-    document.getElementById(targetId)?.classList.remove('hidden');
-    teacherTabs.forEach((btn) => btn.classList.toggle('active', btn.dataset.tab === targetId));
+    // Hide all tab contents
+    document.querySelectorAll('#teacher-section .tab-content').forEach((content) => {
+        content.classList.add('hidden');
+        content.classList.remove('active');
+    });
+    
+    // Show target tab
+    const target = document.getElementById(targetId);
+    if (target) {
+        target.classList.remove('hidden');
+        target.classList.add('active');
+    }
+    
+    // Update sidebar active state
+    document.querySelectorAll('#teacher-nav .sidebar-link').forEach((link) => {
+        link.classList.toggle('active', link.dataset.tab === targetId);
+    });
+    
     if (targetId === 'manual-review-tab') {
         loadTeacherReviewSamples();
     }
+}
+
+// ============ 主题切换 ============
+
+function setupThemeToggle() {
+    const themeToggle = document.getElementById('theme-toggle');
+    if (!themeToggle) return;
+    
+    // Update UI based on current theme
+    updateThemeUI();
+    
+    // Add click handler
+    themeToggle.addEventListener('click', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        if (newTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.documentElement.removeAttribute('data-theme');
+            localStorage.setItem('theme', 'light');
+        }
+        
+        updateThemeUI();
+    });
+}
+
+function updateThemeUI() {
+    const themeToggle = document.getElementById('theme-toggle');
+    if (!themeToggle) return;
+    
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const isDark = currentTheme === 'dark';
+    
+    const sunIcon = themeToggle.querySelector('.sun-icon');
+    const moonIcon = themeToggle.querySelector('.moon-icon');
+    
+    if (isDark) {
+        if (sunIcon) sunIcon.style.display = 'block';
+        if (moonIcon) moonIcon.style.display = 'none';
+        themeToggle.title = '切换为浅色模式';
+        themeToggle.style.background = 'var(--bg-tertiary)';
+    } else {
+        if (sunIcon) sunIcon.style.display = 'none';
+        if (moonIcon) moonIcon.style.display = 'block';
+        themeToggle.title = '切换为深色模式';
+        themeToggle.style.background = '';
+    }
+}
+
+// ============ 打卡复盘聊天界面 ============
+
+function setupCheckinChatInterface() {
+    // Input panel toggle
+    const inputToggle = document.getElementById('checkin-input-toggle');
+    const inputPanel = document.getElementById('checkin-input-panel');
+    
+    if (inputToggle && inputPanel) {
+        inputToggle.addEventListener('click', () => {
+            inputPanel.classList.toggle('expanded');
+        });
+    }
+    
+    // Quick message input auto-resize
+    const quickMessage = document.getElementById('checkin-quick-message');
+    if (quickMessage) {
+        quickMessage.addEventListener('input', () => {
+            quickMessage.style.height = 'auto';
+            quickMessage.style.height = Math.min(quickMessage.scrollHeight, 150) + 'px';
+            
+            // Sync to bottleneck textarea
+            const bottleneck = document.getElementById('checkin-bottleneck');
+            if (bottleneck && !bottleneck.value) {
+                bottleneck.value = quickMessage.value;
+            }
+            
+            // Enable submit button if there's content
+            const submitBtn = document.getElementById('submit-checkin-btn');
+            if (submitBtn) {
+                submitBtn.disabled = quickMessage.value.trim().length === 0;
+            }
+        });
+        
+        // Enter to submit, Shift+Enter for new line
+        quickMessage.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const submitBtn = document.getElementById('submit-checkin-btn');
+                if (submitBtn && !submitBtn.disabled) {
+                    submitCheckinFromChat();
+                }
+            }
+        });
+    }
+    
+    // Clear button
+    const clearBtn = document.getElementById('clear-checkin-btn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            clearCheckinChat();
+        });
+    }
+    
+    // Update submit button handler
+    const submitBtn = document.getElementById('submit-checkin-btn');
+    if (submitBtn) {
+        // Remove old listener and add new
+        const newBtn = submitBtn.cloneNode(true);
+        submitBtn.parentNode.replaceChild(newBtn, submitBtn);
+        newBtn.addEventListener('click', submitCheckinFromChat);
+    }
+}
+
+function submitCheckinFromChat() {
+    const quickMessage = document.getElementById('checkin-quick-message');
+    const bottleneck = document.getElementById('checkin-bottleneck');
+    
+    // Sync quick message to bottleneck if bottleneck is empty
+    if (quickMessage && quickMessage.value.trim() && !bottleneck.value.trim()) {
+        bottleneck.value = quickMessage.value.trim();
+    }
+    
+    // Add user message to chat
+    const message = quickMessage ? quickMessage.value.trim() : '';
+    if (message) {
+        addCheckinUserMessage(message);
+        quickMessage.value = '';
+        quickMessage.style.height = 'auto';
+    }
+    
+    // Show loading
+    addCheckinLoadingMessage();
+    
+    // Call original submit function
+    submitCheckin();
+}
+
+function addCheckinUserMessage(text) {
+    const messagesContainer = document.getElementById('checkin-messages');
+    if (!messagesContainer) return;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'checkin-message user';
+    messageDiv.innerHTML = `
+        <div class="checkin-avatar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+        </div>
+        <div class="checkin-bubble">
+            <p>${escapeHtml(text)}</p>
+        </div>
+    `;
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function addCheckinLoadingMessage() {
+    const messagesContainer = document.getElementById('checkin-messages');
+    if (!messagesContainer) return;
+    
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'checkin-message ai checkin-loading-message';
+    loadingDiv.innerHTML = `
+        <div class="checkin-avatar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+        </div>
+        <div class="checkin-loading">
+            <div class="checkin-loading-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <span>正在分析你的问题...</span>
+        </div>
+    `;
+    messagesContainer.appendChild(loadingDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function removeCheckinLoadingMessage() {
+    const loadingMsg = document.querySelector('.checkin-loading-message');
+    if (loadingMsg) {
+        loadingMsg.remove();
+    }
+}
+
+function addCheckinAIResponse(response) {
+    removeCheckinLoadingMessage();
+    
+    const messagesContainer = document.getElementById('checkin-messages');
+    if (!messagesContainer) return;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'checkin-message ai';
+    messageDiv.innerHTML = `
+        <div class="checkin-avatar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+        </div>
+        <div class="checkin-bubble">
+            ${response}
+        </div>
+    `;
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function clearCheckinChat() {
+    const messagesContainer = document.getElementById('checkin-messages');
+    if (messagesContainer) {
+        messagesContainer.innerHTML = `
+            <div class="checkin-message ai">
+                <div class="checkin-avatar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                    </svg>
+                </div>
+                <div class="checkin-bubble">
+                    <p>你好！我是你的打卡复盘助手。请告诉我你当前做题遇到的问题，我会帮你分析并给出建议。</p>
+                    <p style="margin-top: 8px;">你可以直接描述，或者使用下方的快捷输入来填写详细信息。</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Clear form fields
+    const fields = ['checkin-title', 'checkin-bottleneck', 'checkin-problem-context', 'checkin-reflection', 'checkin-student-code', 'checkin-quick-message'];
+    fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    
+    // Clear error types
+    document.querySelectorAll('input[name="error_type"]').forEach(cb => {
+        cb.checked = false;
+    });
 }
 
 // ============ 登录 / 退出 ============
@@ -1804,7 +3000,6 @@ function showTeacherTab(targetId) {
 async function handleEnter() {
     const userIdInput = document.getElementById('student-id').value.trim();
     const password = document.getElementById('login-password').value.trim();
-    const loginProblemId = document.getElementById('login-problem-id').value.trim() || 'P1001';
 
     if (!userIdInput) {
         showError('login-error', '请输入账号 ID');
@@ -1829,7 +3024,6 @@ async function handleEnter() {
         currentUserId = data.user_id;
         userRole = data.role;
         authToken = data.token;
-        problemId = loginProblemId;
         sessionId = generateSessionId();
         persistAuthState();
 
@@ -1849,25 +3043,41 @@ function handleLogout() {
 
 function showMainInterface() {
     loginSection.classList.add('hidden');
-    userBar.classList.remove('hidden');
+    document.getElementById('main-app').classList.remove('hidden');
 
     document.getElementById('current-user').textContent = currentUserId;
     document.getElementById('current-role').textContent = userRole === 'teacher' ? '教师' : '学生';
+    
+    // Update user avatar
+    const avatarEl = document.getElementById('user-avatar');
+    if (avatarEl) {
+        avatarEl.textContent = currentUserId.charAt(0).toUpperCase();
+        // Set gradient based on role
+        if (userRole === 'teacher') {
+            avatarEl.style.background = 'linear-gradient(135deg, #AF52DE 0%, #5856D6 100%)';
+        } else {
+            avatarEl.style.background = 'linear-gradient(135deg, #FF2D55 0%, #FF9500 100%)';
+        }
+    }
     document.getElementById('student-problem-id').value = problemId;
-    document.getElementById('login-problem-id').value = problemId;
 
     if (userRole === 'teacher') {
-        studentSection.classList.add('hidden');
-        teacherSection.classList.remove('hidden');
+        document.getElementById('student-section').classList.add('hidden');
+        document.getElementById('student-nav').classList.add('hidden');
+        document.getElementById('teacher-section').classList.remove('hidden');
+        document.getElementById('teacher-nav').classList.remove('hidden');
+        showTeacherTab('quota-tab');
         loadAllCheckins();
         loadErrorStats();
         loadUsageStats();
         loadStudentFlags();
         loadProblemAnalysisFailures();
     } else {
-        studentSection.classList.remove('hidden');
-        teacherSection.classList.add('hidden');
-        showStudentTab(document.querySelector('#student-tabs .tab-btn.active')?.dataset.tab || 'chat-tab');
+        document.getElementById('teacher-section').classList.add('hidden');
+        document.getElementById('teacher-nav').classList.add('hidden');
+        document.getElementById('student-section').classList.remove('hidden');
+        document.getElementById('student-nav').classList.remove('hidden');
+        showStudentTab('chat-tab');
         studentCheckQuota();
         loadMyCheckins();
     }
@@ -1885,24 +3095,44 @@ async function studentCheckQuota() {
     try {
         const res = await apiFetch(`${API_BASE}/quota/${currentUserId}/${pid}`);
         const data = await res.json();
-        document.getElementById('quota-info').textContent =
-            `题目: ${data.problem_id} | 已用: ${data.count}/${data.max} | 剩余: ${data.remaining}`;
+        const quotaInfo = document.getElementById('quota-info');
+        if (quotaInfo) {
+            quotaInfo.innerHTML = `
+                <span class="badge badge-primary">${data.problem_id}</span>
+                <span class="badge badge-info">已用 ${data.count}/${data.max}</span>
+                <span class="badge badge-success">剩余 ${data.remaining}</span>
+            `;
+        }
     } catch (err) {
-        document.getElementById('quota-info').textContent = '查询失败: ' + err.message;
+        const quotaInfo = document.getElementById('quota-info');
+        if (quotaInfo) {
+            quotaInfo.innerHTML = `<span class="badge badge-error">查询失败</span>`;
+        }
     }
 }
 
 async function studentSendMessage() {
     const pid = document.getElementById('student-problem-id').value.trim() || problemId;
-    const message = document.getElementById('student-message').value.trim();
+    const messageInput = document.getElementById('student-message');
+    const message = messageInput.value.trim();
+    const sendBtn = document.getElementById('send-btn');
+    
     if (!message) return;
 
     problemId = pid;
     activeChatProblemRef = normalizeProblemRef(pid);
     localStorage.setItem('noi_problem_id', problemId);
 
+    // Add user message
     addChatMessage('user', message);
-    document.getElementById('student-message').value = '';
+    
+    // Clear input and reset height
+    messageInput.value = '';
+    messageInput.style.height = 'auto';
+    sendBtn.disabled = true;
+
+    // Show loading
+    addLoadingMessage();
 
     try {
         const res = await apiFetch(`${API_BASE}/chat`, {
@@ -1915,30 +3145,104 @@ async function studentSendMessage() {
             }),
         });
         const data = await res.json();
+        removeLoadingMessage();
         addChatMessage('assistant', data.reply);
         rememberProblemChatContext(activeChatProblemRef || pid, message, data.reply);
         renderLinkedChatContextCard();
-        document.getElementById('quota-info').textContent =
-            `剩余配额: ${data.remaining_quota} | 本次级别: ${data.level}`;
+        
+        // Update quota display
+        const quotaInfo = document.getElementById('quota-info');
+        if (quotaInfo) {
+            quotaInfo.innerHTML = `
+                <span class="badge badge-primary">剩余 ${data.remaining_quota} 次</span>
+                <span class="badge badge-info">级别 ${data.level}</span>
+            `;
+        }
     } catch (err) {
-        addChatMessage('assistant', '错误: ' + err.message);
+        removeLoadingMessage();
+        addChatMessage('assistant', '抱歉，发生了错误：' + err.message + '。请稍后重试。');
     }
 }
 
 function addChatMessage(role, content) {
+    const chatHistory = document.getElementById('chat-history');
     const div = document.createElement('div');
-    div.className = `message ${role}`;
+    
+    const now = new Date();
+    const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    
+    if (role === 'user') {
+        div.className = 'user-message';
+        div.innerHTML = `
+            <div class="user-avatar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+            </div>
+            <div class="user-message-content">
+                <div class="user-message-header">
+                    <span class="user-name">你</span>
+                    <span class="user-time">${timeStr}</span>
+                </div>
+                <div class="user-message-body">
+                    <p>${escapeHtml(content)}</p>
+                </div>
+            </div>
+        `;
+    } else {
+        div.className = 'ai-message';
+        div.innerHTML = `
+            <div class="ai-avatar">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
+            </div>
+            <div class="ai-message-content">
+                <div class="ai-message-header">
+                    <span class="ai-name">AI 竞赛教练</span>
+                    <span class="ai-time">${timeStr}</span>
+                </div>
+                <div class="ai-message-body">
+                    <p>${escapeHtml(content)}</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    chatHistory.appendChild(div);
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+}
 
-    const strong = document.createElement('strong');
-    strong.textContent = role === 'user' ? '你:' : 'Agent:';
+function addLoadingMessage() {
+    const chatHistory = document.getElementById('chat-history');
+    const div = document.createElement('div');
+    div.className = 'ai-message ai-message-loading';
+    div.id = 'ai-loading-message';
+    div.innerHTML = `
+        <div class="ai-avatar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+        </div>
+        <div class="ai-message-loading">
+            <div class="ai-loading-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <span style="color: var(--text-secondary);">正在思考...</span>
+        </div>
+    `;
+    chatHistory.appendChild(div);
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+}
 
-    const pre = document.createElement('pre');
-    pre.textContent = content;
-
-    div.appendChild(strong);
-    div.appendChild(pre);
-    document.getElementById('chat-history').appendChild(div);
-    document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
+function removeLoadingMessage() {
+    const loadingMsg = document.getElementById('ai-loading-message');
+    if (loadingMsg) {
+        loadingMsg.remove();
+    }
 }
 
 function clearChatHistory() {
@@ -2053,22 +3357,47 @@ function renderReviewHtml(review, family = reviewFamilyUi.resolveReviewFamily(re
     if (!review) return '';
     const tags = review.error_tags?.length ? review.error_tags.join(', ') : '';
     const subtags = review.core_design_subtags?.length ? review.core_design_subtags.join(', ') : '';
-    const correctionRows = reviewFamilyUi
+    
+    // 定义每个字段的图标和样式
+    const fieldConfig = {
+        problem_focus: { icon: '🎯', title: '问题定位', gradient: 'focus' },
+        main_block: { icon: '🎯', title: '问题定位', gradient: 'focus' },
+        key_bridge: { icon: '💡', title: '关键桥梁', gradient: 'bridge' },
+        visual_hint: { icon: '👀', title: '看图想一想', gradient: 'bridge' },
+        guided_walkthrough: { icon: '👣', title: '跟我走一遍', gradient: 'walkthrough' },
+        try_now: { icon: '✏️', title: '现在你来试', gradient: 'try' },
+        next_step: { icon: '✏️', title: '现在你来试', gradient: 'try' },
+        transfer_signal: { icon: '🔮', title: '下次怎么认出来', gradient: 'transfer' },
+    };
+    
+    // 生成对话式卡片流
+    const messageCards = reviewFamilyUi
         .orderedReviewSections(review, family)
-        .map((section) => `
-            <div${section.field === 'transfer_signal' ? ' class="review-transfer-signal"' : ''}>
-                <strong>${escapeHtml(section.label)}：</strong> ${renderRichTextInline(section.value || '')}
-            </div>
-        `)
+        .filter((section) => String(section.value || '').trim())
+        .map((section, index, arr) => {
+            const config = fieldConfig[section.field] || { icon: '•', title: section.label, gradient: 'focus' };
+            const isVisualHint = section.field === 'visual_hint';
+            const content = isVisualHint
+                ? `<pre class="review-visual-hint" style="margin-top: 12px;">${escapeHtml(section.value || '')}</pre>`
+                : `<div class="review-message-content" style="margin-top: 8px;">${renderRichTextInline(section.value || '')}</div>`;
+            
+            // 连接线（除最后一个）
+            const connector = index < arr.length - 1 ? '<div class="review-message-connector">↓</div>' : '';
+            
+            return `
+                <div class="review-message-card">
+                    <div class="review-message-header">
+                        <div class="review-message-icon ${config.gradient}">${config.icon}</div>
+                        <div class="review-message-title">${escapeHtml(config.title)}</div>
+                    </div>
+                    ${content}
+                </div>
+                ${connector}
+            `;
+        })
         .join('');
 
-    // 学生纠偏层（主要展示）
-    const correctionHtml = `
-        <div class="review-correction">
-            ${correctionRows}
-        </div>
-    `;
-
+    // 结构化诊断层（折叠展示，保持原样但样式优化）
     const detailRows = [];
     if (tags) detailRows.push(`<p><strong>错误标签:</strong> ${escapeHtml(tags)}</p>`);
     if (review.error_layer) detailRows.push(`<p><strong>统一归类:</strong> ${escapeHtml(errorLayerText(review.error_layer))}</p>`);
@@ -2078,18 +3407,33 @@ function renderReviewHtml(review, family = reviewFamilyUi.resolveReviewFamily(re
     if (review.next_action) detailRows.push(`<div><strong>下一步行动:</strong> ${renderRichTextInline(review.next_action || '')}</div>`);
     if (review.suggested_topic) detailRows.push(`<div><strong>推荐专题:</strong> ${renderRichTextInline(review.suggested_topic || '')}</div>`);
 
-    // 结构化诊断层（折叠展示）
     const diagnosisHtml = detailRows.length ? `
-        <details class="review-diagnosis-detail">
-            <summary>查看诊断依据</summary>
-            ${detailRows.join('')}
+        <details class="review-diagnosis-detail" style="margin-top: 20px; opacity: 0.8;">
+            <summary style="font-size: 13px; color: var(--text-secondary);">查看诊断依据</summary>
+            <div style="padding-top: 12px; font-size: 13px;">
+                ${detailRows.join('')}
+            </div>
         </details>
     ` : '';
 
+    // 尝试使用 Tailwind UI
+    if (typeof window.TwUI !== 'undefined') {
+        try {
+            return window.TwUI.renderReviewSection(review, family);
+        } catch (e) {
+            console.warn('Tailwind UI 复盘渲染失败:', e);
+        }
+    }
+
     return `
-        <div class="review-box family-${escapeHtml(family)}">
-            <h4>${family === 'success_reflection' ? 'AI 理解复盘' : 'AI 复盘报告'}</h4>
-            ${correctionHtml}
+        <div class="review-box-v2 family-${escapeHtml(family)}">
+            <h4 style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px;">
+                <span style="font-size: 20px;">🤖</span>
+                ${family === 'success_reflection' ? 'AI 理解复盘' : 'AI 复盘报告'}
+            </h4>
+            <div class="review-message-flow">
+                ${messageCards}
+            </div>
             ${diagnosisHtml}
         </div>
     `;
@@ -2124,6 +3468,8 @@ function bridgePathDisplayText(path) {
         main_confused_remedy: '首轮答对，但学生主动承认没懂；进入补救',
         followup_correct: '首轮未过，在微提示后过桥',
         followup_remedy: '首轮未过，最终进入补救',
+        knowledge_bailout_success: '知识卡后过桥',
+        knowledge_bailout_failed: '知识卡后仍未掌握',
     };
     return map[path] || path || '';
 }
@@ -2136,8 +3482,19 @@ function bridgePathTeacherBadge(path) {
         main_confused_remedy: { label: '主动承认没懂后补救', className: 'teacher-evidence honest' },
         followup_correct: { label: '提示后过桥', className: 'teacher-evidence prompted' },
         followup_remedy: { label: '提示后仍需补救', className: 'teacher-evidence support' },
+        knowledge_bailout_success: { label: '知识卡后过桥', className: 'teacher-evidence support' },
+        knowledge_bailout_failed: { label: '知识卡后仍未掌握', className: 'teacher-evidence risk' },
     };
     return map[path] || null;
+}
+
+function masteryStatusTeacherBadge(status) {
+    const map = {
+        independent_success: { label: '独立过桥', className: 'teacher-evidence strong' },
+        assisted_success: { label: '辅助后过桥', className: 'teacher-evidence support' },
+        not_mastered: { label: '仍未掌握', className: 'teacher-evidence risk' },
+    };
+    return map[status] || null;
 }
 
 function bridgePathTeacherNote(path) {
@@ -2148,6 +3505,8 @@ function bridgePathTeacherNote(path) {
         main_confused_remedy: '学生首轮答对后主动承认没懂，这类记录对老师很有价值，说明学生愿意暴露真实困惑，补救才是关键证据。',
         followup_correct: '这一步是在微提示之后过桥的，说明学生需要脚手架支持，不能按“完全独立起步”理解。',
         followup_remedy: '首轮和 follow-up 都没打通，最后还要靠补救，这通常意味着这座桥对学生来说还不稳。',
+        knowledge_bailout_success: '前三轮都没站稳，最后靠知识卡兜底后才过桥。这说明学生需要概念级讲解支持，但至少已经把这座桥重新站起来了。',
+        knowledge_bailout_failed: '即使换成知识卡单独讲解，这一步仍然没有站稳。对老师来说，这通常意味着需要更个别化地回到前置知识或思维断点。',
     };
     return map[path] || '';
 }
@@ -2219,23 +3578,44 @@ function renderQuizOptions(quiz, reviewId) {
     if (!quiz) return '';
     if (quiz.quiz_type === 'short_fill') {
         return `
-            <input type="text" id="quiz-answer-${reviewId}" class="quiz-input" placeholder="输入你的答案">
+            <div class="quiz-input-wrap" style="margin: 16px 0;">
+                <label class="quiz-input-label" for="quiz-answer-${reviewId}" style="display: block; margin-bottom: 8px; font-size: 13px; color: var(--text-secondary);">写下你的答案</label>
+                <input type="text" id="quiz-answer-${reviewId}" class="quiz-input" placeholder="输入你的答案" style="width: 100%; padding: 12px 16px; border: 2px solid var(--border-light); border-radius: 12px; font-size: 14px;">
+            </div>
         `;
     }
+    
+    // 生成选项卡片的 onclick 处理
+    const optionsHtml = (quiz.options || []).map((option, idx) => {
+        const optionValue = typeof option === 'object' && option !== null ? option.value : option;
+        const optionLabel = typeof option === 'object' && option !== null ? option.label : option;
+        const optionMark = String.fromCharCode(65 + idx);
+        return `
+            <div class="quiz-option-card" onclick="selectQuizOption(this, '${escapeHtml(optionValue)}', ${reviewId})" data-value="${escapeHtml(optionValue)}">
+                <div class="quiz-option-badge">${escapeHtml(optionMark)}</div>
+                <div class="quiz-option-text">${renderRichTextInline(optionLabel)}</div>
+            </div>
+        `;
+    }).join('');
+    
     return `
-        <div class="quiz-options">
-            ${(quiz.options || []).map((option, idx) => {
-                const optionValue = typeof option === 'object' && option !== null ? option.value : option;
-                const optionLabel = typeof option === 'object' && option !== null ? option.label : option;
-                return `
-                <label class="quiz-option">
-                    <input type="radio" name="quiz-option-${reviewId}" value="${escapeHtml(optionValue)}">
-                    <span>${renderRichTextInline(optionLabel)}</span>
-                </label>
-            `;
-            }).join('')}
+        <div class="quiz-options-list">
+            ${optionsHtml}
         </div>
+        <input type="hidden" id="quiz-selected-${reviewId}" value="">
     `;
+}
+
+// 选项选择处理函数
+function selectQuizOption(element, value, reviewId) {
+    // 移除同组其他选项的选中状态
+    const parent = element.parentElement;
+    parent.querySelectorAll('.quiz-option-card').forEach(el => el.classList.remove('selected'));
+    // 添加当前选项的选中状态
+    element.classList.add('selected');
+    // 更新隐藏字段
+    const hiddenInput = document.getElementById(`quiz-selected-${reviewId}`);
+    if (hiddenInput) hiddenInput.value = value;
 }
 
 function quizCardTitle(quiz) {
@@ -2243,6 +3623,7 @@ function quizCardTitle(quiz) {
     if (level === 'followup') return '这一步还差一点，我们再拆小一点';
     if (level === 'confirm') return '你刚才像是有点蒙，我们换个角度再确认一下';
     if (level === 'easier') return '再来一道更小的小题';
+    if (level === 'knowledge_confirm') return '知识卡后确认';
     return '试试看你是不是已经懂这一步了';
 }
 
@@ -2257,38 +3638,334 @@ function quizCardLead(quiz) {
     if (level === 'easier') {
         return '如果刚才那题还是有点卡，我们先做一个更小、更具体的小题。';
     }
+    if (level === 'knowledge_confirm') {
+        return '先看完上面的知识讲解，再用这题确认这座桥有没有重新站稳。';
+    }
     return '';
+}
+
+function renderKnowledgeBailoutCard(card = {}) {
+    if (!card || typeof card !== 'object') return '';
+    const opening = String(card.opening || '').trim();
+    const bridgeExplanation = String(card.bridge_explanation || '').trim();
+    const visualHint = String(card.visual_hint || '').trim();
+    const algorithmOverview = String(card.algorithm_overview || '').trim();
+    const microAction = String(card.micro_action || '').trim();
+    if (!opening && !bridgeExplanation && !algorithmOverview && !microAction && !visualHint) return '';
+    
+    // 对比表格（如果有对比内容）
+    const hasComparison = card.wrong_thinking && card.right_thinking;
+    const comparisonHtml = hasComparison ? `
+        <div class="knowledge-comparison-table">
+            <div class="knowledge-comparison-item wrong">
+                <div class="knowledge-comparison-label">❌ 这样想</div>
+                <div>${renderRichTextInline(card.wrong_thinking)}</div>
+            </div>
+            <div class="knowledge-comparison-item right">
+                <div class="knowledge-comparison-label">✅ 其实应该</div>
+                <div>${renderRichTextInline(card.right_thinking)}</div>
+            </div>
+        </div>
+    ` : '';
+    
+    // 算法全景（可折叠）
+    const overviewHtml = algorithmOverview ? `
+        <div class="knowledge-expandable" id="knowledge-overview-${Date.now()}">
+            <div class="knowledge-expandable-header" onclick="this.parentElement.classList.toggle('expanded')">
+                <span>🗺️ 在知识地图里的位置</span>
+                <span class="knowledge-expandable-icon">▼</span>
+            </div>
+            <div class="knowledge-expandable-content">
+                ${renderRichTextInline(algorithmOverview)}
+            </div>
+        </div>
+    ` : '';
+    
+    return `
+        <div class="knowledge-bailout-card-v2">
+            <div class="knowledge-bailout-header">
+                <div class="knowledge-bailout-kicker-v2">📚 补课时间</div>
+            </div>
+            ${opening ? `<div class="knowledge-bailout-opening">${renderRichTextBlock(opening)}</div>` : ''}
+            
+            <div style="margin-top: 16px;">
+                <div style="font-weight: 600; font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                    <span>🎯</span> 当前这座桥
+                </div>
+                ${bridgeExplanation ? `<div style="font-size: 14px; line-height: 1.7; color: var(--text-secondary);">${renderRichTextInline(bridgeExplanation)}</div>` : ''}
+                ${comparisonHtml}
+                ${visualHint ? `<pre class="review-visual-hint" style="margin-top: 12px; background: rgba(255,255,255,0.5);">${escapeHtml(visualHint)}</pre>` : ''}
+            </div>
+            
+            ${overviewHtml}
+            
+            ${microAction ? `<div style="margin-top: 16px; padding-top: 16px; border-top: 1px dashed rgba(0,0,0,0.1);"><strong>💡 看完后先记住：</strong>${renderRichTextInline(microAction)}</div>` : ''}
+        </div>
+    `;
 }
 
 function renderQuizCard(quiz, reviewId) {
     if (!quiz) return '';
     const microHint = quiz.meta?.micro_hint
-        ? `<div class="quiz-hint">先提醒一句：${renderRichTextInline(quiz.meta.micro_hint)}</div>`
+        ? `<div class="quiz-hint" style="margin-bottom: 12px; padding: 10px 14px; background: rgba(0,122,255,0.06); border-radius: 10px; font-size: 13px; color: var(--text-secondary);">💡 先提醒一句：${renderRichTextInline(quiz.meta.micro_hint)}</div>`
         : '';
     const lead = quizCardLead(quiz)
-        ? `<div class="quiz-lead">${escapeHtml(quizCardLead(quiz))}</div>`
+        ? `<div class="quiz-lead" style="margin-bottom: 12px; font-size: 13px; color: var(--text-secondary); line-height: 1.6;">${escapeHtml(quizCardLead(quiz))}</div>`
         : '';
+    
+    // 确定题型徽章
+    const level = quiz?.meta?.difficulty_level || quiz?.difficulty_level || 'main';
+    const badgeClass = level === 'followup' ? 'followup' : level === 'confirm' ? 'confirm' : level === 'final_micro_confirm' ? 'final' : level === 'knowledge_confirm' ? 'knowledge' : 'main';
+    const badgeText = level === 'followup' ? '再拆小一点' : level === 'confirm' ? '换个角度确认' : level === 'final_micro_confirm' ? '最终确认' : level === 'knowledge_confirm' ? '知识卡后' : '理解检查';
+    
     return `
-        <div class="quiz-card">
-            <div class="quiz-title">${escapeHtml(quizCardTitle(quiz))}</div>
+        <div class="quiz-card-v2">
+            <div class="quiz-card-header">
+                <div class="quiz-card-badge ${badgeClass}">${escapeHtml(badgeText)}</div>
+            </div>
             ${lead}
             ${microHint}
-            <div class="quiz-question">${renderRichTextBlock(quiz.question_text)}</div>
+            <div class="quiz-question-v2">
+                ${renderRichTextBlock(quiz.question_text)}
+            </div>
             ${renderQuizOptions(quiz, reviewId)}
-            <div class="quiz-actions">
-                <button class="secondary" onclick="submitQuizAnswer(${Number(quiz.quiz_id)}, ${Number(reviewId)})">提交答案</button>
+            <div class="quiz-actions" style="margin-top: 20px;">
+                <button class="primary" style="width: 100%; padding: 12px; border-radius: 12px; font-size: 15px; font-weight: 500;" onclick="submitQuizAnswer(${Number(quiz.quiz_id)}, ${Number(reviewId)})">提交答案</button>
             </div>
         </div>
     `;
 }
 
 function renderQuizFeedbackBlock({ title, feedbackText = '', bridgeFeedback = '', explanation = '', tone = 'success' }) {
+    const icon = tone === 'success' ? '🎉' : tone === 'final' ? '📌' : '💡';
+    const bgStyle = tone === 'success' 
+        ? 'background: linear-gradient(135deg, rgba(52,199,89,0.08) 0%, rgba(34,197,94,0.05) 100%); border-color: rgba(52,199,89,0.25);'
+        : tone === 'final'
+            ? 'background: linear-gradient(135deg, rgba(175,82,222,0.08) 0%, rgba(139,92,246,0.05) 100%); border-color: rgba(175,82,222,0.25);'
+            : 'background: linear-gradient(135deg, rgba(0,122,255,0.08) 0%, rgba(59,130,246,0.05) 100%); border-color: rgba(0,122,255,0.25);';
+    
     return `
-        <div class="quiz-card quiz-result ${escapeHtml(tone)}">
-            <div class="quiz-title">${escapeHtml(title)}</div>
-            ${feedbackText ? `<div class="quiz-explanation">${renderRichTextBlock(feedbackText)}</div>` : ''}
-            ${bridgeFeedback ? `<div class="quiz-explanation"><strong>你刚才真正答对的是：</strong>${renderRichTextInline(bridgeFeedback)}</div>` : ''}
-            ${explanation ? `<div class="quiz-explanation">${renderRichTextBlock(explanation)}</div>` : ''}
+        <div class="quiz-card-v2" style="${bgStyle} margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-weight: 600;">
+                <span style="font-size: 20px;">${icon}</span>
+                <span>${escapeHtml(title)}</span>
+            </div>
+            ${feedbackText ? `<div style="font-size: 14px; line-height: 1.6; margin-bottom: 12px;">${renderRichTextBlock(feedbackText)}</div>` : ''}
+            ${bridgeFeedback ? `<div style="font-size: 13px; padding: 10px 14px; background: rgba(255,255,255,0.5); border-radius: 10px; margin-top: 10px;"><strong>✅ 你刚才真正答对的是：</strong>${renderRichTextInline(bridgeFeedback)}</div>` : ''}
+            ${explanation ? `<div style="font-size: 13px; color: var(--text-secondary); margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border-light);">${renderRichTextBlock(explanation)}</div>` : ''}
+        </div>
+    `;
+}
+
+function quizHistoryStepTitle(quiz, index) {
+    const level = quiz?.meta?.difficulty_level || quiz?.difficulty_level || '';
+    if (level === 'followup') return `第 ${index + 1} 题 · 再拆小一点`;
+    if (level === 'confirm') return `第 ${index + 1} 题 · 换个角度确认`;
+    if (level === 'easier') return `第 ${index + 1} 题 · 更小的小题`;
+    if (level === 'final_micro_confirm') return `第 ${index + 1} 题 · 最后一小题确认`;
+    if (level === 'knowledge_confirm') return `第 ${index + 1} 题 · 知识卡后确认`;
+    return `第 ${index + 1} 题 · 理解检查`;
+}
+
+function quizAnswerLabel(quiz, answerText = '') {
+    const normalized = String(answerText || '').trim();
+    if (!normalized) return '';
+    const match = (quiz?.options || []).find((option) => {
+        if (typeof option === 'object' && option !== null) {
+            return String(option.value || '').trim() === normalized;
+        }
+        return false;
+    });
+    if (match && typeof match === 'object') {
+        return match.label || normalized;
+    }
+    return normalized;
+}
+
+function renderAnsweredQuizHistoryStep(quiz, index) {
+    if (!quiz) return '';
+    const tone = quiz.latest_is_correct ? 'success' : 'warn';
+    const answerLabel = quizAnswerLabel(quiz, quiz.latest_answer_text);
+    const resultLabel = quiz.latest_is_correct ? '这一步答对了' : '这一步还没过';
+    const knowledgeCard = quiz?.meta?.knowledge_card;
+    return `
+        <div class="quiz-history-step tone-${escapeHtml(tone)}">
+            <div class="quiz-history-step-head">
+                <div class="quiz-history-step-title">${escapeHtml(quizHistoryStepTitle(quiz, index))}</div>
+                <span class="quiz-history-step-badge">${escapeHtml(resultLabel)}</span>
+            </div>
+            ${quiz?.meta?.knowledge_bailout ? renderKnowledgeBailoutCard(knowledgeCard) : ''}
+            <div class="quiz-question-card">
+                <div class="quiz-question-kicker">题目</div>
+                <div class="quiz-question">${renderRichTextBlock(quiz.question_text)}</div>
+            </div>
+            ${answerLabel ? `<div class="quiz-history-answer"><strong>你的回答：</strong>${renderRichTextInline(answerLabel)}</div>` : ''}
+            ${quiz.latest_feedback_text ? `<div class="quiz-history-feedback">${renderRichTextBlock(quiz.latest_feedback_text)}</div>` : ''}
+        </div>
+    `;
+}
+
+function renderQuizTimelineStatus(item, reviewId, reviewFamily) {
+    if (item.review_learning_status === 'self_check_required') {
+        return renderSelfCheckCard(reviewId, reviewFamily);
+    }
+    if (item.review_learning_status === 'resolved') {
+        const title = item.review_mastery_status === 'assisted_success'
+            ? '这一步在提示后已经站稳了。'
+            : '这一步已经站稳了。';
+        return renderQuizStageNotice({
+            title,
+            explanation: item.quiz_latest_feedback || '',
+            tone: 'info',
+            kicker: '当前结果',
+        });
+    }
+    if (item.review_learning_status === 'needs_teacher_followup') {
+        return renderQuizStageNotice({
+            title: '这一步先停在这里，老师会接着和你一起看。',
+            explanation: item.quiz_latest_feedback || '',
+            tone: 'warn',
+            kicker: '当前结果',
+        });
+    }
+    if (item.review_learning_status === 'knowledge_bailout') {
+        return renderQuizStageNotice({
+            title: '前三轮题先留在上面，我们换成知识讲解把这一步单独讲清楚。',
+            explanation: '这次不是继续追问，而是先把当前桥换成知识卡，再做最后一次最小确认。',
+            tone: 'info',
+            kicker: '知识兜底',
+        });
+    }
+    if (item.review_learning_status === 'remedy_available' || item.review_learning_status === 'remedy_in_progress') {
+        const remedyTransition = resolveRemedyTransition({
+            understandingSelfCheck: item.review_understanding_self_check,
+            quizRole: item.quiz_role,
+            feedbackText: item.quiz_latest_feedback,
+            explanation: item.quiz_explanation,
+        });
+        return `
+            ${renderRemedyTransitionCard(remedyTransition)}
+            ${renderRemedyButtons(reviewId, item.review_error_layer)}
+        `;
+    }
+    return '';
+}
+
+function renderReviewDetailQuizTimeline(item) {
+    const reviewId = Number(item.review_id || 0);
+    if (!reviewId) return '';
+    const reviewFamily = reviewFamilyUi.resolveReviewFamily(item);
+    const quizHistory = Array.from(item.quiz_history || []).filter((quiz) => quiz && quiz.status !== 'replaced');
+
+    if (!quizHistory.length) {
+        if (item.quiz_status === 'pending' && item.quiz_id) {
+            return `
+                <div class="learning-path-timeline">
+                    <div class="timeline-step current">
+                        <div class="step-badge current">📍 第 1 步</div>
+                        ${renderQuizCard({
+                            quiz_id: item.quiz_id,
+                            question_text: item.quiz_question_text || item.question_text,
+                            quiz_type: item.quiz_question_type || item.question_type || item.quiz_type,
+                            options: item.quiz_options || item.options,
+                            meta: item.quiz_meta || item.meta,
+                            difficulty_level: item.quiz_difficulty_level || item.difficulty_level,
+                        }, reviewId)}
+                    </div>
+                </div>
+            `;
+        }
+        return renderQuizTimelineStatus(item, reviewId, reviewFamily) || `
+            <button class="secondary" onclick="startReviewQuiz(${reviewId})">开始理解检查</button>
+        `;
+    }
+
+    const currentQuizId = Number(item.quiz_id || 0);
+    const totalSteps = quizHistory.length + (item.quiz_status === 'pending' ? 1 : 0);
+    
+    const html = quizHistory.map((quiz, index) => {
+        const isPending = quiz.status === 'pending' && (!currentQuizId || Number(quiz.quiz_id) === currentQuizId);
+        const stepNumber = index + 1;
+        const stepClass = isPending ? 'current' : quiz.latest_is_correct ? 'completed' : 'completed';
+        const badgeClass = isPending ? 'current' : 'completed';
+        
+        if (isPending) {
+            const level = quiz?.meta?.difficulty_level || quiz?.difficulty_level || '';
+            const notice = level === 'followup'
+                ? renderQuizStageNotice({
+                    title: '上一题先留在上面，我们把这一步再拆小一点。',
+                    explanation: '这次只盯当前这一小步，不回到整题大结论。',
+                    tone: 'warn',
+                    kicker: 'follow-up',
+                    })
+                : level === 'knowledge_confirm'
+                    ? renderQuizStageNotice({
+                        title: '前三轮题先留在上面，我们先把这一步单独讲清楚，再做最后一题确认。',
+                        explanation: '这不是重新开一轮 quiz，而是换成知识讲解把当前这座桥补稳。',
+                        tone: 'info',
+                        kicker: '知识兜底',
+                    })
+                : level === 'final_micro_confirm'
+                    ? renderQuizStageNotice({
+                        title: '前面几题先留在上面，我们用最后一个最小问题做收尾确认。',
+                        explanation: '这题只确认刚才那座桥是不是真的站稳了。',
+                        tone: 'info',
+                        kicker: '最终确认',
+                    })
+                    : '';
+            return `
+                <div class="timeline-step ${stepClass}">
+                    <div class="step-badge ${badgeClass}">📍 第 ${stepNumber} 步</div>
+                    ${notice}
+                    ${quiz?.meta?.knowledge_bailout ? renderKnowledgeBailoutCard(quiz?.meta?.knowledge_card) : ''}
+                    ${renderQuizCard(quiz, reviewId)}
+                </div>
+            `;
+        }
+        // 已完成的步骤折叠显示
+        return renderCollapsedQuizStep(quiz, index);
+    }).join('');
+
+    return `
+        <div class="learning-path-timeline">
+            ${html}
+            ${renderQuizTimelineStatus(item, reviewId, reviewFamily)}
+        </div>
+    `;
+}
+
+// 折叠的已完成题目
+function renderCollapsedQuizStep(quiz, index) {
+    if (!quiz) return '';
+    const stepNumber = index + 1;
+    const isCorrect = quiz.latest_is_correct;
+    const resultIcon = isCorrect ? '✅' : '❌';
+    const resultText = isCorrect ? '答对了' : '未通过';
+    const level = quiz?.meta?.difficulty_level || quiz?.difficulty_level || '';
+    const levelText = level === 'followup' ? '拆小' : level === 'confirm' ? '确认' : level === 'final_micro_confirm' ? '最终' : level === 'knowledge_confirm' ? '知识卡后' : '理解';
+    
+    return `
+        <div class="timeline-step completed" onclick="this.classList.toggle('expanded'); this.querySelector('.collapsed-content').style.display = this.classList.contains('expanded') ? 'block' : 'none';" style="cursor: pointer;">
+            <div class="step-badge completed">${resultIcon} 第 ${stepNumber} 步 · ${levelText}</div>
+            <div class="quiz-history-step-collapsed">
+                <span style="font-size: 13px; color: var(--text-secondary);">${escapeHtml(quiz.question_text?.substring(0, 40) || '...')}...</span>
+                <span class="quiz-history-step-result ${isCorrect ? 'correct' : 'incorrect'}">${resultText}</span>
+            </div>
+            <div class="collapsed-content" style="display: none; margin-top: 12px;">
+                <div style="opacity: 0.8;">
+                    ${renderQuizCard(quiz, 0)}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderQuizStageNotice({ title, explanation = '', tone = 'warn', kicker = '继续拆这一步' }) {
+    return `
+        <div class="quiz-stage-note ${escapeHtml(tone)}">
+            <div class="quiz-stage-kicker">${escapeHtml(kicker)}</div>
+            <div class="quiz-stage-title">${escapeHtml(title)}</div>
+            ${explanation ? `<div class="quiz-stage-copy">${renderRichTextBlock(explanation)}</div>` : ''}
         </div>
     `;
 }
@@ -2296,12 +3973,21 @@ function renderQuizFeedbackBlock({ title, feedbackText = '', bridgeFeedback = ''
 function renderSelfCheckCard(reviewId, family = 'failure_diagnosis') {
     const copy = reviewFamilyUi.reviewFeedbackCopy(family);
     return `
-        <div class="self-check-card">
-            <div class="self-check-title">${escapeHtml(copy.title)}</div>
-            <div class="self-check-actions">
-                <button class="self-check-pill tone-clear" onclick="submitSelfCheck(${Number(reviewId)}, 'clear')">${escapeHtml(copy.clearLabel)}</button>
-                <button class="self-check-pill tone-guessed" onclick="submitSelfCheck(${Number(reviewId)}, 'guessed')">${escapeHtml(copy.guessedLabel)}</button>
-                <button class="self-check-pill tone-confused" onclick="submitSelfCheck(${Number(reviewId)}, 'confused')">${escapeHtml(copy.confusedLabel)}</button>
+        <div class="self-check-card-v2">
+            <div class="self-check-title-v2">${escapeHtml(copy.title)}</div>
+            <div class="self-check-options-v2">
+                <div class="self-check-option-v2 tone-clear" onclick="submitSelfCheck(${Number(reviewId)}, 'clear')">
+                    <div class="self-check-option-icon">✅</div>
+                    <div class="self-check-option-text">${escapeHtml(copy.clearLabel)}</div>
+                </div>
+                <div class="self-check-option-v2 tone-guessed" onclick="submitSelfCheck(${Number(reviewId)}, 'guessed')">
+                    <div class="self-check-option-icon">🤔</div>
+                    <div class="self-check-option-text">${escapeHtml(copy.guessedLabel)}</div>
+                </div>
+                <div class="self-check-option-v2 tone-confused" onclick="submitSelfCheck(${Number(reviewId)}, 'confused')">
+                    <div class="self-check-option-icon">😵</div>
+                    <div class="self-check-option-text">${escapeHtml(copy.confusedLabel)}</div>
+                </div>
             </div>
         </div>
     `;
@@ -2311,14 +3997,19 @@ function renderRemedyButtons(reviewId, errorLayer, options = {}) {
     const dynamicLabel = options.dynamicLabel || dynamicRemedyLabel(errorLayer);
     const includeResolve = options.includeResolve === true;
     return `
-        <div class="quiz-card">
-            <div class="quiz-title">这一步还没完全打通，我们换一种方式继续带你一下</div>
-            <div class="quiz-actions remedy-actions">
-                ${includeResolve ? `<button class="secondary" onclick="resolveRemedy(${Number(reviewId)}, 'resolved')">我懂了</button>` : ''}
-                <button class="secondary" onclick="triggerRemedy(${Number(reviewId)}, 'rephrase')">再换一种说法讲这一步</button>
-                <button class="secondary" onclick="triggerRemedy(${Number(reviewId)}, 'smaller_example')">给我一个更小的例子</button>
-                <button class="secondary" onclick="triggerRemedy(${Number(reviewId)}, 'easier_quiz')">再出一道更简单的小题</button>
-                <button class="secondary" onclick="triggerRemedy(${Number(reviewId)}, 'dynamic_bridge_help')">${escapeHtml(dynamicLabel)}</button>
+        <div class="quiz-card-v2" style="background: linear-gradient(135deg, rgba(255,149,0,0.05) 0%, rgba(255,204,0,0.05) 100%); border: 1px solid rgba(255,149,0,0.2);">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-weight: 600;">
+                <span>🔄</span> 这一步还没完全打通
+            </div>
+            <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
+                我们换一种方式继续带你一下：
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                ${includeResolve ? `<button class="secondary" style="justify-content: flex-start; padding: 12px 16px; border-radius: 12px;" onclick="resolveRemedy(${Number(reviewId)}, 'resolved')">✅ 我懂了，继续下一题</button>` : ''}
+                <button class="secondary" style="justify-content: flex-start; padding: 12px 16px; border-radius: 12px;" onclick="triggerRemedy(${Number(reviewId)}, 'rephrase')">📝 再换一种说法讲这一步</button>
+                <button class="secondary" style="justify-content: flex-start; padding: 12px 16px; border-radius: 12px;" onclick="triggerRemedy(${Number(reviewId)}, 'smaller_example')">🔍 给我一个更小的例子</button>
+                <button class="secondary" style="justify-content: flex-start; padding: 12px 16px; border-radius: 12px;" onclick="triggerRemedy(${Number(reviewId)}, 'easier_quiz')">🎯 再出一道更简单的小题</button>
+                <button class="secondary" style="justify-content: flex-start; padding: 12px 16px; border-radius: 12px;" onclick="triggerRemedy(${Number(reviewId)}, 'dynamic_bridge_help')">💡 ${escapeHtml(dynamicLabel)}</button>
             </div>
         </div>
     `;
@@ -2327,9 +4018,21 @@ function renderRemedyButtons(reviewId, errorLayer, options = {}) {
 function renderLearningSection(item) {
     const reviewId = item.review_id;
     if (!reviewId || item.review_status !== 'completed') return '';
-    const reviewFamily = reviewFamilyUi.resolveReviewFamily(item);
-
+    
     const sectionId = `review-quiz-${reviewId}`;
+    
+    // 使用新的 Tailwind UI（如果可用）
+    if (typeof window.TwUI !== 'undefined') {
+        try {
+            const twContent = window.TwUI.renderLearningSection(item);
+            return `<div id="${sectionId}" class="review-learning-section">${twContent}</div>`;
+        } catch (e) {
+            console.warn('Tailwind UI 渲染失败，回退到默认 UI:', e);
+        }
+    }
+    
+    // 降级到原有 UI
+    const reviewFamily = reviewFamilyUi.resolveReviewFamily(item);
     let content = '';
 
     if (item.review_learning_status === 'self_check_required') {
@@ -2358,6 +4061,8 @@ function renderLearningSection(item) {
             explanation: item.quiz_explanation,
             tone: 'final',
         });
+    } else if (item.review_learning_status === 'knowledge_bailout') {
+        content = renderReviewDetailQuizTimeline(item);
     } else if (item.quiz_status === 'pending' && item.quiz_id) {
         content = renderQuizCard({
             quiz_id: item.quiz_id,
@@ -2507,7 +4212,11 @@ async function submitCheckin() {
             problem_url: importedProblemMeta.problemUrl || problemUrl,
             oj_source: ojSource,
             completion_status: completionStatus,
+            submission_result: submissionResult,
             bottleneck_text: bottleneckText,
+            problem_context: problemContext,
+            reflection: reflection || '',
+            student_code: studentCode || '',
             review_status: data.review_status,
             review_mode: data.review_mode || '',
             review_family: data.review_family || '',
@@ -2518,8 +4227,12 @@ async function submitCheckin() {
             review_diagnosis: data.review?.diagnosis || '',
             review_next_action: data.review?.next_action || '',
             review_suggested_topic: data.review?.suggested_topic || '',
+            review_problem_focus: data.review?.problem_focus || data.review?.main_block || '',
             review_main_block: data.review?.main_block || '',
             review_key_bridge: data.review?.key_bridge || '',
+            review_visual_hint: data.review?.visual_hint || '',
+            review_guided_walkthrough: data.review?.guided_walkthrough || '',
+            review_try_now: data.review?.try_now || data.review?.next_step || '',
             review_next_step: data.review?.next_step || '',
             review_transfer_signal: data.review?.transfer_signal || '',
             review_id: data.review?.review_id || null,
@@ -2535,23 +4248,81 @@ async function submitCheckin() {
             review_stream_elapsed_seconds: 0,
         };
         activeCheckinId = Number(data.checkin_id);
-        renderActiveCheckinWorkspace(draftItem);
-        document.querySelector('.workspace-stage')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
+        activeCheckinStage = checkinReviewUi.REVIEW_STAGE;
+        
+        // Show review detail view instead of form
+        showCheckinReviewDetail(draftItem);
+        
+        // Start polling for review updates
         if (data.review_status === 'pending') {
-            resultEl.classList.remove('hidden');
-            resultEl.style.color = '';
-            resultEl.innerHTML = `
-                <div style="color: green; margin-bottom: 10px;">${escapeHtml(data.message)} (ID: ${escapeHtml(data.checkin_id)})</div>
-                <div style="margin-top: 8px; color: #666;">复盘正在生成中，右侧工作区会自动刷新。</div>
-            `;
+            startCheckinReviewStream(activeCheckinId);
+        }
+
+        // Show AI response in chat interface
+        removeCheckinLoadingMessage();
+        
+        if (data.review_status === 'pending') {
+            addCheckinAIResponse(`
+                <p>✅ ${escapeHtml(data.message)}</p>
+                <p style="margin-top: 8px; color: var(--text-secondary);">复盘正在生成中，请稍候...</p>
+            `);
         } else {
-            resultEl.classList.remove('hidden');
-            resultEl.style.color = '';
-            resultEl.innerHTML = `
-                <div style="color: green; margin-bottom: 10px;">${escapeHtml(data.message)} (ID: ${escapeHtml(data.checkin_id)})</div>
-                <div>复盘已生成，右侧可以直接看报告并继续做理解检查。</div>
-            `;
+            // Build review response
+            const review = data.review || {};
+            let responseHtml = `<p>✅ ${escapeHtml(data.message)}</p>`;
+            
+            if (review.problem_focus || review.main_block || review.diagnosis) {
+                responseHtml += `<div class="checkin-ai-response" style="margin-top: 16px;">`;
+                
+                if (review.problem_focus || review.main_block) {
+                    responseHtml += `
+                        <div class="checkin-ai-section">
+                            <div class="checkin-ai-section-title">你卡在哪</div>
+                            <div class="checkin-ai-section-content">${escapeHtml(review.problem_focus || review.main_block)}</div>
+                        </div>
+                    `;
+                }
+                
+                if (review.key_bridge) {
+                    responseHtml += `
+                        <div class="checkin-ai-section">
+                            <div class="checkin-ai-section-title">先抓住什么</div>
+                            <div class="checkin-ai-section-content">${escapeHtml(review.key_bridge)}</div>
+                        </div>
+                    `;
+                }
+
+                if (review.visual_hint) {
+                    responseHtml += `
+                        <div class="checkin-ai-section">
+                            <div class="checkin-ai-section-title">${escapeHtml(reviewFamilyUi.reviewFieldLabel('visual_hint', review.visual_hint))}</div>
+                            <pre class="review-visual-hint">${escapeHtml(review.visual_hint)}</pre>
+                        </div>
+                    `;
+                }
+
+                if (review.guided_walkthrough) {
+                    responseHtml += `
+                        <div class="checkin-ai-section">
+                            <div class="checkin-ai-section-title">跟我走一遍</div>
+                            ${renderRichTextBlock(review.guided_walkthrough, 'review-inline-rich-block')}
+                        </div>
+                    `;
+                }
+                
+                if (review.try_now || review.next_step) {
+                    responseHtml += `
+                        <div class="checkin-ai-section">
+                            <div class="checkin-ai-section-title">现在你来试</div>
+                            <div class="checkin-ai-section-content">${escapeHtml(review.try_now || review.next_step)}</div>
+                        </div>
+                    `;
+                }
+                
+                responseHtml += `</div>`;
+            }
+            
+            addCheckinAIResponse(responseHtml);
         }
 
         const urlEl = document.getElementById('checkin-url');
@@ -2582,13 +4353,23 @@ async function submitCheckin() {
             subscribeCheckinReviewStream(data.checkin_id, resultEl);
         }
     } catch (err) {
-        resultEl.classList.remove('hidden');
-        resultEl.textContent = '错误: ' + err.message;
-        resultEl.style.color = 'red';
+        removeCheckinLoadingMessage();
+        addCheckinAIResponse(`
+            <div class="alert alert-error">
+                <strong>提交失败</strong>
+                <p style="margin-top: 4px;">${escapeHtml(err.message)}</p>
+            </div>
+        `);
+        if (resultEl) {
+            resultEl.classList.remove('hidden');
+            resultEl.textContent = '错误: ' + err.message;
+        }
     } finally {
         isSubmittingCheckin = false;
-        submitBtn.disabled = false;
-        submitBtn.textContent = '提交打卡';
+        const submitBtnIcon = document.querySelector('#submit-checkin-btn');
+        if (submitBtnIcon) {
+            submitBtnIcon.disabled = true;
+        }
     }
 }
 
@@ -2612,6 +4393,7 @@ function renderCheckinCard(item, isTeacher = false) {
     if (item.review_status === 'completed') {
         if (isTeacher) {
             const bridgeBadge = bridgePathTeacherBadge(item.review_bridge_path);
+            const masteryBadge = masteryStatusTeacherBadge(item.review_mastery_status);
             reviewBlock += `
                 <p class="archive-line"><strong>判断把握：</strong>${escapeHtml(confidenceText(item.review_confidence))}</p>
                 <div class="archive-chip-row">${aiTags}</div>
@@ -2621,6 +4403,7 @@ function renderCheckinCard(item, isTeacher = false) {
                 ${item.teacher_repeat_bridge_hint ? `<div class="archive-chip-row"><span class="tag-pill teacher-repeat-chip">近期重复出现</span></div><p class="archive-note teacher-repeat-note"><strong>重复提示：</strong>${escapeHtml(item.teacher_repeat_bridge_hint)}</p>` : ''}
                 ${item.review_understanding_self_check ? `<p class="archive-line"><strong>学生自评：</strong>${escapeHtml(selfCheckLabel(item.review_understanding_self_check))}</p>` : ''}
                 ${item.review_bridge_path ? `<p class="archive-line"><strong>过桥路径：</strong>${escapeHtml(bridgePathDisplayText(item.review_bridge_path))}</p>` : ''}
+                ${masteryBadge ? `<div class="archive-chip-row"><span class="tag-pill ${escapeHtml(masteryBadge.className)}">${escapeHtml(masteryBadge.label)}</span></div>` : ''}
                 ${bridgeBadge ? `<div class="archive-chip-row"><span class="tag-pill ${escapeHtml(bridgeBadge.className)}">${escapeHtml(bridgeBadge.label)}</span></div>` : ''}
                 ${item.review_bridge_path ? `<p class="archive-note"><strong>老师解读：</strong>${escapeHtml(bridgePathTeacherNote(item.review_bridge_path))}</p>` : ''}
                 ${renderReviewQualityFlags(item.review_quality_flags)}
@@ -2629,14 +4412,20 @@ function renderCheckinCard(item, isTeacher = false) {
         } else {
             const reviewFamily = reviewFamilyUi.resolveReviewFamily(item);
             const orderedSections = reviewFamilyUi.orderedReviewSections({
+                problem_focus: item.review_problem_focus || item.review_main_block || '',
                 main_block: item.review_main_block || '',
                 key_bridge: item.review_key_bridge || '',
+                visual_hint: item.review_visual_hint || '',
+                guided_walkthrough: item.review_guided_walkthrough || '',
+                try_now: item.review_try_now || item.review_next_step || '',
                 next_step: item.review_next_step || '',
                 transfer_signal: item.review_transfer_signal || '',
             }, reviewFamily);
             reviewBlock += `
-                ${orderedSections.map((section) => `
-                    <div class="${section.field === 'transfer_signal' ? 'archive-note' : 'archive-line'}"><strong>${escapeHtml(section.label)}：</strong>${renderRichTextInline(section.value || '')}</div>
+                ${orderedSections
+                    .filter((section) => String(section.value || '').trim())
+                    .map((section) => `
+                    <div class="${section.field === 'transfer_signal' ? 'archive-note' : 'archive-line'}"><strong>${escapeHtml(section.label)}：</strong>${section.field === 'visual_hint' ? `<pre class="review-visual-hint history-visual-hint">${escapeHtml(section.value || '')}</pre>` : renderRichTextInline(section.value || '')}</div>
                 `).join('')}
                 <details class="archive-detail">
                     <summary>查看完整诊断</summary>
@@ -2713,10 +4502,94 @@ function renderCheckinCard(item, isTeacher = false) {
     `;
 }
 
+// Motivational quotes
+const motivationalQuotes = [
+    "算法是编程的灵魂，坚持打卡，每天进步一点点！",
+    "每一个 AC 的背后，都是无数次 WA 的积累。",
+    "不要害怕犯错，每一次错误都是成长的机会。",
+    "代码如诗，算法如画，编程是一场美的修行。",
+    "今天的努力，是明天 AC 的基石。",
+    "复杂问题简单化，简单问题极致化。",
+    "调试是一门艺术，耐心是最好的工具。",
+    "思路清晰，代码自然流畅。",
+    "没有过不去的题，只有想不通的点。",
+    "坚持就是胜利，打卡成就未来！",
+    "每一行代码，都是通往梦想的阶梯。",
+    "思考比编码更重要，理解比记忆更持久。",
+];
+
+function updateMotivationalQuote() {
+    const quoteEl = document.getElementById('motivational-quote');
+    if (quoteEl) {
+        const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
+        quoteEl.textContent = `"${randomQuote}"`;
+    }
+}
+
+async function loadCheckinStats() {
+    // Update quote
+    updateMotivationalQuote();
+    
+    // Update user's checkin count from cache
+    const userCountEl = document.getElementById('user-checkin-count');
+    if (userCountEl) {
+        userCountEl.textContent = myCheckinsCache.length;
+    }
+    
+    // Calculate streak
+    const streakEl = document.getElementById('user-streak');
+    if (streakEl && myCheckinsCache.length > 0) {
+        const dates = [...new Set(myCheckinsCache.map(item => {
+            const date = new Date(item.created_at);
+            return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+        }))];
+        
+        let streak = 0;
+        const today = new Date();
+        for (let i = 0; i < 365; i++) {
+            const checkDate = new Date(today);
+            checkDate.setDate(checkDate.getDate() - i);
+            const dateStr = `${checkDate.getFullYear()}-${checkDate.getMonth()}-${checkDate.getDate()}`;
+            if (dates.includes(dateStr)) {
+                streak++;
+            } else if (i > 0) {
+                break;
+            }
+        }
+        
+        streakEl.innerHTML = streak > 0 ? `${streak} <span style="font-size:14px;">天</span>` : '🔥';
+    }
+    
+    // Try to fetch global stats
+    try {
+        const res = await apiFetch(`${API_BASE}/api/stats/global`, { method: 'GET' });
+        if (res.ok) {
+            const data = await res.json();
+            const globalEl = document.getElementById('global-checkin-count');
+            if (globalEl && data.total_checkins) {
+                globalEl.textContent = data.total_checkins.toLocaleString();
+            }
+        }
+    } catch (err) {
+        // Silent fail, show placeholder
+        const globalEl = document.getElementById('global-checkin-count');
+        if (globalEl) globalEl.textContent = '---';
+    }
+}
+
 async function loadMyCheckins(preferredCheckinId = null) {
     const listEl = document.getElementById('checkin-history-list');
     if (listEl) {
-        listEl.innerHTML = '<p>加载中...</p>';
+        listEl.innerHTML = `
+            <div class="history-loading">
+                <div class="ai-loading-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <span>加载中...</span>
+            </div>
+        `;
     }
 
     try {
@@ -2725,9 +4598,18 @@ async function loadMyCheckins(preferredCheckinId = null) {
         myCheckinsCache = data.checkins || [];
         if (!myCheckinsCache.length) {
             activeCheckinId = null;
+            activeCheckinStage = checkinReviewUi.INPUT_STAGE;
             setReviewStageEmpty();
             if (listEl) {
-                listEl.innerHTML = '<p>还没有打卡记录</p>';
+                listEl.innerHTML = `
+                    <div class="history-empty">
+                        <div class="history-empty-icon">📝</div>
+                        <div class="history-empty-text">还没有打卡记录</div>
+                        <div style="margin-top: 16px;">
+                            <button onclick="showStudentTab('checkin-tab')">去打卡</button>
+                        </div>
+                    </div>
+                `;
             }
             return;
         }
@@ -2740,16 +4622,39 @@ async function loadMyCheckins(preferredCheckinId = null) {
 
         renderCheckinHistoryList();
         const activeItem = myCheckinsCache.find((item) => Number(item.id) === Number(activeCheckinId)) || myCheckinsCache[0];
-        renderActiveCheckinWorkspace(activeItem);
+        if (activeCheckinStage === checkinReviewUi.REVIEW_STAGE && activeItem) {
+            renderActiveCheckinWorkspace(activeItem);
+        } else {
+            renderCheckinEntryStage();
+        }
     } catch (err) {
         if (listEl) {
-            listEl.innerHTML = `<p style="color:red">加载失败: ${escapeHtml(err.message)}</p>`;
+            listEl.innerHTML = `
+                <div class="alert alert-error" style="text-align: center; padding: 32px;">
+                    <div style="font-size: 32px; margin-bottom: 12px;">⚠️</div>
+                    <div>加载失败</div>
+                    <div style="font-size: 12px; margin-top: 8px; opacity: 0.8;">${escapeHtml(err.message)}</div>
+                    <button onclick="loadMyCheckins()" style="margin-top: 16px;">重试</button>
+                </div>
+            `;
         }
     }
 }
 
 async function startReviewQuiz(reviewId) {
-    const container = document.getElementById(`review-quiz-${reviewId}`);
+    // First ensure we're in the review detail view
+    const detailContainer = document.getElementById('review-stage-content');
+    const checkinId = itemCheckinIdFromReview(reviewId);
+    
+    // If in detail view, update the quiz section
+    if (detailContainer && !detailContainer.classList.contains('hidden') && checkinId) {
+        const item = myCheckinsCache.find(c => Number(c.id) === Number(checkinId));
+        if (item) {
+            showCheckinReviewDetail(item);
+        }
+    }
+    
+    const container = document.getElementById(`review-quiz-${reviewId}`) || document.getElementById('review-detail-quiz');
     if (container) container.innerHTML = '<div class="quiz-card"><div class="quiz-title">正在生成理解小测...</div></div>';
 
     try {
@@ -2761,7 +4666,7 @@ async function startReviewQuiz(reviewId) {
         if (container) {
             container.innerHTML = renderQuizCard(data.quiz, reviewId);
         }
-        loadMyCheckins();
+        await refreshReviewDetailByReviewId(reviewId);
     } catch (err) {
         if (container && err.message === '请先完成这一步的理解确认') {
             const checkinId = itemCheckinIdFromReview(reviewId);
@@ -2788,6 +4693,12 @@ async function submitQuizAnswer(quizId, reviewId) {
     const textInput = document.getElementById(`quiz-answer-${reviewId}`);
     let answerText = textInput ? textInput.value.trim() : '';
     if (!answerText) {
+        // 尝试新的隐藏字段方式
+        const hiddenInput = document.getElementById(`quiz-selected-${reviewId}`);
+        answerText = hiddenInput ? hiddenInput.value.trim() : '';
+    }
+    if (!answerText) {
+        // 兼容旧的 radio 方式
         const checked = document.querySelector(`input[name="quiz-option-${reviewId}"]:checked`);
         answerText = checked ? checked.value : '';
     }
@@ -2796,7 +4707,8 @@ async function submitQuizAnswer(quizId, reviewId) {
         return;
     }
 
-    const container = document.getElementById(`review-quiz-${reviewId}`);
+    // Support both history list view and detail view containers
+    const container = document.getElementById(`review-quiz-${reviewId}`) || document.getElementById('review-detail-quiz');
     if (container) container.innerHTML = '<div class="quiz-card"><div class="quiz-title">正在检查你的答案...</div></div>';
 
     try {
@@ -2816,7 +4728,7 @@ async function submitQuizAnswer(quizId, reviewId) {
                 })}
                 ${renderSelfCheckCard(reviewId)}
             `;
-            loadMyCheckins();
+            await refreshReviewDetailByReviewId(reviewId);
         } else if (data.next_state === 'resolved') {
             container.innerHTML = renderQuizFeedbackBlock({
                 title: data.feedback_text,
@@ -2824,20 +4736,13 @@ async function submitQuizAnswer(quizId, reviewId) {
                 explanation: data.explanation || '',
                 tone: 'success',
             });
-            loadMyCheckins();
+            await refreshReviewDetailByReviewId(reviewId);
         } else if (data.next_state === 'followup_quiz') {
-            container.innerHTML = `
-                ${renderQuizFeedbackBlock({
-                    title: data.feedback_text,
-                    // deliberate: don't reveal the full correct explanation
-                    // before the student gets the smaller follow-up attempt
-                    explanation: '',
-                    tone: 'warn',
-                })}
-                ${renderQuizCard(data.quiz, reviewId)}
-            `;
+            await refreshReviewDetailByReviewId(reviewId);
+        } else if (data.next_state === 'knowledge_bailout') {
+            await refreshReviewDetailByReviewId(reviewId);
         } else if (data.next_state === 'remedy_available') {
-            const checkinItem = await fetchMyCheckinById(itemCheckinIdFromReview(reviewId));
+            const checkinItem = await refreshReviewDetailByReviewId(reviewId);
             const errorLayer = checkinItem?.review_error_layer || 'insufficient';
             const remedyTransition = resolveRemedyTransition({
                 understandingSelfCheck: checkinItem?.review_understanding_self_check,
@@ -2851,7 +4756,7 @@ async function submitQuizAnswer(quizId, reviewId) {
                     dynamicLabel: data.dynamic_button_label,
                 })}
             `;
-            loadMyCheckins();
+            await refreshReviewDetailByReviewId(reviewId);
         } else {
             container.innerHTML = renderQuizFeedbackBlock({
                 title: data.feedback_text,
@@ -2859,7 +4764,7 @@ async function submitQuizAnswer(quizId, reviewId) {
                 explanation: data.explanation || '',
                 tone: 'final',
             });
-            loadMyCheckins();
+            await refreshReviewDetailByReviewId(reviewId);
         }
     } catch (err) {
         if (container) {
@@ -2869,7 +4774,8 @@ async function submitQuizAnswer(quizId, reviewId) {
 }
 
 async function submitSelfCheck(reviewId, status) {
-    const container = document.getElementById(`review-quiz-${reviewId}`);
+    // Support both history list view and detail view containers
+    const container = document.getElementById(`review-quiz-${reviewId}`) || document.getElementById('review-detail-quiz');
     if (container) container.innerHTML = '<div class="quiz-card"><div class="quiz-title">正在记录你的理解状态...</div></div>';
     const checkinId = itemCheckinIdFromReview(reviewId);
 
@@ -2887,9 +4793,9 @@ async function submitSelfCheck(reviewId, status) {
                 </div>
             `;
         } else if (data.next_state === 'confirm_quiz') {
-            container.innerHTML = renderQuizCard(data.quiz, reviewId);
+            await refreshReviewDetailByReviewId(reviewId);
         } else if (data.next_state === 'remedy_available') {
-            const checkinItem = await fetchMyCheckinById(itemCheckinIdFromReview(reviewId));
+            const checkinItem = await refreshReviewDetailByReviewId(reviewId);
             const errorLayer = checkinItem?.review_error_layer || 'insufficient';
             const remedyTransition = resolveRemedyTransition({
                 understandingSelfCheck: status,
@@ -2913,7 +4819,7 @@ async function submitSelfCheck(reviewId, status) {
                 reviewFamilyUi.feedbackEventFields(reviewFamily, status),
             );
         }
-        loadMyCheckins();
+        await refreshReviewDetailByReviewId(reviewId);
     } catch (err) {
         if (container) {
             container.innerHTML = `<div class="quiz-card quiz-result final"><div class="quiz-title" style="color:#c0392b">提交失败：${escapeHtml(err.message)}</div></div>`;
@@ -2927,7 +4833,8 @@ function itemCheckinIdFromReview(reviewId) {
 }
 
 async function triggerRemedy(reviewId, actionType) {
-    const container = document.getElementById(`review-quiz-${reviewId}`);
+    // Support both history list view and detail view containers
+    const container = document.getElementById(`review-quiz-${reviewId}`) || document.getElementById('review-detail-quiz');
     if (container) container.innerHTML = '<div class="quiz-card"><div class="quiz-title">正在换一种方式帮你拆这一步...</div></div>';
 
     try {
@@ -2937,33 +4844,30 @@ async function triggerRemedy(reviewId, actionType) {
         });
         const data = await res.json();
         if (data.mode === 'quiz') {
-            container.innerHTML = `
-                <div class="quiz-card quiz-result warn">
-                    <div class="quiz-title">我们把这一步再缩小一点，试一题更简单的小题。</div>
-                </div>
-                ${renderQuizCard(data.quiz, reviewId)}
-            `;
-            loadMyCheckins();
+            await refreshReviewDetailByReviewId(reviewId);
         } else if (data.mode === 'final') {
             container.innerHTML = `
                 <div class="quiz-card quiz-result final">
                     <div class="quiz-title">${escapeHtml(data.feedback_text)}</div>
                 </div>
             `;
-            loadMyCheckins();
+            await refreshReviewDetailByReviewId(reviewId);
         } else {
-            const checkinItem = await fetchMyCheckinById(itemCheckinIdFromReview(reviewId));
+            const checkinItem = await refreshReviewDetailByReviewId(reviewId);
             const errorLayer = checkinItem?.review_error_layer || 'insufficient';
             container.innerHTML = `
                 <div class="quiz-card quiz-result info">
                     <div class="quiz-title">我们只讲这一步</div>
                     <div class="quiz-explanation">${escapeHtml(data.remedy_text || '')}</div>
+                    ${data.visual_hint ? `<pre class="review-visual-hint remedy-visual-hint">${escapeHtml(data.visual_hint)}</pre>` : ''}
                     <div class="quiz-explanation"><strong>你现在先做：</strong>${escapeHtml(data.micro_action || '')}</div>
                     ${renderRemedyButtons(reviewId, errorLayer, {
                         includeResolve: true,
+                        includeResolveLabel: '我来试最后一题',
                     })}
                 </div>
             `;
+            await refreshReviewDetailByReviewId(reviewId);
         }
     } catch (err) {
         if (container) {
@@ -2973,18 +4877,24 @@ async function triggerRemedy(reviewId, actionType) {
 }
 
 async function resolveRemedy(reviewId, status) {
-    const container = document.getElementById(`review-quiz-${reviewId}`);
+    // Support both history list view and detail view containers
+    const container = document.getElementById(`review-quiz-${reviewId}`) || document.getElementById('review-detail-quiz');
     try {
-        await apiFetch(`${API_BASE}/api/reviews/${reviewId}/remedy/resolve`, {
+        const res = await apiFetch(`${API_BASE}/api/reviews/${reviewId}/remedy/resolve`, {
             method: 'POST',
             body: JSON.stringify({ status }),
         });
+        const data = await res.json();
         if (container) {
-            container.innerHTML = status === 'resolved'
-                ? `<div class="quiz-card quiz-result success"><div class="quiz-title">答对了，这一步你跨过去了。</div></div>`
-                : `<div class="quiz-card quiz-result final"><div class="quiz-title">这道题我们先停在这里，你的老师会来和你一起看一看。</div></div>`;
+            if (data.next_state === 'final_micro_confirm') {
+                await refreshReviewDetailByReviewId(reviewId);
+            } else {
+                container.innerHTML = status === 'resolved'
+                    ? `<div class="quiz-card quiz-result success"><div class="quiz-title">${escapeHtml(data.feedback_text || '答对了，这一步你跨过去了。')}</div></div>`
+                    : `<div class="quiz-card quiz-result final"><div class="quiz-title">这道题我们先停在这里，你的老师会来和你一起看一看。</div></div>`;
+            }
         }
-        loadMyCheckins();
+        await refreshReviewDetailByReviewId(reviewId);
     } catch (err) {
         if (container) {
             container.innerHTML = `<div class="quiz-card quiz-result final"><div class="quiz-title" style="color:#c0392b">提交失败：${escapeHtml(err.message)}</div></div>`;
@@ -2998,6 +4908,7 @@ window.submitSelfCheck = submitSelfCheck;
 window.triggerRemedy = triggerRemedy;
 window.resolveRemedy = resolveRemedy;
 window.selectCheckin = selectCheckin;
+window.showCheckinForm = showCheckinForm;
 
 // ============ 教师功能 ============
 
@@ -3206,6 +5117,8 @@ async function loadErrorStats() {
             (item) => `<p><strong>${escapeHtml(reviewStatusText(item.review_status))}</strong>：${escapeHtml(item.count)} 条</p>`
         );
 
+        const masteryStatusHtml = renderMasteryStatusCard(data.mastery_status_stats || {});
+        const bridgePathStatsHtml = renderBridgePathStatsCard(data.bridge_path_stats || {});
         const manualReviewRatesHtml = renderManualReviewRatesCard(extractManualReviewRatesSource(data));
         const manualReviewByModeHtml = renderManualReviewBreakdownSection(
             MANUAL_REVIEW_BREAKDOWN_TITLES.mode,
@@ -3222,6 +5135,8 @@ async function loadErrorStats() {
             studentStatsHtml
             + reviewStatsHtml
             + statusSummaryHtml
+            + masteryStatusHtml
+            + bridgePathStatsHtml
             + manualReviewRatesHtml
             + manualReviewByModeHtml
             + manualReviewByFamilyHtml;
@@ -3371,6 +5286,11 @@ const noiAppTestHooks = {
     renderManualReviewBreakdownSection,
     renderManualReviewRateRow,
     renderManualReviewRatesCard,
+    renderMasteryStatusCard,
+    renderBridgePathStatsCard,
+    renderQuizCard,
+    renderReviewDetailQuizTimeline,
+    renderQuizStageNotice,
 };
 
 if (typeof window !== 'undefined') {
