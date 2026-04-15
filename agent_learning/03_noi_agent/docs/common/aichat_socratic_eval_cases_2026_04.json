@@ -1,0 +1,840 @@
+{
+  "version": "2026-04-aichat-socratic-v1",
+  "purpose": "AIChat 实时教学质量评测基线：验证对话是否保持苏格拉底式引导、ZPD 最近发展区、Adaptive Scaffolding 自适应支架、Evidence-Driven Feedback 证据驱动反馈。",
+  "scope": {
+    "target_endpoint": "POST /chat",
+    "target_runtime": "noi_agent.chat -> analyze_student_turn -> build_system_prompt -> enforce_output_guards",
+    "non_goals": [
+      "不评测打卡复盘生成质量",
+      "不要求 AIChat 一次性生成完整题解",
+      "不要求覆盖全部 OI 知识点",
+      "不把 OI Wiki 原文整段塞入 prompt"
+    ]
+  },
+  "rubric": {
+    "must_pass": [
+      "每轮最多只问一个主问题",
+      "学生确认题型时不能直接确认或否认算法名",
+      "学生直接要代码时不能给完整代码",
+      "学生索取关键桥时不能直接补出完整状态定义、转移方程、check 条件或完整路径差分公式",
+      "回复必须围绕当前题证据，而不是泛泛说学习建议",
+      "如果学生连续卡住，提示强度可以升级，但仍应保持半步支架",
+      "必要时引导去打卡复盘，而不是无限继续给提示"
+    ],
+    "should_pass": [
+      "能区分学生是在猜方法、卡桥、贴代码、还是情绪求助",
+      "能把题面证据转成一个微问题",
+      "能对 P3128 这类多解法题保持开放，不把树剖/HLD/LCA/差分直接说成唯一答案",
+      "能把聊天上下文带到打卡复盘前的当前题背景"
+    ],
+    "hard_fail_patterns": [
+      "完整做法是",
+      "完整代码如下",
+      "AC 代码",
+      "#include\\s*<",
+      "int\\s+main\\s*\\(",
+      "这题就是用",
+      "这题直接用",
+      "推荐直接套",
+      "答案是\\d",
+      "标准答案是",
+      "令dp\\[",
+      "状态定义：dp",
+      "转移方程：",
+      "建图规则：",
+      "差分公式为",
+      "完整推导如下"
+    ],
+    "scaffold_stage_definition": {
+      "1": "冷启动：只问一个证据问题，不给结论",
+      "2": "第一次未推进：给一个很小的方向提示，再问一个问题",
+      "3": "再次卡住：可以给极小例子或局部图示，再问一个问题",
+      "4": "连续卡住：给半步支架，并建议转打卡复盘或老师介入"
+    },
+    "automation_mapping": {
+      "hard_assertions": [
+        "global hard_fail_patterns 不应出现在回复中",
+        "精确 forbidden 片段不应出现在回复中",
+        "回复长度建议不超过 300 字",
+        "每轮最多 1 个主问题，问号数量不超过 2",
+        "expected_control 中 max_level、zpd_level、tutor_action、scaffold_stage 应能被运行时推断或人工标注对齐"
+      ],
+      "llm_judge": [
+        "是否只提出一个核心问题",
+        "是否围绕题面证据而不是泛算法建议",
+        "是否保持半步支架而没有泄露完整桥"
+      ],
+      "human_review": [
+        "情绪安抚是否自然",
+        "连续卡住时转打卡复盘的时机是否合理",
+        "多解法题是否保持开放"
+      ]
+    },
+    "scoring": {
+      "2": "通过：明确引导、贴题证据、无泄题",
+      "1": "部分通过：没有泄题，但追问太泛或没有贴题证据",
+      "0": "失败：直接给算法结论、完整做法、完整代码，或一次回答多个问题"
+    }
+  },
+  "case_fields": {
+    "id": "稳定用例编号",
+    "topic": "主要知识点或桥",
+    "problem_ref": "题号或题目链接",
+    "student_message": "学生当前轮输入",
+    "prior_messages": "同会话前文，按真实 role/content 结构记录",
+    "problem_context": "题目上下文摘要，真实运行时来自聊天页或洛谷导入",
+    "expected_control": "期望的轻量 tutor_control / 风险控制",
+    "expected_reply_assertions": "把期望拆为 hard / llm_judge / human_review，hard 可机器断言，llm_judge 交给评审模型，human_review 留给人工",
+    "expected_reply_behavior": "期望 AI 如何回复",
+    "forbidden_reply_behavior": "不允许出现的回复行为",
+    "review_notes": "人工审查时看什么"
+  },
+  "cases": [
+    {
+      "id": "chat_socratic_001_direct_code_request",
+      "topic": "direct_request",
+      "problem_ref": "P3372",
+      "student_message": "这题太麻烦了，直接给我线段树代码吧。",
+      "prior_messages": [],
+      "problem_context": "需要支持区间加和区间求和，常见做法涉及线段树和 lazy 标记。",
+      "expected_control": {
+        "max_level": "L1",
+        "zpd_level": "Z0",
+        "tutor_action": "ask_baseline_attempt",
+        "scaffold_stage": 1
+      },
+      "expected_reply_behavior": [
+        "拒绝直接给完整代码",
+        "只问一个最小起点问题",
+        "不提完整线段树模板"
+      ],
+      "forbidden_reply_behavior": [
+        "给出 #include 或 int main",
+        "列完整 pushdown / update / query 代码",
+        "直接说完整做法"
+      ],
+      "review_notes": "这是硬红线样例。只要出现完整代码片段就判 0。"
+    },
+    {
+      "id": "chat_socratic_002_type_confirm_trie",
+      "topic": "method_selection / trie",
+      "problem_ref": "P2922",
+      "student_message": "这题是不是用 trie 才对？",
+      "prior_messages": [],
+      "problem_context": "给定很多 01 消息串和拦截串，需要统计前缀包含关系，数据量较大。",
+      "expected_control": {
+        "max_level": "L2",
+        "zpd_level": "Z2",
+        "tutor_action": "ask_evidence_question",
+        "scaffold_stage": 1
+      },
+      "expected_reply_behavior": [
+        "不能直接确认 trie",
+        "追问学生看到了什么前缀证据",
+        "围绕大量 01 串和前缀关系发问"
+      ],
+      "forbidden_reply_behavior": [
+        "对，这题用 trie",
+        "不是 trie，是别的",
+        "直接讲 pass_cnt / end_cnt 完整含义"
+      ],
+      "review_notes": "重点看是否把算法名确认改成证据追问。"
+    },
+    {
+      "id": "chat_socratic_003_type_confirm_p3128_multi_solution",
+      "topic": "tree_path_difference / method_selection",
+      "problem_ref": "P3128",
+      "student_message": "P3128 是不是树剖 LCA 加差分？",
+      "prior_messages": [],
+      "problem_context": "给一棵树和多条运输路径，每条路径会让经过的点计数加一，要求最后经过次数最多的点。",
+      "expected_control": {
+        "max_level": "L2",
+        "zpd_level": "Z2",
+        "tutor_action": "ask_evidence_question",
+        "scaffold_stage": 1
+      },
+      "expected_reply_behavior": [
+        "不把树剖/HLD说成唯一答案",
+        "追问一条 u 到 v 路径会影响哪些点",
+        "引导学生先看路径贡献而不是先定模板"
+      ],
+      "forbidden_reply_behavior": [
+        "是，直接树剖",
+        "不用树剖，只要树上差分",
+        "直接给端点/LCA完整标记公式"
+      ],
+      "review_notes": "P3128 有多种实现路线。AIChat 应先问证据，不抢解法选择。"
+    },
+    {
+      "id": "chat_socratic_004_bridge_attempt_p3128",
+      "topic": "tree_path_difference",
+      "problem_ref": "P3128",
+      "student_message": "我知道要 LCA，但不知道每条路径到底要在哪里加减标记。",
+      "prior_messages": [],
+      "problem_context": "多条树上路径统计点经过次数，常见桥是路径贡献压缩到端点和 LCA 附近，再 DFS 汇总。",
+      "expected_control": {
+        "max_level": "L2",
+        "zpd_level": "Z2",
+        "tutor_action": "ask_missing_bridge_evidence",
+        "scaffold_stage": 1
+      },
+      "expected_reply_behavior": [
+        "不能直接给完整加减公式",
+        "可以让学生先画一条短路径",
+        "只问一个关于端点和公共祖先的微问题"
+      ],
+      "forbidden_reply_behavior": [
+        "s += 1, t += 1, lca -= 1, parent(lca) -= 1",
+        "完整树上差分公式",
+        "完整 DFS 汇总代码"
+      ],
+      "review_notes": "这是关键桥保护样例。允许半步支架，不允许直接补桥。"
+    },
+    {
+      "id": "chat_socratic_005_p3128_stage3_micro_example",
+      "topic": "tree_path_difference / adaptive_scaffolding",
+      "problem_ref": "P3128",
+      "student_message": "我还是想不出来为什么 LCA 那里要处理。",
+      "prior_messages": [
+        {
+          "role": "user",
+          "content": "P3128 是不是树上差分？"
+        },
+        {
+          "role": "assistant",
+          "content": "先别急着定方法。只看一条 u 到 v 的路径，它会让哪些点的次数加一？"
+        },
+        {
+          "role": "user",
+          "content": "就是 u 到 v 路径上的点都加一。"
+        },
+        {
+          "role": "assistant",
+          "content": "如果不逐点加，你能不能先找几个特殊点做标记？"
+        }
+      ],
+      "problem_context": "树上多路径点经过次数统计。",
+      "expected_control": {
+        "zpd_level": "Z2",
+        "scaffold_stage": 3,
+        "tutor_action": "ask_missing_bridge_evidence"
+      },
+      "expected_reply_behavior": [
+        "可以给一个 3 到 5 个点的小链例子",
+        "仍然不要给完整公式",
+        "最后只问一个关于贡献重复/抵消的问题"
+      ],
+      "forbidden_reply_behavior": [
+        "直接把完整公式和代码讲完",
+        "一次列出全部算法步骤"
+      ],
+      "review_notes": "这是自适应支架样例：连续卡住后允许小例子，但不能直接泄桥。"
+    },
+    {
+      "id": "chat_socratic_006_binary_search_check_condition",
+      "topic": "check_condition",
+      "problem_ref": "P2678",
+      "student_message": "我知道要二分答案，但 check(mid) 到底返回 true 还是 false 我总写反。",
+      "prior_messages": [],
+      "problem_context": "河长 L，移走不超过 M 块石头，最大化最小跳跃距离。check(mid) 判断能否让最小距离至少为 mid。",
+      "expected_control": {
+        "max_level": "L3",
+        "zpd_level": "Z3",
+        "tutor_action": "point_to_specific_gap",
+        "scaffold_stage": 1
+      },
+      "expected_reply_behavior": [
+        "可以指出卡点是可行性语义",
+        "只问 mid 表示的目标是否能被满足",
+        "不直接给完整 check 代码"
+      ],
+      "forbidden_reply_behavior": [
+        "完整 check 函数代码",
+        "完整二分模板",
+        "一次讲完左右边界更新"
+      ],
+      "review_notes": "学生有明确卡点，可到 L3，但仍只推进半步。"
+    },
+    {
+      "id": "chat_socratic_007_binary_search_left_bound",
+      "topic": "left_bound_update",
+      "problem_ref": "P2249",
+      "student_message": "mid 命中 x 的时候，我不知道 r 是 mid 还是 mid - 1。",
+      "prior_messages": [],
+      "problem_context": "在非降序数组中找某个数第一次出现的位置。",
+      "expected_control": {
+        "max_level": "L3",
+        "zpd_level": "Z3",
+        "tutor_action": "point_to_specific_gap",
+        "scaffold_stage": 1
+      },
+      "expected_reply_behavior": [
+        "围绕是否保留 mid 作为候选发问",
+        "可以让学生比较 mid 与 mid-1 的含义",
+        "不直接给最终模板"
+      ],
+      "forbidden_reply_behavior": [
+        "直接给 while 模板",
+        "直接说 r = mid 然后结束"
+      ],
+      "review_notes": "L3 可以指出候选边界语义，但答案仍要学生说出来。"
+    },
+    {
+      "id": "chat_socratic_008_lazy_semantics_type_confirm",
+      "topic": "lazy_semantics",
+      "problem_ref": "P3372",
+      "student_message": "lazy 是不是就是还没来得及改的值？",
+      "prior_messages": [],
+      "problem_context": "线段树区间加和区间求和，lazy 标记记录区间已经确定但还没下传给孩子的信息。",
+      "expected_control": {
+        "max_level": "L2",
+        "zpd_level": "Z2",
+        "tutor_action": "ask_evidence_question",
+        "scaffold_stage": 1
+      },
+      "expected_reply_behavior": [
+        "不能直接说对或不对",
+        "追问一个区间整体加 3 后父节点和子节点分别知道什么",
+        "引导从区间语义理解 lazy"
+      ],
+      "forbidden_reply_behavior": [
+        "对，lazy 就是未下传",
+        "lazy 的完整定义是",
+        "完整 pushdown 代码"
+      ],
+      "review_notes": "确认概念时也不能直接定性，要让学生用小区间解释。"
+    },
+    {
+      "id": "chat_socratic_009_dp_state_design",
+      "topic": "state_design",
+      "problem_ref": "P1434",
+      "student_message": "我不知道 dp[x][y] 这个状态到底该表示什么。",
+      "prior_messages": [],
+      "problem_context": "滑雪题中从一个格子出发，只能走到更低的相邻格子，求最长滑行长度。",
+      "expected_control": {
+        "max_level": "L2",
+        "zpd_level": "Z1",
+        "tutor_action": "ask_slot_question",
+        "scaffold_stage": 1
+      },
+      "expected_reply_behavior": [
+        "追问一个格子作为起点时要记录什么结果",
+        "不直接给状态定义",
+        "只围绕对象/目标槽位"
+      ],
+      "forbidden_reply_behavior": [
+        "dp[x][y] 表示从 x,y 出发的最长路",
+        "完整记忆化搜索代码"
+      ],
+      "review_notes": "状态设计桥要先问对象和子问题，不直接报定义。"
+    },
+    {
+      "id": "chat_socratic_010_dp_transition_design",
+      "topic": "transition_design",
+      "problem_ref": "P1216",
+      "student_message": "数字三角形这里转移我总是不知道从哪几个位置来。",
+      "prior_messages": [],
+      "problem_context": "每个位置只能从上一层相邻位置转来，求最大路径和。",
+      "expected_control": {
+        "max_level": "L3",
+        "zpd_level": "Z3",
+        "tutor_action": "point_to_specific_gap",
+        "scaffold_stage": 1
+      },
+      "expected_reply_behavior": [
+        "可以指出来源关系是卡点",
+        "让学生只看一个格子的上一层相邻位置",
+        "不一次写完整转移方程"
+      ],
+      "forbidden_reply_behavior": [
+        "dp[i][j] = max(...)",
+        "完整转移方程和初始化"
+      ],
+      "review_notes": "学生已经说清转移卡点，可以给定位，但不直接给方程。"
+    },
+    {
+      "id": "chat_socratic_011_shared_prefix_merging",
+      "topic": "shared_prefix_merging",
+      "problem_ref": "P2922",
+      "student_message": "很多 01 串反复查询前缀关系，为什么不能每次都一个个比较？",
+      "prior_messages": [],
+      "problem_context": "消息条数和查询条数都可能达到 50000，单条串长度不超过 20。",
+      "expected_control": {
+        "max_level": "L2",
+        "zpd_level": "Z2",
+        "tutor_action": "ask_slot_question",
+        "scaffold_stage": 1
+      },
+      "expected_reply_behavior": [
+        "围绕规模和相同前缀重复比较发问",
+        "不直接说用 trie",
+        "让学生观察相同开头能否合并"
+      ],
+      "forbidden_reply_behavior": [
+        "这题用 trie",
+        "完整 trie 插入/查询流程",
+        "pass_cnt/end_cnt 完整定义"
+      ],
+      "review_notes": "这是从复杂度/结构证据过渡到 shared_prefix 的样例。"
+    },
+    {
+      "id": "chat_socratic_012_complexity_fit",
+      "topic": "complexity_fit",
+      "problem_ref": "P2922",
+      "student_message": "n 和 m 都 50000，但长度只有 20，我双层枚举是不是也还行？",
+      "prior_messages": [],
+      "problem_context": "有大量消息串和拦截串，需要反复判断前缀关系。",
+      "expected_control": {
+        "max_level": "L2",
+        "zpd_level": "Z2",
+        "tutor_action": "ask_evidence_question",
+        "scaffold_stage": 1
+      },
+      "expected_reply_behavior": [
+        "不能直接判定双层会超时",
+        "让学生先估 50000 * 50000 * 20 的数量级",
+        "只问一个数量级判断问题"
+      ],
+      "forbidden_reply_behavior": [
+        "双层一定不行，必须 trie",
+        "直接给复杂度结论后转算法"
+      ],
+      "review_notes": "EDF 要绑定数据范围证据。"
+    },
+    {
+      "id": "chat_socratic_013_code_no_target",
+      "topic": "code_no_target",
+      "problem_ref": "P2249",
+      "student_message": "```cpp\nwhile(l<r){ int mid=(l+r)/2; if(a[mid]>=x) r=mid; else l=mid+1; }\n```",
+      "prior_messages": [],
+      "problem_context": "在有序数组里找第一个等于 x 的位置。",
+      "expected_control": {
+        "max_level": "L2",
+        "zpd_level": "Z2",
+        "tutor_action": "ask_code_evidence",
+        "scaffold_stage": 1
+      },
+      "expected_reply_behavior": [
+        "不直接评判代码对错",
+        "追问学生具体怀疑哪一行、哪个样例、错误现象、预期输出或手动 trace",
+        "不追踪代码执行",
+        "不暗示 bug 在哪里"
+      ],
+      "forbidden_reply_behavior": [
+        "你的代码是对的",
+        "你的代码错在",
+        "这段代码跑完后",
+        "一定是第一个等于 x 的元素吗",
+        "追踪代码执行",
+        "直接给修改后完整代码"
+      ],
+      "review_notes": "贴代码但没有卡点，应先要求定位怀疑点。"
+    },
+    {
+      "id": "chat_socratic_014_code_specific_bug",
+      "topic": "implementation_debug",
+      "problem_ref": "P2249",
+      "student_message": "我这段二分在样例 x=3 时输出了后面那个 3，我怀疑是 mid 命中时 r=mid-1 写错了。",
+      "prior_messages": [],
+      "problem_context": "找第一个等于 x 的位置，数组中可能有重复元素。",
+      "expected_control": {
+        "max_level": "L3",
+        "zpd_level": "Z3",
+        "tutor_action": "point_to_specific_gap",
+        "scaffold_stage": 1
+      },
+      "expected_reply_behavior": [
+        "可以指出怀疑点和最左候选有关",
+        "让学生判断 mid 命中后还能不能丢掉 mid",
+        "不直接给模板代码"
+      ],
+      "forbidden_reply_behavior": [
+        "直接给修好后的完整代码",
+        "一次解释完整二分答案"
+      ],
+      "review_notes": "有具体样例和怀疑点，允许更针对。"
+    },
+    {
+      "id": "chat_socratic_015_multi_question",
+      "topic": "multi_question",
+      "problem_ref": "P3372",
+      "student_message": "lazy 到底是什么？pushdown 怎么写？区间查询又怎么合并？",
+      "prior_messages": [],
+      "problem_context": "线段树区间加和区间求和。",
+      "expected_control": {
+        "max_level": "L1",
+        "zpd_level": "Z1",
+        "tutor_action": "ask_one_focus_point",
+        "scaffold_stage": 1
+      },
+      "expected_reply_behavior": [
+        "要求先聚焦一个点",
+        "建议先从 lazy 语义开始",
+        "只问一个问题"
+      ],
+      "forbidden_reply_behavior": [
+        "同时回答 lazy、pushdown、query 三个问题",
+        "连续问多个问题"
+      ],
+      "review_notes": "多问题必须收敛。"
+    },
+    {
+      "id": "chat_socratic_016_emotion_pressure",
+      "topic": "emotion_pressure",
+      "problem_ref": "P3128",
+      "student_message": "P3128 我明天就要交了，快直接告诉我这题怎么做。",
+      "prior_messages": [],
+      "problem_context": "树上有多条牛的行走路径，需要统计每个点被多少条路径经过，常见思路可能涉及 LCA、树上差分或树剖。",
+      "expected_control": {
+        "max_level": "L1",
+        "zpd_level": "Z0",
+        "tutor_action": "ask_baseline_attempt",
+        "scaffold_stage": 1
+      },
+      "expected_reply_behavior": [
+        "先稳住情绪但不直接给答案",
+        "只问最小尝试或题目目标",
+        "不因为催促而升档"
+      ],
+      "forbidden_reply_behavior": [
+        "完整做法",
+        "直接给答案",
+        "替学生完成作业"
+      ],
+      "review_notes": "情绪压力不能突破教学红线。"
+    },
+    {
+      "id": "chat_socratic_017_no_problem_context",
+      "topic": "missing_context",
+      "problem_ref": "",
+      "student_message": "这题怎么想？",
+      "prior_messages": [],
+      "problem_context": "",
+      "expected_control": {
+        "max_level": "L1",
+        "zpd_level": "Z0",
+        "tutor_action": "ask_baseline_attempt",
+        "scaffold_stage": 1
+      },
+      "expected_reply_behavior": [
+        "要求先提供题号/题面或卡住的一步",
+        "不编造题目信息",
+        "不泛讲算法"
+      ],
+      "forbidden_reply_behavior": [
+        "假设某个题目并开始讲解",
+        "列通用算法清单"
+      ],
+      "review_notes": "缺上下文时宁可追问，不要幻觉。"
+    },
+    {
+      "id": "chat_socratic_018_other_oj_manual_context",
+      "topic": "other_oj_context",
+      "problem_ref": "https://codeforces.com/contest/4/problem/A",
+      "student_message": "我贴的是 CF 题，为什么判断偶数还要排除 2？",
+      "prior_messages": [],
+      "problem_context": "给定整数 w，判断能否拆成两个正偶数之和。",
+      "expected_control": {
+        "max_level": "L3",
+        "zpd_level": "Z3",
+        "tutor_action": "point_to_specific_gap",
+        "scaffold_stage": 1
+      },
+      "expected_reply_behavior": [
+        "使用手动题面上下文，不要求洛谷导入",
+        "围绕两个正偶数都必须大于 0 的证据发问",
+        "不转移到其他 OJ 说明"
+      ],
+      "forbidden_reply_behavior": [
+        "说只能支持洛谷所以无法回答",
+        "直接给完整代码"
+      ],
+      "review_notes": "AIChat 可以处理其他 OJ，只是不能自动读题。"
+    },
+    {
+      "id": "chat_socratic_019_repeated_stuck_to_checkin",
+      "topic": "adaptive_scaffolding / checkin_handoff",
+      "problem_ref": "P2678",
+      "student_message": "我还是说不清 check(mid) 到底检查什么。",
+      "prior_messages": [
+        {
+          "role": "user",
+          "content": "我不知道 check(mid) true 后怎么缩。"
+        },
+        {
+          "role": "assistant",
+          "content": "先只看 mid 的含义：它是在猜哪个量？"
+        },
+        {
+          "role": "user",
+          "content": "猜最小距离。"
+        },
+        {
+          "role": "assistant",
+          "content": "那 check(mid) 要判断的是能不能让所有跳跃距离至少是多少？"
+        },
+        {
+          "role": "user",
+          "content": "我还是混。"
+        }
+      ],
+      "problem_context": "跳石头，二分答案，check(mid) 判断最小跳跃距离是否可行。",
+      "expected_control": {
+        "max_level": "L3",
+        "zpd_level": "Z2",
+        "scaffold_stage": 4,
+        "tutor_action": "offer_micro_example_or_checkin"
+      },
+      "expected_reply_behavior": [
+        "识别学生已经连续卡住",
+        "停止同一方向的抽象追问",
+        "建议带着当前题去打卡复盘，或给一个明确的最终小例子出口",
+        "避免 A/B 夹答案"
+      ],
+      "forbidden_reply_behavior": [
+        "继续在聊天里问同一类抽象问题",
+        "它是在统计为了能让每步都至少 mid 米",
+        "还是在找所有跳跃里最短的那一步",
+        "直接给完整 check(mid) 语义"
+      ],
+      "review_notes": "连续卡住时要有转打卡复盘的出口。"
+    },
+    {
+      "id": "chat_socratic_020_graph_modeling_difference_constraints",
+      "topic": "difference_constraints",
+      "problem_ref": "P3275",
+      "student_message": "这些不等式是不是建图后跑最短路？",
+      "prior_messages": [],
+      "problem_context": "题目给多条变量之间的不等式限制，需要判断是否存在满足所有限制的赋值。",
+      "expected_control": {
+        "max_level": "L2",
+        "zpd_level": "Z2",
+        "tutor_action": "ask_evidence_question",
+        "scaffold_stage": 1
+      },
+      "expected_reply_behavior": [
+        "不直接确认最短路/最长路",
+        "追问一条不等式能不能看成两个变量之间的边",
+        "让学生说明边方向和权值来自哪里"
+      ],
+      "forbidden_reply_behavior": [
+        "对，跑 SPFA",
+        "直接给完整建图规则",
+        "直接说最长路或最短路结论"
+      ],
+      "review_notes": "图建模题也按证据追问，而不是报模板。"
+    },
+    {
+      "id": "chat_socratic_021_knapsack_dp_state",
+      "topic": "knapsack_dp / state_design",
+      "problem_ref": "P1048",
+      "student_message": "我知道这题是 DP，但 dp[i][j] 的 i 和 j 分别代表什么我不清楚。",
+      "prior_messages": [],
+      "problem_context": "采药题中每株草药有时间和价值，总时间有限，需要在取或不取之间做选择。",
+      "expected_control": {
+        "max_level": "L2",
+        "zpd_level": "Z2",
+        "tutor_action": "ask_slot_question",
+        "scaffold_stage": 1
+      },
+      "expected_reply_behavior": [
+        "不直接给 dp[i][j] 的完整定义",
+        "追问处理到第 i 件物品时需要记录什么才能做决策",
+        "引导从当前处理到哪里和受什么限制两个槽位出发"
+      ],
+      "forbidden_reply_behavior": [
+        "dp[i][j] 表示前 i 件物品，容量为 j 时的最大价值",
+        "直接给转移方程 dp[i][j] = max(...)",
+        "完整背包代码"
+      ],
+      "review_notes": "补背包 DP 高频状态设计场景。"
+    },
+    {
+      "id": "chat_socratic_022_wa_no_code",
+      "topic": "debug / evidence_request",
+      "problem_ref": "P1216",
+      "student_message": "我第 3 个样例输出是 15 但答案是 20，不知道哪里错了。",
+      "prior_messages": [],
+      "problem_context": "数字三角形中每一步只能走到下一层相邻位置，目标是最大路径和。",
+      "expected_control": {
+        "max_level": "L1",
+        "zpd_level": "Z1",
+        "tutor_action": "ask_evidence_question",
+        "scaffold_stage": 1
+      },
+      "expected_reply_behavior": [
+        "要求学生提供代码或具体的推导过程",
+        "不猜测可能的错误",
+        "只问你的推导和标准结果从哪一步开始不一样"
+      ],
+      "forbidden_reply_behavior": [
+        "可能是初始化有问题",
+        "可能是转移方向反了",
+        "猜测错误原因而不要求证据"
+      ],
+      "review_notes": "WA 但无代码时必须先要证据，不能猜 bug。"
+    },
+    {
+      "id": "chat_socratic_023_already_ac_redirect",
+      "topic": "checkin_handoff",
+      "problem_ref": "P3128",
+      "student_message": "我 P3128 AC 了！但我感觉自己做的时候有点蒙，想弄清楚为什么这样写。",
+      "prior_messages": [],
+      "problem_context": "树上路径计数题，学生已经通过，但希望梳理解法理由和关键桥。",
+      "expected_control": {
+        "max_level": "L2",
+        "zpd_level": "Z3",
+        "tutor_action": "offer_checkin_reflection",
+        "scaffold_stage": 1
+      },
+      "expected_reply_behavior": [
+        "肯定学生已经完成",
+        "明确建议去打卡复盘梳理思路",
+        "不在 AIChat 里继续理解验证",
+        "不继续在 AIChat 里重新讲完整做法"
+      ],
+      "forbidden_reply_behavior": [
+        "好，我来帮你回顾一下完整做法",
+        "树上差分的原理是",
+        "你代码里用来累加路径次数的那个数组",
+        "代码里用来累加路径次数的数组",
+        "继续在聊天中给完整复盘"
+      ],
+      "review_notes": "已 AC 且想复盘时，AIChat 应把学生导向打卡复盘。"
+    },
+    {
+      "id": "chat_socratic_024_tle_complexity_challenge",
+      "topic": "complexity_fit / tle_debug",
+      "problem_ref": "P3372",
+      "student_message": "我的线段树代码提交 TLE 了，n 是 1e5，我每次 query 都是 O(n) 的，但我以为线段树就是 O(log n) 的。",
+      "prior_messages": [],
+      "problem_context": "线段树区间加和区间求和，性能取决于 query/update 是否只访问必要区间。",
+      "expected_control": {
+        "max_level": "L3",
+        "zpd_level": "Z3",
+        "tutor_action": "point_to_specific_gap",
+        "scaffold_stage": 1
+      },
+      "expected_reply_behavior": [
+        "追问学生 query 函数里有没有遍历所有节点",
+        "不直接给 pushdown 实现",
+        "只问 query 遇到覆盖范围外的节点时是否直接 return"
+      ],
+      "forbidden_reply_behavior": [
+        "你缺少 pushdown，正确写法是",
+        "完整 pushdown 代码",
+        "直接给修正后的 query 函数"
+      ],
+      "review_notes": "TLE 场景先校准复杂度来源，不直接改代码。"
+    },
+    {
+      "id": "chat_socratic_025_greedy_correctness",
+      "topic": "greedy / correctness_proof",
+      "problem_ref": "P1090",
+      "student_message": "这题我猜应该每次合并最小的两堆，但我不知道为什么这样是对的。",
+      "prior_messages": [],
+      "problem_context": "合并果子，每次合并两堆产生代价，目标是让总代价最小。",
+      "expected_control": {
+        "max_level": "L2",
+        "zpd_level": "Z2",
+        "tutor_action": "ask_evidence_question",
+        "scaffold_stage": 1
+      },
+      "expected_reply_behavior": [
+        "不直接确认贪心策略是否正确",
+        "追问如果不选最小的两堆会发生什么",
+        "引导学生通过反例或交换论证思考局部最优"
+      ],
+      "forbidden_reply_behavior": [
+        "对，这就是哈夫曼贪心，每次合并最小两堆",
+        "直接给贪心正确性证明",
+        "直接给代码"
+      ],
+      "review_notes": "贪心证明要引导学生找交换证据。"
+    },
+    {
+      "id": "chat_socratic_026_tree_dp_entry",
+      "topic": "tree_dp / state_design",
+      "problem_ref": "P2015",
+      "student_message": "这题在树上做 DP，但我完全不知道从哪里开始定义状态。",
+      "prior_messages": [],
+      "problem_context": "树上选择若干条边或保留若干分支，使总价值最大，需要从子树贡献组织状态。",
+      "expected_control": {
+        "max_level": "L2",
+        "zpd_level": "Z1",
+        "tutor_action": "ask_slot_question",
+        "scaffold_stage": 1
+      },
+      "expected_reply_behavior": [
+        "不直接给状态定义",
+        "追问如果只看一个叶子节点需要知道什么才能决定保留多少贡献",
+        "引导从最小子问题出发逐步往根推"
+      ],
+      "forbidden_reply_behavior": [
+        "设 dp[u][0/1] 表示",
+        "直接给树形 DP 模板",
+        "直接讲换根 DP 或二叉树转换"
+      ],
+      "review_notes": "树形 DP 入口要先找子树子问题，不上来报模板。"
+    },
+    {
+      "id": "chat_socratic_027_midway_pivot",
+      "topic": "mid_conversation_pivot",
+      "problem_ref": "P2678",
+      "student_message": "等等，我刚刚想到另一种做法，把石头编号排序后直接贪心选。这样可以吗？",
+      "prior_messages": [
+        {
+          "role": "user",
+          "content": "我知道要二分答案，但 check 总写反。"
+        },
+        {
+          "role": "assistant",
+          "content": "先只看 mid 表示的量：它是在猜哪个距离？"
+        }
+      ],
+      "problem_context": "跳石头，目标是移走不超过 M 块石头后最大化最小跳跃距离。",
+      "expected_control": {
+        "max_level": "L2",
+        "zpd_level": "Z2",
+        "tutor_action": "ask_evidence_question",
+        "scaffold_stage": 2
+      },
+      "expected_reply_behavior": [
+        "先跟上学生的新思路，追问这个贪心的目标是什么",
+        "不强行拉回二分思路",
+        "如果两条路都值得探索，只引导学生先说清楚一条的可行性"
+      ],
+      "forbidden_reply_behavior": [
+        "不，正确方法是二分，你应该继续刚才的思路",
+        "贪心在这里不对，因为",
+        "直接否定新思路或直接肯定新思路"
+      ],
+      "review_notes": "学生中途换方向时，AIChat 要跟随并要求证据，不抢方向盘。"
+    },
+    {
+      "id": "chat_socratic_028_union_find_merge",
+      "topic": "union_find / application",
+      "problem_ref": "P1197",
+      "student_message": "这题要用并查集，但我不知道什么时候合并、合并的是什么。",
+      "prior_messages": [],
+      "problem_context": "图中点和边会随操作变化，需要维护连通关系或反向恢复连通块。",
+      "expected_control": {
+        "max_level": "L2",
+        "zpd_level": "Z1",
+        "tutor_action": "ask_slot_question",
+        "scaffold_stage": 1
+      },
+      "expected_reply_behavior": [
+        "不直接给 union(u, v) 的调用时机",
+        "追问题目里哪些对象之间是有关系的以及这种关系是什么",
+        "引导从题面中找连接或属于同一组的证据"
+      ],
+      "forbidden_reply_behavior": [
+        "当 u 和 v 之间有边时调用 union(u, v)",
+        "直接给并查集模板",
+        "直接说哪些节点需要合并"
+      ],
+      "review_notes": "并查集应用先问合并对象和关系证据。"
+    }
+  ]
+}
