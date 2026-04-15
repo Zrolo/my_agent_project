@@ -10,13 +10,15 @@ echo "========================================"
 echo
 
 echo "[1/6] Python 语法检查..."
-python3 -m py_compile api_server.py database.py review_engine.py
+python3 -m py_compile api_server.py database.py review_engine.py evals/aichat/run_chat_batch.py evals/aichat/run_socratic_suite.py
 echo
 
 echo "[2/6] 核心后端回归..."
 python3 -m unittest \
   test_review_async_api_unit.py \
   test_checkin_handoff_receiver_unit.py \
+  test_aichat_chat_batch_runner_unit.py \
+  test_aichat_socratic_suite_unit.py \
   test_review_engine_messages_unit.py \
   test_review_quality_eval_unit.py \
   test_review_eval_kimi_cli_unit.py
