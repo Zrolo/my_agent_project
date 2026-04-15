@@ -188,7 +188,7 @@ TUTOR_ACTION_BY_RISK = {
 }
 
 
-def _detect_risks(user_input: str) -> list:
+def _detect_risks(user_input: str, messages: list | None = None) -> list:
     """
     风险轨：检测学生输入中的套答案风险
     
@@ -230,7 +230,7 @@ def _detect_risks(user_input: str) -> list:
     if question_count >= 2:
         risks.append("multi_question")
 
-    if _contains_code(user_input) and not _has_doubt_point(user_input):
+    if _contains_code(user_input) and not _has_doubt_point(user_input) and not _has_debug_evidence_in_messages(messages):
         risks.append("code_no_target")
 
     if _is_debug_no_code_request(user_input):
@@ -471,7 +471,7 @@ def analyze_student_turn(user_input: str, messages: list) -> dict:
             level_control["l2_current_slot"] = _determine_current_slot(level_control["l2_slot_state"])
     
     # ========== 风险轨：检测套答案风险 ==========
-    risk_tags = _detect_risks(user_input)
+    risk_tags = _detect_risks(user_input, messages)
     if _is_missing_context_request(user_input, messages) and "missing_context" not in risk_tags:
         risk_tags.append("missing_context")
     highest_risk = _get_highest_risk(risk_tags)
@@ -565,6 +565,28 @@ def _has_doubt_point(text: str) -> bool:
         r'dp\[.*\]', r'数组.*越界', r'循环.*条件'
     ]
     return any(re.search(p, text, re.IGNORECASE) for p in doubt_patterns)
+
+
+def _has_debug_evidence(text: str) -> bool:
+    evidence_patterns = [
+        r"样例",
+        r"WA|TLE|RE|MLE|CE|编译",
+        r"输出.*(?:但是|但|不一样|预期|答案)",
+        r"预期.*(?:输出|结果)",
+        r"第\s*\d+\s*行",
+        r"line\s*\d+",
+        r"怀疑",
+        r"手算",
+        r"推导",
+        r"trace",
+        r"这里",
+        r"这行",
+    ]
+    return any(re.search(pattern, text, re.IGNORECASE) for pattern in evidence_patterns)
+
+
+def _has_debug_evidence_in_messages(messages: list | None) -> bool:
+    return any(_has_debug_evidence(str(msg.get("content", ""))) for msg in (messages or []))
 
 
 def _has_l3_evidence(text: str) -> bool:

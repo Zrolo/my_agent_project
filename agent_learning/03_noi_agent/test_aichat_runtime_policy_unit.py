@@ -184,6 +184,31 @@ class AIChatRuntimePolicyTests(unittest.TestCase):
         self.assertIn("哪一行", reply)
         self.assertIn("样例", reply)
 
+    def test_code_without_target_should_not_create_handoff_payload(self):
+        from noi_agent import build_policy_handoff_payload
+
+        messages = self._messages("```cpp\nwhile(l<r){ int mid=(l+r)/2; if(a[mid]>=x) r=mid; else l=mid+1; }\n```")
+        control = analyze_student_turn(messages[-1]["content"], messages)
+
+        self.assertEqual("ask_code_evidence", control["tutor_control"]["tutor_action"])
+        self.assertIsNone(build_policy_handoff_payload(control, messages))
+
+    def test_pasted_code_with_prior_failing_sample_should_not_be_code_no_target(self):
+        prior = [
+            {
+                "role": "user",
+                "content": "样例 x=3 时输出了第二个 3，但我预期是第一个 3。",
+            }
+        ]
+        messages = self._messages(
+            "```cpp\nwhile(l<r){ int mid=(l+r)/2; if(a[mid]>=x) r=mid; else l=mid+1; }\n```",
+            prior,
+        )
+        control = analyze_student_turn(messages[-1]["content"], messages)
+
+        self.assertNotIn("code_no_target", control["risk_control"]["risk_tags"])
+        self.assertNotEqual("ask_code_evidence", control["tutor_control"]["tutor_action"])
+
     def test_wa_without_code_should_request_evidence_without_echoing_answer(self):
         messages = self._messages("我第 3 个样例输出是 15 但答案是 20，不知道哪里错了。")
         control = analyze_student_turn(messages[-1]["content"], messages)
