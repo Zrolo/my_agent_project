@@ -21,3 +21,13 @@ CC-Switch-v3.11.1-Windows-Portable/
 *.bak
 *.bak_*
 *.log
+
+# JavaScript dependencies and local build/test outputs
+node_modules/
+test-results/
+
+# Agent-local scratch state and generated review reports
+.claude/
+.superpowers/
+.tmp_*.spec.js
+agent_learning/03_noi_agent/evals/aichat/reports/
