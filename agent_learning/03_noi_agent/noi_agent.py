@@ -340,7 +340,15 @@ def _select_tutor_control(level_control: dict, risk_control: dict, messages: lis
         else:
             tutor_action = "point_to_specific_gap"
 
-    if scaffold_stage >= 4 and tutor_action not in {"ask_baseline_attempt", "ask_one_focus_point", "offer_checkin_reflection"}:
+    stage_four_preserve_actions = {
+        "ask_baseline_attempt",
+        "ask_one_focus_point",
+        "offer_checkin_reflection",
+        "request_problem_context",
+        "ask_code_evidence",
+        "ask_debug_evidence",
+    }
+    if scaffold_stage >= 4 and tutor_action not in stage_four_preserve_actions:
         tutor_action = "offer_micro_example_or_checkin"
 
     allowed_help_by_stage = {
@@ -586,7 +594,11 @@ def _has_debug_evidence(text: str) -> bool:
 
 
 def _has_debug_evidence_in_messages(messages: list | None) -> bool:
-    return any(_has_debug_evidence(str(msg.get("content", ""))) for msg in (messages or []))
+    return any(
+        _has_debug_evidence(str(msg.get("content", "")))
+        for msg in (messages or [])
+        if msg.get("role") == "user"
+    )
 
 
 def _has_l3_evidence(text: str) -> bool:
