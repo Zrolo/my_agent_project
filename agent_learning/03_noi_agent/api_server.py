@@ -34,6 +34,8 @@ from auth import (
 )
 from noi_agent import (
     PER_PROBLEM_HINT_LIMIT,
+    analyze_student_turn,
+    build_policy_handoff_payload,
     chat,
     get_remaining_quota,
     load_quota,
@@ -552,6 +554,7 @@ class ChatResponse(BaseModel):
     reply: str
     remaining_quota: int
     level: str
+    handoff_payload: Optional[dict] = None
 
 
 # ============ Quota Models ============
@@ -583,6 +586,7 @@ class CheckinRequest(BaseModel):
     chat_context_summary: str = Field(default="", description="同题近期 AI 解答摘要，仅作辅助线索")
     submission_result: Optional[Literal["not_submitted", "wa", "tle", "re", "ce", "unknown"]] = None
     student_code: Optional[str] = None
+    handoff_payload: Optional[dict] = Field(default=None, description="AIChat 移交 payload（v0 合约）")
 
 
 class CheckinResponse(BaseModel):
@@ -999,6 +1003,7 @@ def _generate_and_store_review(
     local_problem_id: Optional[int] = None,
     submission_result: Optional[str] = None,
     student_code: Optional[str] = None,
+    handoff_payload: Optional[dict] = None,
 ):
     started_at = time.perf_counter()
     try:
@@ -1024,6 +1029,7 @@ def _generate_and_store_review(
             submission_result=submission_result,
             student_code=student_code,
             draft_callback=handle_review_draft,
+            handoff_payload=handoff_payload,
         )
     except Exception as exc:
         error_message = f"{type(exc).__name__}: {exc}"
@@ -1251,6 +1257,10 @@ def chat_endpoint(
     
     messages = session_histories[session_key].copy()
     messages.append({"role": "user", "content": request.message})
+    handoff_payload = build_policy_handoff_payload(
+        analyze_student_turn(messages[-1]["content"], messages),
+        messages,
+    )
 
     try:
         reply_for_display, reply_for_history, final_level = chat(
@@ -1275,6 +1285,7 @@ def chat_endpoint(
         reply=reply_for_display,
         remaining_quota=get_remaining_quota(user["user_id"], request.problem_id),
         level=final_level,
+        handoff_payload=handoff_payload,
     )
 
 
@@ -1479,6 +1490,7 @@ def create_checkin_endpoint(
         local_problem_id=local_problem_id,
         submission_result=request.submission_result,
         student_code=request.student_code,
+        handoff_payload=request.handoff_payload,
     )
 
     if request.oj_source == "luogu" and local_problem_id:

@@ -155,17 +155,27 @@ function buildChatContextSummary(question, answer) {
     return `最近问到：${questionSnippet}；AI 重点回答：${answerSnippet}`;
 }
 
-function rememberProblemChatContext(problemRef, question, answer) {
+function buildProblemChatContextRecord(problemRef, question, answer, handoffPayload = null) {
     const normalizedRef = normalizeProblemRef(problemRef);
-    if (!normalizedRef) return;
-    const store = loadChatContextStore();
-    store[normalizedRef] = {
+    if (!normalizedRef) return null;
+    const record = {
         problemRef: normalizedRef,
         summary: buildChatContextSummary(question, answer),
         question: cleanChatSnippet(question, 120),
         answer: cleanChatSnippet(answer, 180),
         updatedAt: new Date().toISOString(),
     };
+    if (handoffPayload && typeof handoffPayload === 'object') {
+        record.handoffPayload = handoffPayload;
+    }
+    return record;
+}
+
+function rememberProblemChatContext(problemRef, question, answer, handoffPayload = null) {
+    const record = buildProblemChatContextRecord(problemRef, question, answer, handoffPayload);
+    if (!record) return;
+    const store = loadChatContextStore();
+    store[record.problemRef] = record;
     saveChatContextStore(store);
 }
 
@@ -2071,7 +2081,7 @@ async function studentSendMessage() {
         });
         const data = await res.json();
         addChatMessage('assistant', data.reply);
-        rememberProblemChatContext(activeChatProblemRef || pid, message, data.reply);
+        rememberProblemChatContext(activeChatProblemRef || pid, message, data.reply, data.handoff_payload);
         renderLinkedChatContextCard();
         document.getElementById('quota-info').textContent =
             `剩余配额: ${data.remaining_quota} | 本次级别: ${data.level}`;
@@ -2728,6 +2738,7 @@ async function submitCheckin() {
     const linkedProblemRef = resolveCurrentCheckinProblemRef();
     const linkedChatContext = getProblemChatContext(linkedProblemRef);
     const chatContextSummary = linkedChatContext?.summary || '';
+    const handoffPayload = linkedChatContext?.handoffPayload || null;
 
     if (!problemTitle && !hasLuoguUrl) {
         resultEl.classList.remove('hidden');
@@ -2791,6 +2802,7 @@ async function submitCheckin() {
                 problem_context: problemContext,
                 problem_tags: importedProblemMeta.problemTags || [],
                 chat_context_summary: chatContextSummary,
+                handoff_payload: handoffPayload,
                 submission_result: submissionResult,
                 student_code: studentCode || null,
             }),

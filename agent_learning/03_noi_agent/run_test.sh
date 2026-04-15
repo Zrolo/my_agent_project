@@ -16,6 +16,7 @@ echo
 echo "[2/6] 核心后端回归..."
 python3 -m unittest \
   test_review_async_api_unit.py \
+  test_checkin_handoff_receiver_unit.py \
   test_review_engine_messages_unit.py \
   test_review_quality_eval_unit.py \
   test_review_eval_kimi_cli_unit.py
@@ -33,7 +34,8 @@ echo "[5/6] 前端 Node 测试..."
 node --test \
   test_review_family_ui.mjs \
   test_teacher_manual_review_ui.mjs \
-  test_teacher_stats_ui.mjs
+  test_teacher_stats_ui.mjs \
+  test_aichat_checkin_handoff_frontend.mjs
 echo
 
 echo "[6/6] 前端语法检查..."

@@ -143,6 +143,66 @@ class ReviewAsyncApiTests(unittest.TestCase):
         self.assertEqual("failed_verdict", response.json()["review_mode"])
         self.assertEqual("failure_diagnosis", response.json()["review_family"])
 
+    def test_chat_endpoint_returns_handoff_payload_for_ac_unclear(self):
+        with patch.object(api_server, "chat", return_value=("请去打卡复盘。", "请去打卡复盘。", "L2")):
+            response = self.client.post(
+                "/chat",
+                headers=auth_headers(self.owner_id),
+                json={
+                    "student_id": self.owner_id,
+                    "problem_id": "P3128",
+                    "message": "我 P3128 AC 了！但我感觉自己做的时候有点蒙，想弄清楚为什么这样写。",
+                    "session_id": f"sess_handoff_{self.owner_id}",
+                    "problem_title": "P3128 [USACO15DEC] Max Flow P",
+                    "problem_url": "https://www.luogu.com.cn/problem/P3128",
+                    "problem_context": "给一棵树和多条运输路径，要求统计经过次数最多的点。",
+                },
+            )
+
+        self.assertEqual(200, response.status_code, response.text)
+        payload = response.json()["handoff_payload"]
+        self.assertEqual("checkin_reflection", payload["handoff_type"])
+        self.assertEqual("aichat", payload["source"])
+        self.assertEqual("ac_unclear_in_aichat", payload["risk_type"])
+        self.assertEqual("P3128", payload["problem_ref"])
+        self.assertIn("复盘已 AC", payload["suggested_focus"])
+
+    def test_create_checkin_passes_handoff_payload_to_review_generation_job(self):
+        handoff_payload = {
+            "handoff_type": "checkin_reflection",
+            "source": "aichat",
+            "risk_type": "ac_unclear_in_aichat",
+            "problem_ref": "P3128",
+            "last_user_message": "我 P3128 AC 了但有点蒙。",
+            "suggested_focus": "复盘已 AC 题目的关键桥，验证一个理解点。",
+        }
+        payload = {
+            "problem_url": "https://www.luogu.com.cn/problem/P3128",
+            "problem_title": "P3128 [USACO15DEC] Max Flow P",
+            "oj_source": "luogu",
+            "completion_status": "independent",
+            "problem_context": "给一棵树和多条运输路径，要求统计经过次数最多的点。",
+            "submission_result": "not_submitted",
+            "bottleneck_text": "我已经 AC 了，但还是说不清为什么差分数组这样处理公共祖先。",
+            "error_types": ["模型转化"],
+            "reflection": "我想复盘关键桥。",
+            "problem_tags": [],
+            "chat_context_summary": "AIChat 建议转打卡复盘。",
+            "student_code": "",
+            "handoff_payload": handoff_payload,
+        }
+
+        with patch.object(api_server, "_start_review_generation_job", return_value=None) as mocked_job:
+            response = self.client.post(
+                "/api/checkins",
+                json=payload,
+                headers=auth_headers(self.owner_id),
+            )
+
+        self.assertEqual(200, response.status_code, response.text)
+        mocked_job.assert_called_once()
+        self.assertEqual(handoff_payload, mocked_job.call_args.kwargs["handoff_payload"])
+
     def test_student_detail_returns_review_mode_and_family(self):
         checkin_id = self._create_checkin(self.owner_id, "mode-visible")
         create_pending_review(checkin_id, self.owner_id)

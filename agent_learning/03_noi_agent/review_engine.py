@@ -477,7 +477,7 @@ def _family_for_review_mode(mode: str) -> str:
     return "failure_diagnosis"
 
 
-def _build_review_system_prompt(mode: str = "independent_reflect") -> str:
+def _build_review_system_prompt(mode: str = "independent_reflect", handoff_payload: dict | None = None) -> str:
     """按 mode 构建 review system prompt。
 
     Mode → Family 映射（见 _detect_review_mode）：
@@ -575,7 +575,29 @@ transfer_signal
 - next_step 只写当前题的一步验证动作，不写变形和拓展
 - main_block 如果没有明显卡点，必须写清这道题的核心决策流程（如"在当前油站决定加多少油"、"从堆里弹出最小元素后更新相邻节点"），不能为空，也不能只写做出来了""",
     }
-    return base + supplements.get(mode, supplements["independent_reflect"])
+    prompt = base + supplements.get(mode, supplements["independent_reflect"])
+    if handoff_payload and handoff_payload.get("source") == "aichat":
+        risk_type = handoff_payload.get("risk_type", "")
+        suggested_focus = handoff_payload.get("suggested_focus", "")
+        prompt += f"""
+
+本次复盘来自 AIChat 移交（source=checkin_reflection）。
+移交风险类型：{risk_type}
+建议复盘焦点：{suggested_focus}
+
+在 source=checkin_reflection 模式下，额外允许：
+- 确认学生已有代码中某一行的局部作用（不提供修改后的替换代码）。
+- 给出一个完整的 3-5 节点或小输入微例子，并逐步走一遍状态变化。
+- 说明这道题存在多种合法思路（不展开每种思路的实现步骤）。
+
+source=checkin_reflection 仍然禁止：
+- 完整 DP 状态定义。
+- 完整转移方程。
+- 完整 check(mid) 函数或完整 check 语义。
+- 完整树差分 / LCA 加减公式。
+- 直接给 AC 代码或修改后的整段代码。
+"""
+    return prompt
 
 
 def _build_review_user_prompt(
@@ -591,6 +613,7 @@ def _build_review_user_prompt(
     problem_card: dict | None = None,
     submission_text: str | None = None,
     student_code: str | None = None,
+    handoff_payload: dict | None = None,
 ) -> str:
     focus_text = " ".join(
         filter(
@@ -639,6 +662,19 @@ def _build_review_user_prompt(
     compact_code = _compact_student_code(student_code)
     if compact_code:
         lines.append(f"代码片段：\n```\n{compact_code}\n```")
+
+    if handoff_payload and handoff_payload.get("source") == "aichat":
+        risk_type = handoff_payload.get("risk_type", "")
+        suggested_focus = handoff_payload.get("suggested_focus", "")
+        last_msg = handoff_payload.get("last_user_message", "")
+        if risk_type == "ac_unclear_in_aichat":
+            lines.append("移交背景：学生已 AC 但表示不理解，AIChat 判断需结构化复盘。")
+        elif risk_type == "repeated_stuck_exit":
+            lines.append("移交背景：学生在 AIChat 反复卡住，AIChat 判断需退出当前抽象路径，进入结构化复盘。")
+        if last_msg:
+            lines.append(f"移交前最后一条消息：{last_msg[:200]}")
+        if suggested_focus:
+            lines.append(f"建议复盘焦点：{suggested_focus}")
 
     return "\n".join(lines)
 
@@ -3024,6 +3060,7 @@ def generate_review(
     submission_result: str = None,
     student_code: str = None,
     draft_callback=None,
+    handoff_payload: dict | None = None,
 ) -> dict:
     """
     根据打卡信息生成 AI 复盘
@@ -3069,7 +3106,7 @@ def generate_review(
     allow_algorithm_name = completion_status == "editorial"
 
     mode = _detect_review_mode(completion_status, submission_result)
-    system_prompt = _build_review_system_prompt(mode=mode)
+    system_prompt = _build_review_system_prompt(mode=mode, handoff_payload=handoff_payload)
     user_prompt = _build_review_user_prompt(
         problem_title=problem_title,
         oj_source=oj_source,
@@ -3083,6 +3120,7 @@ def generate_review(
         problem_card=problem_card,
         submission_text=submission_text,
         student_code=student_code,
+        handoff_payload=handoff_payload,
     )
 
     # 调用 LLM
