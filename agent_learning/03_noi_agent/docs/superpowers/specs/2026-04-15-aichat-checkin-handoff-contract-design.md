@@ -101,22 +101,23 @@ Required fields:
 
 - `handoff_type`: always `checkin_reflection` in v0.
 - `source`: always `aichat` for AIChat-originated handoff.
-- `risk_type`: one of the v0 risk types below.
+- `risk_type`: one of the v0 handoff risk types below.
 - `problem_ref`: best-known problem reference or an empty string if unavailable.
 - `last_user_message`: the latest student message that triggered the handoff.
 - `suggested_focus`: fixed string determined only by `risk_type`.
 
 No LLM may generate `suggested_focus` in v0.
 
-## Risk Types And Fixed Focus
+## Handoff Risk Types And Fixed Focus
 
-`suggested_focus` is a fixed enum mapping. If a new `risk_type` is introduced, a fixed focus string must be added at the same time.
+`suggested_focus` is a fixed enum mapping. If a new handoff `risk_type` is introduced, a fixed focus string must be added at the same time.
 
 | risk_type | Trigger | suggested_focus |
 | --- | --- | --- |
 | `ac_unclear_in_aichat` | Student in AIChat says the problem is AC / passed / accepted, while also saying they are unsure, guessed, confused, or want to understand why | `复盘已 AC 题目的关键桥，验证一个理解点。` |
 | `repeated_stuck_exit` | Student has reached repeated-stuck criteria while AIChat has already scaffolded | `用小例子拆开当前卡住的桥，记录卡点和已尝试路径。` |
-| `code_without_debug_target` | Student pasted code without failing sample, concrete error symptom, suspected line, or expected-vs-actual output in the current or prior messages | `先补充失败样例、错误现象或怀疑行，再定位代码问题。` |
+
+`code_without_debug_target` is not a handoff risk type in v0. It is an AIChat-internal guard that asks for debugging evidence before code review. If the student manually enters checkin review from that state, checkin treats it as a normal checkin entry without a special receiver mode.
 
 ## Receiver Behavior
 
@@ -126,15 +127,24 @@ Checkin review must treat the payload as input to its mode and first step.
 | --- | --- | --- | --- |
 | `ac_unclear_in_aichat` | AC reflection mode | Problem ref, latest student message, fixed suggested focus | Ask the student to paste or confirm AC code, or state the one step they are least sure about. Then ask one understanding-verification point. |
 | `repeated_stuck_exit` | Stuck reflection mode | Problem ref, latest student message, fixed suggested focus | Record what the student is stuck on and what they already tried. Then use one 3-5 node or small-input example to split the bridge. |
-| `code_without_debug_target` | Debug evidence prefill mode | Latest student message, fixed suggested focus | Ask the student to add a failing sample, concrete symptom, or suspected line. After that, the student can continue AIChat or choose checkin review. |
-
-`code_without_debug_target` is not an automatic full review. It is a request for evidence before code diagnosis.
 
 ## AIChat Routing Behavior
 
 ### AC But Unclear
 
 In AIChat, `ac_unclear_in_aichat` is a pure handoff.
+
+v0 trigger requires both signal groups:
+
+```text
+AC signal:
+  AC了 / 过了 / 通过了 / 提交成功 / 满分 / accepted
+
+Uncertainty signal:
+  蒙 / 不懂 / 不太懂 / 想复盘 / 没真懂 / 感觉是猜的 / 想弄清楚 / 不确定为什么
+```
+
+Only an AC signal is not enough. Only an uncertainty signal is not enough.
 
 Required response behavior:
 
@@ -177,7 +187,7 @@ Forbidden response behavior:
 
 ### Code Without Debug Target
 
-Before AIChat reviews pasted code, it must have evidence.
+Before AIChat reviews pasted code, it must have evidence. This is an AIChat-internal guard, not a checkin handoff type.
 
 The risk is active only if neither the current message nor prior messages include:
 
@@ -192,9 +202,11 @@ Required response behavior:
 - Ask for one concrete debugging target.
 - Do not trace the code.
 - Do not hint at the bug.
-- Do not create a checkin handoff unless the student chooses to review later.
+- Do not create a checkin handoff for this guard.
 
 If the student later provides the failing sample or suspected line, AIChat may proceed normally with one-step scaffolding.
+
+If the student manually opens checkin review instead, checkin handles it as a normal checkin entry, not a special `code_without_debug_target` receiver mode.
 
 ## `source = checkin_reflection` Permissions
 
@@ -274,6 +286,20 @@ Forbidden behavior:
 - A/B options that contain the correct `check(mid)` bridge.
 - Complete check semantics.
 
+### Case 013
+
+Expected behavior must become:
+
+- Ask for a failing sample, suspected line, concrete error symptom, expected-vs-actual output, or student trace.
+- Do not review or trace the code before evidence is provided.
+- Do not imply where the bug is.
+
+Forbidden behavior:
+
+- Tracing the code before evidence is provided.
+- Asking questions that implicitly confirm the code has a bug.
+- Pointing at a suspicious variable, branch, or boundary before the student provides a debug target.
+
 ### Judge Criteria
 
 The LLM judge prompt must include:
@@ -324,12 +350,12 @@ The likely implementation surfaces are:
 
 - `analyze_student_turn`: risk detection and repeated-stuck detection.
 - `build_policy_override_reply`: deterministic routing text for handoff and evidence request.
-- Chat API or frontend state: optional handoff payload transport.
+- Chat API or frontend state: the handoff payload must be generated internally in all v0 handoff trigger cases.
 - Checkin entry flow: receiver behavior for the handoff payload.
 - `run_socratic_eval` and judge prompt: semantic failures and revised case expectations.
 - Unit tests for payload shape, routing priority, prior-message evidence, and eval failures.
 
-No UI redesign is required for v0. If a clickable button is not available, the visible response can remain text-only, but the internal payload contract must still be generated and testable.
+No UI redesign is required for v0. Frontend delivery through a button or link is not required if unavailable, but the internal payload must exist and be verifiable by unit test.
 
 ## Review Questions
 
