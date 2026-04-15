@@ -30,6 +30,10 @@ HANDOFF_FOCUS_BY_RISK = {
     "repeated_stuck_exit": "用小例子拆开当前卡住的桥，记录卡点和已尝试路径。",
 }
 
+STUCK_SIGNAL_KEYWORDS = [
+    "还是不会", "还是混", "说不清", "想不出", "不懂", "没思路", "想不明白",
+]
+
 # ============ 1. 代码层控制对象定义 ============
 
 # L2 槽位定义
@@ -294,6 +298,20 @@ def _infer_scaffold_stage(messages: list) -> int:
     return max(1, min(user_turns or 1, 4))
 
 
+def _student_texts(messages: list | None) -> list[str]:
+    return [
+        _extract_student_original_input(str(msg.get("content", "")))
+        for msg in (messages or [])
+        if msg.get("role") == "user"
+    ]
+
+
+def _has_repeated_stuck_signals(messages: list | None) -> bool:
+    latest_three = _student_texts(messages)[-3:]
+    stuck_count = sum(_contains_any_keyword(text, STUCK_SIGNAL_KEYWORDS) for text in latest_three)
+    return stuck_count >= 2
+
+
 def _infer_zpd_level(level_control: dict, risk_control: dict) -> str:
     max_level = level_control.get("max_level")
     risk_tags = set(risk_control.get("risk_tags", []))
@@ -310,6 +328,8 @@ def _infer_zpd_level(level_control: dict, risk_control: dict) -> str:
 
 def _select_tutor_control(level_control: dict, risk_control: dict, messages: list) -> dict:
     scaffold_stage = _infer_scaffold_stage(messages)
+    if _has_repeated_stuck_signals(messages):
+        scaffold_stage = 4
     highest_risk = risk_control.get("highest_risk")
     tutor_action = TUTOR_ACTION_BY_RISK.get(highest_risk)
     if not tutor_action:

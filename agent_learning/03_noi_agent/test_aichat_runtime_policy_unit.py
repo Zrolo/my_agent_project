@@ -76,6 +76,39 @@ class AIChatRuntimePolicyTests(unittest.TestCase):
         self.assertEqual("offer_micro_example_or_checkin", control["tutor_control"]["tutor_action"])
         self.assertIn("打卡复盘", reply)
 
+    def test_repeated_stuck_signals_should_force_stage_four_even_with_short_history(self):
+        from noi_agent import build_policy_handoff_payload
+
+        prior = [
+            {"role": "user", "content": "我还是不会判断 check(mid)。"},
+            {"role": "assistant", "content": "先看 mid 表示什么。"},
+            {"role": "user", "content": "我还是说不清。"},
+        ]
+        messages = self._messages("我想不明白这里。", prior)
+        control = analyze_student_turn(messages[-1]["content"], messages)
+
+        payload = build_policy_handoff_payload(control, messages)
+
+        self.assertEqual(4, control["tutor_control"]["scaffold_stage"])
+        self.assertEqual("offer_micro_example_or_checkin", control["tutor_control"]["tutor_action"])
+        self.assertEqual("repeated_stuck_exit", payload["risk_type"])
+        self.assertEqual("用小例子拆开当前卡住的桥，记录卡点和已尝试路径。", payload["suggested_focus"])
+
+    def test_repeated_stuck_reply_should_not_use_ab_bridge_question(self):
+        prior = [
+            {"role": "user", "content": "我还是不会判断 check(mid)。"},
+            {"role": "assistant", "content": "先看 mid 表示什么。"},
+            {"role": "user", "content": "我还是说不清。"},
+        ]
+        messages = self._messages("我想不明白这里。", prior)
+        control = analyze_student_turn(messages[-1]["content"], messages)
+
+        reply = build_policy_override_reply(control, messages)
+
+        self.assertIn("打卡复盘", reply)
+        self.assertNotIn("它是在统计", reply)
+        self.assertNotIn("还是在找", reply)
+
     def test_missing_context_should_ask_for_problem_ref_before_algorithm_slots(self):
         messages = self._messages("这题怎么想？")
         control = analyze_student_turn(messages[-1]["content"], messages)
