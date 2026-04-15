@@ -26,20 +26,20 @@
    - `docs/harness/active_work_item.md`
    - `active_work_item.md` 中列出的相关 contract 文件
 
-1. 分析层：文字、图标、颜色的 UI 修改，直接操作执行层并落地 archive。重大重构/多任务才走规划层。
+1. 分析层：小范围文案、样式、排版调整可以直接进入执行；涉及产品结构、页面语义、学习流或新功能时，必须先走方案。
 
-2. 规划层：使用 using-superpowers 编排流程并产出/更新全局流程图。
+2. 规划层：使用 `using-superpowers` 编排流程；涉及设计时先 `brainstorming`，落实前先写 spec / plan。
 
-3. 任务层：使用 planning-with-files 维护 task_plan.md / progress.md / findings.md。
+3. 任务层：优先维护 harness 与 `docs/superpowers/specs/`、`docs/superpowers/plans/`，不再依赖额外的 `task_plan.md / progress.md / findings.md` 作为强制入口。
 
-4. 执行层：OpenSpec 四步闭环（propose -> 用户确认 -> apply -> archive）。
+4. 执行层：遵循 `propose -> 用户确认 -> apply -> verify` 闭环；重大改动落 spec 和 plan，简单修复可直接落地。
 
-5. 施度控制：动手前用 gsd-method-guide 拆解为 `<files>/<action>/<verify>/<done>`。
+5. 施度控制：动手前先明确 `<files>/<action>/<verify>/<done>`，优先用现有 harness / spec / plan 文档承载，而不是再造新模板。
 
 6. Harness 同步：每轮任务结束前必须按顺序执行以下三步，未完成不算本轮任务结束：
-   - 更新 `docs/harness/current_system_state.md`，反映本轮代码变更（新接通的 API、新入库的字段、新跑通的状态流）
+   - 若本轮改动了真实系统状态，更新 `docs/harness/current_system_state.md`
    - 更新 `docs/harness/active_work_item.md`，标记本轮任务完成状态与下一步
-   - 如果本轮有新拍板的产品/架构规则，追加到 `docs/harness/project_invariants.md`
+   - 如果本轮有新拍板的长期产品/架构规则，追加到 `docs/harness/project_invariants.md`
 
 ---
 
@@ -69,7 +69,7 @@
 
 4. API 接入：参考 `/Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/docs/harness/api_insert.md` 中的现成方案，并不断补充新内容。
 
-5. 自我进化：用户指正后立即更新 `lessons.md`。开始新任务前必须回顾 `lessons.md`。
+5. 自我进化：用户指正后，优先把长期有效规则收进 `docs/harness/project_invariants.md`，把当前轮任务状态收进 `docs/harness/active_work_item.md`；不要依赖仓库中不存在的 `lessons.md`。
 
 ---
 
@@ -105,3 +105,17 @@
    ## 下一步
    - [建议的下一步]
    ```
+
+---
+
+## 当前项目对齐说明
+
+1. 学生端当前已形成明确的页面契约：
+   - `/app/chat`
+   - `/app/checkin`
+   - `/app/history`
+   - `/app/history/:checkin_id`
+
+2. `历史打卡` 仍然属于学生区内部入口，但历史详情已经有独立路由和详情页语义，不能再按“只回到工作台中部状态”理解。
+
+3. 版本治理当前以 `docs/common/version_governance.md` 为主，不再把已归档的 `version_policy.md / version_plan.md` 当作当前权威入口。

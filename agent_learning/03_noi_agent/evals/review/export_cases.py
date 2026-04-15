@@ -143,6 +143,8 @@ def write_cases(cases: list[dict]) -> None:
 def write_promptfoo_tests(cases: list[dict]) -> None:
     with PROMPTFOO_TESTS_PATH.open("w", encoding="utf-8") as f:
         for case in cases:
+            if case.get("mode", "").endswith("_low_quality"):
+                continue
             record = {
                 "description": case["id"],
                 "vars": {
@@ -159,21 +161,23 @@ def write_promptfoo_tests(cases: list[dict]) -> None:
                     },
                     {
                         "type": "javascript",
-                        "description": "四个学生端字段必须非空",
+                        "description": "五个引导式复盘字段必须非空",
                         "value": """
 const r = JSON.parse(output);
-return !!(r.main_block && r.key_bridge && r.next_step && r.transfer_signal);
+return !!(r.problem_focus && r.key_bridge && r.guided_walkthrough && r.try_now && r.transfer_signal);
 """.strip(),
                     },
                     {
                         "type": "llm-rubric",
                         "provider": "openai:chat:kimi-k2.5",
                         "value": """
-main_block 必须提到题目中具体的对象或步骤，不能只写“建模问题”这类分类名。
+problem_focus 必须提到题目中具体的对象、条件、错误现象或步骤，不能只写“建模问题”这类分类名。
 key_bridge 必须包含具体结构或公式，不能只写“理解XX”。
-next_step 必须是今天立刻可执行的动作，不能是“加强基础”。
+visual_hint 不能直接给出最终比较结果或完整答案，应该更像半成品提示。
+guided_walkthrough 必须是贴当前题对象的 2-3 步微引导，不能只写“画图”“手推”“再想想”，而且 guided_walkthrough 每一步只推进一个动作。
+try_now 必须是今天立刻可回答、可验证的一个小动作，try_now 必须直接检查当前桥有没有真的打通，不应该只做表面算数或机械抄写，除非当前桥本身就是规模估算。
 transfer_signal 必须说明看到什么题目特征才联想，不能只写题目名。
-按以上 4 条，每条 0 或 1 分，输出总分 0-4。
+按以上 6 条，每条 0 或 1 分，输出总分 0-6。
 """.strip(),
                         "threshold": 0.75,
                     },

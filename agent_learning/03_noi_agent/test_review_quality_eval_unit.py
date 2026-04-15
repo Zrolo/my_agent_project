@@ -23,7 +23,7 @@ class ReviewQualityEvalTests(unittest.TestCase):
         self.assertFalse(parsed["ok"])
         self.assertEqual(0, parsed["score"])
 
-    def test_build_rubric_prompt_should_only_include_four_student_fields(self):
+    def test_build_rubric_prompt_should_include_guided_review_fields(self):
         case = {
             "input": {
                 "problem_title": "P5536 核心城市",
@@ -33,16 +33,24 @@ class ReviewQualityEvalTests(unittest.TestCase):
             }
         }
         review = {
-            "main_block": "卡点",
+            "problem_focus": "卡点",
             "key_bridge": "桥梁",
-            "next_step": "下一步",
+            "guided_walkthrough": "1. 第一步\n2. 第二步",
+            "try_now": "下一步",
             "transfer_signal": "迁移",
             "diagnosis": "不要带进去",
         }
         prompt = run_review_quality_eval._build_rubric_prompt(case, review)
-        self.assertIn('"main_block": "卡点"', prompt)
+        self.assertIn('"problem_focus": "卡点"', prompt)
+        self.assertIn('"guided_walkthrough": "1. 第一步\\n2. 第二步"', prompt)
+        self.assertIn('"try_now": "下一步"', prompt)
+        self.assertNotIn('"main_block":', prompt)
+        self.assertNotIn('"next_step":', prompt)
         self.assertNotIn("不要带进去", prompt)
-        self.assertIn("main_block 必须提到题目里的具体对象、条件或步骤", prompt)
+        self.assertIn("problem_focus 必须提到题目里的具体对象、条件、错误现象或步骤", prompt)
+        self.assertIn("visual_hint 不能直接给出最终比较结果", prompt)
+        self.assertIn("guided_walkthrough 每一步只推进一个动作", prompt)
+        self.assertIn("try_now 必须直接检查当前桥有没有真的打通", prompt)
 
     def test_build_rubric_prompt_text_should_render_checks_from_json(self):
         rubric = {
@@ -88,9 +96,10 @@ class ReviewQualityEvalTests(unittest.TestCase):
                     return_value=(
                         True,
                         {
-                            "main_block": "卡点",
+                            "problem_focus": "卡点",
                             "key_bridge": "桥梁",
-                            "next_step": "动作",
+                            "guided_walkthrough": "1. 第一步\n2. 第二步",
+                            "try_now": "动作",
                             "transfer_signal": "信号",
                         },
                         12.3,
@@ -112,8 +121,11 @@ class ReviewQualityEvalTests(unittest.TestCase):
         self.assertEqual(1.0, summary["baseline_current_kimi_cli"]["json_ok_rate"])
         self.assertEqual(1.0, summary["mode_route_kimi_cli"]["fields_ok_rate"])
         self.assertEqual(3.0, summary["mode_route_kimi_cli"]["rubric_avg_score"])
-        self.assertEqual(6, summary["mode_route_kimi_cli"]["rubric_max_score"])
-        self.assertEqual(0.5, summary["mode_route_kimi_cli"]["rubric_avg_ratio"])
+        self.assertEqual(run_review_quality_eval._max_rubric_score(run_review_quality_eval._load_rubric()), summary["mode_route_kimi_cli"]["rubric_max_score"])
+        self.assertEqual(
+            round(3.0 / run_review_quality_eval._max_rubric_score(run_review_quality_eval._load_rubric()), 3),
+            summary["mode_route_kimi_cli"]["rubric_avg_ratio"],
+        )
         self.assertEqual(1, summary["mode_route_kimi_cli"]["quality_case_count"])
         self.assertEqual(1.0, summary["mode_route_kimi_cli"]["quality_case_rate"])
 
@@ -137,10 +149,10 @@ class ReviewQualityEvalTests(unittest.TestCase):
             path.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n")
 
             review_side_effect = [
-                (True, {"main_block": "卡点", "key_bridge": "桥梁", "next_step": "动作", "transfer_signal": "信号"}, 10.0),
+                (True, {"problem_focus": "卡点", "key_bridge": "桥梁", "guided_walkthrough": "1. 第一步\n2. 第二步", "try_now": "动作", "transfer_signal": "信号"}, 10.0),
                 (True, {"error": "bad"}, 20.0),
-                (True, {"main_block": "卡点", "key_bridge": "桥梁", "next_step": "动作", "transfer_signal": "信号"}, 30.0),
-                (True, {"main_block": "卡点", "key_bridge": "桥梁", "next_step": "动作", "transfer_signal": "信号"}, 40.0),
+                (True, {"problem_focus": "卡点", "key_bridge": "桥梁", "guided_walkthrough": "1. 第一步\n2. 第二步", "try_now": "动作", "transfer_signal": "信号"}, 30.0),
+                (True, {"problem_focus": "卡点", "key_bridge": "桥梁", "guided_walkthrough": "1. 第一步\n2. 第二步", "try_now": "动作", "transfer_signal": "信号"}, 40.0),
             ]
             judge_side_effect = [
                 {"ok": True, "score": 4, "reasons": ["ok"]},
@@ -227,7 +239,7 @@ class ReviewQualityEvalTests(unittest.TestCase):
 
             class Proc:
                 returncode = 0
-                stdout = '{"main_block":"a","key_bridge":"b","next_step":"c","transfer_signal":"d"}'
+                stdout = '{"problem_focus":"a","key_bridge":"b","guided_walkthrough":"1. 第一步\\n2. 第二步","try_now":"c","transfer_signal":"d"}'
                 stderr = ""
 
             return Proc()
@@ -250,7 +262,7 @@ class ReviewQualityEvalTests(unittest.TestCase):
 
     def test_judge_review_should_return_failed_reason_on_exception(self):
         case = {"input": {"problem_title": "A", "completion_status": "unfinished", "bottleneck_text": "", "problem_context": ""}}
-        review = {"main_block": "a", "key_bridge": "b", "next_step": "c", "transfer_signal": "d"}
+        review = {"problem_focus": "a", "key_bridge": "b", "guided_walkthrough": "1. 第一步\n2. 第二步", "try_now": "c", "transfer_signal": "d"}
         with patch.object(run_review_quality_eval.run_review_case_kimi_cli, "_run_kimi_cli", side_effect=RuntimeError("boom")):
             parsed = run_review_quality_eval._judge_review(case, review)
 
@@ -259,7 +271,7 @@ class ReviewQualityEvalTests(unittest.TestCase):
 
     def test_judge_review_should_validate_score_against_rubric_check_count(self):
         case = {"input": {"problem_title": "A", "completion_status": "unfinished", "bottleneck_text": "", "problem_context": ""}}
-        review = {"main_block": "a", "key_bridge": "b", "next_step": "c", "transfer_signal": "d"}
+        review = {"problem_focus": "a", "key_bridge": "b", "guided_walkthrough": "1. 第一步\n2. 第二步", "try_now": "c", "transfer_signal": "d"}
         with (
             patch.object(
                 run_review_quality_eval,
@@ -288,7 +300,7 @@ class ReviewQualityEvalTests(unittest.TestCase):
                     "modes": ["failed_verdict", "stuck_bridge", "editorial_transfer"],
                     "kb_gap_exemption": "stuck_bridge/editorial_transfer 下豁免。",
                     "gates": [
-                        {"mode": "failed_verdict", "condition": "submission_result in {wa,tle,re,ce}", "rule": "main_block 必须点名代码位置。"},
+                        {"mode": "failed_verdict", "condition": "submission_result in {wa,tle,re,ce}", "rule": "problem_focus 必须点名代码位置。"},
                         {"mode": "stuck_bridge", "condition": "completion_status in {unfinished,hinted}", "rule": "key_bridge 必须用题目对象名。"},
                         {"mode": "editorial_transfer", "condition": "completion_status==editorial", "rule": "说清为什么这方法能解题。"},
                     ],
@@ -314,7 +326,7 @@ class ReviewQualityEvalTests(unittest.TestCase):
                 "bottleneck_text": "判断方向搞反了",
             }
         }
-        review = {"main_block": "第3行的松弛条件写反", "key_bridge": "b", "next_step": "c", "transfer_signal": "d"}
+        review = {"problem_focus": "第3行的松弛条件写反", "key_bridge": "b", "guided_walkthrough": "1. 先找错行\n2. 再看判断", "try_now": "c", "transfer_signal": "d"}
         with (
             patch.object(run_review_quality_eval, "_load_rubric", return_value=self._FAMILIES_RUBRIC),
             patch.object(run_review_quality_eval.review_engine, "_detect_review_mode", return_value="failed_verdict"),
@@ -341,7 +353,7 @@ class ReviewQualityEvalTests(unittest.TestCase):
                 "bottleneck_text": "",
             }
         }
-        review = {"main_block": "a", "key_bridge": "b", "next_step": "c", "transfer_signal": "d"}
+        review = {"problem_focus": "a", "key_bridge": "b", "guided_walkthrough": "1. 第一步\n2. 第二步", "try_now": "c", "transfer_signal": "d"}
         with (
             patch.object(run_review_quality_eval, "_load_rubric", return_value=self._FAMILIES_RUBRIC),
             patch.object(run_review_quality_eval.review_engine, "_detect_review_mode", return_value="failed_verdict"),
@@ -365,7 +377,7 @@ class ReviewQualityEvalTests(unittest.TestCase):
                 "bottleneck_text": "不知道贪心证明",
             }
         }
-        review = {"main_block": "a", "key_bridge": "b", "next_step": "c", "transfer_signal": "供应点有不同单价"}
+        review = {"problem_focus": "a", "key_bridge": "b", "guided_walkthrough": "1. 第一步\n2. 第二步", "try_now": "c", "transfer_signal": "供应点有不同单价"}
         captured = {}
 
         def fake_run(prompt: str):
@@ -385,7 +397,7 @@ class ReviewQualityEvalTests(unittest.TestCase):
 
     def test_run_mode_gate_should_pass_when_no_gate_defined(self):
         case = {"input": {"completion_status": "ac", "submission_result": ""}}
-        review = {"main_block": "a", "key_bridge": "b", "next_step": "c", "transfer_signal": "d"}
+        review = {"problem_focus": "a", "key_bridge": "b", "guided_walkthrough": "1. 第一步\n2. 第二步", "try_now": "c", "transfer_signal": "d"}
         with patch.object(run_review_quality_eval, "_load_rubric", return_value={"checks": [], "mode_gate": {}}):
             result = run_review_quality_eval._run_mode_gate(case, review)
 
@@ -418,9 +430,10 @@ class ReviewQualityEvalTests(unittest.TestCase):
                     return_value=(
                         True,
                         {
-                            "main_block": "卡点",
+                            "problem_focus": "卡点",
                             "key_bridge": "桥梁",
-                            "next_step": "动作",
+                            "guided_walkthrough": "1. 第一步\n2. 第二步",
+                            "try_now": "动作",
                             "transfer_signal": "信号",
                         },
                         12.3,
@@ -478,10 +491,10 @@ class ReviewQualityEvalTests(unittest.TestCase):
                     run_review_quality_eval,
                     "_run_review",
                     side_effect=[
-                        (True, {"main_block": "卡点1", "key_bridge": "桥梁1", "next_step": "动作1", "transfer_signal": "信号1"}, 10.0),
-                        (True, {"main_block": "卡点2", "key_bridge": "桥梁2", "next_step": "动作2", "transfer_signal": "信号2"}, 20.0),
-                        (True, {"main_block": "卡点3", "key_bridge": "桥梁3", "next_step": "动作3", "transfer_signal": "信号3"}, 30.0),
-                        (True, {"main_block": "卡点4", "key_bridge": "桥梁4", "next_step": "动作4", "transfer_signal": "信号4"}, 40.0),
+                        (True, {"problem_focus": "卡点1", "key_bridge": "桥梁1", "guided_walkthrough": "1. 第一步\n2. 第二步", "try_now": "动作1", "transfer_signal": "信号1"}, 10.0),
+                        (True, {"problem_focus": "卡点2", "key_bridge": "桥梁2", "guided_walkthrough": "1. 第一步\n2. 第二步", "try_now": "动作2", "transfer_signal": "信号2"}, 20.0),
+                        (True, {"problem_focus": "卡点3", "key_bridge": "桥梁3", "guided_walkthrough": "1. 第一步\n2. 第二步", "try_now": "动作3", "transfer_signal": "信号3"}, 30.0),
+                        (True, {"problem_focus": "卡点4", "key_bridge": "桥梁4", "guided_walkthrough": "1. 第一步\n2. 第二步", "try_now": "动作4", "transfer_signal": "信号4"}, 40.0),
                     ],
                 ),
                 patch.object(
@@ -526,7 +539,7 @@ class ReviewQualityEvalTests(unittest.TestCase):
                 "bottleneck_text": "",
             }
         }
-        review = {"main_block": "a", "key_bridge": "b", "next_step": "c", "transfer_signal": "d"}
+        review = {"problem_focus": "a", "key_bridge": "b", "guided_walkthrough": "1. 第一步\n2. 第二步", "try_now": "c", "transfer_signal": "d"}
         with (
             patch.object(run_review_quality_eval, "_load_rubric", return_value=self._FAMILIES_RUBRIC),
             patch.object(run_review_quality_eval.review_engine, "_detect_review_mode", return_value="independent_reflect"),
@@ -553,7 +566,7 @@ class ReviewQualityEvalTests(unittest.TestCase):
                 "bottleneck_text": "不知道怎么建图",
             }
         }
-        review = {"main_block": "a", "key_bridge": "b", "next_step": "c", "transfer_signal": "d"}
+        review = {"problem_focus": "a", "key_bridge": "b", "guided_walkthrough": "1. 第一步\n2. 第二步", "try_now": "c", "transfer_signal": "d"}
         with (
             patch.object(run_review_quality_eval, "_load_rubric", return_value=self._FAMILIES_RUBRIC),
             patch.object(run_review_quality_eval.review_engine, "_detect_review_mode", return_value="stuck_bridge"),
@@ -579,7 +592,7 @@ class ReviewQualityEvalTests(unittest.TestCase):
                 "bottleneck_text": "看了题解才知道贪心做法",
             }
         }
-        review = {"main_block": "a", "key_bridge": "b", "next_step": "c", "transfer_signal": "d"}
+        review = {"problem_focus": "a", "key_bridge": "b", "guided_walkthrough": "1. 第一步\n2. 第二步", "try_now": "c", "transfer_signal": "d"}
         with (
             patch.object(run_review_quality_eval, "_load_rubric", return_value=self._FAMILIES_RUBRIC),
             patch.object(run_review_quality_eval.review_engine, "_detect_review_mode", return_value="editorial_transfer"),
@@ -621,7 +634,7 @@ class ReviewQualityEvalTests(unittest.TestCase):
                     "_run_review",
                     return_value=(
                         True,
-                        {"main_block": "卡点", "key_bridge": "桥梁", "next_step": "动作", "transfer_signal": "信号"},
+                        {"problem_focus": "卡点", "key_bridge": "桥梁", "guided_walkthrough": "1. 第一步\n2. 第二步", "try_now": "动作", "transfer_signal": "信号"},
                         10.0,
                     ),
                 ),
@@ -699,9 +712,10 @@ class ReviewQualityEvalTests(unittest.TestCase):
                     return_value=(
                         True,
                         {
-                            "main_block": "卡点",
+                            "problem_focus": "卡点",
                             "key_bridge": "桥梁",
-                            "next_step": "动作",
+                            "guided_walkthrough": "1. 第一步\n2. 第二步",
+                            "try_now": "动作",
                             "transfer_signal": "信号",
                         },
                         12.3,

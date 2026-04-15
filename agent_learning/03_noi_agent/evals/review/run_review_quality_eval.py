@@ -59,6 +59,16 @@ def _build_rubric_prompt_text(rubric: dict) -> str:
     return "\n".join(lines)
 
 
+def _compact_review_for_eval(review: dict) -> dict:
+    return {
+        "problem_focus": review.get("problem_focus") or review.get("main_block", ""),
+        "key_bridge": review.get("key_bridge", ""),
+        "guided_walkthrough": review.get("guided_walkthrough", ""),
+        "try_now": review.get("try_now") or review.get("next_step", ""),
+        "transfer_signal": review.get("transfer_signal", ""),
+    }
+
+
 def _strip_json_fence(text: str) -> str:
     return run_review_case_kimi_cli._strip_json_fence(text)
 
@@ -82,12 +92,7 @@ def _extract_rubric_score(output: str, max_score: int = 4) -> dict:
 def _build_rubric_prompt(case: dict, review: dict) -> str:
     rubric = _load_rubric()
     inp = case["input"]
-    compact_review = {
-        "main_block": review.get("main_block", ""),
-        "key_bridge": review.get("key_bridge", ""),
-        "next_step": review.get("next_step", ""),
-        "transfer_signal": review.get("transfer_signal", ""),
-    }
+    compact_review = _compact_review_for_eval(review)
     return (
         f"{_build_rubric_prompt_text(rubric)}\n\n"
         f"题目：{inp.get('problem_title', '')}\n"
@@ -181,12 +186,7 @@ def _run_mode_gate(case: dict, review: dict) -> dict:
     exemption_text = matched_family_def.get("kb_gap_exemption") if matched_family_def else None
     kb_gap_exempt = bool(exemption_text) and matched_mode in {"stuck_bridge", "editorial_transfer"}
 
-    compact_review = {
-        "main_block": review.get("main_block", ""),
-        "key_bridge": review.get("key_bridge", ""),
-        "next_step": review.get("next_step", ""),
-        "transfer_signal": review.get("transfer_signal", ""),
-    }
+    compact_review = _compact_review_for_eval(review)
     prompt = (
         "你是代码学习复盘的评审老师。请判断下面这份复盘是否满足当前模式的要求。"
         "只输出 JSON，不要输出 Markdown。\n\n"
@@ -260,7 +260,7 @@ def evaluate_tests(test_file: Path, repeats: int = 1, attempt_log=None) -> dict:
                 fields_ok = bool(
                     ok
                     and isinstance(parsed, dict)
-                    and all(parsed.get(k) for k in ("main_block", "key_bridge", "next_step", "transfer_signal"))
+                    and all(parsed.get(k) for k in ("problem_focus", "key_bridge", "guided_walkthrough", "try_now", "transfer_signal"))
                 )
                 _write_attempt_log(
                     attempt_log,

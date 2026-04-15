@@ -11,6 +11,7 @@
 | check_condition | core_design | check 在验证什么 |
 | enumeration_order | core_design | 枚举/循环顺序为什么这样写 |
 | greedy_basis | core_design | 贪心选择依据 |
+| tree_path_difference | core_design | 树上多条路径贡献如何转成端点/LCA 差分标记，并用 DFS 汇总还原经过次数 |
 | general_modeling | modeling | 对象与关系如何抽象成结构 |
 | constraint_modeling | modeling | 约束如何转成结构关系 |
 | boundary_debug | implementation | 边界、特判、下标/初始化相关错误 |

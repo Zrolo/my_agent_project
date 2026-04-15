@@ -11,6 +11,7 @@ from database import (
     LEARNING_STATUS_SELF_CHECK_REQUIRED,
     create_pending_review,
     create_review,
+    get_quiz_by_id,
     create_review_quiz,
     init_db,
     record_quiz_attempt,
@@ -98,7 +99,7 @@ class LearningFlowApiIntegrationTests(unittest.TestCase):
         record_quiz_attempt(quiz_id, self.student_id, "A", True, "ok")
         return quiz_id
 
-    def test_a_route_from_checkin_to_remedy_resolve(self):
+    def test_a_route_from_explain_remedy_to_final_micro_confirm(self):
         checkin_id = self._create_checkin_via_api(
             bottleneck_text="我不会做这题，已经卡住了。我试着把条件改成不等式，但不知道每条边该怎么统一方向。",
         )
@@ -114,12 +115,15 @@ class LearningFlowApiIntegrationTests(unittest.TestCase):
         self.assertEqual(200, quiz_response.status_code)
         self.assertEqual("remedy_available", quiz_response.json()["next_state"])
 
-        remedy_response = self.client.post(
-            f"/api/reviews/{review_id}/remedy",
-            json={"action_type": "dynamic_bridge_help"},
-            headers=self.headers,
-        )
+        fake_json = '{"remedy_text":"先把不等式方向统一。","micro_action":"先说一条不等式该画成哪种方向的边。"}'
+        with patch.object(review_engine, "_call_llm", return_value=(True, fake_json, {})):
+            remedy_response = self.client.post(
+                f"/api/reviews/{review_id}/remedy",
+                json={"action_type": "dynamic_bridge_help"},
+                headers=self.headers,
+            )
         self.assertEqual(200, remedy_response.status_code)
+        self.assertEqual("explain", remedy_response.json()["mode"])
         self.assertEqual("remedy_in_progress", remedy_response.json()["learning_status"])
 
         resolve_response = self.client.post(
@@ -128,7 +132,24 @@ class LearningFlowApiIntegrationTests(unittest.TestCase):
             headers=self.headers,
         )
         self.assertEqual(200, resolve_response.status_code)
-        self.assertEqual("resolved", resolve_response.json()["learning_status"])
+        self.assertEqual("quiz_in_progress", resolve_response.json()["learning_status"])
+        self.assertEqual("final_micro_confirm", resolve_response.json()["next_state"])
+        self.assertEqual(review_engine.QUIZ_ROLE_REMEDY, resolve_response.json()["quiz"]["quiz_role"])
+        self.assertEqual(3, resolve_response.json()["quiz"]["round"])
+
+        final_quiz_id = resolve_response.json()["quiz"]["quiz_id"]
+        final_quiz = get_quiz_by_id(final_quiz_id)
+        answer_response = self.client.post(
+            f"/api/quizzes/{final_quiz_id}/answer",
+            json={"answer_text": final_quiz["correct_answer"]},
+            headers=self.headers,
+        )
+        self.assertEqual(200, answer_response.status_code)
+        self.assertEqual("resolved", answer_response.json()["next_state"])
+
+        detail = self.client.get(f"/api/checkins/{checkin_id}", headers=self.headers)
+        self.assertEqual(200, detail.status_code)
+        self.assertEqual("assisted_success", detail.json()["review"]["mastery_status"])
 
     def test_c_route_from_checkin_to_confirm_answer_resolved(self):
         checkin_id = self._create_checkin_via_api(
@@ -182,6 +203,71 @@ class LearningFlowApiIntegrationTests(unittest.TestCase):
         self.assertEqual(200, answer_response.status_code)
         self.assertTrue(answer_response.json()["is_correct"])
         self.assertEqual("resolved", answer_response.json()["next_state"])
+
+        detail = self.client.get(f"/api/checkins/{checkin_id}", headers=self.headers)
+        self.assertEqual(200, detail.status_code)
+        self.assertEqual("independent_success", detail.json()["review"]["mastery_status"])
+
+    def test_b_route_from_checkin_to_remedy_teacher_followup_marks_not_mastered(self):
+        checkin_id = self._create_checkin_via_api(
+            bottleneck_text="我知道这是不等式建图，但还是卡在把每条边方向统一这一步，也不知道为什么会出现矛盾。",
+        )
+        review_id = self._complete_review(
+            checkin_id,
+            transfer_signal="当题目里有多条必须同时满足的不等式关系时，要警惕这种图上约束建模。",
+        )
+
+        fake_json = '{"remedy_text":"先把矛盾检测缩成一个最小样例。","micro_action":"先说清一条边表示谁限制谁。"}'
+        with patch.object(review_engine, "_call_llm", return_value=(True, fake_json, {})):
+            remedy_response = self.client.post(
+                f"/api/reviews/{review_id}/remedy",
+                json={"action_type": "dynamic_bridge_help"},
+                headers=self.headers,
+            )
+        self.assertEqual(200, remedy_response.status_code)
+        self.assertEqual("remedy_in_progress", remedy_response.json()["learning_status"])
+
+        resolve_response = self.client.post(
+            f"/api/reviews/{review_id}/remedy/resolve",
+            json={"status": "needs_teacher_followup"},
+            headers=self.headers,
+        )
+        self.assertEqual(200, resolve_response.status_code)
+        self.assertEqual("needs_teacher_followup", resolve_response.json()["learning_status"])
+
+        detail = self.client.get(f"/api/checkins/{checkin_id}", headers=self.headers)
+        self.assertEqual(200, detail.status_code)
+        self.assertEqual("not_mastered", detail.json()["review"]["mastery_status"])
+
+    def test_d_second_explanation_remedy_uses_bottom_out_and_returns_visual_hint(self):
+        checkin_id = self._create_checkin_via_api(
+            bottleneck_text="我知道要比较候选路径，但还是不知道经过新边时左右两端到底该接什么样的点。",
+        )
+        review_id = self._complete_review(
+            checkin_id,
+            transfer_signal="当题目把两个连通块用一条新边连起来，还要求最长距离时，要先比较候选来源。",
+        )
+
+        first_json = '{"remedy_text":"先别看整题，只看新边两边各能接多远。","micro_action":"先回答：经过新边时，左边这一端应该接什么点？"}'
+        with patch.object(review_engine, "_call_llm", return_value=(True, first_json, {})):
+            first_remedy = self.client.post(
+                f"/api/reviews/{review_id}/remedy",
+                json={"action_type": "dynamic_bridge_help"},
+                headers=self.headers,
+            )
+        self.assertEqual(200, first_remedy.status_code)
+        self.assertEqual(1, first_remedy.json()["remedy_count"])
+
+        second_json = '{"remedy_text":"我们把这题缩成左右两条短链来看。","visual_hint":"左边: A-B-C\\n右边: D-E\\n新边: C-D","micro_action":"现在只回答：左边这一端该接什么点？"}'
+        with patch.object(review_engine, "_call_llm", return_value=(True, second_json, {})):
+            second_remedy = self.client.post(
+                f"/api/reviews/{review_id}/remedy",
+                json={"action_type": "dynamic_bridge_help"},
+                headers=self.headers,
+            )
+        self.assertEqual(200, second_remedy.status_code)
+        self.assertEqual("左边: A-B-C\n右边: D-E\n新边: C-D", second_remedy.json()["visual_hint"])
+        self.assertEqual(2, second_remedy.json()["remedy_count"])
 
 
 if __name__ == "__main__":

@@ -1,22 +1,35 @@
-(function (global) {
-    const reviewFamilyUi = global.reviewFamilyUi || {
+const globalContext = typeof window !== 'undefined' ? window : globalThis;
+
+const reviewFamilyUi = globalContext.reviewFamilyUi || {
         resolveReviewFamily(source = {}) {
             if (source.review_family) return source.review_family;
             if (source.review_mode === 'independent_reflect') return 'success_reflection';
             return 'failure_diagnosis';
         },
         reviewFieldOrder(family) {
-            if (family === 'success_reflection') {
-                return ['main_block', 'key_bridge', 'transfer_signal', 'next_step'];
-            }
-            return ['main_block', 'key_bridge', 'next_step', 'transfer_signal'];
+            return ['problem_focus', 'key_bridge', 'visual_hint', 'guided_walkthrough', 'try_now', 'transfer_signal'];
         },
-        reviewFieldLabel(field) {
+        isVisualHintDiagramLike(value) {
+            const text = String(value || '').trim();
+            if (!text) return false;
+            const lines = text.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+            if (lines.length < 2) return false;
+            const structuredLineCount = lines.filter((line) => /[:：=→←↔|├└┌┐┘─\-×]/.test(line)).length;
+            const compactLineCount = lines.filter((line) => line.length <= 30).length;
+            return structuredLineCount >= 2 || (structuredLineCount >= 1 && compactLineCount >= 2 && lines.length >= 3);
+        },
+        reviewFieldLabel(field, value = '') {
+            if (field === 'visual_hint') {
+                return this.isVisualHintDiagramLike(value) ? '看图想一想' : '先看这个对比';
+            }
             const labels = {
+                problem_focus: '你卡在哪',
                 main_block: '你卡在哪',
-                key_bridge: '关键一步',
-                next_step: '现在先做',
-                transfer_signal: '下次提醒',
+                key_bridge: '先抓住什么',
+                guided_walkthrough: '跟我走一遍',
+                try_now: '现在你来试',
+                next_step: '现在你来试',
+                transfer_signal: '下次怎么认出来',
             };
             return labels[field] || field;
         },
@@ -54,7 +67,7 @@
 
     function escapeHtml(value) {
         if (value === null || value === undefined) return '';
-        const div = global.document ? global.document.createElement('div') : null;
+        const div = globalContext.document ? globalContext.document.createElement('div') : null;
         if (div) {
             div.textContent = String(value);
             return div.innerHTML;
@@ -96,11 +109,23 @@
         return pieces.join(' | ');
     }
 
-    function renderReviewBlock(title, value) {
+    function masteryStatusBadge(status) {
+        const map = {
+            independent_success: { label: '独立过桥', className: 'teacher-evidence strong' },
+            assisted_success: { label: '辅助后过桥', className: 'teacher-evidence support' },
+            not_mastered: { label: '仍未掌握', className: 'teacher-evidence risk' },
+        };
+        return map[status] || null;
+    }
+
+    function renderReviewBlock(title, value, field) {
+        const body = field === 'visual_hint'
+            ? `<pre class="teacher-review-visual-hint">${escapeHtml(value || '（空）')}</pre>`
+            : `<div class="teacher-review-block-body">${escapeHtml(value || '（空）')}</div>`;
         return `
             <div class="teacher-review-block">
                 <div class="teacher-review-block-label">${escapeHtml(title)}</div>
-                <div class="teacher-review-block-body">${escapeHtml(value || '（空）')}</div>
+                ${body}
             </div>
         `;
     }
@@ -108,7 +133,20 @@
     function renderOrderedReviewBlocks(sample = {}) {
         const family = reviewFamilyUi.resolveReviewFamily(sample);
         return reviewFamilyUi.reviewFieldOrder(family).map((field) =>
-            renderReviewBlock(reviewFamilyUi.reviewFieldLabel(field), sample[field]),
+            renderReviewBlock(
+                reviewFamilyUi.reviewFieldLabel(
+                    field,
+                    sample[field]
+                    || (field === 'problem_focus' ? sample.main_block : '')
+                    || (field === 'try_now' ? sample.next_step : '')
+                    || '',
+                ),
+                sample[field]
+                    || (field === 'problem_focus' ? sample.main_block : '')
+                    || (field === 'try_now' ? sample.next_step : '')
+                    || '',
+                field,
+            ),
         ).join('');
     }
 
@@ -148,6 +186,7 @@
 
     function renderTeacherReviewSampleCard(sample) {
         const manual = sample.manual_review || {};
+        const masteryBadge = masteryStatusBadge(sample.mastery_status);
         return `
             <article class="teacher-review-sample-card" data-review-id="${escapeHtml(sample.review_id)}">
                 <div class="teacher-review-sample-head">
@@ -167,6 +206,7 @@
                     <span class="status-pill">${escapeHtml(sample.completion_status || 'unknown')}</span>
                     <span class="status-pill">${escapeHtml(sample.review_mode || 'unknown')}</span>
                     <span class="status-pill">${escapeHtml(sample.review_family || 'unknown')}</span>
+                    ${masteryBadge ? `<span class="status-pill ${escapeHtml(masteryBadge.className)}">${escapeHtml(masteryBadge.label)}</span>` : ''}
                     <span class="status-pill">${escapeHtml(sample.review_created_at || '')}</span>
                 </div>
 
@@ -215,8 +255,8 @@
         renderTeacherReviewSamplesPanel,
     };
 
-    if (typeof module !== 'undefined' && module.exports) {
-        module.exports = api;
-    }
-    global.teacherManualReviewUi = api;
-})(typeof window !== 'undefined' ? window : globalThis);
+if (typeof window !== 'undefined') {
+    globalContext.teacherManualReviewUi = api;
+}
+
+export default api;

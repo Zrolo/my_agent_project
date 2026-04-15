@@ -1,4 +1,4 @@
-(function (global) {
+const globalContext = typeof window !== 'undefined' ? window : globalThis;
     const INPUT_STAGE = 'input';
     const REVIEW_STAGE = 'review';
 
@@ -53,8 +53,8 @@
         reviewStageLead,
     };
 
-    if (typeof module !== 'undefined' && module.exports) {
-        module.exports = api;
-    }
-    global.checkinReviewUi = api;
-})(typeof window !== 'undefined' ? window : globalThis);
+if (typeof window !== 'undefined') {
+    globalContext.checkinReviewUi = api;
+}
+
+export default api;

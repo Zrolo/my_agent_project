@@ -16,8 +16,37 @@ LEARNING_STATUS_QUIZ_IN_PROGRESS = "quiz_in_progress"
 LEARNING_STATUS_SELF_CHECK_REQUIRED = "self_check_required"
 LEARNING_STATUS_REMEDY_AVAILABLE = "remedy_available"
 LEARNING_STATUS_REMEDY_IN_PROGRESS = "remedy_in_progress"
+LEARNING_STATUS_KNOWLEDGE_BAILOUT = "knowledge_bailout"
 LEARNING_STATUS_RESOLVED = "resolved"
 LEARNING_STATUS_NEEDS_TEACHER = "needs_teacher_followup"
+MASTERY_STATUS_NOT_ASSESSED = "not_assessed"
+MASTERY_STATUS_INDEPENDENT_SUCCESS = "independent_success"
+MASTERY_STATUS_ASSISTED_SUCCESS = "assisted_success"
+MASTERY_STATUS_NOT_MASTERED = "not_mastered"
+
+BRIDGE_TOPIC_MAP: dict[str, tuple[str, str]] = {
+    "state_design": ("dp", "dp_basic"),
+    "dp.state_design": ("dp", "dp_basic"),
+    "transition_design": ("dp", "dp_basic"),
+    "dp.transition_design": ("dp", "dp_basic"),
+    "enumeration_order": ("basic", "enumeration"),
+    "check_condition": ("basic", "binary_search"),
+    "binary_search.check_condition": ("basic", "binary_search"),
+    "left_bound_update": ("basic", "binary_search"),
+    "binary_search.left_bound": ("basic", "binary_search"),
+    "greedy_basis": ("basic", "greedy"),
+    "tree_diameter_candidates": ("graph", "tree_diameter"),
+    "shared_prefix_merging": ("string", "trie"),
+    "string.trie.shared_prefix_merging": ("string", "trie"),
+    "lazy_semantics": ("data_structure", "segment_tree"),
+    "segment_tree.lazy_semantics": ("data_structure", "segment_tree"),
+    "complexity_fit": ("basic", "complexity"),
+    "modeling.scale_estimation": ("basic", "complexity"),
+    "method_selection": ("basic", "method_selection"),
+    "modeling.method_selection": ("basic", "method_selection"),
+    "constraint_modeling": ("graph", "difference_constraints"),
+    "general_modeling": ("basic", "general_modeling"),
+}
 
 
 def _json_loads_or_default(raw: str, default):
@@ -35,7 +64,7 @@ def _get_table_columns(cursor, table_name: str) -> set[str]:
 
 
 def _migrate_reviews_table(cursor):
-    columns = _get_table_columns(cursor, "reviews")
+    columns = set(_get_table_columns(cursor, "reviews"))
     migrations = [
         ("review_status", f"ALTER TABLE reviews ADD COLUMN review_status TEXT NOT NULL DEFAULT '{REVIEW_STATUS_COMPLETED}'"),
         ("error_layer", "ALTER TABLE reviews ADD COLUMN error_layer TEXT NOT NULL DEFAULT 'insufficient'"),
@@ -55,11 +84,24 @@ def _migrate_reviews_table(cursor):
         ("self_check_at", "ALTER TABLE reviews ADD COLUMN self_check_at TIMESTAMP"),
         ("bridge_path", "ALTER TABLE reviews ADD COLUMN bridge_path TEXT"),
         ("review_quality_flags", "ALTER TABLE reviews ADD COLUMN review_quality_flags TEXT NOT NULL DEFAULT '[]'"),
+        ("problem_focus", "ALTER TABLE reviews ADD COLUMN problem_focus TEXT"),
+        ("visual_hint", "ALTER TABLE reviews ADD COLUMN visual_hint TEXT"),
+        ("guided_walkthrough", "ALTER TABLE reviews ADD COLUMN guided_walkthrough TEXT"),
+        ("try_now", "ALTER TABLE reviews ADD COLUMN try_now TEXT"),
+        ("mastery_status", f"ALTER TABLE reviews ADD COLUMN mastery_status TEXT NOT NULL DEFAULT '{MASTERY_STATUS_NOT_ASSESSED}'"),
+        ("bridge_route_meta", "ALTER TABLE reviews ADD COLUMN bridge_route_meta TEXT NOT NULL DEFAULT '{}'"),
     ]
 
     for column_name, ddl in migrations:
         if column_name not in columns:
-            cursor.execute(ddl)
+            try:
+                cursor.execute(ddl)
+                columns.add(column_name)
+            except sqlite3.OperationalError as exc:
+                if "duplicate column name" in str(exc).lower():
+                    columns.add(column_name)
+                    continue
+                raise
 
     # 旧版本曾把失败占位内容写进 reviews，这里将其迁移为"待生成"
     cursor.execute(
@@ -248,6 +290,48 @@ def init_db():
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (review_id) REFERENCES reviews(id),
             FOREIGN KEY (checkin_id) REFERENCES checkins(id)
+        )
+        '''
+    )
+
+    cursor.execute(
+        '''
+        CREATE TABLE IF NOT EXISTS bridge_rule_draft_decisions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            route_kind TEXT NOT NULL,
+            bridge_id TEXT NOT NULL,
+            parent_focus TEXT NOT NULL DEFAULT '',
+            teacher_id TEXT NOT NULL,
+            decision TEXT NOT NULL,
+            notes TEXT NOT NULL DEFAULT '',
+            draft_filename TEXT NOT NULL DEFAULT '',
+            draft_markdown TEXT NOT NULL DEFAULT '',
+            auto_promote INTEGER NOT NULL DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(route_kind, bridge_id, teacher_id)
+        )
+        '''
+    )
+
+    cursor.execute(
+        '''
+        CREATE TABLE IF NOT EXISTS bridge_registry_entries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            draft_decision_id INTEGER NOT NULL UNIQUE,
+            route_kind TEXT NOT NULL,
+            bridge_id TEXT NOT NULL,
+            parent_focus TEXT NOT NULL DEFAULT '',
+            teacher_id TEXT NOT NULL,
+            registry_status TEXT NOT NULL DEFAULT 'registry_only',
+            resolver_enabled INTEGER NOT NULL DEFAULT 0,
+            draft_filename TEXT NOT NULL DEFAULT '',
+            draft_markdown TEXT NOT NULL DEFAULT '',
+            notes TEXT NOT NULL DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(route_kind, bridge_id),
+            FOREIGN KEY (draft_decision_id) REFERENCES bridge_rule_draft_decisions(id)
         )
         '''
     )
@@ -903,6 +987,7 @@ def get_student_checkins(student_id: str, limit: int = 50) -> list:
         r.remedy_count,
         r.understanding_self_check,
         r.bridge_path,
+        r.mastery_status,
         r.review_quality_flags,
         r.error_layer,
         r.error_layer_confidence,
@@ -913,6 +998,10 @@ def get_student_checkins(student_id: str, limit: int = 50) -> list:
         r.suggested_topic as review_suggested_topic,
         r.main_block as review_main_block,
         r.key_bridge as review_key_bridge,
+        r.problem_focus as review_problem_focus,
+        r.visual_hint as review_visual_hint,
+        r.guided_walkthrough as review_guided_walkthrough,
+        r.try_now as review_try_now,
         r.next_step as review_next_step,
         r.transfer_signal as review_transfer_signal,
         r.last_error
@@ -951,8 +1040,12 @@ def get_student_checkins(student_id: str, limit: int = 50) -> list:
             "review_diagnosis": row["review_diagnosis"],
             "review_next_action": row["review_next_action"],
             "review_suggested_topic": row["review_suggested_topic"],
+            "review_problem_focus": row["review_problem_focus"] or row["review_main_block"],
             "review_main_block": row["review_main_block"],
             "review_key_bridge": row["review_key_bridge"],
+            "review_visual_hint": row["review_visual_hint"] or "",
+            "review_guided_walkthrough": row["review_guided_walkthrough"] or "",
+            "review_try_now": row["review_try_now"] or row["review_next_step"],
             "review_next_step": row["review_next_step"],
             "review_transfer_signal": row["review_transfer_signal"],
             "review_last_error": row["last_error"],
@@ -961,6 +1054,7 @@ def get_student_checkins(student_id: str, limit: int = 50) -> list:
             "review_remedy_count": row["remedy_count"] if "remedy_count" in row.keys() else 0,
             "review_understanding_self_check": row["understanding_self_check"] if "understanding_self_check" in row.keys() else None,
             "review_bridge_path": row["bridge_path"] if "bridge_path" in row.keys() else None,
+            "review_mastery_status": row["mastery_status"] if "mastery_status" in row.keys() else MASTERY_STATUS_NOT_ASSESSED,
             "review_quality_flags": _json_loads_or_default(row["review_quality_flags"], []),
         })
     _attach_latest_quiz_summaries(checkins)
@@ -980,6 +1074,7 @@ def get_all_checkins(limit: int = 100, offset: int = 0) -> list:
         r.remedy_count,
         r.understanding_self_check,
         r.bridge_path,
+        r.mastery_status,
         r.review_quality_flags,
         r.error_layer,
         r.error_layer_confidence,
@@ -990,6 +1085,10 @@ def get_all_checkins(limit: int = 100, offset: int = 0) -> list:
         r.suggested_topic as review_suggested_topic,
         r.main_block as review_main_block,
         r.key_bridge as review_key_bridge,
+        r.problem_focus as review_problem_focus,
+        r.visual_hint as review_visual_hint,
+        r.guided_walkthrough as review_guided_walkthrough,
+        r.try_now as review_try_now,
         r.next_step as review_next_step,
         r.transfer_signal as review_transfer_signal,
         r.last_error
@@ -1025,8 +1124,12 @@ def get_all_checkins(limit: int = 100, offset: int = 0) -> list:
             "review_diagnosis": row["review_diagnosis"],
             "review_next_action": row["review_next_action"],
             "review_suggested_topic": row["review_suggested_topic"],
+            "review_problem_focus": row["review_problem_focus"] or row["review_main_block"],
             "review_main_block": row["review_main_block"],
             "review_key_bridge": row["review_key_bridge"],
+            "review_visual_hint": row["review_visual_hint"] or "",
+            "review_guided_walkthrough": row["review_guided_walkthrough"] or "",
+            "review_try_now": row["review_try_now"] or row["review_next_step"],
             "review_next_step": row["review_next_step"],
             "review_transfer_signal": row["review_transfer_signal"],
             "review_last_error": row["last_error"],
@@ -1035,6 +1138,7 @@ def get_all_checkins(limit: int = 100, offset: int = 0) -> list:
             "review_remedy_count": row["remedy_count"] if "remedy_count" in row.keys() else 0,
             "review_understanding_self_check": row["understanding_self_check"] if "understanding_self_check" in row.keys() else None,
             "review_bridge_path": row["bridge_path"] if "bridge_path" in row.keys() else None,
+            "review_mastery_status": row["mastery_status"] if "mastery_status" in row.keys() else MASTERY_STATUS_NOT_ASSESSED,
             "review_quality_flags": _json_loads_or_default(row["review_quality_flags"], []),
         })
     _attach_latest_quiz_summaries(checkins)
@@ -1213,11 +1317,21 @@ def create_review(
     key_bridge: str = "",
     next_step: str = "",
     transfer_signal: str = "",
+    problem_focus: str = "",
+    visual_hint: str = "",
+    guided_walkthrough: str = "",
+    try_now: str = "",
     review_quality_flags: list | None = None,
+    bridge_route_meta: dict | None = None,
 ):
     """写入已完成的 AI 复盘"""
     subtags = core_design_subtags or []
     quality_flags = review_quality_flags or []
+    route_meta = bridge_route_meta or {}
+    canonical_problem_focus = problem_focus or main_block
+    canonical_try_now = try_now or next_step
+    legacy_main_block = main_block or canonical_problem_focus
+    legacy_next_step = next_step or canonical_try_now
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
@@ -1234,10 +1348,16 @@ def create_review(
             core_design_subtags = ?,
             main_block = ?,
             key_bridge = ?,
+            problem_focus = ?,
+            visual_hint = ?,
+            guided_walkthrough = ?,
+            try_now = ?,
             next_step = ?,
             transfer_signal = ?,
             review_quality_flags = ?,
+            bridge_route_meta = ?,
             learning_status = ?,
+            mastery_status = ?,
             understanding_self_check = NULL,
             bridge_path = NULL,
             remedy_count = 0,
@@ -1255,12 +1375,18 @@ def create_review(
             error_layer,
             error_layer_confidence,
             json.dumps(subtags, ensure_ascii=False),
-            main_block,
+            legacy_main_block,
             key_bridge,
-            next_step,
+            canonical_problem_focus,
+            visual_hint,
+            guided_walkthrough,
+            canonical_try_now,
+            legacy_next_step,
             transfer_signal,
             json.dumps(quality_flags, ensure_ascii=False),
+            json.dumps(route_meta, ensure_ascii=False),
             LEARNING_STATUS_NOT_STARTED,
+            MASTERY_STATUS_NOT_ASSESSED,
             checkin_id,
         ),
     )
@@ -1271,10 +1397,12 @@ def create_review(
             (
                 checkin_id, student_id, error_tags, diagnosis, next_action, suggested_topic,
                 review_status, error_layer, error_layer_confidence, core_design_subtags,
-                main_block, key_bridge, next_step, transfer_signal, review_quality_flags,
-                retry_count, last_attempt_at, learning_status, understanding_self_check, bridge_path, remedy_count
+                main_block, key_bridge, problem_focus, visual_hint, guided_walkthrough, try_now,
+                next_step, transfer_signal, review_quality_flags,
+                bridge_route_meta,
+                retry_count, last_attempt_at, learning_status, mastery_status, understanding_self_check, bridge_path, remedy_count
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP, ?, NULL, NULL, 0)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP, ?, ?, NULL, NULL, 0)
             ''',
             (
                 checkin_id,
@@ -1287,12 +1415,18 @@ def create_review(
                 error_layer,
                 error_layer_confidence,
                 json.dumps(subtags, ensure_ascii=False),
-                main_block,
+                legacy_main_block,
                 key_bridge,
-                next_step,
+                canonical_problem_focus,
+                visual_hint,
+                guided_walkthrough,
+                canonical_try_now,
+                legacy_next_step,
                 transfer_signal,
                 json.dumps(quality_flags, ensure_ascii=False),
+                json.dumps(route_meta, ensure_ascii=False),
                 LEARNING_STATUS_NOT_STARTED,
+                MASTERY_STATUS_NOT_ASSESSED,
             ),
         )
     conn.commit()
@@ -1318,15 +1452,21 @@ def get_review_by_checkin(checkin_id: int) -> dict:
             "diagnosis": row["diagnosis"],
             "next_action": row["next_action"],
             "suggested_topic": row["suggested_topic"],
+            "problem_focus": row["problem_focus"] or row["main_block"],
             "main_block": row["main_block"],
             "key_bridge": row["key_bridge"],
+            "visual_hint": row["visual_hint"] or "",
+            "guided_walkthrough": row["guided_walkthrough"] or "",
+            "try_now": row["try_now"] or row["next_step"],
             "next_step": row["next_step"],
             "transfer_signal": row["transfer_signal"],
             "review_quality_flags": _json_loads_or_default(row["review_quality_flags"], []),
+            "bridge_route_meta": _json_loads_or_default(row["bridge_route_meta"], {}) if "bridge_route_meta" in row.keys() else {},
             "retry_count": row["retry_count"],
             "last_error": row["last_error"],
             "last_attempt_at": row["last_attempt_at"],
             "learning_status": row["learning_status"],
+            "mastery_status": row["mastery_status"] if "mastery_status" in row.keys() else MASTERY_STATUS_NOT_ASSESSED,
             "remedy_count": row["remedy_count"],
             "understanding_self_check": row["understanding_self_check"],
             "bridge_path": row["bridge_path"],
@@ -1364,8 +1504,17 @@ def get_student_checkin_by_id(student_id: str, checkin_id: int) -> dict | None:
             r.core_design_subtags as review_core_design_subtags,
             r.main_block as review_main_block,
             r.key_bridge as review_key_bridge,
+            r.problem_focus as review_problem_focus,
+            r.visual_hint as review_visual_hint,
+            r.guided_walkthrough as review_guided_walkthrough,
+            r.try_now as review_try_now,
             r.next_step as review_next_step,
             r.transfer_signal as review_transfer_signal,
+            r.bridge_route_meta as review_bridge_route_meta,
+            r.learning_status as review_learning_status,
+            r.remedy_count as review_remedy_count,
+            r.bridge_path as review_bridge_path,
+            r.mastery_status as review_mastery_status,
             r.last_error
         FROM checkins c
         LEFT JOIN reviews r ON c.id = r.checkin_id
@@ -1385,10 +1534,19 @@ def get_student_checkin_by_id(student_id: str, checkin_id: int) -> dict | None:
             "error_layer": row["error_layer"],
             "error_layer_confidence": row["error_layer_confidence"],
             "core_design_subtags": _json_loads_or_default(row["review_core_design_subtags"], []),
+            "problem_focus": row["review_problem_focus"] or row["review_main_block"],
             "main_block": row["review_main_block"],
             "key_bridge": row["review_key_bridge"],
+            "visual_hint": row["review_visual_hint"] or "",
+            "guided_walkthrough": row["review_guided_walkthrough"] or "",
+            "try_now": row["review_try_now"] or row["review_next_step"],
             "next_step": row["review_next_step"],
             "transfer_signal": row["review_transfer_signal"],
+            "bridge_route_meta": _json_loads_or_default(row["review_bridge_route_meta"], {}) if "review_bridge_route_meta" in row.keys() else {},
+            "learning_status": row["review_learning_status"] if "review_learning_status" in row.keys() else LEARNING_STATUS_NOT_STARTED,
+            "remedy_count": row["review_remedy_count"] if "review_remedy_count" in row.keys() else 0,
+            "bridge_path": row["review_bridge_path"] if "review_bridge_path" in row.keys() else None,
+            "mastery_status": row["review_mastery_status"] if "review_mastery_status" in row.keys() else MASTERY_STATUS_NOT_ASSESSED,
         }
 
     return {
@@ -1622,8 +1780,14 @@ def list_teacher_review_samples(limit: int = 10) -> list[dict]:
             r.error_layer_confidence,
             r.main_block,
             r.key_bridge,
+            r.problem_focus,
+            r.visual_hint,
+            r.guided_walkthrough,
+            r.try_now,
             r.next_step,
             r.transfer_signal,
+            r.bridge_route_meta,
+            r.mastery_status,
             r.diagnosis,
             r.next_action,
             r.suggested_topic,
@@ -1673,10 +1837,16 @@ def list_teacher_review_samples(limit: int = 10) -> list[dict]:
                 "diagnosis": row["diagnosis"],
                 "next_action": row["next_action"],
                 "suggested_topic": row["suggested_topic"],
+                "problem_focus": row["problem_focus"] or row["main_block"],
                 "main_block": row["main_block"],
                 "key_bridge": row["key_bridge"],
+                "visual_hint": row["visual_hint"] or "",
+                "guided_walkthrough": row["guided_walkthrough"] or "",
+                "try_now": row["try_now"] or row["next_step"],
                 "next_step": row["next_step"],
                 "transfer_signal": row["transfer_signal"],
+                "bridge_route_meta": _json_loads_or_default(row["bridge_route_meta"], {}) if "bridge_route_meta" in row.keys() else {},
+                "mastery_status": row["mastery_status"] if "mastery_status" in row.keys() else MASTERY_STATUS_NOT_ASSESSED,
                 "review_created_at": row["review_created_at"],
                 "manual_review": None
                 if row["manual_review_id"] is None
@@ -1751,6 +1921,7 @@ def get_review_context(review_id: int) -> dict | None:
         "student_id": row["student_id"],
         "review_status": row["review_status"],
         "learning_status": row["learning_status"],
+        "mastery_status": row["mastery_status"] if "mastery_status" in row.keys() else MASTERY_STATUS_NOT_ASSESSED,
         "remedy_count": row["remedy_count"],
         "error_tags": _json_loads_or_default(row["error_tags"], []),
         "error_layer": row["error_layer"],
@@ -1759,10 +1930,15 @@ def get_review_context(review_id: int) -> dict | None:
         "diagnosis": row["diagnosis"],
         "next_action": row["next_action"],
         "suggested_topic": row["suggested_topic"],
+        "problem_focus": row["problem_focus"] or row["main_block"],
         "main_block": row["main_block"],
         "key_bridge": row["key_bridge"],
+        "visual_hint": row["visual_hint"] or "",
+        "guided_walkthrough": row["guided_walkthrough"] or "",
+        "try_now": row["try_now"] or row["next_step"],
         "next_step": row["next_step"],
         "transfer_signal": row["transfer_signal"],
+        "bridge_route_meta": _json_loads_or_default(row["bridge_route_meta"], {}) if "bridge_route_meta" in row.keys() else {},
         "review_quality_flags": _json_loads_or_default(row["review_quality_flags"], []),
         "problem_title": row["problem_title"],
         "problem_context": row["problem_context"],
@@ -1794,6 +1970,17 @@ def update_review_learning_status(review_id: int, status: str, remedy_count: int
             "UPDATE reviews SET learning_status = ?, remedy_count = ? WHERE id = ?",
             (status, remedy_count, review_id),
         )
+    conn.commit()
+    conn.close()
+
+
+def update_review_mastery_status(review_id: int, mastery_status: str):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE reviews SET mastery_status = ? WHERE id = ?",
+        (mastery_status, review_id),
+    )
     conn.commit()
     conn.close()
 
@@ -2423,6 +2610,688 @@ def get_manual_review_stats_breakdown(
             "student_can_move_next_rate": round(float(row["move_next_count"] or 0) / reviewed_count, 3),
         }
     return stats
+
+
+def _get_review_distribution_stats(days: int, field_name: str) -> dict[str, dict]:
+    if field_name not in {"mastery_status", "bridge_path", "key_bridge"}:
+        raise ValueError("field_name must be 'mastery_status', 'bridge_path', or 'key_bridge'")
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        f'''
+        SELECT
+            COALESCE(r.{field_name}, 'unknown') AS bucket,
+            COUNT(*) AS count
+        FROM reviews r
+        JOIN checkins c ON c.id = r.checkin_id
+        WHERE c.created_at >= datetime('now', '-{days} days')
+          AND r.{field_name} IS NOT NULL
+        GROUP BY bucket
+        ORDER BY count DESC
+        '''
+    )
+    rows = cursor.fetchall()
+    conn.close()
+
+    total = sum(int(row["count"] or 0) for row in rows)
+    if total <= 0:
+        return {}
+
+    stats: dict[str, dict] = {}
+    for row in rows:
+        bucket = row["bucket"] or "unknown"
+        count = int(row["count"] or 0)
+        stats[bucket] = {
+            "count": count,
+            "total": total,
+            "rate": round(count / total, 3),
+        }
+    return stats
+
+
+def get_mastery_status_stats(days: int = 30) -> dict[str, dict]:
+    return _get_review_distribution_stats(days, "mastery_status")
+
+
+def get_bridge_path_stats(days: int = 30) -> dict[str, dict]:
+    return _get_review_distribution_stats(days, "bridge_path")
+
+
+def get_bridge_stats(days: int = 30) -> dict[str, dict]:
+    return _get_review_distribution_stats(days, "key_bridge")
+
+
+def _increment_bridge_route_bucket(bucket: dict[str, dict], key: str, total: int) -> None:
+    if not key:
+        return
+    if key not in bucket:
+        bucket[key] = {"count": 0, "total": total, "rate": 0.0}
+    bucket[key]["count"] += 1
+
+
+def _safe_bridge_rule_filename(bridge_id: str) -> str:
+    safe = "".join(ch if ch.isalnum() else "_" for ch in bridge_id).strip("_")
+    return f"bridge_rule_draft_{safe or 'unknown'}.md"
+
+
+def _build_bridge_rule_draft(suggestion: dict) -> dict:
+    bridge_id = suggestion.get("bridge_id") or "unknown"
+    route_kind = suggestion.get("route_kind") or "unknown"
+    parent_focus = suggestion.get("parent_focus") or suggestion.get("stable_focus") or "unknown"
+    trigger_signals = list(suggestion.get("evidence_signals") or [])[:6]
+    conflict_signals = list(suggestion.get("conflict_signals") or [])[:4]
+    title = f"{bridge_id} 转正规则草案"
+    acceptance_checks = [
+        "至少抽查 3 条同类样例，确认触发信号稳定指向同一桥。",
+        "教师确认草案不会抢走稳定父桥或其他高频桥的样例。",
+        "教师确认后才允许进入正式 resolver；当前草案不会自动转正。",
+    ]
+    return {
+        "filename": _safe_bridge_rule_filename(str(bridge_id)),
+        "title": title,
+        "route_kind": route_kind,
+        "parent_focus": parent_focus,
+        "integration_status": "draft_only",
+        "decision_policy": "teacher_review_required",
+        "auto_apply": False,
+        "trigger_signals": trigger_signals,
+        "conflict_signals": conflict_signals,
+        "acceptance_checks": acceptance_checks,
+        "draft_markdown": "\n".join(
+            [
+                f"# {title}",
+                "",
+                f"- route_kind: {route_kind}",
+                f"- parent_focus: {parent_focus}",
+                "- integration_status: draft_only",
+                "- decision_policy: teacher_review_required",
+                "- auto_apply: false",
+                "",
+                "## Trigger Signals",
+                *(f"- {signal}" for signal in (trigger_signals or ["暂无"])),
+                "",
+                "## Conflict Signals",
+                *(f"- {signal}" for signal in (conflict_signals or ["暂无"])),
+                "",
+                "## Acceptance Checks",
+                *(f"- {check}" for check in acceptance_checks),
+            ]
+        ),
+    }
+
+
+def get_bridge_route_stats(days: int = 30) -> dict[str, dict]:
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        f'''
+        SELECT r.bridge_route_meta
+        FROM reviews r
+        JOIN checkins c ON c.id = r.checkin_id
+        WHERE c.created_at >= datetime('now', '-{days} days')
+          AND r.bridge_route_meta IS NOT NULL
+          AND r.bridge_route_meta != ''
+          AND r.bridge_route_meta != '{{}}'
+        '''
+    )
+    rows = cursor.fetchall()
+    conn.close()
+
+    route_metas = [
+        _json_loads_or_default(row["bridge_route_meta"], {})
+        for row in rows
+        if row["bridge_route_meta"]
+    ]
+    route_metas = [meta for meta in route_metas if isinstance(meta, dict) and meta]
+    total = len(route_metas)
+    if total <= 0:
+        return {
+            "status": {},
+            "stable_focus": {},
+            "candidate_bridge": {},
+            "open_bridge": {},
+            "conflict_signals": {},
+        }
+
+    stats = {
+        "status": {},
+        "stable_focus": {},
+        "candidate_bridge": {},
+        "open_bridge": {},
+        "conflict_signals": {},
+    }
+
+    for meta in route_metas:
+        status = str(meta.get("status") or "unknown")
+        stable_focus = str(meta.get("stable_focus") or "")
+        candidate_bridge = str(meta.get("candidate_bridge_id") or "")
+        _increment_bridge_route_bucket(stats["status"], status, total)
+        _increment_bridge_route_bucket(stats["stable_focus"], stable_focus, total)
+        if status == "candidate_bridge":
+            _increment_bridge_route_bucket(stats["candidate_bridge"], candidate_bridge, total)
+        if status == "open_bridge":
+            _increment_bridge_route_bucket(stats["open_bridge"], candidate_bridge, total)
+        for signal in meta.get("conflict_signals") or []:
+            _increment_bridge_route_bucket(stats["conflict_signals"], str(signal), total)
+
+    for bucket in stats.values():
+        for item in bucket.values():
+            item["rate"] = round(item["count"] / total, 3)
+
+    return stats
+
+
+def get_bridge_route_promotion_suggestions(days: int = 30, limit: int = 50) -> list[dict]:
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        f'''
+        SELECT r.id, r.checkin_id, r.bridge_route_meta, c.created_at
+        FROM reviews r
+        JOIN checkins c ON c.id = r.checkin_id
+        WHERE c.created_at >= datetime('now', '-{days} days')
+          AND r.bridge_route_meta IS NOT NULL
+          AND r.bridge_route_meta != ''
+          AND r.bridge_route_meta != '{{}}'
+        '''
+    )
+    rows = cursor.fetchall()
+    conn.close()
+
+    buckets: dict[tuple[str, str], dict] = {}
+    for row in rows:
+        meta = _json_loads_or_default(row["bridge_route_meta"], {})
+        if not isinstance(meta, dict) or not meta:
+            continue
+        route_kind = str(meta.get("status") or "")
+        if route_kind not in {"candidate_bridge", "open_bridge"}:
+            continue
+        bridge_id = str(meta.get("candidate_bridge_id") or "")
+        if not bridge_id:
+            continue
+        bucket_key = (route_kind, bridge_id)
+        if bucket_key not in buckets:
+            buckets[bucket_key] = {
+                "route_kind": route_kind,
+                "bridge_id": bridge_id,
+                "parent_focus": str(meta.get("candidate_parent_focus") or meta.get("stable_focus") or ""),
+                "stable_focus": str(meta.get("stable_focus") or ""),
+                "open_bridge_label": str(meta.get("open_bridge_label") or ""),
+                "count": 0,
+                "review_ids": [],
+                "sample_checkin_ids": [],
+                "evidence_signals": [],
+                "conflict_signals": [],
+                "decision_policy": "teacher_review_required",
+                "auto_promote": False,
+                "last_seen_at": row["created_at"],
+            }
+        bucket = buckets[bucket_key]
+        bucket["count"] += 1
+        if str(row["created_at"] or "") > str(bucket.get("last_seen_at") or ""):
+            bucket["last_seen_at"] = row["created_at"]
+        if len(bucket["review_ids"]) < 5:
+            bucket["review_ids"].append(row["id"])
+        if len(bucket["sample_checkin_ids"]) < 5:
+            bucket["sample_checkin_ids"].append(row["checkin_id"])
+        for signal in meta.get("matched_signals") or []:
+            signal = str(signal)
+            if signal and signal not in bucket["evidence_signals"]:
+                bucket["evidence_signals"].append(signal)
+        for signal in meta.get("conflict_signals") or []:
+            signal = str(signal)
+            if signal and signal not in bucket["conflict_signals"]:
+                bucket["conflict_signals"].append(signal)
+
+    suggestions_by_count = sorted(
+        buckets.values(),
+        key=lambda item: (-int(item["count"]), item["route_kind"], item["bridge_id"]),
+    )
+    suggestions_by_recency = sorted(
+        buckets.values(),
+        key=lambda item: (str(item.get("last_seen_at") or ""), int(item["count"]), item["route_kind"], item["bridge_id"]),
+        reverse=True,
+    )
+    if len(suggestions_by_count) <= limit:
+        suggestions = suggestions_by_count
+    else:
+        newest_limit = min(10, limit)
+        frequent_limit = max(0, limit - newest_limit)
+        seen_keys = set()
+        suggestions = []
+        for item in suggestions_by_count[:frequent_limit] + suggestions_by_recency[:newest_limit] + suggestions_by_count:
+            key = (item["route_kind"], item["bridge_id"])
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
+            suggestions.append(item)
+            if len(suggestions) >= limit:
+                break
+    for item in suggestions:
+        item["evidence_signals"] = item["evidence_signals"][:6]
+        item["conflict_signals"] = item["conflict_signals"][:4]
+        item["suggested_action"] = (
+            "review_candidate_bridge_rule"
+            if item["route_kind"] == "candidate_bridge"
+            else "draft_open_bridge_spec"
+        )
+        item["rule_draft"] = _build_bridge_rule_draft(item)
+    return suggestions[:limit]
+
+
+def get_bridge_route_promotion_suggestion(
+    *,
+    route_kind: str,
+    bridge_id: str,
+    days: int = 30,
+) -> dict | None:
+    for suggestion in get_bridge_route_promotion_suggestions(days=days, limit=500):
+        if suggestion.get("route_kind") == route_kind and suggestion.get("bridge_id") == bridge_id:
+            return suggestion
+    return None
+
+
+def upsert_bridge_rule_draft_decision(
+    *,
+    route_kind: str,
+    bridge_id: str,
+    parent_focus: str,
+    teacher_id: str,
+    decision: str,
+    notes: str = "",
+    draft_filename: str = "",
+    draft_markdown: str = "",
+    auto_promote: bool = False,
+) -> dict:
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        '''
+        INSERT INTO bridge_rule_draft_decisions
+        (route_kind, bridge_id, parent_focus, teacher_id, decision, notes, draft_filename, draft_markdown, auto_promote)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(route_kind, bridge_id, teacher_id) DO UPDATE SET
+            parent_focus = excluded.parent_focus,
+            decision = excluded.decision,
+            notes = excluded.notes,
+            draft_filename = excluded.draft_filename,
+            draft_markdown = excluded.draft_markdown,
+            auto_promote = excluded.auto_promote,
+            updated_at = CURRENT_TIMESTAMP
+        ''',
+        (
+            route_kind,
+            bridge_id,
+            parent_focus,
+            teacher_id,
+            decision,
+            notes or "",
+            draft_filename or "",
+            draft_markdown or "",
+            1 if auto_promote else 0,
+        ),
+    )
+    conn.commit()
+    conn.close()
+    stored = get_bridge_rule_draft_decision(
+        route_kind=route_kind,
+        bridge_id=bridge_id,
+        teacher_id=teacher_id,
+    )
+    return stored or {}
+
+
+def get_bridge_rule_draft_decision(
+    *,
+    route_kind: str,
+    bridge_id: str,
+    teacher_id: str,
+) -> dict | None:
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        '''
+        SELECT
+            id, route_kind, bridge_id, parent_focus, teacher_id, decision, notes,
+            draft_filename, draft_markdown, auto_promote, created_at, updated_at
+        FROM bridge_rule_draft_decisions
+        WHERE route_kind = ? AND bridge_id = ? AND teacher_id = ?
+        ''',
+        (route_kind, bridge_id, teacher_id),
+    )
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        return None
+    return {
+        "id": row["id"],
+        "route_kind": row["route_kind"],
+        "bridge_id": row["bridge_id"],
+        "parent_focus": row["parent_focus"],
+        "teacher_id": row["teacher_id"],
+        "decision": row["decision"],
+        "notes": row["notes"] or "",
+        "draft_filename": row["draft_filename"] or "",
+        "draft_markdown": row["draft_markdown"] or "",
+        "auto_promote": bool(row["auto_promote"]),
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+    }
+
+
+def list_bridge_rule_draft_decisions(
+    *,
+    teacher_id: str | None = None,
+    limit: int = 30,
+) -> list[dict]:
+    conn = get_db()
+    cursor = conn.cursor()
+    query = '''
+        SELECT
+            id, route_kind, bridge_id, parent_focus, teacher_id, decision, notes,
+            draft_filename, draft_markdown, auto_promote, created_at, updated_at
+        FROM bridge_rule_draft_decisions
+    '''
+    params: tuple = ()
+    if teacher_id:
+        query += " WHERE teacher_id = ?"
+        params = (teacher_id,)
+    query += " ORDER BY updated_at DESC, id DESC LIMIT ?"
+    params = (*params, max(1, min(limit, 100)))
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    conn.close()
+    return [
+        {
+            "id": row["id"],
+            "route_kind": row["route_kind"],
+            "bridge_id": row["bridge_id"],
+            "parent_focus": row["parent_focus"],
+            "teacher_id": row["teacher_id"],
+            "decision": row["decision"],
+            "notes": row["notes"] or "",
+            "draft_filename": row["draft_filename"] or "",
+            "auto_promote": bool(row["auto_promote"]),
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }
+        for row in rows
+    ]
+
+
+def create_bridge_registry_entry_from_decision(
+    *,
+    decision_id: int,
+    teacher_id: str,
+) -> dict:
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        '''
+        SELECT
+            id, route_kind, bridge_id, parent_focus, teacher_id, decision, notes,
+            draft_filename, draft_markdown, auto_promote
+        FROM bridge_rule_draft_decisions
+        WHERE id = ? AND teacher_id = ?
+        ''',
+        (decision_id, teacher_id),
+    )
+    decision = cursor.fetchone()
+    if not decision:
+        conn.close()
+        raise ValueError("draft decision not found")
+    if decision["decision"] != "confirmed":
+        conn.close()
+        raise ValueError("only confirmed drafts can enter registry")
+    cursor.execute(
+        '''
+        INSERT INTO bridge_registry_entries
+        (draft_decision_id, route_kind, bridge_id, parent_focus, teacher_id, registry_status,
+         resolver_enabled, draft_filename, draft_markdown, notes)
+        VALUES (?, ?, ?, ?, ?, 'registry_only', 0, ?, ?, ?)
+        ON CONFLICT(route_kind, bridge_id) DO UPDATE SET
+            draft_decision_id = excluded.draft_decision_id,
+            parent_focus = excluded.parent_focus,
+            teacher_id = excluded.teacher_id,
+            registry_status = 'registry_only',
+            resolver_enabled = 0,
+            draft_filename = excluded.draft_filename,
+            draft_markdown = excluded.draft_markdown,
+            notes = excluded.notes,
+            updated_at = CURRENT_TIMESTAMP
+        ''',
+        (
+            decision["id"],
+            decision["route_kind"],
+            decision["bridge_id"],
+            decision["parent_focus"],
+            teacher_id,
+            decision["draft_filename"] or "",
+            decision["draft_markdown"] or "",
+            decision["notes"] or "",
+        ),
+    )
+    conn.commit()
+    entry_id = cursor.lastrowid
+    conn.close()
+    entry = get_bridge_registry_entry_by_bridge(
+        route_kind=decision["route_kind"],
+        bridge_id=decision["bridge_id"],
+    )
+    return entry or {"id": entry_id}
+
+
+def get_bridge_registry_entry_by_bridge(*, route_kind: str, bridge_id: str) -> dict | None:
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        '''
+        SELECT
+            id, draft_decision_id, route_kind, bridge_id, parent_focus, teacher_id,
+            registry_status, resolver_enabled, draft_filename, draft_markdown, notes,
+            created_at, updated_at
+        FROM bridge_registry_entries
+        WHERE route_kind = ? AND bridge_id = ?
+        ''',
+        (route_kind, bridge_id),
+    )
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        return None
+    return _bridge_registry_entry_from_row(row)
+
+
+def get_bridge_registry_entry(entry_id: int) -> dict | None:
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        '''
+        SELECT
+            id, draft_decision_id, route_kind, bridge_id, parent_focus, teacher_id,
+            registry_status, resolver_enabled, draft_filename, draft_markdown, notes,
+            created_at, updated_at
+        FROM bridge_registry_entries
+        WHERE id = ?
+        ''',
+        (entry_id,),
+    )
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        return None
+    return _bridge_registry_entry_from_row(row)
+
+
+def _bridge_registry_entry_from_row(row) -> dict:
+    return {
+        "id": row["id"],
+        "draft_decision_id": row["draft_decision_id"],
+        "route_kind": row["route_kind"],
+        "bridge_id": row["bridge_id"],
+        "parent_focus": row["parent_focus"],
+        "teacher_id": row["teacher_id"],
+        "registry_status": row["registry_status"],
+        "resolver_enabled": bool(row["resolver_enabled"]),
+        "draft_filename": row["draft_filename"] or "",
+        "draft_markdown": row["draft_markdown"] or "",
+        "notes": row["notes"] or "",
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+    }
+
+
+def list_bridge_registry_entries(limit: int = 50) -> list[dict]:
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        '''
+        SELECT
+            id, draft_decision_id, route_kind, bridge_id, parent_focus, teacher_id,
+            registry_status, resolver_enabled, draft_filename, draft_markdown, notes,
+            created_at, updated_at
+        FROM bridge_registry_entries
+        ORDER BY updated_at DESC, id DESC
+        LIMIT ?
+        ''',
+        (max(1, min(limit, 100)),),
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    return [_bridge_registry_entry_from_row(row) for row in rows]
+
+
+def build_resolver_patch_draft_for_registry_entry(entry: dict) -> dict:
+    bridge_id = entry.get("bridge_id") or "unknown"
+    parent_focus = entry.get("parent_focus") or "unknown"
+    route_kind = entry.get("route_kind") or "unknown"
+    filename = f"resolver_patch_draft_{_safe_bridge_rule_filename(str(bridge_id)).replace('bridge_rule_draft_', '').replace('.md', '')}.md"
+    draft_markdown = "\n".join(
+        [
+            f"# Resolver Patch Draft: {bridge_id}",
+            "",
+            "- manual patch only",
+            "- patch_status: patch_draft_only",
+            "- auto_apply: false",
+            "- resolver_enabled: false",
+            "- target_file: review_engine.py",
+            f"- route_kind: {route_kind}",
+            f"- parent_focus: {parent_focus}",
+            "",
+            "## Intended Edit Location",
+            "- `_resolve_bridge_decision(...)` in `review_engine.py`",
+            "",
+            "## Guardrails",
+            "- Do not enable this patch automatically.",
+            "- Do not change student-facing routing from this draft.",
+            "- Keep existing stable parent focus active until a human review lands the resolver patch.",
+            "- Add red tests before editing resolver logic.",
+            "",
+            "## Source Registry Notes",
+            entry.get("notes") or "暂无备注",
+            "",
+            "## Source Rule Draft",
+            entry.get("draft_markdown") or "暂无草案正文",
+        ]
+    )
+    return {
+        "bridge_id": bridge_id,
+        "route_kind": route_kind,
+        "parent_focus": parent_focus,
+        "target_file": "review_engine.py",
+        "filename": filename,
+        "patch_status": "patch_draft_only",
+        "auto_apply": False,
+        "resolver_enabled": False,
+        "draft_markdown": draft_markdown,
+    }
+
+
+def get_knowledge_bailout_stats(days: int = 30) -> dict[str, dict]:
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        f'''
+        SELECT
+            CASE
+                WHEN r.bridge_path IN ('knowledge_bailout_success', 'knowledge_bailout_failed') THEN 'entered'
+                ELSE 'not_entered'
+            END AS bucket,
+            COUNT(*) AS count
+        FROM reviews r
+        JOIN checkins c ON c.id = r.checkin_id
+        WHERE c.created_at >= datetime('now', '-{days} days')
+        GROUP BY bucket
+        ORDER BY count DESC
+        '''
+    )
+    rows = cursor.fetchall()
+    conn.close()
+
+    total = sum(int(row["count"] or 0) for row in rows)
+    if total <= 0:
+        return {}
+
+    stats: dict[str, dict] = {}
+    for row in rows:
+        bucket = row["bucket"] or "unknown"
+        count = int(row["count"] or 0)
+        stats[bucket] = {
+            "count": count,
+            "total": total,
+            "rate": round(count / total, 3),
+        }
+    return stats
+
+
+def _get_topic_stats(days: int, level: str) -> dict[str, dict]:
+    if level not in {"topic_l1", "topic_l2"}:
+        raise ValueError("level must be 'topic_l1' or 'topic_l2'")
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        f'''
+        SELECT COALESCE(r.key_bridge, 'unknown') AS key_bridge, COUNT(*) AS count
+        FROM reviews r
+        JOIN checkins c ON c.id = r.checkin_id
+        WHERE c.created_at >= datetime('now', '-{days} days')
+        GROUP BY key_bridge
+        ORDER BY count DESC
+        '''
+    )
+    rows = cursor.fetchall()
+    conn.close()
+
+    bucket_counts: dict[str, int] = {}
+    for row in rows:
+        bridge = row["key_bridge"] or "unknown"
+        count = int(row["count"] or 0)
+        mapped = BRIDGE_TOPIC_MAP.get(bridge)
+        bucket = (mapped[0] if level == "topic_l1" else mapped[1]) if mapped else "unknown"
+        bucket_counts[bucket] = bucket_counts.get(bucket, 0) + count
+
+    total = sum(bucket_counts.values())
+    if total <= 0:
+        return {}
+
+    return {
+        bucket: {
+            "count": count,
+            "total": total,
+            "rate": round(count / total, 3),
+        }
+        for bucket, count in sorted(bucket_counts.items(), key=lambda item: (-item[1], item[0]))
+    }
+
+
+def get_topic_l1_stats(days: int = 30) -> dict[str, dict]:
+    return _get_topic_stats(days, "topic_l1")
+
+
+def get_topic_l2_stats(days: int = 30) -> dict[str, dict]:
+    return _get_topic_stats(days, "topic_l2")
 
 
 def get_student_flags() -> list:

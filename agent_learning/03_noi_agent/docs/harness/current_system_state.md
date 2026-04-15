@@ -20,6 +20,575 @@
 
 ## 2026-04-04 补充：review mode 路由与 eval 基线骨架
 
+## 2026-04-09 补充：讲解文案进一步学生化
+
+## 2026-04-10 补充：外部 bridge snippet 已开始接入运行时知识卡
+
+## 2026-04-10 补充：teacher 统计已补到 bridge / knowledge_bailout
+
+## 2026-04-10 补充：阶段二已完成
+
+## 2026-04-10 补充：阶段三已开始复审最弱 bridge
+
+## 2026-04-10 补充：阶段三已完成
+
+## 2026-04-11 补充：阶段四已启动并完成首批 visual_hint 精修
+
+## 2026-04-11 补充：第五阶段已为首轮 review 接入轻量 bridge 约束
+
+## 2026-04-11 补充：整站前端已切到 Vue 3 + Vite 新壳
+
+## 2026-04-11 补充：前端 UI 已按 `ui-ux-pro-max` 方向完成第一版视觉重构
+
+## 2026-04-12 补充：P3128 已接入 `tree_path_difference` 试点桥
+
+当前代码中已经真实成立：
+
+- review engine 已新增 focus：
+  - `tree_path_difference`
+- 该 focus 当前用于处理：
+  - 多条树上路径
+  - 经过次数统计
+  - 树上差分
+  - LCA / 最近公共祖先
+  - 树剖 / 树链剖分相关路径贡献语境
+- `P3128 [USACO15DEC] Max Flow P` 的典型复盘语境现在会优先进入：
+  - `tree_path_difference`
+- `P3258 [JLOI2014] 松鼠的新家` 这类“树上路线 / 房间访问次数 / 公共祖先 / 向上汇总”的自然语言复盘语境也会进入：
+  - `tree_path_difference`
+- 树上边经过次数语境当前会被识别为：
+  - `tree_path_difference` 的边界样例
+- 它不会再因为：
+  - `标记` 被误吸到 `lazy_semantics`
+  - `经过次数` 被误吸到 `shared_prefix_merging`
+- 线段树区间修改语境仍会保留在：
+  - `lazy_semantics`
+- 当前本地确定性链路已覆盖：
+  - main quiz
+  - followup quiz
+  - final micro confirm quiz
+  - knowledge bailout card
+  - knowledge confirm quiz
+  - remedy explanation
+- 当前桥梁语言固定为：
+  - `树上路径贡献 -> 端点/LCA 附近差分标记 -> DFS 子树汇总 -> 每个点经过次数`
+- 当前 `graph.tree_path_difference` 知识卡已补小板书：
+  - `s += 1`
+  - `t += 1`
+  - `lca -= 1`
+  - `parent(lca) -= 1`
+  - `DFS 向上汇总`
+- 当前 `docs/subjects/noi/bridge_map.md`
+  - 已登记 `tree_path_difference`
+- 当前 `docs/common/oi_wiki_bridge_taxonomy_mapping_v1.md`
+  - 已把 OI Wiki 的 LCA / 树上路径统计语境映射到 `tree_path_difference`
+- 当前外部 snippet 已新增：
+  - `docs/common/oi_wiki_bridge_sources_v1.jsonl`
+  - `docs/common/oi_wiki_bridge_snippets_v1.jsonl`
+  - `docs/common/bridge_external_snippets_v1.jsonl`
+- 运行时 `graph.tree_path_difference` 知识卡和 remedy 已能通过 bridge key 自动追加：
+  - OI Wiki 改写后的 misconception
+  - OI Wiki 改写后的 mini_example
+
+当前已知边界：
+
+- 这张桥当前按 P3128 的“点经过次数”版本落地
+- 边差分题、纯 HLD 区间维护题，后续需要拆 variant 或补更细分知识卡
+- 当前 snippet 是教学化改写，不是把 OI Wiki 原文整段搬进 prompt
+
+当前代码中已经真实成立：
+
+- 运行时前端主入口已从旧的：
+  - `static/index.html + static/app.js + static/js/main.js + static/js/router.js`
+  切到新的：
+  - `Vue 3 + Vite + Pinia + Vue Router`
+- 当前前端源码目录已新增：
+  - `frontend/`
+- 当前构建输出已固定到：
+  - `static/dist/`
+- `static/index.html` 当前只负责挂载：
+  - `<div id="app"></div>`
+  - `/static/dist/assets/app.css`
+  - `/static/dist/assets/app.js`
+- 当前后端 `/app/{path:path}` 入口已兼容新学生/教师路径：
+  - `/app/workspace/chat`
+  - `/app/workspace/checkin`
+  - `/app/archive`
+  - `/app/archive/:checkinId`
+  - `/app/teacher/overview`
+  - `/app/teacher/review`
+  - `/app/teacher/students`
+  - `/app/teacher/checkins`
+- 当前学生端运行时壳层已由 Vue Router 统一接管，不再依赖旧 tab 心智
+- 当前教师端运行时壳层也已迁到 Vue，并保留旧 teacher 路由 alias：
+  - `/app/teacher/manual-review -> /app/teacher/review`
+  - `/app/teacher/stats -> /app/teacher/overview`
+  - `/app/teacher/quota -> /app/teacher/students`
+  - `/app/teacher/flags -> /app/teacher/students`
+- 当前旧学生路由 alias 也已兼容：
+  - `/app -> /app/workspace/chat`
+  - `/app/chat -> /app/workspace/chat`
+  - `/app/checkin -> /app/workspace/checkin`
+  - `/app/history -> /app/archive`
+  - `/app/history/:id -> /app/archive/:id`
+- 当前 `run_test.sh` 已纳入：
+  - `npm run build`
+  - `test_frontend_vue_entry_unit.py`
+  - `test_student_routes.mjs`
+  - `test_teacher_routes.mjs`
+  - `test_vue_app_shell.mjs`
+- 当前 Vue 新前端视觉系统已完成第一版统一重构，采用：
+  - `Swiss Modernism 2.0 + Bento Grid` 的信息布局方向
+  - `Plus Jakarta Sans + Noto Sans SC` 的中英文字体组合
+  - richer palette 的模块分区色，而不是单一后台蓝
+- 当前学生端模块色已真实接入：
+  - `workspace/chat`：蓝青
+  - `workspace/checkin`：橙金
+  - `archive`：靛紫
+- 当前教师端页面也已完成第一版运营工作台视觉分区：
+  - `overview`：蓝紫
+  - `review`：橙红强调
+  - `students/checkins`：青灰中性
+- 当前应用壳层、hero 区、导航、统计卡、工作卡、详情面板都已切到统一的 Vue 组件样式系统，不再依赖旧静态页拼装出来的视觉层
+- 当前 Vue 运行时已新增统一的路由访问收口层：
+  - `frontend/src/router/routeAccess.js`
+  - 负责：
+    - 学生/教师默认主页
+    - pending path 归一化
+    - 错角色壳层重定向
+- 当前 auth 恢复已前置到 Vue 启动阶段：
+  - `main.js` 在 mount 前执行 `auth.restore()`
+  - `router.beforeEach(...)` 统一处理：
+    - 未登录访问受保护页时记录 `pendingPath`
+    - 已登录但进入错误壳层时重定向到对应角色主页
+- 当前学生端与教师端 layout 已不再各自承担主要路由恢复职责，而是只处理：
+  - 成功登录后的最终落页
+  - 同角色页面内的壳层导航显示
+- 当前学生端打卡页的 `completion_status` 已与后端真实枚举对齐：
+  - `unfinished`
+  - `hinted`
+  - `editorial`
+  - `independent`
+- 当前已通过真实 API 走查确认：
+  - 学生登录成功
+  - 学生聊天接口可用
+  - 学生打卡提交不再因旧前端枚举 `attempted / solved` 触发 `422`
+  - 新提交可以返回 `checkin_id` 并立刻拉取详情
+- 当前学生端页面头部已移除大段解释性说明和“当前页面 / 路由状态 / 目标”提示卡，改成更紧凑的页眉
+- 当前历史详情页已从原始 JSON 展示改成可读详情视图：
+  - 提交摘要
+  - 复盘状态
+  - 学习链路
+- 当前 `/api/checkins/{checkin_id}` 已允许详情页拿到学生提交内容字段：
+  - `completion_status`
+  - `bottleneck_text`
+  - `reflection`
+  - `problem_context`
+  - `error_types`
+  - `student_code`
+
+当前已知边界：
+
+- 旧 `static/app.js` 及若干旧前端辅助模块仍保留在仓库里，主要是为了兼容测试与渐进清理，不再是运行时主路径
+- 当前 Vue 页面的业务展示已可用，但部分学生/教师页仍是“结构化工作台壳层 + 接口原始数据”的第一版，不是最终内容精修态
+- 当前 UI 已完成第一版结构和视觉重构，但还没有完成真实浏览器走查后的交互细节收边；例如：
+  - 长列表和详情页在真实内容密度下的节奏
+  - 登录恢复后的页面首屏观感
+  - 局部状态空态/加载态的精修
+- 如果本地 8000 仍在运行旧进程，需要重启后才能在浏览器里看到这轮详情字段和页面文案调整
+
+当前代码中已经真实成立：
+
+- 第五阶段已为首轮 review 接入轻量 bridge 约束
+- 当前只覆盖 4 个 bridge：
+  - `method_selection`
+  - `shared_prefix_merging`
+  - `check_condition`
+  - `left_bound_update`
+- 这层约束分两层：
+  - prompt 轻约束
+  - post-generation bridge consistency guard
+- guard 的字段范围固定为 5 个：
+  - `problem_focus`
+  - `key_bridge`
+  - `visual_hint`
+  - `guided_walkthrough`
+  - `try_now`
+
+当前下一步：
+
+- 用真实样例继续复审：
+  - `P2922`
+  - `P2678`
+  - `P2249`
+
+当前代码中已经真实成立：
+
+- 阶段四当前已经开始，并且已完成首批高频 bridge 的 `visual_hint` 精修：
+  - `check_condition`
+  - `method_selection`（trie 语境）
+  - `lazy_semantics`
+  - `shared_prefix_merging`
+  - `left_bound_update`
+  - `transition_design`
+  - `greedy_basis`
+  - `tree_diameter_candidates`
+  - `constraint_modeling`
+- 当前这些高频 bridge 的知识卡和 deterministic remedy，都已经不再只是泛箭头提示，而是更像学生能一眼抓住的小板书：
+  - `check_condition`
+    - `check(5)=true`
+    - `只说明 5 可行 / 5 还可行`
+    - `再决定区间往哪边缩`
+  - `method_selection`（trie 语境）
+    - `101 / 100 / 11`
+    - `前两条前面两位一样`
+    - `这就是“相同开头”的题面信号`
+    - `这是支持 trie 的题面信号`
+  - `lazy_semantics`
+    - `[1,4]`
+    - `lazy=3`
+    - `左儿长度=2`
+    - `pushdown: 左儿 sum += 3×2`
+  - `shared_prefix_merging`
+    - `101 / 100 / 11`
+    - `前缀 10 先合在一起`
+    - `查询时只沿前缀路径往下走`
+  - `left_bound_update`
+    - `[1,2,2,2,3]`
+    - `a[mid] == 2`
+    - `mid 先留作候选`
+    - `r = mid 继续往左缩`
+  - `transition_design`
+    - `当前格 (i,j)`
+    - `上一层 (i-1,j-1)`
+    - `上一层 (i-1,j)`
+    - `先把来源想全，再写转移式`
+  - `greedy_basis`
+    - `[1,3] 先选`
+    - `[3,5] 还能接上`
+    - `后面还有空间`
+    - `这一步才不吃亏`
+  - `tree_diameter_candidates`
+    - `左边最远点`
+    - `右边最远点`
+    - `经过新边接起来`
+    - `先比较这三类候选`
+  - `constraint_modeling`
+    - `A <= B + c`
+    - `B <= C + d`
+    - `先统一成同一种关系`
+    - `再看谁限制谁`
+- 这轮只收紧了学生可见图示，没有改：
+  - review 状态机
+  - bridge 路由
+  - API 字段形状
+- 第四阶段当前已经把高频 bridge 和代表性长尾 bridge 的主图示精修收口
+- 如果继续往下做，下一步更适合转去：
+  - 正式收阶段四
+  - 或开启下一阶段
+
+- 阶段三当前已经完成对三条最弱高频 bridge 的复审：
+  - `method_selection`
+  - `shared_prefix_merging`
+  - `lazy_semantics`
+- 当前复审结论是：
+  - `method_selection`
+    - 在 trie 语境下已较稳
+    - 已能稳定讲清“不要凭题感猜 trie，要回到题面信号”
+  - `shared_prefix_merging`
+    - 已较稳
+    - live 链里已经稳定出现：
+      - `经过次数`
+      - `结束次数`
+      - `101 / 100 / 11`
+      - `前缀 10 这个节点`
+  - `lazy_semantics`
+    - 已较稳
+    - `remedy / knowledge card / knowledge confirm` 都已稳定围绕：
+      - “这段区间已经确定、但还没下传给孩子的信息”
+      - `[1,4] / lazy=3 / 3×2`
+- 阶段三剩余问题主要不再是主链跑不通，而是：
+  - 某些 bridge 的 `visual_hint` 还能继续精修
+  - 历史库里仍有旧噪音需要在评估时隔离
+
+- 阶段三当前已经开始围绕固定样例池复审最弱高频 bridge
+- 第一条已复审的是：
+  - `method_selection`
+  - 代表题：
+    - `P2922 [USACO08DEC] Secret Message G`
+- 当前代码路径下，`method_selection` 在 trie 语境里已经能稳定给出：
+  - 先破“凭题感猜 trie”的误解
+  - 再点出：
+    - `很多字符串`
+    - `反复前缀关系`
+    - `101 / 100 / 11`
+  - remedy 和 knowledge confirm 也都围绕“题面信号支持 trie”这一步，不再只停在抽象方法名层
+- 当前这座桥剩下的主要问题已不是运行时内容，而是：
+  - 真实库里仍有旧 quiz 重复记录
+  - 评估时容易和 `shared_prefix_merging` 混评
+
+- 阶段二当前已经收完三件事：
+  - 已固定 8 个高频 bridge 的代表样例池：
+    - `docs/common/high_frequency_bridge_sample_pool_2026_04.md`
+  - 统一 snippet 索引里已经真实存在：
+    - `bridge_explanation`
+    - `algorithm_overview`
+    - `misconception`
+    - `mini_example`
+  - 这些 snippet 不再只停在文档层，而是已经真实接入：
+    - `knowledge card`
+    - `deterministic remedy`
+- 当前统一 snippet 运行时入口是：
+  - `docs/common/bridge_external_snippets_v1.jsonl`
+- 阶段二当前重点覆盖的高频 bridge 为：
+  - `state_design`
+  - `transition_design`
+  - `check_condition`
+  - `left_bound_update`
+  - `lazy_semantics`
+  - `shared_prefix_merging`
+  - `complexity_fit`
+  - `method_selection`
+- 这意味着当前系统已经不只是“有外部知识源文件”，而是形成了：
+  - 固定样例池
+  - 统一 snippet 索引
+  - 运行时 bridge 级接线
+  这一整套阶段二基础设施
+
+- `/api/teacher/stats` 当前除了已有的：
+  - `mastery_status_stats`
+  - `bridge_path_stats`
+  还新增返回：
+  - `bridge_stats`
+  - `knowledge_bailout_stats`
+  - `topic_l1_stats`
+  - `topic_l2_stats`
+- `bridge_stats` 当前按 `reviews.key_bridge` 聚合
+  - 目的是让老师直接看到最近 30 天学生最常卡在哪座知识桥
+- `knowledge_bailout_stats` 当前按是否进入：
+  - `knowledge_bailout_success`
+  - `knowledge_bailout_failed`
+  聚合成：
+  - `entered`
+  - `not_entered`
+- teacher 前端统计页现在新增两张卡：
+  - `高频知识桥分布`
+  - `知识卡介入分布`
+- teacher 前端统计页现在也新增两张 topic 卡：
+  - `知识域分布`
+  - `知识子域分布`
+- `topic_l1/topic_l2` 当前不是从完整 taxonomy 自动推理，而是先按稳定的 `bridge -> topic_l1/topic_l2` 映射表聚合高频 bridge
+- teacher 统计页当前也已补上高频：
+  - `bridge`
+  - `topic_l1`
+  - `topic_l2`
+  的中文标签映射
+- 这一轮没有改：
+  - teacher 手工复核协议
+  - review 状态机
+  - bridge 路由逻辑
+
+当前代码中已经真实成立：
+
+- `P2922` 这类 trie 题如果学生已经在说：
+  - `节点该存什么`
+  - `经过次数`
+  - `公共前缀`
+  - `前缀关系`
+  后续 quiz 焦点现在会优先落到 `shared_prefix_merging`，不再轻易掉回通用 `state_design`
+- `string.trie.shared_prefix_merging` 和 trie 语境下的 `modeling.method_selection`，现在在知识卡和 deterministic remedy 里都补了一个最小算例：
+  - `101`
+  - `100`
+  - `11`
+  - 前两条前面两位一样，所以这段相同开头值得先合在一起看
+- `binary_search.check_condition` 的 deterministic remedy 和知识卡现在都补了一个最小算例：
+  - `check(5)=true`
+  - 只说明“答案至少还能达到 5/当前 mid 可行”这句话成立
+- `segment_tree.lazy_semantics` 的 deterministic remedy 和知识卡现在都补了一个最小算例：
+  - 节点管 `[1,4]`
+  - `lazy=3`
+  - 左儿子长度 `2`
+  - pushdown 时左儿子的 `sum` 会先加 `3×2`
+- 这两个桥现在都已经有**干净的新真实链**，而且都已真实走到知识卡阶段：
+  - `check_condition`
+    - `checkin_id=4225`
+    - `review_id=4073`
+    - `quiz_id=1150 / 1151`
+  - `lazy_semantics`
+    - `checkin_id=4226`
+    - `review_id=4074`
+    - `quiz_id=1152 / 1153`
+- 这轮改动只收紧了学生可见文案，没有改：
+  - review 路由
+  - quiz 状态机
+  - API 字段形状
+
+- `review_engine.py` 已新增外部 snippet 读取与 bridge 级选择逻辑：
+  - `_load_external_bridge_snippets()`
+  - `_pick_external_bridge_snippet(...)`
+  - `_augment_knowledge_card_with_external_snippets(...)`
+- 外部 snippet 的运行时入口现在已统一优先走：
+  - `docs/common/bridge_external_snippets_v1.jsonl`
+- 只有当统一索引缺失时，才回退读取：
+  - `docs/common/cp_pdf_bridge_snippets_v1.jsonl`
+  - `docs/common/oi_wiki_bridge_snippets_v1.jsonl`
+- 当前会从两类来源加载教学化 snippet：
+  - `docs/common/cp_pdf_bridge_snippets_v1.jsonl`
+  - `docs/common/oi_wiki_bridge_snippets_v1.jsonl`
+- 当前不是把外部资料原文直接丢给学生，而是：
+  - 先做 bridge 级片段
+  - 再在知识卡阶段按 bridge 追加进学生化文案
+- 当前已经接入运行时知识卡的 bridge 有五类：
+  - `string.trie.shared_prefix_merging`
+  - `segment_tree.lazy_semantics`
+  - `binary_search.check_condition`
+  - `binary_search.left_bound`
+  - `dp.state_design`
+- 其中：
+  - `shared_prefix_merging` 会优先吸收：
+    - OI Wiki 的 `bridge_explanation`
+    - cp-pdf 的 `algorithm_overview`
+    - cp-pdf 的补充 `bridge_explanation`
+  - `lazy_semantics` 会优先吸收：
+    - OI Wiki 的 `bridge_explanation`
+  - `check_condition` 会优先吸收：
+    - OI Wiki 的 `bridge_explanation`
+  - `left_bound_update` 会优先吸收：
+    - OI Wiki 的 `bridge_explanation`
+    - cp-pdf 的补充边界图景
+  - `state_design` 会优先吸收：
+    - OI Wiki 的 `bridge_explanation`
+    - cp-pdf 的补充状态语义图景
+- 当前这层接线只发生在：
+  - `generate_knowledge_bailout_card(...)`
+- 同一套统一 snippet 入口现在也已开始轻量接进 deterministic remedy：
+  - `dp.state_design`
+  - `binary_search.check_condition`
+  - `binary_search.left_bound`
+  - `dp.transition_design`
+  - `modeling.scale_estimation`
+  - `modeling.method_selection`
+- 当前没有改：
+  - review 首轮诊断
+  - quiz 角色与状态机
+  - API 字段形状
+  - 前端渲染协议
+
+这说明外部知识源现在已经不只是文档层，而是开始真实进入学生补课链路。
+
+当前代码中已经真实成立：
+
+- `api_server.has_explicit_help_signal(...)` 现在不再把所有 `wa/tle/re/ce` 一刀切成“显式求助”
+  - 如果学生已经点名了具体桥，如 `a[mid] == x`、`lazy`、`trie`、`左边界` 等，就仍然优先进入 quiz 梯子
+- `review_engine._detect_quiz_focus(...)` 在 `core_design` 下已把：
+  - `left_bound_update`
+  - `tree_diameter_candidates`
+  放在泛 `constraint_modeling / general_modeling` 之前判断
+- `constraint_modeling` 现在也已接入 deterministic remedy
+  - 差分约束/关系建模这类桥在补课阶段不再默认先卡一轮 LLM
+- `remedy/resolve` 当前真实学习流是：
+  - 先进入 `final_micro_confirm`
+  - 答对后再 `resolved`
+  - 不再是旧版“补课点完成就直接 resolved”
+
+- 高频桥里新增并接通了 3 个更细的 focus：
+  - `left_bound_update`
+  - `shared_prefix_merging`
+  - `lazy_semantics`
+- `review_engine._detect_quiz_focus(...)` 现在已经能：
+  - 把 `P2249` 这类“找最左边界”更稳定地判到 `left_bound_update`
+  - 把 `P2922` 这类题里的“题面为什么支持 trie”与“trie 为什么只沿前缀走”拆成两个桥：
+    - `method_selection`
+    - `shared_prefix_merging`
+  - 把带明显 `lazy / 下传 / 懒标记` 信号的卡点判到 `lazy_semantics`
+- 高频桥知识卡现在新增并接通：
+  - `binary_search.left_bound`
+  - `segment_tree.lazy_semantics`
+- 高频桥知识卡命中规则已收紧：
+  - `method_selection + trie` 现在优先留在 `modeling.method_selection`
+  - 只有显式机制桥才进入 `string.trie.shared_prefix_merging`
+- `trie + method_selection` 的后半段已继续收紧：
+  - deterministic remedy 会明确过渡到“很多消息有相同开头，值不值得先合在一起看”
+  - knowledge card 后确认题也会显式确认“相同开头 + 反复按前缀查”这组信号，不再只停在抽象的方法名层
+- 高频桥的 deterministic remedy 已新增本地参数化讲解，不再默认先打 LLM：
+  - `modeling.scale_estimation`
+  - `modeling.method_selection`
+  - `string.trie.shared_prefix_merging`
+  - `segment_tree.lazy_semantics`
+  - `binary_search.left_bound`
+  - `binary_search.check_condition`
+  - `dp.state_design`
+  - `dp.transition_design`
+- 当前这些桥在 `generate_remedy_explanation(...)` 里已经会优先走本地讲解，再决定是否需要更重兜底
+- 其中 `check_condition / left_bound / state_design / transition_design / complexity_fit / method_selection` 现在会继续吸收统一 snippet 入口里的外部桥级片段，不再只有知识卡能看到这层外部知识
+- 当前已经把高频 bridge 的人工审查结果固化到：
+  - `docs/common/bridge_audit_board_2026_04.md`
+- 这份总表当前最重要的两个结论是：
+  - `state_design / transition_design / left_bound_update / complexity_fit` 已经比较稳
+  - `P2922` 相关的 `method_selection / shared_prefix_merging` 仍然最需要继续盯
+- 当前现在已经有真实主轮历史链路的代表桥：
+  - `check_condition`
+    - `checkin_id=4142`
+    - `review_id=3994`
+    - `quiz_id=1124`
+  - `lazy_semantics`
+    - `checkin_id=4084`
+    - `review_id=3941`
+    - `quiz_id=1106`
+- 另外，当前还新增了两条更干净、适合优先评估当前系统表现的新链：
+  - `checkin_id=4225 / review_id=4073`
+  - `checkin_id=4226 / review_id=4074`
+- `check_condition` 这类二分判定桥现在又补稳了一层：
+  - 当 `error_layer=method` 但学生文本明确在问：
+    - `check(mid)`
+    - `返回 true`
+    - `当前 mid 可行`
+    - `二分方向`
+  - `_detect_quiz_focus(...)` 现在会优先判到：
+    - `check_condition`
+  - 主轮 quiz 也不再从 generic structural 路径打到 LLM，而是优先走本地 deterministic `check_condition` 主轮
+- 当前历史库里的：
+  - `checkin_id=4083`
+  - `review_id=3940`
+  仍然证明首轮 review 能落到 `check_condition`
+  但它库里的主轮 quiz 是修复前生成的旧噪音，当前评估应优先看：
+  - `checkin_id=4225`
+  - `review_id=4073`
+  - `quiz_id=1150`
+  - `quiz_id=1151`
+- 当前这轮没有改：
+  - review JSON schema
+  - API 字段形状
+  - quiz 角色与状态机
+  - 前端渲染协议
+
+- `review_engine._build_review_system_prompt(...)` 的通用规则已新增一条更明确的学生化约束：
+  - 能对比时，先说学生最容易误会的一句话
+  - 再说正确的一句话
+- 当前第一轮复盘 prompt 已不只要求“短句、说人话”，还要求更明确地做“误解 -> 正解”对比
+- 当前高频知识卡模板已统一往“最容易误会什么 / 真正要站稳什么”收口，不再只给平铺直叙的说明
+- 当前高频知识卡的 `algorithm_overview` 已进一步压缩成：
+  - 这一步在整套方法里负责什么
+  - 不再默认写成更大块的算法讲义
+
+当前这轮已明确收紧的卡片包括：
+
+- `dp.state_design`
+- `dp.transition_design`
+- `binary_search.check_condition`
+- `greedy.greedy_basis`
+- `graph.tree_diameter.tree_diameter_candidates`
+- `string.trie.shared_prefix_merging`
+- `modeling.method_selection`
+- `modeling.scale_estimation`
+
+当前这轮没有改：
+
+- review JSON schema
+- quiz 角色与状态机
+- API 字段形状
+- 前端渲染协议
+
 当前代码中已经真实成立：
 
 - `review_engine.generate_review(...)` 入口会先做：
@@ -837,3 +1406,168 @@
   - 默认上限 `32768` 已足以让这条样例不再被 `length` 截断
   - 但代价是单次 review 耗时明显变长
   - 当前流式调用下这次未拿到 `usage`，所以 `prompt_tokens/completion_tokens` 记为 `0`
+- `shared_prefix_merging` 当前已细分出两类学生语境：
+  - 公共前缀先合在一起、查询时只沿当前前缀路径走
+  - trie 节点的经过次数/结束次数到底在记录什么
+- 当 `P2922` 这类样例明确提到：
+  - `经过次数`
+  - `结束次数`
+  - `节点该存什么`
+  运行时的知识卡、知识卡后确认题、deterministic remedy 都会切到“节点计数语义”版本，不再只讲泛化的公共前缀合并
+- 最新 live 样例已验证：
+  - `review_id=4190`
+  - 主轮 quiz、follow-up、remedy、knowledge_bailout
+    都已经能走到“经过次数 / 结束次数 / 101-100-11”这版小课
+  - `review_id=4932`
+    - `P2249` fresh live 首轮已稳定围着：
+      - `a[mid] == x`
+      - `mid 先保留为候选`
+      - `继续向左缩`
+  - `review_id=4935`
+    - `P2678` fresh live 已确认：
+      - 首轮 review
+      - main
+      - follow-up
+      - remedy
+      都围着 `check_condition`
+  - `review_id=4936`
+    - `P2922` fresh live 已确认：
+      - 首轮 review
+      - main
+      - follow-up
+      - remedy
+      都围着 `shared_prefix_merging`
+      - 并已稳定出现：
+        - `经过次数`
+        - `结束次数`
+        - `101 / 100 / 11`
+- 2026-04-10 阶段一收口结论：
+  - `method_selection`
+  - `lazy_semantics`
+  - `check_condition`
+  - `shared_prefix_merging`
+  这 4 条原先最弱的高频链，当前都已经有可工作的真实链路或当前代码路径验证。
+  - `P2922`：首轮 review 漂移、节点计数语义、知识卡图示都已收顺。
+  - `P3372`：`lazy` 语义链已稳定围绕“欠给孩子的信息”展开。
+  - `P2678`：`check(mid)` 语义主轮已稳定落到 `check_condition`，旧 follow-up 噪音不再作为当前表现依据。
+  - `P2249`：`left_bound_update` 已比旧的 `check_condition` 更贴学生卡点。
+- 2026-04-10 又补了一层 trie 节点计数的 topic drift 纠偏：
+  - 如果首轮 review 因为 `state`、`数量` 这类词被带偏
+  - 但源文本已经明确是 `经过次数 / 结束次数 / 当前前缀节点`
+  - `_guard_review_against_topic_drift(...)` 会直接短路拉回 `shared_prefix_merging`
+  - 不再让后面的实现调试兜底把它覆盖掉
+- 旧 `P2922` 历史噪音已做数据库标记：
+  - `legacy_bridge_noise`
+  - `exclude_from_current_bridge_audit`
+  后续桥级审查时，默认不再把这些旧样例当成当前系统现状
+- 第五阶段的首轮 bridge guard 已完成 live 复核：
+  - `P2249`
+  - `P2678`
+  - `P2922`
+  这 3 条 fresh 样例都已证明：
+  - 首轮不会判错桥
+  - 首轮文案也不会退回泛化话术
+- 2026-04-11 学生端填写习惯已做一轮前端收边：
+  - `ChatPage.vue` 已去掉学生可见的 `sessionId` 输入，只保留题号/题目链接 + 问题描述
+  - `CheckinPage.vue` 已改成：
+    - 主输入：题目、我卡在哪里、我已经试过什么
+    - 可选补充：完成状态、提交结果、题面背景、卡点标签、相关代码
+  - `ArchiveDetailPage.vue` 已弱化系统内部字段：
+    - 去掉 `复盘模式 / 复盘家族 / 学习状态` 作为主摘要
+    - 改成学生视角字段，如 `这次我卡在哪里 / 我已经试过什么 / 系统是怎么一步步带我过桥的`
+  - 新增 `test_student_entry_ui.mjs`，用于钉住这三条学生端文案与结构约束
+- 2026-04-12 已完成一轮真实浏览器学生路径走查：
+  - 登录页 `账号 / 密码` label 已和输入框绑定，真实浏览器可通过 label 稳定填写
+  - `CheckinPage.vue` 的主输入三项也已补 `id/for`，真实浏览器可按：
+    - `题目链接 / 题号`
+    - `我卡在哪里`
+    - `我已经试过什么`
+    定位输入框
+  - 前端提交契约已对齐后端：
+    - `submission_result` 默认规范为 `not_submitted`
+    - 学生不选卡点标签时，`error_types` 默认补 `未说明`
+    - 后端 422 数组错误不再显示成 `[object Object]`
+  - 后端打卡校验现在会把 `bottleneck_text + reflection` 合起来看具体性：
+    - 学生已在“我已经试过什么”里补充具体尝试时，不会因为卡点字段短而被误拒
+  - Fresh browser walkthrough 已通过：
+    - 登录 `student_a`
+    - 进入 `打卡复盘`
+    - 只填写主输入三项提交 `P2249`
+    - 自动进入 `/app/archive/5567`
+    - 返回历史列表
+    - 再点 `继续看这次复盘`
+    - 保持详情页，不再跳回 `/app/workspace/chat`
+  - 2026-04-12 又完成移动端历史页收边：
+    - `ArchiveListPage.vue` 和 `ArchiveDetailPage.vue` 已补 `min-w-0 / break-words`，长题目、长链接、长题面不会在 375px 宽度撑出横向滚动
+    - 历史详情在 review pending 时会显示：
+      - `系统正在整理复盘`
+      - `刷新详情`
+    - Fresh mobile walkthrough 已在 375px 宽度确认：
+      - 历史列表无横向溢出
+      - 历史详情无横向溢出
+      - pending 提示和刷新按钮可见
+- 2026-04-12 教师端 Vue 工作台完成一轮正式产品化收边：
+  - `TeacherOverviewPage.vue` 已去掉原始 JSON 调试块，改成高频知识桥、知识域、知识子域、知识卡介入的可读排行卡
+  - `TeacherReviewPage.vue` 已去掉样例原始 JSON，改成学生卡点、知识桥、系统建议、错误层级、掌握状态等复核摘要
+  - `TeacherStudentsPage.vue` 已把主标题稳定为 `学生维度`，并把学生标记改成关注卡片
+  - `TeacherCheckinsPage.vue` 已补 `暂无打卡记录` 空状态
+  - 新增 `test_teacher_vue_ui.mjs` 并纳入 `run_test.sh`，防止教师端主 UI 再暴露 `<pre>` / `JSON.stringify`
+  - Fresh browser walkthrough 已通过：
+    - 登录 `teacher`
+    - `/app/teacher/overview`
+    - `/app/teacher/review`
+    - `/app/teacher/students`
+    - `/app/teacher/checkins`
+    - 四页标题稳定，正文不再暴露调试 JSON，桌面宽度无横向溢出
+  - 最新完整回归已通过：
+    - `bash run_test.sh`
+    - 后端 `197` tests
+    - 学习流 `4` tests
+    - 前端 Node `83` tests
+    - `npm run build`
+- 2026-04-12 旧静态前端运行时代码退场审查已开始：
+  - 当前运行时入口仍只加载：
+    - `/static/dist/assets/app.css`
+    - `/static/dist/assets/app.js`
+  - `static/index.html` 不再加载旧 `static/app.js`、`static/js/main.js`、`static/js/router.js`
+  - 已新增 `static/teacher_stats_ui.js`，把教师统计/复核筛选相关纯 helper 从旧大运行时测试依赖中先切出一块
+  - `test_teacher_stats_ui.mjs` 中教师统计相关断言已改为直接 import `static/teacher_stats_ui.js`
+  - `run_test.sh` 已把 `static/teacher_stats_ui.js` 纳入前端语法检查
+  - 当前旧 `static/app.js` 仍有测试依赖：
+    - 主要集中在 quiz、visual_hint、knowledge bailout 等旧纯渲染 helper
+    - 暂不删除，下一步应继续按 helper 维度拆出，而不是整文件硬删
+- 2026-04-12 打卡复盘题目来源自动识别已接入：
+  - 学生端仍不恢复 OJ 下拉框，保持“直接贴题号/链接”的填写习惯
+  - `normalizeCheckinPayload(...)` 会根据 `problem_url` 自动推断：
+    - `Pxxxx` / 洛谷链接 -> `luogu`
+    - `codeforces.com` -> `codeforces`
+    - `atcoder.jp` -> `atcoder`
+    - 其他链接或空值 -> `other`
+  - `CheckinPage.vue` 已在题目输入下提示：
+    - 洛谷题号/链接可自动读取
+    - 其他平台请补题目标题和题面
+  - 后端 `create_checkin_endpoint(...)` 也会再次推断来源：
+    - 防止旧客户端把 Codeforces / AtCoder 链接误写成 `luogu`
+    - 非洛谷链接不再触发 `fetch_luogu_problem(...)`
+  - 当前约束：
+    - 只有洛谷支持自动读取题面
+    - Codeforces / AtCoder / other 需要学生手动补题目标题和至少 10 个字的题面 / Markdown
+  - 最新完整回归已通过：
+    - `bash run_test.sh`
+    - 后端 `198` tests
+    - 前端 Node `84` tests
+- 2026-04-12 前端过期 token 处理已收口：
+  - API 层收到 `401` 时不再把后端 `Invalid or expired token` 原样展示给学生
+  - `formatApiErrorDetail(..., 401)` 统一返回：
+    - `登录已过期，请重新登录`
+  - Vue 启动时会注册统一 unauthorized handler：
+    - 记录当前路径为 pending path
+    - 清空 auth store 和 localStorage token
+    - 当前 shell 自动回到登录态
+  - 新增测试覆盖：
+    - 401 文案本地化
+    - API 请求触发 unauthorized handler
+  - 最新完整回归已通过：
+    - `bash run_test.sh`
+    - 后端 `198` tests
+    - 前端 Node `86` tests

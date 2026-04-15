@@ -1,4 +1,4 @@
-(function (global) {
+const globalContext = typeof window !== 'undefined' ? window : globalThis;
     const FAILURE_FAMILY = 'failure_diagnosis';
     const SUCCESS_FAMILY = 'success_reflection';
 
@@ -14,28 +14,47 @@
     }
 
     function reviewFieldOrder(family) {
-        if (family === SUCCESS_FAMILY) {
-            return ['main_block', 'key_bridge', 'transfer_signal', 'next_step'];
-        }
-        return ['main_block', 'key_bridge', 'next_step', 'transfer_signal'];
+        return ['problem_focus', 'key_bridge', 'visual_hint', 'guided_walkthrough', 'try_now', 'transfer_signal'];
     }
 
-    function reviewFieldLabel(field) {
+    function isVisualHintDiagramLike(value) {
+        const text = String(value || '').trim();
+        if (!text) return false;
+        const lines = text.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+        if (lines.length < 2) return false;
+        const structuredLineCount = lines.filter((line) => /[:：=→←↔|├└┌┐┘─\-×]/.test(line)).length;
+        const compactLineCount = lines.filter((line) => line.length <= 30).length;
+        return structuredLineCount >= 2 || (structuredLineCount >= 1 && compactLineCount >= 2 && lines.length >= 3);
+    }
+
+    function reviewFieldLabel(field, value = '') {
+        if (field === 'visual_hint') {
+            return isVisualHintDiagramLike(value) ? '看图想一想' : '先看这个对比';
+        }
         const labels = {
+            problem_focus: '你卡在哪',
             main_block: '你卡在哪',
-            key_bridge: '关键一步',
-            next_step: '现在先做',
-            transfer_signal: '下次提醒',
+            key_bridge: '先抓住什么',
+            guided_walkthrough: '跟我走一遍',
+            try_now: '现在你来试',
+            next_step: '现在你来试',
+            transfer_signal: '下次怎么认出来',
         };
         return labels[field] || field;
     }
 
     function orderedReviewSections(review = {}, family) {
-        return reviewFieldOrder(family).map((field) => ({
+        return reviewFieldOrder(family).map((field) => {
+            const value = review[field]
+                || (field === 'problem_focus' ? review.main_block : '')
+                || (field === 'try_now' ? review.next_step : '')
+                || '';
+            return {
             field,
-            label: reviewFieldLabel(field),
-            value: review[field] || '',
-        }));
+                label: reviewFieldLabel(field, value),
+                value,
+            };
+        });
     }
 
     function reviewFeedbackCopy(family) {
@@ -97,6 +116,7 @@
         orderedReviewSections,
         resolveReviewFamily,
         feedbackEventFields,
+        isVisualHintDiagramLike,
         reviewFamilyFromMode,
         reviewFeedbackCopy,
         reviewFieldLabel,
@@ -104,8 +124,8 @@
         reviewWorkspaceSubtitle,
     };
 
-    if (typeof module !== 'undefined' && module.exports) {
-        module.exports = api;
-    }
-    global.reviewFamilyUi = api;
-})(typeof window !== 'undefined' ? window : globalThis);
+if (typeof window !== 'undefined') {
+    globalContext.reviewFamilyUi = api;
+}
+
+export default api;

@@ -490,30 +490,42 @@ function redirectToLogin(message = '登录已失效，请重新登录') {
     activeChatProblemRef = '';
     teacherReviewSamplesCache = [];
 
-    document.getElementById('chat-history').innerHTML = '';
-    document.getElementById('quota-info').textContent = '';
-    document.getElementById('teacher-quota-result').textContent = '';
-    document.getElementById('reset-result').textContent = '';
-    document.getElementById('checkin-history-list').innerHTML = '';
-    document.getElementById('teacher-checkins-list').innerHTML = '';
-    document.getElementById('error-stats').innerHTML = '';
-    document.getElementById('usage-stats').innerHTML = '';
-    document.getElementById('student-flags').innerHTML = '';
-    document.getElementById('checkin-result').innerHTML = '';
-    document.getElementById('checkin-result').classList.add('hidden');
-    document.getElementById('active-review-quiz-slot').innerHTML = '';
-    document.getElementById('active-review-report').innerHTML = '';
-    document.getElementById('active-review-related').innerHTML = '';
-    document.getElementById('teacher-manual-review-panel').innerHTML = '';
-    document.getElementById('retry-pending-result').textContent = '';
-    document.getElementById('retry-problem-analysis-result').textContent = '';
-    document.getElementById('problem-analysis-failures').innerHTML = '';
-    document.getElementById('login-password').value = '';
+    // 安全清理元素
+    const elementsToClear = {
+        'chat-history': 'innerHTML',
+        'quota-info': 'textContent',
+        'teacher-quota-result': 'textContent',
+        'reset-result': 'textContent',
+        'checkin-history-list': 'innerHTML',
+        'teacher-checkins-list': 'innerHTML',
+        'error-stats': 'innerHTML',
+        'usage-stats': 'innerHTML',
+        'student-flags': 'innerHTML',
+        'checkin-result': 'innerHTML',
+        'active-review-quiz-slot': 'innerHTML',
+        'active-review-report': 'innerHTML',
+        'active-review-related': 'innerHTML',
+        'teacher-manual-review-panel': 'innerHTML',
+        'retry-pending-result': 'textContent',
+        'retry-problem-analysis-result': 'textContent',
+        'problem-analysis-failures': 'innerHTML'
+    };
 
-    loginSection.classList.remove('hidden');
-    studentSection.classList.add('hidden');
-    teacherSection.classList.add('hidden');
-    userBar.classList.add('hidden');
+    for (const [id, prop] of Object.entries(elementsToClear)) {
+        const el = document.getElementById(id);
+        if (el) el[prop] = '';
+    }
+
+    const checkinResult = document.getElementById('checkin-result');
+    if (checkinResult) checkinResult.classList.add('hidden');
+
+    const loginPassword = document.getElementById('login-password');
+    if (loginPassword) loginPassword.value = '';
+
+    loginSection?.classList.remove('hidden');
+    studentSection?.classList.add('hidden');
+    teacherSection?.classList.add('hidden');
+    userBar?.classList.add('hidden');
     setReviewStageEmpty();
     showError('login-error', message);
 }
@@ -736,13 +748,26 @@ async function importProblemFromUrl() {
 }
 
 function showStudentTab(targetId) {
-    document.querySelectorAll('#student-section .tab-content').forEach((content) => content.classList.add('hidden'));
-    const target = document.getElementById(targetId);
+    // Hide all tab panels
+    document.querySelectorAll('#student-section .tab-panel').forEach((content) => content.classList.add('hidden'));
+
+    // Show target panel
+    const target = document.getElementById(`student-panel-${targetId.replace('-tab', '')}`);
     if (target) {
         target.classList.remove('hidden');
     }
-    document.querySelectorAll('#student-tabs .tab-btn').forEach((btn) => {
-        btn.classList.toggle('active', btn.dataset.tab === targetId);
+
+    // Update tab buttons
+    document.querySelectorAll('#student-section .tab-btn').forEach((btn) => {
+        const isActive = btn.id === `student-tab-${targetId.replace('-tab', '')}`;
+        btn.classList.toggle('active', isActive);
+        if (isActive) {
+            btn.classList.remove('bg-white', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-300');
+            btn.classList.add('bg-primary-500', 'text-white', 'shadow-lg', 'shadow-primary-500/30');
+        } else {
+            btn.classList.remove('bg-primary-500', 'text-white', 'shadow-lg', 'shadow-primary-500/30');
+            btn.classList.add('bg-white', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-300');
+        }
     });
     if (targetId === 'checkin-tab') {
         renderLinkedChatContextCard();
@@ -756,6 +781,22 @@ function showStudentTab(targetId) {
         }
     } else if (targetId === 'history-tab') {
         renderCheckinHistoryList();
+    }
+
+    // 同步更新 URL（如果新路由系统可用）
+    if (typeof Router !== 'undefined') {
+        const routeMap = {
+            'chat-tab': 'student.chat',
+            'checkin-tab': 'student.checkin',
+            'history-tab': 'student.history'
+        };
+        const routeName = routeMap[targetId];
+        if (routeName) {
+            const current = Router.getCurrentRoute();
+            if (current.name !== routeName) {
+                Router.navigateTo(routeName, null, true);
+            }
+        }
     }
 }
 
@@ -1085,6 +1126,19 @@ function formatBlockRichText(text) {
 function normalizePlainMathSegment(segment) {
     if (!segment) return '';
     let output = segment;
+    const replaceOutsideInlineMath = (text, transformer) => {
+        const inlineMathPattern = /\$[^$\n]+\$/g;
+        let result = '';
+        let lastIndex = 0;
+        let match;
+        while ((match = inlineMathPattern.exec(text)) !== null) {
+            result += transformer(text.slice(lastIndex, match.index));
+            result += match[0];
+            lastIndex = match.index + match[0].length;
+        }
+        result += transformer(text.slice(lastIndex));
+        return result;
+    };
     const token = '[A-Za-z][A-Za-z0-9_]*(?:\\[[^\\]\\n]+\\])*|\\d+';
     const replacements = [
         [new RegExp(`(${token})\\s*大于等于\\s*(${token}|(?:max|min)\\()`, 'g'), '$1 \\\\ge $2'],
@@ -1112,13 +1166,31 @@ function normalizePlainMathSegment(segment) {
         .replace(/\bmin\(/g, '\\min(');
 
     output = output.replace(
-        /([A-Za-z0-9_\[\]\(\),\\ ]+(?:=|\\times|\\div|\\ge|\\le|\+|\-|>|<)[A-Za-z0-9_\[\]\(\),\\ +\-><]+)/g,
+        /(?<![$\\])(\d+(?:\.\d+)?(?:\s*(?:\\times|×|\*)\s*\d+(?:\.\d+)?)+(?:\s*=\s*\d+(?:\.\d+)?(?:\s*(?:\\times|×|\*)\s*10\^\d+)?)?)(?!\$)/g,
         (match) => {
-            const trimmed = match.trim().replace(/\s{2,}/g, ' ');
-            if (!trimmed || trimmed.startsWith('$') || trimmed.endsWith('$')) return match;
-            return `$${trimmed}$`;
+            const normalized = match
+                .replace(/\s*[×*]\s*/g, ' \\times ')
+                .replace(/\s{2,}/g, ' ')
+                .trim();
+            return `$${normalized}$`;
         },
     );
+
+    output = replaceOutsideInlineMath(output, (plain) => {
+        let transformed = plain.replace(/(?<![$\\])\b10\^(\d+)\b(?!\$)/g, (_, exponent) => `$10^${exponent}$`);
+        transformed = transformed.replace(
+            /(?<![$\\])((?=[^$\n]*[A-Za-z])(?:[A-Za-z][A-Za-z0-9_\[\]]*|\d+(?:\.\d+)?)(?:\s*(?:=|\\times|×|\\div|\\ge|\\le|\+|\-|>|<)\s*(?:[A-Za-z][A-Za-z0-9_\[\]]*|\d+(?:\.\d+)?))+)(?!\$)/g,
+            (match) => {
+                const trimmed = match
+                    .replace(/\s*×\s*/g, ' \\times ')
+                    .trim()
+                    .replace(/\s{2,}/g, ' ');
+                if (!trimmed || trimmed.startsWith('$') || trimmed.endsWith('$')) return match;
+                return `$${trimmed}$`;
+            },
+        );
+        return transformed;
+    });
 
     return output;
 }
@@ -1151,6 +1223,119 @@ function renderRichTextBlock(text, className = '') {
     return `<div class="rich-text${extra}" data-rich-ready="0">${formatBlockRichText(text)}</div>`;
 }
 
+function escapeHtmlAttribute(value) {
+    return escapeHtml(String(value ?? '')).replace(/"/g, '&quot;');
+}
+
+function parseFencedVisualHint(text = '') {
+    const match = String(text || '').trim().match(/^```([a-zA-Z0-9_-]+)\n([\s\S]*?)```$/);
+    if (!match) return null;
+    return {
+        kind: String(match[1] || '').trim().toLowerCase(),
+        body: String(match[2] || '').trim(),
+    };
+}
+
+function parsePipeTableRows(text = '') {
+    const lines = String(text || '')
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean);
+    if (lines.length < 2 || !lines[0].includes('|')) return null;
+    const rows = lines.map((line) => {
+        const normalized = line.replace(/^\|/, '').replace(/\|$/, '');
+        return normalized.split('|').map((cell) => cell.trim());
+    });
+    if (!rows[0]?.length) return null;
+    const separator = rows[1] || [];
+    const separatorOk = separator.length === rows[0].length && separator.every((cell) => /^:?-{3,}:?$/.test(cell));
+    if (!separatorOk) return null;
+    return {
+        header: rows[0],
+        body: rows.slice(2),
+    };
+}
+
+function renderSimpleTable(table, tableClass = 'visual-hint-table') {
+    if (!table?.header?.length) return '';
+    const wrapClass = tableClass === 'visual-hint-dp-table' ? 'visual-hint-dp-table-wrap' : 'visual-hint-table-wrap';
+    return `
+        <div class="${escapeHtmlAttribute(wrapClass)}">
+            <table class="${escapeHtmlAttribute(tableClass)}">
+                <thead>
+                    <tr>${table.header.map((cell) => `<th>${renderRichTextInline(cell)}</th>`).join('')}</tr>
+                </thead>
+                <tbody>
+                    ${table.body.map((row) => `<tr>${row.map((cell) => `<td>${renderRichTextInline(cell)}</td>`).join('')}</tr>`).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+function renderVisualHintContent(text = '') {
+    const raw = String(text || '').trim();
+    if (!raw) return '';
+
+    const fenced = parseFencedVisualHint(raw);
+    if (fenced) {
+        if (fenced.kind === 'mermaid') {
+            return `
+                <div class="visual-hint-surface visual-hint-diagram">
+                    <div class="visual-hint-mermaid mermaid">${escapeHtml(fenced.body)}</div>
+                </div>
+            `;
+        }
+        if (fenced.kind === 'grid') {
+            const rows = fenced.body.split('\n').map((line) => line.trim()).filter(Boolean);
+            return `
+                <div class="visual-hint-surface visual-hint-grid-wrap">
+                    <div class="visual-hint-grid">
+                        ${rows.map((row) => row.split(/\s+/).map((cell) => `<div class="visual-hint-grid-cell">${renderRichTextInline(cell)}</div>`).join('')).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        if (fenced.kind === 'array') {
+            const cells = fenced.body.split(/\|/).map((cell) => cell.trim()).filter(Boolean);
+            return `
+                <div class="visual-hint-surface visual-hint-array-wrap">
+                    <div class="visual-hint-array">
+                        ${cells.map((cell) => `<div class="visual-hint-array-cell">${renderRichTextInline(cell)}</div>`).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        if (fenced.kind === 'dptable') {
+            const rows = fenced.body.split('\n').map((line) => line.trim()).filter(Boolean);
+            const header = rows[0]?.split('|').map((cell) => cell.trim()).filter(Boolean) || [];
+            const body = rows.slice(1).map((row) => row.split('|').map((cell) => cell.trim()).filter(Boolean));
+            return renderSimpleTable({ header, body }, 'visual-hint-dp-table');
+        }
+        if (fenced.kind === 'board') {
+            const rows = fenced.body.split('\n').map((line) => line.trim()).filter(Boolean);
+            return `
+                <div class="visual-hint-surface visual-hint-board-wrap">
+                    <div class="visual-hint-board">
+                        ${rows.map((row) => row.split(/\s+/).map((cell) => `<div class="visual-hint-board-cell">${renderRichTextInline(cell)}</div>`).join('')).join('')}
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    const pipeTable = parsePipeTableRows(raw);
+    if (pipeTable) {
+        return renderSimpleTable(pipeTable, 'visual-hint-table');
+    }
+
+    return `
+        <div class="review-visual-hint">
+            ${renderRichTextBlock(raw, 'review-inline-rich-block')}
+        </div>
+    `;
+}
+
 function renderReviewNoteSection(section) {
     const emphasisClass = section.field === 'try_now'
         ? 'is-action'
@@ -1158,7 +1343,7 @@ function renderReviewNoteSection(section) {
             ? 'is-aside'
             : '';
     const content = section.field === 'visual_hint'
-        ? `<pre class="review-visual-hint review-note-visual">${escapeHtml(section.value || '')}</pre>`
+        ? renderVisualHintContent(section.value || '')
         : renderRichTextBlock(section.value || '', 'review-inline-rich-block');
     return `
         <article class="review-note-section${emphasisClass ? ` ${emphasisClass}` : ''}">
@@ -1353,23 +1538,32 @@ function renderPendingReviewNotice(item = {}) {
         ['下次提醒', item.review_stream_draft_transfer_signal],
     ].filter(([, value]) => String(value || '').trim());
     return `
-        <div style="margin-top: 10px; padding: 14px 16px; background: #fff8e1; border: 1px solid #f1c40f; border-radius: 10px;">
-            <div style="font-weight: 700; color: #8a6d3b;">AI 正在整理复盘</div>
-            <div style="margin-top: 8px; color: #8a6d3b;">当前阶段：${escapeHtml(stageText)}</div>
-            ${streamMessage ? `<div style="margin-top: 6px; color: #8a6d3b;">${escapeHtml(streamMessage)}</div>` : ''}
-            <div style="margin-top: 8px; color: #8a6d3b;">题目：${escapeHtml(item.problem_title || '未命名题目')}</div>
-            <div style="margin-top: 6px; color: #8a6d3b;">提交时间：${escapeHtml(formatDate(item.created_at) || '刚刚')}</div>
-            <div style="margin-top: 6px; color: #8a6d3b;">进度提示：${escapeHtml(elapsedText)}</div>
+        <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 rounded-full bg-amber-500 text-white flex items-center justify-center animate-pulse">
+                    <i class="fas fa-spinner fa-spin"></i>
+                </div>
+                <div>
+                    <div class="font-bold text-amber-800 dark:text-amber-200">AI 正在整理复盘</div>
+                    <div class="text-sm text-amber-600 dark:text-amber-400">${escapeHtml(stageText)}</div>
+                </div>
+            </div>
+            ${streamMessage ? `<div class="text-sm text-amber-700 dark:text-amber-300 mb-2">${escapeHtml(streamMessage)}</div>` : ''}
+            <div class="text-sm text-amber-700 dark:text-amber-300">题目：${escapeHtml(item.problem_title || '未命名题目')}</div>
+            <div class="text-sm text-amber-700 dark:text-amber-300">提交时间：${escapeHtml(formatDate(item.created_at) || '刚刚')}</div>
+            <div class="text-sm text-amber-700 dark:text-amber-300">进度提示：${escapeHtml(elapsedText)}</div>
             ${draftRows.length ? `
-                <div style="margin-top: 12px; padding: 12px; background: rgba(255,255,255,0.65); border-radius: 8px;">
-                    <div style="font-weight: 700; color: #8a6d3b; margin-bottom: 8px;">AI 草稿预览</div>
+                <div class="mt-3 p-3 bg-white dark:bg-slate-800 rounded-lg">
+                    <div class="font-bold text-amber-800 dark:text-amber-200 mb-2">AI 草稿预览</div>
                     ${draftRows.map(([label, value]) => `
-                        <div style="margin-top: 6px; color: #8a6d3b;"><strong>${escapeHtml(label)}：</strong>${renderRichTextInline(value || '')}</div>
+                        <div class="text-sm text-amber-700 dark:text-amber-300 mt-1"><strong>${escapeHtml(label)}：</strong>${renderRichTextInline(value || '')}</div>
                     `).join('')}
                 </div>
             ` : ''}
-            <div style="margin-top: 10px;">
-                <button class="secondary" onclick="refreshPendingCheckin(${Number(item.id || item.checkin_id || 0)})">如超过 1 分钟未出现，点此刷新</button>
+            <div class="mt-3">
+                <button onclick="refreshPendingCheckin(${Number(item.id || item.checkin_id || 0)})" class="px-4 py-2 bg-white dark:bg-slate-800 text-amber-700 dark:text-amber-300 font-medium rounded-lg border border-amber-200 dark:border-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-all duration-200 text-sm">
+                    <i class="fas fa-sync-alt mr-1"></i> 如超过 1 分钟未出现，点此刷新
+                </button>
             </div>
         </div>
     `;
@@ -1377,24 +1571,38 @@ function renderPendingReviewNotice(item = {}) {
 
 function renderFailedReviewNotice(item = {}) {
     return `
-        <div style="margin-top: 10px; padding: 14px 16px; background: #fff3f2; border: 1px solid #e67e73; border-radius: 10px;">
-            <div style="font-weight: 700; color: #c0392b;">复盘生成失败</div>
-            <div style="margin-top: 8px; color: #8c2d25;">你的打卡已经保存，可以稍后重新生成。</div>
-            <div style="margin-top: 10px;">
-                <button class="secondary" onclick="retryReviewGeneration(${Number(item.id || item.checkin_id || 0)})">重新生成</button>
+        <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div>
+                    <div class="font-bold text-red-800 dark:text-red-200">复盘生成失败</div>
+                    <div class="text-sm text-red-600 dark:text-red-400">你的打卡已经保存，可以稍后重新生成</div>
+                </div>
             </div>
+            <button onclick="retryReviewGeneration(${Number(item.id || item.checkin_id || 0)})" class="w-full px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-xl shadow-lg shadow-red-500/30 transition-all duration-200 flex items-center justify-center gap-2">
+                <i class="fas fa-redo"></i> 重新生成
+            </button>
         </div>
     `;
 }
 
 function renderReviewTimeoutNotice(item = {}) {
     return `
-        <div style="margin-top: 10px; padding: 14px 16px; background: #f7f9fb; border: 1px solid #b8c6db; border-radius: 10px;">
-            <div style="font-weight: 700; color: #4a5a6a;">复盘生成时间较长</div>
-            <div style="margin-top: 8px; color: #4a5a6a;">请刷新页面或稍后在历史记录里查看。</div>
-            <div style="margin-top: 10px;">
-                <button class="secondary" onclick="refreshPendingCheckin(${Number(item.id || item.checkin_id || 0)})">刷新页面</button>
+        <div class="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 rounded-full bg-slate-500 text-white flex items-center justify-center">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div>
+                    <div class="font-bold text-slate-800 dark:text-slate-200">复盘生成时间较长</div>
+                    <div class="text-sm text-slate-600 dark:text-slate-400">请刷新页面或稍后在历史记录里查看</div>
+                </div>
             </div>
+            <button onclick="refreshPendingCheckin(${Number(item.id || item.checkin_id || 0)})" class="w-full px-5 py-2.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200 flex items-center justify-center gap-2">
+                <i class="fas fa-sync-alt"></i> 刷新页面
+            </button>
         </div>
     `;
 }
@@ -1409,9 +1617,9 @@ function ojSourceText(source) {
     return map[source] || source || '未知来源';
 }
 
-function renderPillRow(values, className = 'tag-pill') {
+function renderPillRow(values, className = 'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700') {
     if (!values?.length) {
-        return '<span class="tag-pill muted">暂无</span>';
+        return `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-500">暂无</span>`;
     }
     return values.map((value) => `<span class="${className}">${escapeHtml(value)}</span>`).join('');
 }
@@ -1850,7 +2058,11 @@ function pollCheckinReviewStatus(checkinId, resultEl) {
 }
 
 function showError(elementId, message) {
-    document.getElementById(elementId).textContent = message;
+    const el = document.getElementById(elementId);
+    if (el) {
+        el.textContent = message;
+        el.classList.remove('hidden');
+    }
 }
 
 function toggleExample() {
@@ -1866,68 +2078,147 @@ window.toggleExample = toggleExample;
 // ============ 初始化 ============
 
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('student-id').value = currentUserId || '';
-    document.getElementById('login-problem-id').value = problemId;
-    document.getElementById('student-problem-id').value = problemId;
+    // 安全设置输入值
+    const studentIdEl = document.getElementById('student-id');
+    if (studentIdEl) studentIdEl.value = currentUserId || '';
 
-    document.getElementById('enter-btn').addEventListener('click', handleEnter);
-    document.getElementById('login-password').addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-            handleEnter();
-        }
-    });
-    document.getElementById('logout-btn').addEventListener('click', handleLogout);
+    const loginProblemEl = document.getElementById('login-problem-id');
+    if (loginProblemEl) loginProblemEl.value = problemId;
+
+    const studentProblemEl = document.getElementById('student-problem-id');
+    if (studentProblemEl) studentProblemEl.value = problemId;
+
+    // 登录相关事件
+    const enterBtn = document.getElementById('enter-btn');
+    if (enterBtn) enterBtn.addEventListener('click', handleEnter);
+
+    const loginPasswordEl = document.getElementById('login-password');
+    if (loginPasswordEl) {
+        loginPasswordEl.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                handleEnter();
+            }
+        });
+    }
+
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
 
     setupTabs();
 
-    document.getElementById('check-quota-btn').addEventListener('click', studentCheckQuota);
-    document.getElementById('student-problem-id').addEventListener('input', () => {
-        activeChatProblemRef = normalizeProblemRef(document.getElementById('student-problem-id').value.trim());
-        renderLinkedChatContextCard();
-    });
-    document.getElementById('send-btn').addEventListener('click', studentSendMessage);
-    document.getElementById('clear-history-btn').addEventListener('click', clearChatHistory);
-    document.getElementById('submit-checkin-btn').addEventListener('click', submitCheckin);
-    document.getElementById('load-my-checkins-btn').addEventListener('click', loadMyCheckins);
-    document.getElementById('open-history-tab-btn')?.addEventListener('click', () => showStudentTab('history-tab'));
-    document.getElementById('import-problem-btn')?.addEventListener('click', importProblemFromUrl);
-    document.getElementById('toggle-luogu-context-btn')?.addEventListener('click', () => {
-        setLuoguSupplementExpanded(!luoguSupplementExpanded);
-    });
-    document.getElementById('checkin-oj')?.addEventListener('change', () => {
-        syncCheckinSourceInputs();
-        if (typeof window.validateCheckinForm === 'function') {
-            window.validateCheckinForm();
-        }
-    });
-    document.getElementById('checkin-url')?.addEventListener('input', () => {
-        if (document.getElementById('checkin-url').value.trim() !== importedProblemMeta.problemUrl) {
-            resetImportedProblemMeta();
-            updateProblemTagsPreview([]);
-            if (document.getElementById('checkin-oj')?.value === 'luogu') {
-                setProblemImportStatus('链接已更新，可重新自动导入题面和标签。');
+    // 学生功能事件
+    const checkQuotaBtn = document.getElementById('check-quota-btn');
+    if (checkQuotaBtn) checkQuotaBtn.addEventListener('click', studentCheckQuota);
+
+    if (studentProblemEl) {
+        studentProblemEl.addEventListener('input', () => {
+            activeChatProblemRef = normalizeProblemRef(studentProblemEl.value.trim());
+            renderLinkedChatContextCard();
+        });
+    }
+
+    const sendMessageBtn = document.getElementById('send-message-btn');
+    if (sendMessageBtn) sendMessageBtn.addEventListener('click', studentSendMessage);
+
+    const clearChatBtn = document.getElementById('clear-chat-btn');
+    if (clearChatBtn) clearChatBtn.addEventListener('click', clearChatHistory);
+
+    const chatInput = document.getElementById('chat-input');
+    if (chatInput) {
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                studentSendMessage();
             }
-        }
-        if (typeof window.validateCheckinForm === 'function') {
-            window.validateCheckinForm();
-        }
-    });
+        });
+    }
+
+    const refreshHistoryBtn = document.getElementById('refresh-history-btn');
+    if (refreshHistoryBtn) refreshHistoryBtn.addEventListener('click', loadMyCheckins);
+
+    const teacherRefreshBtn = document.getElementById('teacher-refresh-btn');
+    if (teacherRefreshBtn) teacherRefreshBtn.addEventListener('click', loadTeacherCheckins);
+
+    const submitCheckinBtn = document.getElementById('submit-checkin-btn');
+    if (submitCheckinBtn) submitCheckinBtn.addEventListener('click', submitCheckin);
+
+    const loadMyCheckinsBtn = document.getElementById('load-my-checkins-btn');
+    if (loadMyCheckinsBtn) loadMyCheckinsBtn.addEventListener('click', loadMyCheckins);
+
+    const openHistoryTabBtn = document.getElementById('open-history-tab-btn');
+    if (openHistoryTabBtn) openHistoryTabBtn.addEventListener('click', () => showStudentTab('history-tab'));
+
+    const importProblemBtn = document.getElementById('import-problem-btn');
+    if (importProblemBtn) importProblemBtn.addEventListener('click', importProblemFromUrl);
+
+    const toggleLuoguBtn = document.getElementById('toggle-luogu-context-btn');
+    if (toggleLuoguBtn) {
+        toggleLuoguBtn.addEventListener('click', () => {
+            setLuoguSupplementExpanded(!luoguSupplementExpanded);
+        });
+    }
+
+    const checkinOj = document.getElementById('checkin-oj');
+    if (checkinOj) {
+        checkinOj.addEventListener('change', () => {
+            syncCheckinSourceInputs();
+            if (typeof window.validateCheckinForm === 'function') {
+                window.validateCheckinForm();
+            }
+        });
+    }
+
+    const checkinUrl = document.getElementById('checkin-url');
+    if (checkinUrl) {
+        checkinUrl.addEventListener('input', () => {
+            if (checkinUrl.value.trim() !== importedProblemMeta.problemUrl) {
+                resetImportedProblemMeta();
+                updateProblemTagsPreview([]);
+                if (checkinOj?.value === 'luogu') {
+                    setProblemImportStatus('链接已更新，可重新自动导入题面和标签。');
+                }
+            }
+            if (typeof window.validateCheckinForm === 'function') {
+                window.validateCheckinForm();
+            }
+        });
+    }
 
     setupCheckinValidation();
     activeChatProblemRef = normalizeProblemRef(problemId);
     syncCheckinSourceInputs();
     renderLinkedChatContextCard();
 
-    document.getElementById('teacher-check-quota-btn').addEventListener('click', teacherCheckQuota);
-    document.getElementById('reset-quota-btn').addEventListener('click', teacherResetQuota);
-    document.getElementById('load-all-checkins-btn').addEventListener('click', loadAllCheckins);
-    document.getElementById('load-stats-btn').addEventListener('click', loadErrorStats);
-    document.getElementById('load-flags-btn').addEventListener('click', loadStudentFlags);
-    document.getElementById('load-usage-btn').addEventListener('click', loadUsageStats);
-    document.getElementById('load-manual-review-btn').addEventListener('click', loadTeacherReviewSamples);
-    document.getElementById('retry-pending-btn').addEventListener('click', retryPendingReviews);
-    document.getElementById('retry-problem-analysis-btn').addEventListener('click', retryProblemAnalysis);
-    document.getElementById('load-analysis-failures-btn').addEventListener('click', loadProblemAnalysisFailures);
+    // 教师功能事件
+    const teacherCheckQuotaBtn = document.getElementById('teacher-check-quota-btn');
+    if (teacherCheckQuotaBtn) teacherCheckQuotaBtn.addEventListener('click', teacherCheckQuota);
+
+    const resetQuotaBtn = document.getElementById('reset-quota-btn');
+    if (resetQuotaBtn) resetQuotaBtn.addEventListener('click', teacherResetQuota);
+
+    const loadAllCheckinsBtn = document.getElementById('load-all-checkins-btn');
+    if (loadAllCheckinsBtn) loadAllCheckinsBtn.addEventListener('click', loadAllCheckins);
+
+    const loadStatsBtn = document.getElementById('load-stats-btn');
+    if (loadStatsBtn) loadStatsBtn.addEventListener('click', loadErrorStats);
+
+    const loadFlagsBtn = document.getElementById('load-flags-btn');
+    if (loadFlagsBtn) loadFlagsBtn.addEventListener('click', loadStudentFlags);
+
+    const loadUsageBtn = document.getElementById('load-usage-btn');
+    if (loadUsageBtn) loadUsageBtn.addEventListener('click', loadUsageStats);
+
+    const loadManualReviewBtn = document.getElementById('load-manual-review-btn');
+    if (loadManualReviewBtn) loadManualReviewBtn.addEventListener('click', loadTeacherReviewSamples);
+
+    const retryPendingBtn = document.getElementById('retry-pending-btn');
+    if (retryPendingBtn) retryPendingBtn.addEventListener('click', retryPendingReviews);
+
+    const retryProblemAnalysisBtn = document.getElementById('retry-problem-analysis-btn');
+    if (retryProblemAnalysisBtn) retryProblemAnalysisBtn.addEventListener('click', retryProblemAnalysis);
+
+    const loadAnalysisFailuresBtn = document.getElementById('load-analysis-failures-btn');
+    if (loadAnalysisFailuresBtn) loadAnalysisFailuresBtn.addEventListener('click', loadProblemAnalysisFailures);
 
     setupRichTextObserver();
     setupTeacherManualReviewPanel();
@@ -1939,37 +2230,77 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function setupTabs() {
-    const studentTabs = document.querySelectorAll('#student-tabs .tab-btn');
-    studentTabs.forEach((tab) => {
-        tab.addEventListener('click', () => {
-            showStudentTab(tab.dataset.tab);
-        });
+    // Student tabs
+    const studentTabIds = ['chat', 'checkin', 'history'];
+    studentTabIds.forEach((tabName) => {
+        const btn = document.getElementById(`student-tab-${tabName}`);
+        if (btn) {
+            btn.addEventListener('click', () => {
+                showStudentTab(`${tabName}-tab`);
+            });
+        }
     });
 
-    const teacherTabs = document.querySelectorAll('#teacher-tabs .tab-btn');
-    teacherTabs.forEach((tab) => {
-        tab.addEventListener('click', () => {
-            showTeacherTab(tab.dataset.tab);
-        });
+    // Teacher tabs
+    const teacherTabIds = ['overview', 'checkins', 'students'];
+    teacherTabIds.forEach((tabName) => {
+        const btn = document.getElementById(`teacher-tab-${tabName}`);
+        if (btn) {
+            btn.addEventListener('click', () => {
+                showTeacherTab(`${tabName}-tab`);
+            });
+        }
     });
 }
 
 function showTeacherTab(targetId) {
-    const teacherTabs = document.querySelectorAll('#teacher-tabs .tab-btn');
-    document.querySelectorAll('#teacher-section .tab-content').forEach((content) => content.classList.add('hidden'));
-    document.getElementById(targetId)?.classList.remove('hidden');
-    teacherTabs.forEach((btn) => btn.classList.toggle('active', btn.dataset.tab === targetId));
+    // Hide all tab panels
+    document.querySelectorAll('#teacher-section .tab-panel').forEach((content) => content.classList.add('hidden'));
+
+    // Show target panel
+    document.getElementById(`teacher-panel-${targetId.replace('-tab', '')}`)?.classList.remove('hidden');
+
+    // Update tab buttons
+    document.querySelectorAll('#teacher-section .tab-btn').forEach((btn) => {
+        const isActive = btn.id === `teacher-tab-${targetId.replace('-tab', '')}`;
+        btn.classList.toggle('active', isActive);
+        if (isActive) {
+            btn.classList.remove('bg-white', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-300');
+            btn.classList.add('bg-accent-purple', 'text-white', 'shadow-lg', 'shadow-accent-purple/30');
+        } else {
+            btn.classList.remove('bg-accent-purple', 'text-white', 'shadow-lg', 'shadow-accent-purple/30');
+            btn.classList.add('bg-white', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-300');
+        }
+    });
     if (targetId === 'manual-review-tab') {
         loadTeacherReviewSamples();
+    }
+
+    // 同步更新 URL（如果新路由系统可用）
+    if (typeof Router !== 'undefined') {
+        const routeMap = {
+            'overview-tab': 'teacher.overview',
+            'checkins-tab': 'teacher.checkins',
+            'students-tab': 'teacher.students',
+            'manual-review-tab': 'teacher.manual-review',
+            'quota-tab': 'teacher.quota'
+        };
+        const routeName = routeMap[targetId];
+        if (routeName) {
+            const current = Router.getCurrentRoute();
+            if (current.name !== routeName) {
+                Router.navigateTo(routeName, null, true);
+            }
+        }
     }
 }
 
 // ============ 登录 / 退出 ============
 
 async function handleEnter() {
-    const userIdInput = document.getElementById('student-id').value.trim();
-    const password = document.getElementById('login-password').value.trim();
-    const loginProblemId = document.getElementById('login-problem-id').value.trim() || 'P1001';
+    const userIdInput = document.getElementById('student-id')?.value.trim();
+    const password = document.getElementById('login-password')?.value.trim();
+    const loginProblemId = document.getElementById('login-problem-id')?.value.trim() || 'P1001';
 
     if (!userIdInput) {
         showError('login-error', '请输入账号 ID');
@@ -1998,8 +2329,13 @@ async function handleEnter() {
         sessionId = generateSessionId();
         persistAuthState();
 
-        document.getElementById('login-error').textContent = '';
-        document.getElementById('login-password').value = '';
+        const loginErrorEl = document.getElementById('login-error');
+        if (loginErrorEl) {
+            loginErrorEl.textContent = '';
+            loginErrorEl.classList.add('hidden');
+        }
+        const loginPasswordEl = document.getElementById('login-password');
+        if (loginPasswordEl) loginPasswordEl.value = '';
         showMainInterface();
     } catch (err) {
         showError('login-error', '登录失败: ' + err.message);
@@ -2007,32 +2343,41 @@ async function handleEnter() {
 }
 
 function handleLogout() {
-    document.getElementById('student-id').value = '';
+    const studentIdEl = document.getElementById('student-id');
+    if (studentIdEl) studentIdEl.value = '';
     redirectToLogin('');
-    document.getElementById('login-error').textContent = '';
+    const loginErrorEl = document.getElementById('login-error');
+    if (loginErrorEl) {
+        loginErrorEl.textContent = '';
+        loginErrorEl.classList.add('hidden');
+    }
 }
 
 function showMainInterface() {
-    loginSection.classList.add('hidden');
-    userBar.classList.remove('hidden');
+    loginSection?.classList.add('hidden');
+    userBar?.classList.remove('hidden');
 
-    document.getElementById('current-user').textContent = currentUserId;
-    document.getElementById('current-role').textContent = userRole === 'teacher' ? '教师' : '学生';
-    document.getElementById('student-problem-id').value = problemId;
-    document.getElementById('login-problem-id').value = problemId;
+    const currentUserEl = document.getElementById('current-user');
+    if (currentUserEl) currentUserEl.textContent = currentUserId;
+    const currentRoleEl = document.getElementById('current-role');
+    if (currentRoleEl) currentRoleEl.textContent = userRole === 'teacher' ? '教师' : '学生';
+    const studentProblemInput = document.getElementById('student-problem-id');
+    if (studentProblemInput) studentProblemInput.value = problemId;
+    const loginProblemInput = document.getElementById('login-problem-id');
+    if (loginProblemInput) loginProblemInput.value = problemId;
 
     if (userRole === 'teacher') {
-        studentSection.classList.add('hidden');
-        teacherSection.classList.remove('hidden');
+        studentSection?.classList.add('hidden');
+        teacherSection?.classList.remove('hidden');
         loadAllCheckins();
         loadErrorStats();
         loadUsageStats();
         loadStudentFlags();
         loadProblemAnalysisFailures();
     } else {
-        studentSection.classList.remove('hidden');
-        teacherSection.classList.add('hidden');
-        showStudentTab(document.querySelector('#student-tabs .tab-btn.active')?.dataset.tab || 'chat-tab');
+        studentSection?.classList.remove('hidden');
+        teacherSection?.classList.add('hidden');
+        showStudentTab('chat-tab');
         studentCheckQuota();
         loadMyCheckins();
     }
@@ -2041,7 +2386,8 @@ function showMainInterface() {
 // ============ 学生功能 ============
 
 async function studentCheckQuota() {
-    const pid = document.getElementById('student-problem-id').value.trim() || problemId;
+    const studentProblemEl = document.getElementById('student-problem-id');
+    const pid = studentProblemEl?.value.trim() || problemId;
     problemId = pid;
     activeChatProblemRef = normalizeProblemRef(pid);
     localStorage.setItem('noi_problem_id', problemId);
@@ -2058,8 +2404,9 @@ async function studentCheckQuota() {
 }
 
 async function studentSendMessage() {
-    const pid = document.getElementById('student-problem-id').value.trim() || problemId;
-    const message = document.getElementById('student-message').value.trim();
+    const pid = document.getElementById('student-problem-id')?.value.trim() || problemId;
+    const chatInput = document.getElementById('chat-input');
+    const message = chatInput?.value.trim();
     if (!message) return;
 
     problemId = pid;
@@ -2067,7 +2414,7 @@ async function studentSendMessage() {
     localStorage.setItem('noi_problem_id', problemId);
 
     addChatMessage('user', message);
-    document.getElementById('student-message').value = '';
+    if (chatInput) chatInput.value = '';
 
     try {
         const res = await apiFetch(`${API_BASE}/chat`, {
@@ -2092,16 +2439,22 @@ async function studentSendMessage() {
 
 function addChatMessage(role, content) {
     const div = document.createElement('div');
-    div.className = `message ${role}`;
+    div.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} mb-4`;
 
-    const strong = document.createElement('strong');
-    strong.textContent = role === 'user' ? '你:' : 'Agent:';
+    const bubble = document.createElement('div');
+    bubble.className = `max-w-[80%] rounded-2xl p-4 shadow-md ${role === 'user' ? 'bg-primary-500 text-white rounded-tr-none' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-tl-none border border-slate-200 dark:border-slate-700'}`;
 
-    const pre = document.createElement('pre');
-    pre.textContent = content;
+    const header = document.createElement('div');
+    header.className = 'text-xs font-semibold mb-1 opacity-80';
+    header.textContent = role === 'user' ? '你' : 'AI 竞赛教练';
 
-    div.appendChild(strong);
-    div.appendChild(pre);
+    const text = document.createElement('div');
+    text.className = 'text-sm whitespace-pre-wrap';
+    text.textContent = content;
+
+    bubble.appendChild(header);
+    bubble.appendChild(text);
+    div.appendChild(bubble);
     document.getElementById('chat-history').appendChild(div);
     document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
 }
@@ -2399,10 +2752,14 @@ function renderQuizOptions(quiz, reviewId) {
             ${(quiz.options || []).map((option, idx) => {
                 const optionValue = typeof option === 'object' && option !== null ? option.value : option;
                 const optionLabel = typeof option === 'object' && option !== null ? option.label : option;
+                const optionMark = typeof option === 'object' && option !== null && option.value
+                    ? String(option.value)
+                    : String.fromCharCode(65 + idx);
                 return `
                 <label class="quiz-option">
                     <input type="radio" name="quiz-option-${reviewId}" value="${escapeHtml(optionValue)}">
-                    <span>${renderRichTextInline(optionLabel)}</span>
+                    <span class="quiz-option-mark">${escapeHtml(optionMark)}</span>
+                    <span class="quiz-option-body">${renderRichTextInline(optionLabel)}</span>
                 </label>
             `;
             }).join('')}
@@ -2487,7 +2844,7 @@ function renderQuizCard(quiz, reviewId) {
         ? renderKnowledgeBailoutCard(quiz.meta.knowledge_card)
         : '';
     const microHint = quiz.meta?.micro_hint
-        ? `<div class="learning-stage-note">先提醒一句：${renderRichTextInline(quiz.meta.micro_hint)}</div>`
+        ? `<div class="learning-stage-note quiz-stage-note"><div class="quiz-stage-kicker">先提醒一句</div>${renderRichTextInline(quiz.meta.micro_hint)}</div>`
         : '';
     const lead = quizCardLead(quiz)
         ? `<div class="learning-stage-lead">${escapeHtml(quizCardLead(quiz))}</div>`
@@ -2498,7 +2855,7 @@ function renderQuizCard(quiz, reviewId) {
             ${knowledgeBailoutCard}
             ${lead}
             ${microHint}
-            <div class="learning-stage-question">${renderRichTextBlock(quiz.question_text)}</div>
+            <div class="learning-stage-question quiz-question-card">${renderRichTextBlock(quiz.question_text)}</div>
             <div class="learning-stage-body">
                 ${renderQuizOptions(quiz, reviewId)}
             </div>
@@ -2551,7 +2908,7 @@ function renderKnowledgeBailoutCard(card = {}) {
     const visualHtml = visualHint ? `
         <div class="knowledge-note-visual">
             <div class="knowledge-note-section-title">看一眼图景</div>
-            <pre>${escapeHtml(visualHint)}</pre>
+            ${renderVisualHintContent(visualHint)}
         </div>
     ` : '';
 
@@ -2588,6 +2945,66 @@ function renderKnowledgeBailoutCard(card = {}) {
                 ${summaryHtml}
                 ${overviewHtml}
             </div>
+        </div>
+    `;
+}
+
+function renderQuizStageNotice({ title = '', explanation = '', tone = 'info' } = {}) {
+    return `
+        <div class="quiz-stage-note ${escapeHtml(tone)}">
+            <div class="quiz-stage-kicker">阶段提示</div>
+            <div class="learning-stage-question">${escapeHtml(title)}</div>
+            ${explanation ? `<div class="learning-stage-subtitle">${escapeHtml(explanation)}</div>` : ''}
+        </div>
+    `;
+}
+
+function renderPendingStageCard({ kicker = '理解检查', status = '正在准备', title = '', subtitle = '' } = {}) {
+    return `
+        <div class="learning-stage-card learning-stage-pending">
+            <div class="learning-stage-header">
+                <div class="learning-stage-kicker">${escapeHtml(kicker)}</div>
+                <div class="learning-stage-status-chip">${escapeHtml(status)}</div>
+                <div class="learning-stage-question">${escapeHtml(title)}</div>
+                ${subtitle ? `<div class="learning-stage-subtitle">${escapeHtml(subtitle)}</div>` : ''}
+            </div>
+            <div class="learning-stage-pending-loader" aria-hidden="true">
+                <span></span><span></span><span></span>
+            </div>
+            <div class="learning-stage-pending-progress">
+                <div class="learning-stage-pending-progress-fill"></div>
+            </div>
+        </div>
+    `;
+}
+
+function renderReviewDetailQuizTimeline(detail = {}) {
+    const history = Array.isArray(detail.quiz_history) ? detail.quiz_history : [];
+    if (!history.length) return '';
+    const currentQuizId = Number(detail.quiz_id || 0);
+    return `
+        <div class="review-detail-quiz-timeline">
+            <div class="learning-stage-subtitle">上一题先留在上面，新题接着往下走，你会更容易看出自己是怎么一步步过桥的。</div>
+            ${history.map((quiz) => {
+                const isCurrent = Number(quiz.quiz_id || 0) === currentQuizId || quiz.status === 'pending';
+                const answerBlock = !isCurrent && quiz.latest_answer_text
+                    ? `<div class="learning-stage-note"><div class="quiz-stage-kicker">你的回答</div>${renderRichTextInline(quiz.latest_answer_text)}</div>`
+                    : '';
+                const feedbackBlock = !isCurrent && quiz.latest_feedback_text
+                    ? renderQuizStageNotice({
+                        title: quiz.latest_feedback_text,
+                        explanation: quiz.latest_is_correct ? '这一步已经过桥了。' : '这一步还没过，我们继续把桥拆小。',
+                        tone: quiz.latest_is_correct ? 'success' : 'warn',
+                    })
+                    : '';
+                return `
+                    <div class="review-detail-quiz-step${isCurrent ? ' is-current' : ''}">
+                        ${!isCurrent ? answerBlock : ''}
+                        ${!isCurrent ? feedbackBlock : ''}
+                        ${renderQuizCard(quiz, detail.review_id)}
+                    </div>
+                `;
+            }).join('')}
         </div>
     `;
 }
@@ -2713,8 +3130,10 @@ async function submitCheckin() {
 
     const submitBtn = document.getElementById('submit-checkin-btn');
     const resultEl = document.getElementById('checkin-result');
-    submitBtn.disabled = true;
-    submitBtn.textContent = '提交中...';
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '提交中...';
+    }
     if (resultEl) {
         resultEl.classList.add('hidden');
         resultEl.innerHTML = '';
@@ -2722,69 +3141,56 @@ async function submitCheckin() {
     }
 
     const problemUrl = document.getElementById('checkin-url')?.value.trim() || '';
-    const problemTitle = document.getElementById('checkin-title').value.trim();
-    const ojSource = document.getElementById('checkin-oj').value;
-    const completionStatus = document.getElementById('checkin-status').value;
+    const problemTitle = document.getElementById('checkin-title')?.value.trim() || '';
+    const ojSource = document.getElementById('checkin-oj')?.value || 'other';
+    const completionStatus = document.getElementById('checkin-status')?.value || 'unfinished';
     const submissionResult = document.getElementById('checkin-submission-result')?.value || null;
-    const bottleneckText = document.getElementById('checkin-bottleneck').value.trim();
+    const bottleneckText = document.getElementById('checkin-bottleneck')?.value.trim() || '';
     const problemContext = document.getElementById('checkin-problem-context')?.value.trim() || '';
     const studentCode = document.getElementById('checkin-student-code')?.value.trim() || null;
-    const reflection = document.getElementById('checkin-reflection').value.trim();
-    const errorTypes = [];
-    document.querySelectorAll('input[name="error_type"]:checked').forEach((cb) => {
-        errorTypes.push(cb.value);
-    });
+    const reflection = document.getElementById('checkin-reflection')?.value.trim() || '';
+
+    // 获取错误类型 - 优先使用新的下拉框
+    const errorTypeSelect = document.getElementById('checkin-error-type');
+    let errorTypes = [];
+    if (errorTypeSelect && errorTypeSelect.value) {
+        errorTypes = [errorTypeSelect.value];
+    } else {
+        // 回退到旧的复选框
+        document.querySelectorAll('input[name="error_type"]:checked').forEach((cb) => {
+            errorTypes.push(cb.value);
+        });
+    }
     const hasLuoguUrl = ojSource === 'luogu' && isLikelyLuoguProblemRef(problemUrl);
     const linkedProblemRef = resolveCurrentCheckinProblemRef();
     const linkedChatContext = getProblemChatContext(linkedProblemRef);
     const chatContextSummary = linkedChatContext?.summary || '';
     const handoffPayload = linkedChatContext?.handoffPayload || null;
 
+    // 简化的验证逻辑 - 适配新 UI
+    const showErrorMsg = (msg) => {
+        if (resultEl) {
+            resultEl.classList.remove('hidden');
+            resultEl.textContent = msg;
+            resultEl.style.color = 'red';
+        }
+        isSubmittingCheckin = false;
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = '提交打卡';
+        }
+    };
+
     if (!problemTitle && !hasLuoguUrl) {
-        resultEl.classList.remove('hidden');
-        resultEl.textContent = '请填写题目标题，或提供可自动导入的洛谷链接';
-        resultEl.style.color = 'red';
-        isSubmittingCheckin = false;
-        submitBtn.disabled = false;
-        submitBtn.textContent = '提交打卡';
-        return;
-    }
-    if (ojSource !== 'luogu' && problemContext.length < 10) {
-        resultEl.classList.remove('hidden');
-        resultEl.textContent = ojSource === 'other'
-            ? '来源为未区分 / 其他时，题面 / Markdown 至少10个字'
-            : '当前来源暂不支持自动导入，请至少粘贴10个字的题面 / Markdown';
-        resultEl.style.color = 'red';
-        isSubmittingCheckin = false;
-        submitBtn.disabled = false;
-        submitBtn.textContent = '提交打卡';
-        return;
-    }
-    if (ojSource === 'luogu' && problemContext.length < 10 && !hasLuoguUrl) {
-        resultEl.classList.remove('hidden');
-        resultEl.textContent = '请填写有效的洛谷题号 / 链接，或手动补充题面 / Markdown';
-        resultEl.style.color = 'red';
-        isSubmittingCheckin = false;
-        submitBtn.disabled = false;
-        submitBtn.textContent = '提交打卡';
+        showErrorMsg('请填写题目标题，或提供可自动导入的洛谷链接');
         return;
     }
     if (bottleneckText.length < 15) {
-        resultEl.classList.remove('hidden');
-        resultEl.textContent = '卡点描述至少15个字';
-        resultEl.style.color = 'red';
-        isSubmittingCheckin = false;
-        submitBtn.disabled = false;
-        submitBtn.textContent = '提交打卡';
+        showErrorMsg('卡点描述至少15个字');
         return;
     }
     if (errorTypes.length === 0) {
-        resultEl.classList.remove('hidden');
-        resultEl.textContent = '请至少选择一个错误类型';
-        resultEl.style.color = 'red';
-        isSubmittingCheckin = false;
-        submitBtn.disabled = false;
-        submitBtn.textContent = '提交打卡';
+        showErrorMsg('请至少选择一个错误类型');
         return;
     }
 
@@ -2872,27 +3278,37 @@ async function submitCheckin() {
             `;
         }
 
-        const urlEl = document.getElementById('checkin-url');
-        if (urlEl) urlEl.value = '';
-        document.getElementById('checkin-title').value = '';
-        document.getElementById('checkin-bottleneck').value = '';
-        document.getElementById('checkin-reflection').value = '';
-        const ctxEl = document.getElementById('checkin-problem-context');
-        if (ctxEl) ctxEl.value = '';
+        // 清空表单
+        const formElements = ['checkin-url', 'checkin-title', 'checkin-bottleneck', 'checkin-reflection',
+                              'checkin-problem-context', 'checkin-student-code'];
+        formElements.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+
         const srEl = document.getElementById('checkin-submission-result');
         if (srEl) srEl.value = 'not_submitted';
-        const codeEl = document.getElementById('checkin-student-code');
-        if (codeEl) codeEl.value = '';
+
         resetImportedProblemMeta();
         updateProblemTagsPreview([]);
         syncCheckinSourceInputs();
+
         document.querySelectorAll('input[name="error_type"]').forEach((cb) => { cb.checked = false; });
-        document.getElementById('bottleneck-count').textContent = '0 字';
-        document.getElementById('bottleneck-count').style.color = '#333';
-        document.getElementById('bottleneck-hint').textContent = '至少15字，越具体越好';
-        document.getElementById('bottleneck-hint').style.color = '#666';
+
+        // 重置字数统计
+        const bottleneckCount = document.getElementById('bottleneck-count');
+        if (bottleneckCount) {
+            bottleneckCount.textContent = '0 字';
+            bottleneckCount.style.color = '#333';
+        }
+        const bottleneckHint = document.getElementById('bottleneck-hint');
+        if (bottleneckHint) {
+            bottleneckHint.textContent = '至少15字，越具体越好';
+            bottleneckHint.style.color = '#666';
+        }
         const ccEl = document.getElementById('context-count');
         if (ccEl) { ccEl.textContent = '0 字'; ccEl.style.color = '#333'; }
+
         syncCheckinSourceInputs();
 
         loadMyCheckins(activeCheckinId);
@@ -2900,137 +3316,193 @@ async function submitCheckin() {
             subscribeCheckinReviewStream(data.checkin_id, resultEl);
         }
     } catch (err) {
-        resultEl.classList.remove('hidden');
-        resultEl.textContent = '错误: ' + err.message;
-        resultEl.style.color = 'red';
+        if (resultEl) {
+            resultEl.classList.remove('hidden');
+            resultEl.textContent = '错误: ' + err.message;
+            resultEl.style.color = 'red';
+        }
     } finally {
         isSubmittingCheckin = false;
-        submitBtn.disabled = false;
-        submitBtn.textContent = '提交打卡';
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = '提交打卡';
+        }
     }
 }
 
 function renderCheckinCard(item, isTeacher = false) {
     const studentLabel = isTeacher ? `<strong>学生：</strong>${escapeHtml(item.student_id || '')}` : '';
-    const studentTags = renderPillRow(item.error_types, 'tag-pill student-tag');
-    const aiTags = renderPillRow(item.review_error_tags, 'tag-pill ai-tag');
-    const aiSubtags = renderPillRow(item.review_core_design_subtags, 'tag-pill subtle-tag');
+    const studentTags = renderPillRow(item.error_types, 'bg-amber-100 text-amber-700 border border-amber-200');
+    const aiTags = renderPillRow(item.review_error_tags, 'bg-primary-100 text-primary-700 border border-primary-200');
+    const aiSubtags = renderPillRow(item.review_core_design_subtags, 'bg-slate-100 text-slate-600 border border-slate-200');
     const timelineTone = reviewTimelineTone(item);
     const stateText = reviewLearningStateText(item, isTeacher);
 
-    let reviewBlock = `
-        <div class="archive-panel archive-panel-ai">
-            <div class="archive-label">${isTeacher ? 'AI 诊断' : 'AI 帮我指出'}</div>
-            <div class="archive-body">
-                <div class="archive-inline-meta">
-                    <span class="status-pill review-pill tone-${timelineTone}">${escapeHtml(reviewStatusText(item.review_status))}</span>
-                    ${item.review_status === 'completed' ? `<span class="status-pill subtle-pill">${escapeHtml(errorLayerText(item.review_error_layer))}</span>` : ''}
-                </div>
-    `;
-    if (item.review_status === 'completed') {
-        if (isTeacher) {
-            const bridgeBadge = bridgePathTeacherBadge(item.review_bridge_path);
-            reviewBlock += `
-                <p class="archive-line"><strong>判断把握：</strong>${escapeHtml(confidenceText(item.review_confidence))}</p>
-                <div class="archive-chip-row">${aiTags}</div>
-                ${item.review_core_design_subtags?.length ? `<div class="archive-chip-row">${aiSubtags}</div>` : ''}
-                <div class="archive-line">${renderRichTextInline(item.review_diagnosis || '')}</div>
-                <div class="archive-line"><strong>下一步行动：</strong>${renderRichTextInline(item.review_next_action || '')}</div>
-                ${item.teacher_repeat_bridge_hint ? `<div class="archive-chip-row"><span class="tag-pill teacher-repeat-chip">近期重复出现</span></div><p class="archive-note teacher-repeat-note"><strong>重复提示：</strong>${escapeHtml(item.teacher_repeat_bridge_hint)}</p>` : ''}
-                ${item.review_understanding_self_check ? `<p class="archive-line"><strong>学生自评：</strong>${escapeHtml(selfCheckLabel(item.review_understanding_self_check))}</p>` : ''}
-                ${item.review_bridge_path ? `<p class="archive-line"><strong>过桥路径：</strong>${escapeHtml(bridgePathDisplayText(item.review_bridge_path))}</p>` : ''}
-                ${bridgeBadge ? `<div class="archive-chip-row"><span class="tag-pill ${escapeHtml(bridgeBadge.className)}">${escapeHtml(bridgeBadge.label)}</span></div>` : ''}
-                ${item.review_bridge_path ? `<p class="archive-note"><strong>老师解读：</strong>${escapeHtml(bridgePathTeacherNote(item.review_bridge_path))}</p>` : ''}
-                ${renderReviewQualityFlags(item.review_quality_flags)}
-                <div class="archive-note"><strong>推荐专题：</strong>${renderRichTextInline(item.review_suggested_topic || '')}</div>
-            `;
-        } else {
-            const reviewFamily = reviewFamilyUi.resolveReviewFamily(item);
-            const orderedSections = reviewFamilyUi
-                .orderedReviewSections({
-                    main_block: item.review_main_block || '',
-                    key_bridge: item.review_key_bridge || '',
-                    next_step: item.review_next_step || '',
-                    transfer_signal: item.review_transfer_signal || '',
-                }, reviewFamily)
-                .filter((section) => String(section?.value || '').trim());
-            reviewBlock += `
-                ${orderedSections.map((section) => `
-                    <div class="${section.field === 'transfer_signal' ? 'archive-note' : 'archive-line'}"><strong>${escapeHtml(section.label)}：</strong>${renderRichTextInline(section.value || '')}</div>
-                `).join('')}
-                <details class="archive-detail">
-                    <summary>查看完整诊断</summary>
-                    <div class="archive-detail-body">
-                        <div class="archive-chip-row">${aiTags}</div>
-                        <div class="archive-line"><strong>推荐专题：</strong>${renderRichTextInline(item.review_suggested_topic || '')}</div>
-                        <p class="archive-line"><strong>AI 归类：</strong>${escapeHtml(errorLayerText(item.review_error_layer))}</p>
-                    </div>
-                </details>
-            `;
-        }
-    } else if (item.review_status === 'pending') {
-        reviewBlock += renderPendingReviewNotice(item);
-    } else if (item.review_status === 'failed') {
-        reviewBlock += renderFailedReviewNotice(item);
-    } else if (item.poll_timed_out) {
-        reviewBlock += renderReviewTimeoutNotice(item);
-    }
-    reviewBlock += `
-            </div>
-        </div>
-    `;
-
-    const learningPanel = !isTeacher ? `
-        <div class="archive-panel archive-panel-learning full-width">
-            <div class="archive-label">理解检查进度</div>
-            <div class="archive-progress-head">
-                <span class="status-pill learning-pill tone-${timelineTone}">${escapeHtml(stateText)}</span>
-                ${item.quiz_status === 'pending' ? '<span class="micro-badge">小测进行中</span>' : ''}
-            </div>
-            ${renderLearningSection(item)}
-        </div>
-    ` : '';
-
-    const bottleneckPanel = `
-        <div class="archive-panel archive-panel-bottleneck">
-            <div class="archive-label">${isTeacher ? '学生原始记录' : '我当时卡住的地方'}</div>
-            ${studentLabel ? `<div class="archive-note">${studentLabel}</div>` : ''}
-            <div class="archive-chip-row">${studentTags}</div>
-            <p class="archive-line">${escapeHtml(item.bottleneck_text)}</p>
-        </div>
-    `;
+    // Determine colors based on timeline tone
+    const toneColors = {
+        resolved: 'from-green-500 to-emerald-600',
+        followup: 'from-red-500 to-orange-600',
+        quiz: 'from-blue-500 to-indigo-600',
+        pending: 'from-amber-500 to-yellow-600',
+        normal: 'from-slate-500 to-gray-600'
+    };
+    const headerGradient = toneColors[timelineTone] || toneColors.normal;
 
     return `
-        <div class="teacher-card checkin-card timeline-card tone-${timelineTone}" data-review-id="${escapeHtml(item.review_id || '')}" data-checkin-id="${escapeHtml(item.id || '')}">
-            <div class="timeline-rail">
-                <span class="timeline-node"></span>
-            </div>
-            <div class="checkin-card-shell">
-                <div class="checkin-card-top">
-                    <div class="checkin-title-block">
-                        <div class="checkin-title-row">
-                            <span class="checkin-title">${escapeHtml(item.problem_title)}</span>
-                            <span class="status-pill source-pill">${escapeHtml(ojSourceText(item.oj_source))}</span>
-                            <span class="status-pill completion-pill">${escapeHtml(completionStatusText(item.completion_status))}</span>
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden mb-4"
+             data-review-id="${escapeHtml(item.review_id || '')}"
+             data-checkin-id="${escapeHtml(item.id || '')}">
+            <!-- Card Header -->
+            <div class="p-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r ${timelineTone === 'resolved' ? 'from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20' : timelineTone === 'followup' ? 'from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20' : timelineTone === 'quiz' ? 'from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20' : 'from-slate-50 to-gray-50 dark:from-slate-800 dark:to-slate-900'}">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-400 to-primary-600 text-white flex items-center justify-center font-bold">
+                            ${escapeHtml(item.problem_title?.charAt(0) || '?')}
                         </div>
-                        <div class="checkin-subline">
-                            <span>打卡时间：${escapeHtml(formatDate(item.created_at))}</span>
-                            ${item.problem_url ? `<span class="checkin-link-preview">${escapeHtml(item.problem_url)}</span>` : ''}
+                        <div>
+                            <h3 class="font-bold text-slate-800 dark:text-slate-100">${escapeHtml(item.problem_title)}</h3>
+                            <div class="flex items-center gap-2 text-xs text-slate-500">
+                                <span>${escapeHtml(ojSourceText(item.oj_source))}</span>
+                                <span>·</span>
+                                <span>${escapeHtml(formatDate(item.created_at))}</span>
+                                ${item.problem_url ? `<span>·</span><a href="${escapeHtml(item.problem_url)}" target="_blank" class="text-primary-600 hover:underline">${escapeHtml(item.problem_url)}</a>` : ''}
+                            </div>
                         </div>
                     </div>
-                    <div class="checkin-state-badge">
-                        <span class="status-pill state-pill tone-${timelineTone}">${escapeHtml(stateText)}</span>
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${item.completion_status === 'independent' ? 'bg-green-100 text-green-700' : item.completion_status === 'unfinished' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}">
+                            ${escapeHtml(completionStatusText(item.completion_status))}
+                        </span>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${timelineTone === 'resolved' ? 'bg-green-100 text-green-700' : timelineTone === 'followup' ? 'bg-red-100 text-red-700' : timelineTone === 'quiz' ? 'bg-blue-100 text-blue-700' : timelineTone === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-primary-100 text-primary-700'}">
+                            ${escapeHtml(stateText)}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Body -->
+            <div class="p-4 grid md:grid-cols-2 gap-4">
+                <!-- Left: Student Panel -->
+                <div class="space-y-3">
+                    <div class="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl p-4 border border-amber-200 dark:border-amber-800">
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center">
+                                <i class="fas fa-exclamation-triangle text-sm"></i>
+                            </div>
+                            <span class="font-semibold text-amber-800 dark:text-amber-200">${isTeacher ? '学生卡点记录' : '我当时卡住的地方'}</span>
+                        </div>
+                        ${studentLabel ? `<div class="text-sm text-slate-700 dark:text-slate-300 mb-2">${studentLabel}</div>` : ''}
+                        <div class="flex flex-wrap gap-1 mb-3">${studentTags}</div>
+                        <div class="bg-white dark:bg-slate-800 rounded-lg p-3 text-sm text-slate-700 dark:text-slate-300">
+                            ${escapeHtml(item.bottleneck_text)}
+                        </div>
                     </div>
                 </div>
 
-                <div class="archive-grid">
-                    ${bottleneckPanel}
-                    ${reviewBlock}
-                    ${learningPanel}
-                </div>
+                <!-- Right: AI Review Panel -->
+                ${renderCheckinReviewPanel(item, isTeacher, aiTags, aiSubtags, stateText)}
             </div>
+
+            <!-- Card Footer: Learning Path -->
+            ${!isTeacher && item.review_status === 'completed' ? `
+                <div class="px-4 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-green-400 to-emerald-500 text-white flex items-center justify-center">
+                                <i class="fas fa-route"></i>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-slate-800 dark:text-slate-200">学习路径</div>
+                                <div class="text-sm text-slate-500">${escapeHtml(stateText)}</div>
+                            </div>
+                        </div>
+                        <button onclick="selectCheckin(${Number(item.id)})" class="px-5 py-2.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200 flex items-center gap-2 text-sm">
+                            <i class="fas fa-arrow-right"></i>
+                            继续学习
+                        </button>
+                    </div>
+                </div>
+            ` : ''}
         </div>
     `;
+}
+
+// Helper function to render the review panel
+function renderCheckinReviewPanel(item, isTeacher, aiTags, aiSubtags, stateText) {
+    if (item.review_status === 'pending') {
+        return renderPendingReviewNotice(item);
+    } else if (item.review_status === 'failed') {
+        return renderFailedReviewNotice(item);
+    } else if (item.poll_timed_out) {
+        return renderReviewTimeoutNotice(item);
+    } else if (item.review_status === 'completed') {
+        const reviewFamily = reviewFamilyUi.resolveReviewFamily(item);
+        const orderedSections = reviewFamilyUi
+            .orderedReviewSections({
+                main_block: item.review_main_block || '',
+                key_bridge: item.review_key_bridge || '',
+                next_step: item.review_next_step || '',
+                transfer_signal: item.review_transfer_signal || '',
+            }, reviewFamily)
+            .filter((section) => String(section?.value || '').trim());
+
+        const sectionColors = {
+            main_block: 'border-red-400 bg-red-50 dark:bg-red-900/20',
+            key_bridge: 'border-amber-400 bg-amber-50 dark:bg-amber-900/20',
+            next_step: 'border-green-400 bg-green-50 dark:bg-green-900/20',
+            transfer_signal: 'border-blue-400 bg-blue-50 dark:bg-blue-900/20'
+        };
+
+        return `
+            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="w-8 h-8 rounded-lg bg-blue-500 text-white flex items-center justify-center">
+                        <i class="fas fa-robot text-sm"></i>
+                    </div>
+                    <span class="font-semibold text-blue-800 dark:text-blue-200">AI 复盘</span>
+                </div>
+
+                <!-- Review Sections -->
+                <div class="space-y-3 mb-4">
+                    ${orderedSections.map((section) => `
+                        <div class="border-l-4 ${sectionColors[section.field] || 'border-slate-400 bg-slate-50 dark:bg-slate-800'} rounded-r-lg p-3">
+                            <div class="text-xs font-semibold text-slate-500 mb-1">${escapeHtml(section.label)}</div>
+                            <div class="text-sm text-slate-700 dark:text-slate-300">${renderRichTextInline(section.value || '')}</div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <!-- Full Diagnosis Details -->
+                <details class="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <summary class="flex items-center justify-between p-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">查看完整诊断</span>
+                        <i class="fas fa-chevron-down text-slate-400 text-xs"></i>
+                    </summary>
+                    <div class="p-3 border-t border-slate-200 dark:border-slate-700 space-y-3">
+                        <div>
+                            <div class="text-xs text-slate-500 mb-1">AI 归类</div>
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">${escapeHtml(errorLayerText(item.review_error_layer))}</span>
+                        </div>
+                        <div>
+                            <div class="text-xs text-slate-500 mb-1">错误标签</div>
+                            <div class="flex flex-wrap gap-1">${aiTags}</div>
+                        </div>
+                        ${item.review_core_design_subtags?.length ? `
+                            <div>
+                                <div class="text-xs text-slate-500 mb-1">子标签</div>
+                                <div class="flex flex-wrap gap-1">${aiSubtags}</div>
+                            </div>
+                        ` : ''}
+                        <div>
+                            <div class="text-xs text-slate-500 mb-1">推荐专题</div>
+                            <div class="text-sm text-slate-700 dark:text-slate-300">${renderRichTextInline(item.review_suggested_topic || '')}</div>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        `;
+    }
+    return '';
 }
 
 async function loadMyCheckins(preferredCheckinId = null) {
@@ -3587,6 +4059,151 @@ function renderSimpleStats(title, rows, rowRenderer) {
     `;
 }
 
+function normalizeDistributionRows(source = {}, labelMap = {}) {
+    if (!source || typeof source !== 'object') return [];
+    return Object.entries(source)
+        .map(([key, raw]) => {
+            const item = raw && typeof raw === 'object' ? raw : { count: raw };
+            const count = toFiniteNumber(item.count) ?? 0;
+            const total = toFiniteNumber(item.total);
+            let rate = toFiniteNumber(item.rate);
+            if (rate === null && total && total > 0) {
+                rate = count / total;
+            }
+            const width = rate === null ? 0 : Math.max(0, Math.min(100, Math.round((rate <= 1 ? rate * 100 : rate) * 10) / 10));
+            return {
+                key,
+                label: labelMap[key] || key,
+                count,
+                total,
+                rate,
+                width,
+                displayValue: formatManualReviewRateValue({ count, total, rate }),
+            };
+        })
+        .filter((row) => row.count > 0 || row.total !== null || row.rate !== null);
+}
+
+function renderDistributionCard(title, source = {}, labelMap = {}) {
+    const rows = normalizeDistributionRows(source, labelMap);
+    if (!rows.length) {
+        return `
+            <div class="teacher-card">
+                <h4>${escapeHtml(title)}</h4>
+                <p>暂无数据</p>
+            </div>
+        `;
+    }
+    return `
+        <div class="teacher-card">
+            <h4>${escapeHtml(title)}</h4>
+            <div class="manual-review-rates-grid">
+                ${rows.map((row) => `
+                    <div class="manual-review-rate-row">
+                        <div class="manual-review-rate-head">
+                            <div>
+                                <div class="manual-review-rate-label">${escapeHtml(row.label)}</div>
+                                <div class="manual-review-rate-meta">${escapeHtml(String(row.count))}${row.total !== null ? ` / ${escapeHtml(String(row.total))}` : ''}</div>
+                            </div>
+                            <div class="manual-review-rate-value">${escapeHtml(row.displayValue || String(row.count))}</div>
+                        </div>
+                        <div class="manual-review-rate-bar">
+                            <div class="manual-review-rate-fill" style="width: ${row.width}%"></div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+const TOPIC_L1_LABELS = {
+    dp: '动态规划',
+    basic: '算法基础',
+    string: '字符串',
+    data_structure: '数据结构',
+    graph: '图论',
+    search: '搜索',
+    math: '数学',
+    unknown: '未归类',
+};
+
+const TOPIC_L2_LABELS = {
+    dp_basic: '基础 DP',
+    binary_search: '二分',
+    trie: 'Trie',
+    segment_tree: '线段树',
+    tree_diameter: '树的直径',
+    complexity: '复杂度',
+    difference_constraints: '差分约束',
+    greedy: '贪心',
+    enumeration: '枚举',
+    method_selection: '方法选择',
+    general_modeling: '一般建模',
+    unknown: '未归类',
+};
+
+const BRIDGE_LABELS = {
+    state_design: '状态设计',
+    'dp.state_design': '状态设计',
+    transition_design: '状态转移',
+    'dp.transition_design': '状态转移',
+    check_condition: '判定函数语义',
+    'binary_search.check_condition': '判定函数语义',
+    left_bound_update: '最左边界更新',
+    'binary_search.left_bound': '最左边界更新',
+    lazy_semantics: '懒标记语义',
+    'segment_tree.lazy_semantics': '懒标记语义',
+    shared_prefix_merging: '共享前缀合并',
+    'string.trie.shared_prefix_merging': '共享前缀合并',
+    complexity_fit: '复杂度判断',
+    'modeling.scale_estimation': '复杂度判断',
+    method_selection: '方法选择',
+    'modeling.method_selection': '方法选择',
+    tree_diameter_candidates: '直径候选分类',
+    greedy_basis: '贪心依据',
+    constraint_modeling: '约束建模',
+    general_modeling: '一般建模',
+    unknown: '未归类',
+};
+
+function renderMasteryStatusCard(stats = {}) {
+    return renderDistributionCard('过桥结果分布', stats, {
+        independent_success: '独立过桥',
+        assisted_success: '辅助后过桥',
+        not_mastered: '仍未掌握',
+        not_assessed: '未评估',
+    });
+}
+
+function renderBridgePathStatsCard(stats = {}) {
+    return renderDistributionCard('过桥路径分布', stats, {
+        main_clear: '首轮直接过桥',
+        main_confirm_correct: '确认后过桥',
+        followup_correct: '提示后过桥',
+        followup_remedy: '补救后过桥',
+        knowledge_bailout_success: '知识卡后过桥',
+        knowledge_bailout_failed: '知识卡后仍未掌握',
+    });
+}
+
+function renderBridgeStatsCard(stats = {}) {
+    return renderDistributionCard('高频知识桥分布', stats, BRIDGE_LABELS);
+}
+
+function renderKnowledgeBailoutStatsCard(stats = {}) {
+    return renderDistributionCard('知识卡介入分布', stats, {
+        entered: '进入知识卡',
+        not_entered: '未进入知识卡',
+    });
+}
+
+function renderTopicStatsCard(kind, stats = {}) {
+    const title = kind === 'topic_l2' ? '知识子域分布' : '知识域分布';
+    const labelMap = kind === 'topic_l2' ? TOPIC_L2_LABELS : TOPIC_L1_LABELS;
+    return renderDistributionCard(title, stats, labelMap);
+}
+
 function buildReviewRequestSubmittedPayload(checkinResponse = {}, formState = {}) {
     const resolvedSessionId = checkinResponse.session_id || sessionId;
     const resolvedCheckinId = Number(checkinResponse.checkin_id || checkinResponse.id || 0);
@@ -3646,11 +4263,23 @@ async function loadErrorStats() {
             data.manual_review_stats_by_family || {},
             'family',
         );
+        const masteryStatusHtml = renderMasteryStatusCard(data.mastery_status_stats || {});
+        const topicL1StatsHtml = renderTopicStatsCard('topic_l1', data.topic_l1_stats || {});
+        const topicL2StatsHtml = renderTopicStatsCard('topic_l2', data.topic_l2_stats || {});
+        const bridgeStatsHtml = renderBridgeStatsCard(data.bridge_stats || {});
+        const bridgePathStatsHtml = renderBridgePathStatsCard(data.bridge_path_stats || {});
+        const knowledgeBailoutStatsHtml = renderKnowledgeBailoutStatsCard(data.knowledge_bailout_stats || {});
 
         statsEl.innerHTML =
             studentStatsHtml
             + reviewStatsHtml
             + statusSummaryHtml
+            + masteryStatusHtml
+            + topicL1StatsHtml
+            + topicL2StatsHtml
+            + bridgeStatsHtml
+            + bridgePathStatsHtml
+            + knowledgeBailoutStatsHtml
             + manualReviewRatesHtml
             + manualReviewByModeHtml
             + manualReviewByFamilyHtml;
@@ -3791,15 +4420,28 @@ async function retryProblemAnalysis() {
 
 const noiAppTestHooks = {
     buildReviewRequestSubmittedPayload,
+    buildProblemChatContextRecord,
     extractManualReviewRatesSource,
     filterTeacherReviewSamples,
     formatManualReviewRateValue,
     normalizeManualReviewRateRow,
     normalizeManualReviewRates,
+    renderBridgeStatsCard,
+    renderBridgePathStatsCard,
+    renderKnowledgeBailoutStatsCard,
+    renderTopicStatsCard,
     renderManualReviewFilterBanner,
     renderManualReviewBreakdownSection,
     renderManualReviewRateRow,
     renderManualReviewRatesCard,
+    renderMasteryStatusCard,
+    renderKnowledgeBailoutCard,
+    renderPendingStageCard,
+    renderQuizCard,
+    renderQuizStageNotice,
+    renderReviewDetailQuizTimeline,
+    renderReviewNoteSection,
+    renderVisualHintContent,
 };
 
 if (typeof window !== 'undefined') {

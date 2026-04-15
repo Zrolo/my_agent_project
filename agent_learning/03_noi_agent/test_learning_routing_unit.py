@@ -12,6 +12,7 @@ from database import (
     create_pending_review,
     create_review,
     create_review_quiz,
+    get_quiz_by_id,
     get_confirm_pool_entry,
     increment_confirm_pool_skip,
     init_db,
@@ -116,6 +117,14 @@ class LearningRoutingTests(unittest.TestCase):
         }
         self.assertTrue(api_server.has_explicit_help_signal(route_failed))
 
+        route_failed_but_specific = {
+            "completion_status": "independent",
+            "submission_result": "wa",
+            "bottleneck_text": "我会写二分，但当 a[mid] == x 时，我总不知道应该把右边界收成 mid 还是 mid-1。",
+            "reflection": "我总担心把答案漏掉。",
+        }
+        self.assertFalse(api_server.has_explicit_help_signal(route_failed_but_specific))
+
     def test_generate_quiz_routes_explicit_help_signal_to_remedy(self):
         checkin_id = self._create_checkin(
             bottleneck_text="我不会做这题，已经卡住了，完全看不懂这些约束怎么统一。",
@@ -133,6 +142,39 @@ class LearningRoutingTests(unittest.TestCase):
         self.assertEqual("remedy_available", response.json()["next_state"])
         self.assertEqual("remedy_available", response.json()["learning_status"])
         self.assertIn("先回到卡住点", response.json()["message"])
+
+    def test_generate_quiz_should_not_skip_specific_failed_boundary_case(self):
+        checkin_id = self._create_checkin(
+            title="P2249 查找",
+            submission_result="wa",
+            bottleneck_text="我会写二分，但当 a[mid] == x 时，我总不知道应该把右边界收成 mid 还是 mid-1。",
+        )
+        create_pending_review(checkin_id, self.student_id)
+        create_review(
+            checkin_id=checkin_id,
+            student_id=self.student_id,
+            error_tags=["边界处理"],
+            diagnosis="ok",
+            next_action="ok",
+            suggested_topic="ok",
+            error_layer="implementation",
+            main_block="a[mid]==x 时右边界应设为 mid 而非 mid-1。",
+            key_bridge="找最左位置时要保留 mid 作为候选。",
+            next_step="先手推 [1,2,2,3] 这一组边界变化。",
+            transfer_signal="看到第一个出现位置时，要警惕 lower_bound 式边界更新。",
+            review_quality_flags=[],
+        )
+        detail = api_server.get_checkin_detail(checkin_id)
+        review_id = detail["review"]["review_id"]
+
+        response = self.client.post(
+            f"/api/reviews/{review_id}/quiz/generate",
+            headers=auth_headers(self.student_id),
+        )
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("quiz_in_progress", response.json()["learning_status"])
+        self.assertIn("a[mid]", response.json()["quiz"]["question_text"])
 
     def test_a_route_can_resolve_after_remedy(self):
         checkin_id = self._create_checkin(
@@ -163,7 +205,17 @@ class LearningRoutingTests(unittest.TestCase):
             headers=auth_headers(self.student_id),
         )
         self.assertEqual(200, resolve_response.status_code)
-        self.assertEqual("resolved", resolve_response.json()["learning_status"])
+        self.assertEqual("quiz_in_progress", resolve_response.json()["learning_status"])
+        self.assertEqual("final_micro_confirm", resolve_response.json()["next_state"])
+
+        final_quiz = get_quiz_by_id(resolve_response.json()["quiz"]["quiz_id"])
+        answer_response = self.client.post(
+            f"/api/quizzes/{final_quiz['id']}/answer",
+            json={"answer_text": final_quiz["correct_answer"]},
+            headers=auth_headers(self.student_id),
+        )
+        self.assertEqual(200, answer_response.status_code)
+        self.assertEqual("resolved", answer_response.json()["learning_status"])
 
     def test_b_gate_requires_main_followup_optional_and_self_check_clear(self):
         review_context = {
@@ -209,6 +261,7 @@ class LearningRoutingTests(unittest.TestCase):
 
         self.assertIn("并列约束", payload["remedy_text"])
         self.assertIn("卡住", payload["remedy_text"])
+        self.assertIn("同一种关系", payload["remedy_text"])
 
     def test_confirm_pool_skip_marks_needs_backfill_after_four_times(self):
         problem_id = upsert_luogu_problemset(

@@ -1,15 +1,20 @@
 {
   "id": "review_rubric_v2",
-  "description": "NOI review 四字段质量评测标准 v2。主 rubric 6 条评复盘本身质量；mode gate 按 family 分层检查各模式特定要求，不计入主分。",
+  "description": "NOI review 五字段引导式复盘质量评测标准 v2。主 rubric 7 条评 Evidence / Guidance / Actionability / Transfer；mode gate 按 family 分层检查各模式特定要求，不计入主分。",
   "output_schema": {
     "score": "0-6",
     "reasons": "string[]"
   },
   "checks": [
     {
-      "id": "mb_topic_anchored",
-      "field": "main_block",
-      "rule": "必须提到题目里的具体对象、条件或步骤，不能只写分类名（如【你是建模类问题】或【思路有问题】）。"
+      "id": "pf_topic_anchored",
+      "field": "problem_focus",
+      "rule": "必须提到题目里的具体对象、条件、错误现象或步骤，不能只写分类名（如【你是建模类问题】或【思路有问题】）。"
+    },
+    {
+      "id": "evidence_used",
+      "field": "problem_focus,key_bridge",
+      "rule": "必须看得出复盘用到了学生输入里的证据：卡点文字、代码、提交现象、题面对象或条件中的至少一类；不能脱离学生输入空讲通用方法。"
     },
     {
       "id": "kb_structure_grounded",
@@ -17,14 +22,24 @@
       "rule": "必须说清一个具体结构、关系、条件或公式作为关键事实，不能只写空泛方法论（如【理解状态转移】或【用贪心】）。"
     },
     {
-      "id": "kb_leaves_reasoning_gap",
-      "field": "key_bridge",
-      "rule": "不能把完整推导链和最终结论都代讲完——允许说清关键事实为什么重要，但至少留一步推论让学生自己补全，不能紧接着给出【所以答案是】。注意：failure_diagnosis family 下的 stuck_bridge 和 editorial_transfer 模式有豁免条件，见 mode_gate。"
+      "id": "visual_hint_non_spoiling",
+      "field": "visual_hint",
+      "rule": "visual_hint 不能直接给出最终比较结果、最终结论或完整答案。如果 visual_hint 非空，它必须帮助学生看清当前桥里的对象、关系或候选；优先写估算、分类、对比前的半成品提示。"
     },
     {
-      "id": "ns_gives_start_not_path",
-      "field": "next_step",
-      "rule": "必须给出一个具体起步动作（如手画一次、逐条列出、手推一轮），并点名当前题里的至少一个对象或条件；不能给完整路径，不能写加强基础、重新学习、做3道。"
+      "id": "gw_stepwise_guidance",
+      "field": "guided_walkthrough",
+      "rule": "必须是贴当前题对象的 2-3 步微引导，带学生跨当前桥梁；不能只写【画图】【手推】【再想想】或一句总结。guided_walkthrough 每一步只推进一个动作，每一步最好控制在 1-2 句。"
+    },
+    {
+      "id": "gw_leaves_last_step_to_student",
+      "field": "guided_walkthrough",
+      "rule": "不能把完整推导链、最终结论或完整代码都代讲完；允许带学生走到当前桥梁附近，但至少留最后一步让学生自己补全。failure_diagnosis family 下的 stuck_bridge 和 editorial_transfer 可把关键事实讲清，但仍不能直接交付整题终局答案。"
+    },
+    {
+      "id": "try_now_actionable",
+      "field": "try_now",
+      "rule": "必须给出一个一步内可回答、可验证或可执行的小问题/动作，并点名当前题里的至少一个对象或条件；不能给完整路径，不能写加强基础、重新学习、做3道。try_now 必须直接检查当前桥有没有真的打通，不能退化成只做表面算数或机械抄写，除非当前桥本身就是规模估算或数量判断。"
     },
     {
       "id": "ts_feature_triggered",
@@ -33,32 +48,32 @@
     },
     {
       "id": "cross_field_coherence",
-      "field": "main_block,key_bridge,next_step",
-      "rule": "三个字段必须围绕同一个具体卡点：main_block 指向的问题、key_bridge 给出的桥梁、next_step 的起步动作，必须针对同一对象或同一步骤；若 main_block 说的是建图而 key_bridge 讲状态转移，不通过。"
+      "field": "problem_focus,key_bridge,guided_walkthrough,try_now",
+      "rule": "四个字段必须围绕同一个具体卡点：problem_focus 指向的问题、key_bridge 给出的关键事实、guided_walkthrough 的 2-3 步引导、try_now 的小动作，必须针对同一对象或同一步骤；若 problem_focus 说的是建图而 guided_walkthrough 讲状态转移，不通过。"
     }
   ],
   "mode_gate": {
     "description": "按 completion_status / submission_result 判断当前模式是否跑偏。独立于主 rubric 计分，结果只记 pass / fail + reason，不影响 0-6 分。按 family 分层组织：failure_diagnosis（学生尚未建立对当前题的主体性理解）和 success_reflection（学生已自己走通，做泛化复盘）。",
     "families": [
       {
-        "family": "failure_diagnosis",
-        "modes": ["failed_verdict", "stuck_bridge", "editorial_transfer"],
-        "kb_gap_exemption": "stuck_bridge 和 editorial_transfer 模式下，若学生尚未建立关键事实，key_bridge 允许先把关键事实讲清楚，kb_leaves_reasoning_gap 豁免；failed_verdict 下学生已走过题目，不豁免。",
-        "gates": [
+                    "family": "failure_diagnosis",
+                    "modes": ["failed_verdict", "stuck_bridge", "editorial_transfer"],
+                    "kb_gap_exemption": "stuck_bridge 和 editorial_transfer 模式下，若学生尚未建立关键事实，key_bridge 允许先把关键事实讲清楚，kb_leaves_reasoning_gap 豁免；failed_verdict 下学生已走过题目，不豁免。",
+                    "gates": [
           {
             "mode": "failed_verdict",
             "condition": "submission_result in {wa, tle, re, ce}",
-            "rule": "main_block 必须点名错误的代码位置或具体判断，不能只说【思路有问题】或只复述题意。"
+            "rule": "problem_focus 必须点名错误的代码位置或具体判断，不能只说【思路有问题】或只复述题意；try_now 必须给出一个当前可检查的最小调试动作。"
           },
           {
             "mode": "stuck_bridge",
             "condition": "completion_status in {unfinished, hinted}",
-            "rule": "key_bridge 必须使用题目里的对象名或条件名，不能用抽象算法词代替；next_step 必须点名当前题里至少一个对象或条件。"
+            "rule": "key_bridge 必须使用题目里的对象名或条件名，不能用抽象算法词代替；guided_walkthrough 必须真正在带学生跨当前桥；try_now 必须点名当前题里至少一个对象或条件。"
           },
           {
             "mode": "editorial_transfer",
             "condition": "completion_status == editorial",
-            "rule": "整体必须说清为什么这个方法能解这道题，不能只复述题解步骤；key_bridge 不能只是算法名的重复。"
+            "rule": "整体必须说清为什么这个方法能解这道题，不能只复述题解步骤；key_bridge 或 guided_walkthrough 必须说明题目动作如何对应算法操作。"
           }
         ]
       },
@@ -70,7 +85,7 @@
           {
             "mode": "independent_reflect",
             "condition": "fallback",
-            "rule": "transfer_signal 必须给出可观察的题面特征，不能引用题目名，不能说【遇到类似题】；main_block 即使没有明显卡点也必须写清当前题的具体流程，不能为空。"
+            "rule": "transfer_signal 必须给出可观察的题面特征，不能引用题目名，不能说【遇到类似题】；problem_focus 即使没有明显卡点也必须写清当前题的具体流程；guided_walkthrough 必须帮助学生说清为什么这样做对。"
           }
         ]
       }

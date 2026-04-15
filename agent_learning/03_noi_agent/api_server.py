@@ -17,7 +17,7 @@ from uuid import uuid4
 
 import requests
 from fastapi import Depends, FastAPI, HTTPException, Header, BackgroundTasks
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse, RedirectResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
@@ -42,6 +42,7 @@ from noi_agent import (
     save_quota,
 )
 from database import (
+    LEARNING_STATUS_KNOWLEDGE_BAILOUT,
     LEARNING_STATUS_NEEDS_TEACHER,
     LEARNING_STATUS_NOT_STARTED,
     LEARNING_STATUS_QUIZ_IN_PROGRESS,
@@ -49,6 +50,10 @@ from database import (
     LEARNING_STATUS_REMEDY_AVAILABLE,
     LEARNING_STATUS_REMEDY_IN_PROGRESS,
     LEARNING_STATUS_RESOLVED,
+    MASTERY_STATUS_ASSISTED_SUCCESS,
+    MASTERY_STATUS_INDEPENDENT_SUCCESS,
+    MASTERY_STATUS_NOT_ASSESSED,
+    MASTERY_STATUS_NOT_MASTERED,
     REVIEW_STATUS_COMPLETED,
     REVIEW_STATUS_PENDING,
     init_db,
@@ -76,6 +81,15 @@ from database import (
     get_pending_review_jobs,
     get_review_layer_stats,
     get_review_status_summary,
+    get_mastery_status_stats,
+    get_topic_l1_stats,
+    get_topic_l2_stats,
+    get_bridge_stats,
+    get_bridge_path_stats,
+    get_bridge_route_stats,
+    get_bridge_route_promotion_suggestions,
+    get_bridge_route_promotion_suggestion,
+    get_knowledge_bailout_stats,
     get_student_flags,
     list_problem_analysis_failures,
     increment_review_remedy_count,
@@ -95,15 +109,23 @@ from database import (
     list_related_problems_by_luogu_pid,
     record_review_event,
     upsert_review_manual_review,
+    upsert_bridge_rule_draft_decision,
+    list_bridge_rule_draft_decisions,
+    create_bridge_registry_entry_from_decision,
+    list_bridge_registry_entries,
+    get_bridge_registry_entry,
+    build_resolver_patch_draft_for_registry_entry,
     update_quiz_status,
     update_review_bridge_path,
     update_review_learning_status,
+    update_review_mastery_status,
     update_review_self_check,
     reset_review_for_student_retry,
 )
 from review_engine import (
     QUIZ_ROLE_CONFIRM,
     QUIZ_ROLE_FOLLOWUP,
+    QUIZ_ROLE_KNOWLEDGE_CONFIRM,
     QUIZ_ROLE_MAIN,
     QUIZ_ROLE_REMEDY,
     REMEDY_ACTION_DYNAMIC,
@@ -112,6 +134,9 @@ from review_engine import (
     REMEDY_ACTION_SMALLER_EXAMPLE,
     _detect_review_mode,
     _family_for_review_mode,
+    generate_knowledge_bailout_card,
+    generate_knowledge_confirm_quiz,
+    generate_final_micro_confirm_quiz,
     generate_bridge_quiz,
     generate_confirm_quiz_from_pool,
     generate_remedy_explanation,
@@ -153,6 +178,28 @@ _review_generation_semaphore = threading.BoundedSemaphore(REVIEW_CONCURRENCY_LIM
 STREAM_STATUS_POLL_SECONDS = float(os.environ.get("NOI_REVIEW_STREAM_STATUS_POLL_SECONDS", "1.0"))
 HELP_REQUEST_KEYWORDS = ("不会", "卡住", "需要提示", "看不懂", "没思路")
 FAILED_SUBMISSION_RESULTS = {"wa", "tle", "re", "ce"}
+CONCRETE_BRIDGE_TERMS = (
+    "a[mid]",
+    "mid",
+    "dp[",
+    "lazy",
+    "懒标记",
+    "下传",
+    "前缀",
+    "trie",
+    "右边界",
+    "左边界",
+    "check(",
+    "转移",
+    "状态",
+    "区间",
+    "根节点",
+    "sum",
+    "long long",
+    "越界",
+)
+MAX_SCAFFOLD_ROUNDS = 3
+MAX_REMEDY_ACTIONS = 2
 STRUCTURE_TYPE_TAG_MAP = {
     "差分约束": "difference_constraints",
     "拓扑排序": "topological_sort",
@@ -289,6 +336,24 @@ def normalize_luogu_problem_url(raw_url: str) -> Optional[str]:
     return normalized_url
 
 
+def infer_oj_source_from_problem_ref(raw_ref: str, declared_source: str = "other") -> str:
+    raw = (raw_ref or "").strip()
+    declared = (declared_source or "other").strip().lower()
+    if raw:
+        if normalize_luogu_problem_ref(raw)[0]:
+            return "luogu"
+        host = urlparse(raw if re.match(r"^https?://", raw, re.I) else f"https://{raw}").netloc.lower()
+        if host.endswith("luogu.com.cn") or host.endswith("luogu.com"):
+            return "luogu"
+        if host.endswith("codeforces.com"):
+            return "codeforces"
+        if host.endswith("atcoder.jp"):
+            return "atcoder"
+        if re.match(r"^https?://", raw, re.I):
+            return "other"
+    return declared if declared in {"luogu", "codeforces", "atcoder", "other"} else "other"
+
+
 @lru_cache(maxsize=1)
 def get_luogu_tag_map() -> Dict[int, str]:
     response = requests.get(LUOGU_TAGS_URL, headers={"User-Agent": LUOGU_HEADERS["User-Agent"]}, timeout=20)
@@ -319,7 +384,9 @@ def has_explicit_help_signal(route_context: dict) -> bool:
         return True
     if str(route_context.get("completion_status") or "").strip() == "hinted":
         return True
-    return str(route_context.get("submission_result") or "").strip().lower() in FAILED_SUBMISSION_RESULTS
+    if str(route_context.get("submission_result") or "").strip().lower() not in FAILED_SUBMISSION_RESULTS:
+        return False
+    return not any(term in combined_text for term in CONCRETE_BRIDGE_TERMS)
 
 
 def passes_explanation_gate(review_context: dict, quizzes: list[dict]) -> bool:
@@ -548,6 +615,11 @@ class ChatRequest(BaseModel):
     problem_id: str = Field(..., min_length=1, description="题目ID")
     message: str = Field(..., min_length=1, description="学生输入内容")
     session_id: str = Field(..., min_length=1, description="会话ID，用于隔离不同会话")
+    problem_title: str = Field(default="", description="当前题目标题")
+    problem_url: str = Field(default="", description="当前题目链接")
+    problem_context: str = Field(default="", description="当前题面、约束或学生整理的题意")
+    student_code: str = Field(default="", description="学生当前相关代码片段")
+    chat_context_summary: str = Field(default="", description="同题上下文摘要")
 
 
 class ChatResponse(BaseModel):
@@ -555,6 +627,62 @@ class ChatResponse(BaseModel):
     remaining_quota: int
     level: str
     handoff_payload: Optional[dict] = None
+
+
+def _compact_chat_context_line(label: str, value: str, max_chars: int = 1200) -> Optional[str]:
+    text = (value or "").strip()
+    if not text:
+        return None
+    if len(text) > max_chars:
+        text = text[:max_chars].rstrip() + "..."
+    return f"{label}: {text}"
+
+
+def build_chat_message_with_problem_context(request: ChatRequest) -> str:
+    context_lines = [
+        _compact_chat_context_line("题目标题", request.problem_title, 200),
+        _compact_chat_context_line("题目链接", request.problem_url, 300),
+        _compact_chat_context_line("题面/题意/约束", request.problem_context, 1800),
+        _compact_chat_context_line("学生当前代码", request.student_code, 1800),
+        _compact_chat_context_line("同题上下文摘要", request.chat_context_summary, 800),
+    ]
+    context_lines = [line for line in context_lines if line]
+    if not context_lines:
+        return request.message
+    return "\n".join([
+        "[学生原始问题]",
+        request.message,
+        "",
+        "[当前题目上下文：只用于理解学生卡点，不要直接照抄题解]",
+        *context_lines,
+        "",
+        "请优先围绕学生当前问题给渐进提示；除非学生明确要求完整代码，否则不要直接给最终代码。",
+    ])
+
+
+def enrich_chat_request_with_luogu_context(request: ChatRequest) -> ChatRequest:
+    has_enough_context = bool(request.problem_title.strip()) and len(request.problem_context.strip()) >= 10
+    if has_enough_context:
+        return request
+
+    problem_ref = (request.problem_url or request.problem_id or "").strip()
+    normalized_url = normalize_luogu_problem_url(problem_ref)
+    if not normalized_url:
+        return request
+
+    try:
+        imported_problem = fetch_luogu_problem(normalized_url)
+    except Exception as exc:
+        print(f"[chat_context] luogu import skipped for {problem_ref}: {exc}")
+        return request
+
+    if not request.problem_url.strip():
+        request.problem_url = imported_problem.get("problem_url") or normalized_url
+    if not request.problem_title.strip():
+        request.problem_title = imported_problem.get("problem_title") or ""
+    if len(request.problem_context.strip()) < 10:
+        request.problem_context = imported_problem.get("problem_context") or request.problem_context
+    return request
 
 
 # ============ Quota Models ============
@@ -603,11 +731,23 @@ class CheckinStatusResponse(BaseModel):
     checkin_id: int
     session_id: Optional[str] = None
     problem_title: str
+    problem_url: Optional[str] = None
+    oj_source: Optional[str] = None
     created_at: str
+    completion_status: Optional[str] = None
+    submission_result: Optional[str] = None
+    student_id: Optional[str] = None
+    bottleneck_text: Optional[str] = None
+    reflection: Optional[str] = None
+    problem_context: Optional[str] = None
+    error_types: List[str] = Field(default_factory=list)
+    student_code: Optional[str] = None
     review_status: str
     review_mode: Optional[str] = None
     review_family: Optional[str] = None
+    learning_status: Optional[str] = None
     review: Optional[dict] = None
+    quiz_history: Optional[List[dict]] = None
     review_last_error: Optional[str] = None
 
 
@@ -640,6 +780,18 @@ class TeacherManualReviewRequest(BaseModel):
     review_grounded: Literal["grounded", "mixed", "vague"]
     student_can_move_next: Literal["yes", "no", "unsure"]
     notes: str = Field(default="", max_length=500)
+
+
+class BridgeRuleDraftDecisionRequest(BaseModel):
+    route_kind: Literal["candidate_bridge", "open_bridge"]
+    bridge_id: str = Field(..., min_length=1, max_length=160)
+    decision: Literal["confirmed", "rejected", "needs_changes"]
+    notes: str = Field(default="", max_length=500)
+    days: int = Field(default=30, ge=1, le=365)
+
+
+class BridgeRegistryEntryRequest(BaseModel):
+    decision_id: int = Field(..., ge=1)
 
 
 class ProblemImportRequest(BaseModel):
@@ -942,6 +1094,11 @@ def compute_bridge_path(review_context: dict, quizzes: list[dict], terminal_stat
 
     self_check = review_context.get("understanding_self_check")
     quiz_roles = [quiz.get("quiz_role") for quiz in quizzes]
+    has_knowledge_confirm = QUIZ_ROLE_KNOWLEDGE_CONFIRM in quiz_roles
+    has_knowledge_confirm_correct = any(
+        quiz.get("quiz_role") == QUIZ_ROLE_KNOWLEDGE_CONFIRM and quiz.get("status") == "correct"
+        for quiz in quizzes
+    )
     has_confirm = QUIZ_ROLE_CONFIRM in quiz_roles
     has_confirm_correct = any(
         quiz.get("quiz_role") == QUIZ_ROLE_CONFIRM and quiz.get("status") == "correct"
@@ -952,6 +1109,11 @@ def compute_bridge_path(review_context: dict, quizzes: list[dict], terminal_stat
         for quiz in quizzes
     )
     remedy_count = review_context.get("remedy_count") or 0
+
+    if has_knowledge_confirm_correct and terminal_status == LEARNING_STATUS_RESOLVED:
+        return "knowledge_bailout_success"
+    if has_knowledge_confirm and terminal_status == LEARNING_STATUS_NEEDS_TEACHER:
+        return "knowledge_bailout_failed"
 
     if self_check == "clear":
         return "main_clear"
@@ -973,6 +1135,25 @@ def compute_bridge_path(review_context: dict, quizzes: list[dict], terminal_stat
     return None
 
 
+def compute_mastery_status(bridge_path: str | None, terminal_status: str) -> str:
+    if terminal_status == LEARNING_STATUS_NEEDS_TEACHER:
+        return MASTERY_STATUS_NOT_MASTERED
+    if terminal_status != LEARNING_STATUS_RESOLVED:
+        return MASTERY_STATUS_NOT_ASSESSED
+    if bridge_path == "main_clear":
+        return MASTERY_STATUS_INDEPENDENT_SUCCESS
+    if bridge_path in {
+        "main_guessed_confirm",
+        "main_guessed_remedy",
+        "main_confused_remedy",
+        "followup_correct",
+        "followup_remedy",
+        "knowledge_bailout_success",
+    }:
+        return MASTERY_STATUS_ASSISTED_SUCCESS
+    return MASTERY_STATUS_NOT_ASSESSED
+
+
 def finalize_review_terminal_state(review_id: int, status: str):
     update_review_learning_status(review_id, status)
     review_context = get_review_context(review_id)
@@ -984,6 +1165,7 @@ def finalize_review_terminal_state(review_id: int, status: str):
         update_review_bridge_path(review_id, bridge_path)
     else:
         print(f"[bridge_path] unable to infer route for review {review_id} with status {status}")
+    update_review_mastery_status(review_id, compute_mastery_status(bridge_path, status))
 
 
 def _generate_and_store_review(
@@ -1088,7 +1270,12 @@ def _generate_and_store_review(
             key_bridge=review_data["key_bridge"],
             next_step=review_data["next_step"],
             transfer_signal=review_data["transfer_signal"],
+            problem_focus=review_data.get("problem_focus", review_data["main_block"]),
+            visual_hint=review_data.get("visual_hint", ""),
+            guided_walkthrough=review_data.get("guided_walkthrough", ""),
+            try_now=review_data.get("try_now", review_data["next_step"]),
             review_quality_flags=review_result.get("review_quality_flags", []),
+            bridge_route_meta=review_result.get("bridge_route_meta", {}),
         )
     except Exception as exc:
         error_message = f"{type(exc).__name__}: {exc}"
@@ -1247,6 +1434,7 @@ def chat_endpoint(
     """
     if request.student_id != user["user_id"]:
         raise HTTPException(status_code=403, detail="student_id 与当前登录账号不一致")
+    request = enrich_chat_request_with_luogu_context(request)
 
     # 构建会话 key
     session_key = (user["user_id"], request.problem_id, request.session_id)
@@ -1256,7 +1444,7 @@ def chat_endpoint(
         session_histories[session_key] = []
     
     messages = session_histories[session_key].copy()
-    messages.append({"role": "user", "content": request.message})
+    messages.append({"role": "user", "content": build_chat_message_with_problem_context(request)})
     handoff_payload = build_policy_handoff_payload(
         analyze_student_turn(messages[-1]["content"], messages),
         messages,
@@ -1397,7 +1585,12 @@ def create_checkin_endpoint(
     student_id = user["user_id"]
     
     # Step 1: 业务级卡点校验（在创建记录之前）
-    is_valid, error_msg = validate_bottleneck(request.bottleneck_text)
+    validation_text = "\n".join(
+        part.strip()
+        for part in (request.bottleneck_text, request.reflection or "")
+        if str(part or "").strip()
+    )
+    is_valid, error_msg = validate_bottleneck(validation_text)
     if not is_valid:
         # 记录被拒绝的打卡（用于统计质量）
         record_rejected_checkin()
@@ -1410,13 +1603,14 @@ def create_checkin_endpoint(
     resolved_problem_title = request.problem_title.strip()
     resolved_problem_context = request.problem_context.strip()
     resolved_problem_tags = [tag.strip() for tag in (request.problem_tags or []) if str(tag).strip()]
+    resolved_oj_source = infer_oj_source_from_problem_ref(resolved_problem_url, request.oj_source)
 
     local_problem_id = None
     problem_card = None
     analysis_source = None
     session_id = _new_checkin_session_id()
 
-    if request.oj_source == "luogu" and resolved_problem_url:
+    if resolved_oj_source == "luogu" and resolved_problem_url:
         try:
             imported_problem = fetch_luogu_problem(resolved_problem_url)
         except Exception as exc:
@@ -1442,7 +1636,7 @@ def create_checkin_endpoint(
     if not resolved_problem_title:
         raise HTTPException(status_code=422, detail="请填写题目标题，或提供可自动导入的洛谷链接")
 
-    if request.oj_source == "luogu":
+    if resolved_oj_source == "luogu":
         if len(resolved_problem_context) < 10:
             raise HTTPException(status_code=422, detail="请提供可导入的洛谷题号 / 链接，或手动补充题面 / Markdown")
     else:
@@ -1454,7 +1648,7 @@ def create_checkin_endpoint(
         student_id=student_id,
         problem_url=resolved_problem_url,
         problem_title=resolved_problem_title,
-        oj_source=request.oj_source,
+        oj_source=resolved_oj_source,
         completion_status=request.completion_status,
         bottleneck_text=request.bottleneck_text,
         error_types=request.error_types,
@@ -1477,7 +1671,7 @@ def create_checkin_endpoint(
         checkin_id=checkin_id,
         student_id=student_id,
         problem_title=resolved_problem_title,
-        oj_source=request.oj_source,
+        oj_source=resolved_oj_source,
         completion_status=request.completion_status,
         bottleneck_text=request.bottleneck_text,
         error_types=request.error_types,
@@ -1493,7 +1687,7 @@ def create_checkin_endpoint(
         handoff_payload=request.handoff_payload,
     )
 
-    if request.oj_source == "luogu" and local_problem_id:
+    if resolved_oj_source == "luogu" and local_problem_id:
         pid = extract_luogu_pid(resolved_problem_url)
         if pid:
             _start_problem_analysis_job(pid)
@@ -1531,6 +1725,12 @@ def get_checkin_detail_endpoint(
     if not item:
         raise HTTPException(status_code=404, detail="未找到对应打卡")
     item["review_last_error"] = None
+    if item.get("review_id"):
+        item["quiz_history"] = [
+            serialize_quiz(quiz)
+            for quiz in get_quizzes_for_review(item["review_id"])
+            if quiz and quiz.get("status") != "replaced"
+        ]
     return item
 
 
@@ -1584,7 +1784,8 @@ def stream_checkin_status_endpoint(
     once: bool = False,
     user: dict = Depends(require_student),
 ):
-    item = get_student_checkin_by_id(user["user_id"], checkin_id)
+    student_id = user["user_id"]
+    item = get_student_checkin_by_id(student_id, checkin_id)
     if not item:
         raise HTTPException(status_code=404, detail="未找到对应打卡")
 
@@ -1592,7 +1793,22 @@ def stream_checkin_status_endpoint(
         last_status_signature = None
         last_draft_signature = None
         while True:
-            payload = _build_checkin_stream_payload(checkin_id, item)
+            latest_item = get_student_checkin_by_id(student_id, checkin_id)
+            if not latest_item:
+                yield _encode_sse_event(
+                    "error",
+                    {
+                        "checkin_id": checkin_id,
+                        "review_status": "failed",
+                        "phase": "failed",
+                        "message": "未找到对应打卡",
+                        "draft_review": {},
+                        "elapsed_seconds": 0,
+                        "updated_at": time.time(),
+                    },
+                )
+                break
+            payload = _build_checkin_stream_payload(checkin_id, latest_item)
             status_signature = (
                 payload.get("phase"),
                 payload.get("review_status"),
@@ -1600,7 +1816,19 @@ def stream_checkin_status_endpoint(
                 payload.get("updated_at"),
             )
             draft_review = payload.get("draft_review") or {}
-            draft_signature = tuple(draft_review.get(key, "") for key in ("main_block", "key_bridge", "next_step", "transfer_signal"))
+            draft_signature = tuple(
+                draft_review.get(key, "")
+                for key in (
+                    "problem_focus",
+                    "main_block",
+                    "key_bridge",
+                    "visual_hint",
+                    "guided_walkthrough",
+                    "try_now",
+                    "next_step",
+                    "transfer_signal",
+                )
+            )
             emitted = False
             if status_signature != last_status_signature:
                 event = "status"
@@ -1788,6 +2016,16 @@ def answer_quiz_endpoint(
                 "learning_status": LEARNING_STATUS_SELF_CHECK_REQUIRED,
                 "next_state": "self_check_required",
             }
+        if quiz["quiz_role"] == QUIZ_ROLE_KNOWLEDGE_CONFIRM:
+            finalize_review_terminal_state(quiz["review_id"], LEARNING_STATUS_RESOLVED)
+            return {
+                "is_correct": True,
+                "feedback_text": feedback_text,
+                "explanation": quiz["explanation"],
+                "bridge_feedback": quiz.get("bridge_feedback", ""),
+                "learning_status": LEARNING_STATUS_RESOLVED,
+                "next_state": "resolved",
+            }
 
         finalize_review_terminal_state(quiz["review_id"], LEARNING_STATUS_RESOLVED)
         return {
@@ -1873,6 +2111,62 @@ def answer_quiz_endpoint(
             "learning_status": LEARNING_STATUS_REMEDY_AVAILABLE,
             "next_state": "remedy_available",
             "dynamic_button_label": dynamic_remedy_label(review_context["error_layer"]),
+        }
+
+    if quiz["quiz_role"] == QUIZ_ROLE_KNOWLEDGE_CONFIRM:
+        feedback_text = "这一步我们先停在这里，你的老师会来和你一起看一看。"
+        update_quiz_status(quiz_id, "incorrect")
+        record_quiz_attempt(quiz_id, user["user_id"], request.answer_text, False, feedback_text)
+        finalize_review_terminal_state(quiz["review_id"], LEARNING_STATUS_NEEDS_TEACHER)
+        create_teacher_flag(
+            student_id=user["user_id"],
+            flag_type="knowledge_bailout_not_passed",
+            reason=f"知识卡后最小确认仍未通过：{quiz['target_bridge'] or review_context['key_bridge']}",
+            severity="medium",
+            review_id=quiz["review_id"],
+            checkin_id=quiz["checkin_id"],
+            target_bridge=quiz["target_bridge"] or review_context["key_bridge"],
+        )
+        return {
+            "is_correct": False,
+            "feedback_text": feedback_text,
+            "explanation": quiz["explanation"],
+            "learning_status": LEARNING_STATUS_NEEDS_TEACHER,
+            "next_state": "needs_teacher_followup",
+        }
+
+    if (quiz.get("meta") or {}).get("confirm_stage") == "final_micro_confirm" or (quiz.get("meta") or {}).get("difficulty_level") == "final_micro_confirm":
+        feedback_text = selected_distractor_feedback(quiz, request.answer_text) or "这一小步还是没站稳，我们换成一张知识卡把它单独讲清楚。"
+        update_quiz_status(quiz_id, "incorrect")
+        record_quiz_attempt(quiz_id, user["user_id"], request.answer_text, False, feedback_text)
+        knowledge_card = generate_knowledge_bailout_card(review_context, quiz)
+        knowledge_payload = generate_knowledge_confirm_quiz(review_context, knowledge_card, previous_quiz=quiz)
+        knowledge_quiz_id = create_review_quiz(
+            review_id=review_context["review_id"],
+            student_id=review_context["student_id"],
+            checkin_id=review_context["checkin_id"],
+            round=MAX_SCAFFOLD_ROUNDS + 1,
+            quiz_role=QUIZ_ROLE_KNOWLEDGE_CONFIRM,
+            quiz_type=knowledge_payload["quiz_type"],
+            question_text=knowledge_payload["question_text"],
+            options=knowledge_payload["options"],
+            correct_answer=knowledge_payload["correct_answer"],
+            explanation=knowledge_payload["explanation"],
+            bridge_feedback=knowledge_payload.get("bridge_feedback", ""),
+            distractor_feedback=knowledge_payload.get("distractor_feedback", {}),
+            target_bridge=knowledge_payload["target_bridge"],
+            source_error_layer=review_context["error_layer"],
+            meta=knowledge_payload.get("meta", {}),
+        )
+        update_review_learning_status(quiz["review_id"], LEARNING_STATUS_KNOWLEDGE_BAILOUT)
+        return {
+            "is_correct": False,
+            "feedback_text": feedback_text,
+            "explanation": quiz["explanation"],
+            "learning_status": LEARNING_STATUS_KNOWLEDGE_BAILOUT,
+            "next_state": "knowledge_bailout",
+            "knowledge_card": knowledge_card,
+            "quiz": serialize_quiz(get_quiz_by_id(knowledge_quiz_id)),
         }
 
     feedback_text = "这道题我们先停在这里，你的老师会来和你一起看一看。"
@@ -2027,12 +2321,12 @@ def remedy_review_endpoint(
         raise HTTPException(status_code=404, detail="未找到对应复盘")
     if review_context["review_status"] != REVIEW_STATUS_COMPLETED:
         raise HTTPException(status_code=400, detail="复盘尚未完成")
-    if (review_context.get("remedy_count") or 0) >= 2:
+    if (review_context.get("remedy_count") or 0) >= MAX_REMEDY_ACTIONS:
         finalize_review_terminal_state(review_id, LEARNING_STATUS_NEEDS_TEACHER)
         create_teacher_flag(
             student_id=user["user_id"],
             flag_type="quiz_bridge_not_passed",
-            reason=f"补救次数已用完，仍需老师跟进：{review_context['key_bridge']}",
+            reason=f"三轮支架已到上限，仍需老师跟进：{review_context['key_bridge']}",
             severity="medium",
             review_id=review_id,
             checkin_id=review_context["checkin_id"],
@@ -2041,7 +2335,7 @@ def remedy_review_endpoint(
         return {
             "mode": "final",
             "learning_status": LEARNING_STATUS_NEEDS_TEACHER,
-            "feedback_text": "这道题我们先停在这里，你的老师会来和你一起看一看。",
+            "feedback_text": f"这一步我们已经连续带了 {MAX_SCAFFOLD_ROUNDS} 轮，先停在这里，你的老师会来和你一起看一看。",
         }
 
     if request.action_type == REMEDY_ACTION_EASIER_QUIZ:
@@ -2060,7 +2354,7 @@ def remedy_review_endpoint(
             review_id=review_context["review_id"],
             student_id=review_context["student_id"],
             checkin_id=review_context["checkin_id"],
-            round=3,
+            round=MAX_SCAFFOLD_ROUNDS,
             quiz_role=QUIZ_ROLE_REMEDY,
             quiz_type=payload["quiz_type"],
             question_text=payload["question_text"],
@@ -2102,8 +2396,44 @@ def remedy_resolve_endpoint(
         raise HTTPException(status_code=404, detail="未找到对应复盘")
 
     if request.status == "resolved":
+        payload = generate_final_micro_confirm_quiz(
+            review_context,
+            previous_quiz=get_latest_quiz_for_review(review_id),
+        )
+        if payload["mode"] == "quiz":
+            quiz_id = create_review_quiz(
+                review_id=review_context["review_id"],
+                student_id=review_context["student_id"],
+                checkin_id=review_context["checkin_id"],
+                round=MAX_SCAFFOLD_ROUNDS,
+                quiz_role=QUIZ_ROLE_REMEDY,
+                quiz_type=payload["quiz_type"],
+                question_text=payload["question_text"],
+                options=payload["options"],
+                correct_answer=payload["correct_answer"],
+                explanation=payload["explanation"],
+                bridge_feedback=payload.get("bridge_feedback", ""),
+                distractor_feedback=payload.get("distractor_feedback", {}),
+                target_bridge=payload["target_bridge"],
+                source_error_layer=review_context["error_layer"],
+                meta={**payload.get("meta", {}), "confirm_stage": "final_micro_confirm"},
+            )
+            update_review_learning_status(review_id, LEARNING_STATUS_QUIZ_IN_PROGRESS)
+            return {
+                "ok": True,
+                "learning_status": LEARNING_STATUS_QUIZ_IN_PROGRESS,
+                "next_state": "final_micro_confirm",
+                "feedback_text": "好，我们用最后一个最小问题确认这一步是不是真的站稳了。",
+                "quiz": serialize_quiz(get_quiz_by_id(quiz_id)),
+            }
+
         finalize_review_terminal_state(review_id, LEARNING_STATUS_RESOLVED)
-        return {"ok": True, "learning_status": LEARNING_STATUS_RESOLVED}
+        return {
+            "ok": True,
+            "learning_status": LEARNING_STATUS_RESOLVED,
+            "next_state": "resolved",
+            "feedback_text": "这一步已经过关，我们先停在这里。",
+        }
 
     finalize_review_terminal_state(review_id, LEARNING_STATUS_NEEDS_TEACHER)
     create_teacher_flag(
@@ -2131,6 +2461,108 @@ def get_teacher_review_samples(
         sample["review_mode"] = review_mode
         sample["review_family"] = _family_for_review_mode(review_mode)
     return {"samples": samples}
+
+
+@app.get("/api/teacher/bridge-rule-drafts/export")
+def export_bridge_rule_draft(
+    route_kind: Literal["candidate_bridge", "open_bridge"],
+    bridge_id: str,
+    days: int = 30,
+    user: dict = Depends(require_teacher),
+):
+    del user
+    suggestion = get_bridge_route_promotion_suggestion(
+        route_kind=route_kind,
+        bridge_id=bridge_id,
+        days=max(1, min(days, 365)),
+    )
+    if not suggestion:
+        raise HTTPException(status_code=404, detail="未找到对应桥规则草案")
+    draft = suggestion.get("rule_draft") or {}
+    filename = draft.get("filename") or "bridge_rule_draft.md"
+    markdown = draft.get("draft_markdown") or ""
+    return PlainTextResponse(
+        markdown,
+        media_type="text/markdown; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.post("/api/teacher/bridge-rule-drafts/decision")
+def submit_bridge_rule_draft_decision(
+    request: BridgeRuleDraftDecisionRequest,
+    user: dict = Depends(require_teacher),
+):
+    suggestion = get_bridge_route_promotion_suggestion(
+        route_kind=request.route_kind,
+        bridge_id=request.bridge_id,
+        days=max(1, min(request.days, 365)),
+    )
+    if not suggestion:
+        raise HTTPException(status_code=404, detail="未找到对应桥规则草案")
+    draft = suggestion.get("rule_draft") or {}
+    record = upsert_bridge_rule_draft_decision(
+        route_kind=request.route_kind,
+        bridge_id=request.bridge_id,
+        parent_focus=suggestion.get("parent_focus") or suggestion.get("stable_focus") or "",
+        teacher_id=user["user_id"],
+        decision=request.decision,
+        notes=request.notes,
+        draft_filename=draft.get("filename") or "",
+        draft_markdown=draft.get("draft_markdown") or "",
+        auto_promote=False,
+    )
+    return {"status": "ok", "decision": record}
+
+
+@app.get("/api/teacher/bridge-rule-drafts/decisions")
+def list_bridge_rule_draft_decision_endpoint(
+    user: dict = Depends(require_teacher),
+    limit: int = 30,
+):
+    decisions = list_bridge_rule_draft_decisions(
+        teacher_id=user["user_id"],
+        limit=max(1, min(limit, 100)),
+    )
+    return {"decisions": decisions}
+
+
+@app.post("/api/teacher/bridge-registry/entries")
+def create_bridge_registry_entry_endpoint(
+    request: BridgeRegistryEntryRequest,
+    user: dict = Depends(require_teacher),
+):
+    try:
+        entry = create_bridge_registry_entry_from_decision(
+            decision_id=request.decision_id,
+            teacher_id=user["user_id"],
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {"status": "ok", "entry": entry}
+
+
+@app.get("/api/teacher/bridge-registry/entries")
+def list_bridge_registry_entries_endpoint(
+    user: dict = Depends(require_teacher),
+    limit: int = 50,
+):
+    del user
+    entries = list_bridge_registry_entries(limit=max(1, min(limit, 100)))
+    return {"entries": entries}
+
+
+@app.get("/api/teacher/bridge-registry/entries/{entry_id}/resolver-patch-draft")
+def get_bridge_registry_resolver_patch_draft(
+    entry_id: int,
+    user: dict = Depends(require_teacher),
+):
+    del user
+    entry = get_bridge_registry_entry(entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="未找到对应 registry entry")
+    patch_draft = build_resolver_patch_draft_for_registry_entry(entry)
+    return {"patch_draft": patch_draft}
 
 
 @app.post("/api/teacher/reviews/{review_id}/manual-review")
@@ -2182,6 +2614,14 @@ def get_teacher_stats(
     student_reported_stats = get_error_stats(days)
     review_layer_stats = get_review_layer_stats(days)
     review_status_summary = get_review_status_summary(days)
+    mastery_status_stats = get_mastery_status_stats(days)
+    topic_l1_stats = get_topic_l1_stats(days)
+    topic_l2_stats = get_topic_l2_stats(days)
+    bridge_stats = get_bridge_stats(days)
+    bridge_path_stats = get_bridge_path_stats(days)
+    bridge_route_stats = get_bridge_route_stats(days)
+    bridge_route_promotion_suggestions = get_bridge_route_promotion_suggestions(days)
+    knowledge_bailout_stats = get_knowledge_bailout_stats(days)
     manual_review_stats = get_manual_review_stats(days, teacher_id=user["user_id"])
     manual_review_stats_by_mode = get_manual_review_stats_breakdown(days, group_by="review_mode", teacher_id=user["user_id"])
     manual_review_stats_by_family = get_manual_review_stats_breakdown(days, group_by="review_family", teacher_id=user["user_id"])
@@ -2190,6 +2630,14 @@ def get_teacher_stats(
         "student_reported_stats": student_reported_stats,
         "review_layer_stats": review_layer_stats,
         "review_status_summary": review_status_summary,
+        "mastery_status_stats": mastery_status_stats,
+        "topic_l1_stats": topic_l1_stats,
+        "topic_l2_stats": topic_l2_stats,
+        "bridge_stats": bridge_stats,
+        "bridge_path_stats": bridge_path_stats,
+        "bridge_route_stats": bridge_route_stats,
+        "bridge_route_promotion_suggestions": bridge_route_promotion_suggestions,
+        "knowledge_bailout_stats": knowledge_bailout_stats,
         "manual_review_stats": manual_review_stats,
         "manual_review_stats_by_mode": manual_review_stats_by_mode,
         "manual_review_stats_by_family": manual_review_stats_by_family,
@@ -2274,8 +2722,22 @@ def healthcheck() -> dict:
 
 
 @app.get("/app")
-def serve_frontend():
-    """Serve the frontend HTML at /app"""
+@app.get("/app/{path:path}")
+def serve_frontend(path: str = ""):
+    """
+    统一前端入口 - 所有学生端和教师端子路由都返回同一个前端壳层。
+    兼容旧路径:
+    - /app, /app/chat, /app/checkin, /app/history, /app/history/123
+    新 Vue 路由:
+    - /app/workspace/chat, /app/workspace/checkin
+    - /app/archive, /app/archive/123
+    - /app/teacher/*
+    """
+    allowed_prefixes = {"chat", "checkin", "history", "workspace", "archive", "teacher"}
+    first_segment = path.split("/", 1)[0] if path else ""
+    if first_segment and first_segment not in allowed_prefixes:
+        return RedirectResponse(url="/app")
+
     return FileResponse(os.path.join(BASE_DIR, "static", "index.html"))
 
 

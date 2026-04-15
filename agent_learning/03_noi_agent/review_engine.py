@@ -10,6 +10,7 @@ from openai import OpenAI
 from model_config import get_model_candidates, is_model_unavailable_error
 
 _client = None
+_external_bridge_snippets_cache = None
 DEFAULT_REVIEW_MODELS = ("kimi-k2.5",)
 LLM_REQUEST_TIMEOUT_SECONDS = int(os.getenv("NOI_LLM_TIMEOUT_SECONDS", "45"))
 LLM_MAX_TOKENS = int(os.getenv("NOI_REVIEW_MAX_TOKENS", "32768"))
@@ -72,6 +73,9 @@ CORE_DESIGN_SUBTAGS = {
     "greedy_basis",
     "check_condition",
     "enumeration_order",
+    "tree_path_difference",
+    "tree_diameter_candidates",
+    "lazy_semantics",
 }
 GRAPH_HINT_TERMS = ("图", "边", "建图", "最短路", "最长路", "差分约束", "约束", "不等式")
 CONSTRAINT_GRAPH_TERMS = ("差分约束", "不等式", "上下界", "先后限制", "大小关系", "约束", "同时满足", "并列约束", "谁限制谁")
@@ -125,6 +129,430 @@ GENERIC_ACTION_TERMS = (
     "系统学习",
     "从简单题开始",
 )
+
+
+def _load_external_bridge_snippets() -> list[dict]:
+    global _external_bridge_snippets_cache
+    if _external_bridge_snippets_cache is not None:
+        return _external_bridge_snippets_cache
+
+    docs_dir = Path(__file__).resolve().parent / "docs" / "common"
+    unified_path = docs_dir / "bridge_external_snippets_v1.jsonl"
+    if unified_path.exists():
+        snippet_files = (unified_path,)
+    else:
+        snippet_files = (
+            docs_dir / "cp_pdf_bridge_snippets_v1.jsonl",
+            docs_dir / "oi_wiki_bridge_snippets_v1.jsonl",
+        )
+    rows: list[dict] = []
+    for path in snippet_files:
+        if not path.exists():
+            continue
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                payload = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(payload, dict):
+                rows.append(payload)
+    _external_bridge_snippets_cache = rows
+    return rows
+
+
+def _pick_external_bridge_snippet(bridge: str, snippet_type: str, source_family: str | None = None) -> dict | None:
+    for row in _load_external_bridge_snippets():
+        if str(row.get("bridge") or "") != bridge:
+            continue
+        if str(row.get("snippet_type") or "") != snippet_type:
+            continue
+        if source_family and str(row.get("source_family") or "") != source_family:
+            continue
+        return row
+    return None
+
+
+def _bridge_key_from_card_id(card_id: str) -> str | None:
+    mapping = {
+        "dp.state_design": "state_design",
+        "binary_search.check_condition": "check_condition",
+        "binary_search.left_bound": "left_bound_update",
+        "string.trie.shared_prefix_merging": "shared_prefix_merging",
+        "segment_tree.lazy_semantics": "lazy_semantics",
+        "modeling.scale_estimation": "complexity_fit",
+        "modeling.method_selection": "method_selection",
+        "graph.tree_path_difference": "tree_path_difference",
+    }
+    return mapping.get(card_id)
+
+
+def _append_sentence(base: str, sentence: str) -> str:
+    base = str(base or "").strip()
+    sentence = str(sentence or "").strip()
+    if not sentence or sentence in base:
+        return base
+    if not base:
+        return sentence
+    return f"{base} {sentence}".strip()
+
+
+def _review_bridge_prompt_constraint(
+    problem_title: str,
+    problem_context: str | None,
+    bottleneck_text: str,
+    error_types: list[str],
+) -> str:
+    focus_text = " ".join(
+        filter(
+            None,
+            [
+                problem_title,
+                problem_context or "",
+                bottleneck_text,
+                " ".join(error_types or []),
+            ],
+        )
+    )
+
+    if _contains_any(
+        focus_text,
+        (
+            "a[mid] == x",
+            "a[mid]==x",
+            "保留 mid",
+            "保留mid",
+            "最左",
+            "左边界",
+            "第一个等于",
+            "第一个出现",
+            "lower_bound",
+            "r = mid",
+            "右边界 = mid",
+        ),
+    ):
+        return "首轮 bridge 约束：这次必须围着 `a[mid] == x` 时为什么还要保留 mid、继续往左找来讲，不要退回泛泛的二分边界。"
+
+    if _contains_any(
+        focus_text,
+        (
+            "check(mid)",
+            "check（mid）",
+            "check(",
+            "可行",
+            "当前 mid",
+            "当前mid",
+            "二分方向",
+            "往哪边缩",
+            "判定条件",
+        ),
+    ):
+        return "首轮 bridge 约束：这次必须围着 `check(mid)` 在判断当前 mid 是否可行来讲，不要退回泛化复杂度说明。"
+
+    if _contains_any(
+        focus_text,
+        (
+            "经过次数",
+            "结束次数",
+            "公共前缀",
+            "沿前缀路径",
+            "前缀路径",
+            "重看所有消息",
+            "只沿前缀",
+            "只沿当前前缀",
+            "沿当前前缀",
+            "节点计数",
+            "trie 节点",
+            "trie节点",
+        ),
+    ):
+        return "首轮 bridge 约束：这次必须围着公共前缀、沿前缀路径、为什么不用重看所有消息来讲；如果是节点计数语境，至少点名经过次数或结束次数。"
+
+    if _contains_any(
+        focus_text,
+        (
+            "方法选择",
+            "结构信号",
+            "题面信号",
+            "支持 trie",
+            "支持trie",
+            "猜可能要 trie",
+            "猜可能要trie",
+            "猜一个方法名",
+            "为什么该用这个方法",
+            "直接枚举",
+            "复杂度",
+            "规模",
+            "范围",
+            "前缀关系",
+            "相同开头",
+            "trie",
+        ),
+    ):
+        return "首轮 bridge 约束：这次必须围着题面信号/结构信号来讲，不要退回“理解这个方法”这类空话；如果是 trie 语境，至少点名“相同开头”或“前缀关系”。"
+
+    return ""
+
+
+def _apply_external_teaching_bits_to_knowledge_card(bridge: str | None, selected: dict) -> dict:
+    if not bridge:
+        return selected
+    misconception = _pick_external_bridge_snippet(bridge, "misconception")
+    mini_example = _pick_external_bridge_snippet(bridge, "mini_example")
+    if misconception:
+        excerpt = str(misconception.get("excerpt") or "").strip()
+        if excerpt:
+            selected = {
+                **selected,
+                "bridge_explanation": _append_sentence(
+                    selected.get("bridge_explanation", ""),
+                    f"再提醒一个最容易误会的点：{excerpt}",
+                ),
+            }
+    if mini_example:
+        excerpt = str(mini_example.get("excerpt") or "").strip()
+        if excerpt:
+            selected = {
+                **selected,
+                "algorithm_overview": _append_sentence(
+                    selected.get("algorithm_overview", ""),
+                    f"再看一个最小例子：{excerpt}",
+                ),
+            }
+    return selected
+
+
+def _apply_external_teaching_bits_to_remedy(bridge: str | None, selected: dict) -> dict:
+    if not bridge:
+        return selected
+    misconception = _pick_external_bridge_snippet(bridge, "misconception")
+    mini_example = _pick_external_bridge_snippet(bridge, "mini_example")
+    if misconception:
+        excerpt = str(misconception.get("excerpt") or "").strip()
+        if excerpt:
+            selected = {
+                **selected,
+                "remedy_text": _append_sentence(
+                    selected.get("remedy_text", ""),
+                    f"再提醒一个最容易误会的点：{excerpt}",
+                ),
+            }
+    if mini_example:
+        excerpt = str(mini_example.get("excerpt") or "").strip()
+        if excerpt:
+            selected = {
+                **selected,
+                "remedy_text": _append_sentence(
+                    selected.get("remedy_text", ""),
+                    f"你可以先抓这个最小例子：{excerpt}",
+                ),
+            }
+    return selected
+
+
+def _augment_knowledge_card_with_external_snippets(card_id: str, selected: dict) -> dict:
+    if card_id == "dp.state_design":
+        explanation = _pick_external_bridge_snippet("state_design", "bridge_explanation", "oi-wiki")
+        extra_view = _pick_external_bridge_snippet("state_design", "bridge_explanation", "cp-pdf")
+        if explanation:
+            excerpt = str(explanation.get("excerpt") or "").strip()
+            if excerpt and excerpt not in selected.get("bridge_explanation", ""):
+                selected = {
+                    **selected,
+                    "bridge_explanation": f"{selected['bridge_explanation']} 换个更直白的说法：{excerpt}",
+                }
+        if extra_view:
+            excerpt = str(extra_view.get("excerpt") or "").strip()
+            if excerpt and excerpt not in selected.get("algorithm_overview", ""):
+                selected = {
+                    **selected,
+                    "algorithm_overview": f"{selected['algorithm_overview']} 再换个学生更容易抓住的说法：{excerpt}",
+                }
+        return _apply_external_teaching_bits_to_knowledge_card("state_design", selected)
+
+    if card_id == "binary_search.check_condition":
+        explanation = _pick_external_bridge_snippet("check_condition", "bridge_explanation")
+        if explanation:
+            excerpt = str(explanation.get("excerpt") or "").strip()
+            if excerpt and excerpt not in selected.get("bridge_explanation", ""):
+                selected = {
+                    **selected,
+                    "bridge_explanation": f"{selected['bridge_explanation']} 换个更直白的说法：{excerpt}",
+                }
+        if "check(5)=true" not in selected.get("algorithm_overview", ""):
+            selected = {
+                **selected,
+                "algorithm_overview": f"{selected['algorithm_overview']} 比如 `check(5)=true`，只说明“最小跳跃距离至少为 5”这件事当前还能做到，所以答案不小于 5。",
+            }
+        return _apply_external_teaching_bits_to_knowledge_card("check_condition", selected)
+
+    if card_id == "binary_search.left_bound":
+        explanation = _pick_external_bridge_snippet("left_bound_update", "bridge_explanation", "oi-wiki")
+        extra_view = _pick_external_bridge_snippet("left_bound_update", "bridge_explanation", "cp-pdf")
+        if explanation:
+            excerpt = str(explanation.get("excerpt") or "").strip()
+            if excerpt and excerpt not in selected.get("bridge_explanation", ""):
+                selected = {
+                    **selected,
+                    "bridge_explanation": f"{selected['bridge_explanation']} 换个更直白的说法：{excerpt}",
+                }
+        if extra_view:
+            excerpt = str(extra_view.get("excerpt") or "").strip()
+            if excerpt and excerpt not in selected.get("algorithm_overview", ""):
+                selected = {
+                    **selected,
+                    "algorithm_overview": f"{selected['algorithm_overview']} 再换个学生更容易抓住的说法：{excerpt}",
+                }
+        return _apply_external_teaching_bits_to_knowledge_card("left_bound_update", selected)
+
+    if card_id == "string.trie.shared_prefix_merging":
+        explanation = _pick_external_bridge_snippet("shared_prefix_merging", "bridge_explanation", "oi-wiki")
+        overview = _pick_external_bridge_snippet("shared_prefix_merging", "algorithm_overview", "cp-pdf")
+        extra_view = _pick_external_bridge_snippet("shared_prefix_merging", "bridge_explanation", "cp-pdf")
+        if explanation:
+            excerpt = str(explanation.get("excerpt") or "").strip()
+            if excerpt and excerpt not in selected.get("bridge_explanation", ""):
+                selected = {
+                    **selected,
+                    "bridge_explanation": f"{selected['bridge_explanation']} 换成更白的话说，就是：{excerpt}",
+                }
+        if overview:
+            excerpt = str(overview.get("excerpt") or "").strip()
+            if excerpt and excerpt not in selected.get("algorithm_overview", ""):
+                selected = {
+                    **selected,
+                    "algorithm_overview": f"{selected['algorithm_overview']} 换个更直白的图景：{excerpt}",
+                }
+        if extra_view:
+            excerpt = str(extra_view.get("excerpt") or "").strip()
+            if excerpt and excerpt not in selected.get("algorithm_overview", ""):
+                selected = {
+                    **selected,
+                    "algorithm_overview": f"{selected['algorithm_overview']} 再换个学生更容易抓住的说法：{excerpt}",
+                }
+        return _apply_external_teaching_bits_to_knowledge_card("shared_prefix_merging", selected)
+
+    if card_id == "segment_tree.lazy_semantics":
+        explanation = _pick_external_bridge_snippet("lazy_semantics", "bridge_explanation", "oi-wiki")
+        if explanation:
+            excerpt = str(explanation.get("excerpt") or "").strip()
+            if excerpt and excerpt not in selected.get("bridge_explanation", ""):
+                selected = {
+                    **selected,
+                    "bridge_explanation": f"{selected['bridge_explanation']} 换个更直白的说法：{excerpt}",
+                }
+        if "[1,4]" not in selected.get("algorithm_overview", ""):
+            selected = {
+                **selected,
+                "algorithm_overview": f"{selected['algorithm_overview']} 比如一个节点管区间 `[1,4]`，`lazy=3` 就是在说这段区间每个数都还欠着 `+3` 没下传；如果左儿子长度是 `2`，pushdown 时左儿子的 `sum` 会先加 `3×2`。",
+            }
+        return _apply_external_teaching_bits_to_knowledge_card("lazy_semantics", selected)
+
+    return _apply_external_teaching_bits_to_knowledge_card(_bridge_key_from_card_id(card_id), selected)
+
+
+def _augment_remedy_with_external_snippets(focus: str, selected: dict) -> dict:
+    if focus == "transition_design":
+        explanation = _pick_external_bridge_snippet("transition_design", "bridge_explanation", "oi-wiki")
+        extra_view = _pick_external_bridge_snippet("transition_design", "bridge_explanation", "cp-pdf")
+        if explanation:
+            excerpt = str(explanation.get("excerpt") or "").strip()
+            if excerpt and excerpt not in selected.get("remedy_text", ""):
+                selected = {
+                    **selected,
+                    "remedy_text": f"{selected['remedy_text']} 换个更直白的说法：{excerpt}",
+                }
+        if extra_view:
+            excerpt = str(extra_view.get("excerpt") or "").strip()
+            if excerpt and excerpt not in selected.get("remedy_text", ""):
+                selected = {
+                    **selected,
+                    "remedy_text": f"{selected['remedy_text']} 再换个学生更容易抓住的说法：{excerpt}",
+                }
+        return _apply_external_teaching_bits_to_remedy("transition_design", selected)
+
+    if focus == "state_design":
+        explanation = _pick_external_bridge_snippet("state_design", "bridge_explanation", "oi-wiki")
+        extra_view = _pick_external_bridge_snippet("state_design", "bridge_explanation", "cp-pdf")
+        if explanation:
+            excerpt = str(explanation.get("excerpt") or "").strip()
+            if excerpt and excerpt not in selected.get("remedy_text", ""):
+                selected = {
+                    **selected,
+                    "remedy_text": f"{selected['remedy_text']} 换个更直白的说法：{excerpt}",
+                }
+        if extra_view:
+            excerpt = str(extra_view.get("excerpt") or "").strip()
+            if excerpt and excerpt not in selected.get("remedy_text", ""):
+                selected = {
+                    **selected,
+                    "remedy_text": f"{selected['remedy_text']} 再换个学生更容易抓住的说法：{excerpt}",
+                }
+        return _apply_external_teaching_bits_to_remedy("state_design", selected)
+
+    if focus == "check_condition":
+        explanation = _pick_external_bridge_snippet("check_condition", "bridge_explanation")
+        if explanation:
+            excerpt = str(explanation.get("excerpt") or "").strip()
+            if excerpt and excerpt not in selected.get("remedy_text", ""):
+                selected = {
+                    **selected,
+                    "remedy_text": f"{selected['remedy_text']} 换个更直白的说法：{excerpt}",
+                }
+        return _apply_external_teaching_bits_to_remedy("check_condition", selected)
+
+    if focus == "left_bound_update":
+        explanation = _pick_external_bridge_snippet("left_bound_update", "bridge_explanation", "oi-wiki")
+        extra_view = _pick_external_bridge_snippet("left_bound_update", "bridge_explanation", "cp-pdf")
+        if explanation:
+            excerpt = str(explanation.get("excerpt") or "").strip()
+            if excerpt and excerpt not in selected.get("remedy_text", ""):
+                selected = {
+                    **selected,
+                    "remedy_text": f"{selected['remedy_text']} 换个更直白的说法：{excerpt}",
+                }
+        if extra_view:
+            excerpt = str(extra_view.get("excerpt") or "").strip()
+            if excerpt and excerpt not in selected.get("remedy_text", ""):
+                selected = {
+                    **selected,
+                    "remedy_text": f"{selected['remedy_text']} 再换个学生更容易抓住的说法：{excerpt}",
+                }
+        return _apply_external_teaching_bits_to_remedy("left_bound_update", selected)
+
+    if focus == "complexity_fit":
+        explanation = _pick_external_bridge_snippet("complexity_fit", "bridge_explanation", "oi-wiki")
+        extra_view = _pick_external_bridge_snippet("complexity_fit", "bridge_explanation", "cp-pdf")
+        if explanation:
+            excerpt = str(explanation.get("excerpt") or "").strip()
+            if excerpt and excerpt not in selected.get("remedy_text", ""):
+                selected = {
+                    **selected,
+                    "remedy_text": f"{selected['remedy_text']} 换个更直白的说法：{excerpt}",
+                }
+        if extra_view:
+            excerpt = str(extra_view.get("excerpt") or "").strip()
+            if excerpt and excerpt not in selected.get("remedy_text", ""):
+                selected = {
+                    **selected,
+                    "remedy_text": f"{selected['remedy_text']} 再换个学生更容易抓住的说法：{excerpt}",
+                }
+        return _apply_external_teaching_bits_to_remedy("complexity_fit", selected)
+
+    if focus == "method_selection":
+        explanation = _pick_external_bridge_snippet("method_selection", "bridge_explanation", "oi-wiki")
+        if explanation:
+            excerpt = str(explanation.get("excerpt") or "").strip()
+            if excerpt and excerpt not in selected.get("remedy_text", ""):
+                selected = {
+                    **selected,
+                    "remedy_text": f"{selected['remedy_text']} 换个更直白的说法：{excerpt}",
+                }
+        return _apply_external_teaching_bits_to_remedy("method_selection", selected)
+
+    return _apply_external_teaching_bits_to_remedy(focus, selected)
 GENERIC_REVIEW_TAG_TERMS = (
     "o2优化",
     "o3优化",
@@ -173,6 +601,8 @@ HIGH_RISK_REVIEW_FOCI = {
     "constraint_modeling",
     "greedy_basis",
     "method_selection",
+    "tree_path_difference",
+    "tree_diameter_candidates",
 }
 REVIEW_FOCUS_RULES = {
     "general_modeling": {
@@ -211,11 +641,66 @@ REVIEW_FOCUS_RULES = {
         "next_step": "先画一个最小例子，比较“先选它”和“先不选它”对后续空间或兼容性的影响，再写结论。",
         "transfer_signal": "如果题目在让你做局部优先选择，而且你需要解释为什么不会破坏后续兼容性，就先检查这一步是否在给后面留空间。",
     },
+    "tree_diameter_candidates": {
+        "bridge_terms": ("直径", "最长路", "候选", "新边", "连起来", "最远点"),
+        "step_terms": ("画", "比较", "候选", "左边", "右边", "新边", "最远点"),
+        "signal_terms": ("直径", "最长路", "新边", "两边", "连通块"),
+        "main_block": "你不是完全不会树的直径，而是还没先把“加上一条新边后，新最长路会从哪些候选里产生”这一步站稳。",
+        "key_bridge": "关键不是直接背公式，而是先确认：新最长路只可能来自左边内部、右边内部，或者经过新边把两边最远点接起来。",
+        "next_step": "先把这三类候选画出来，再单独想：如果经过新边，两边各该接什么点。",
+        "transfer_signal": "如果题目在问两棵树或两个连通块连起来后的最长路，先别急着套答案，先比较最长路会来自哪几类候选。",
+    },
+    "tree_path_difference": {
+        "bridge_terms": ("树上差分", "路径贡献", "经过次数", "LCA", "最近公共祖先", "树剖", "树链剖分", "子树汇总"),
+        "step_terms": ("打标记", "差分", "汇总", "DFS", "LCA", "端点", "父亲"),
+        "signal_terms": ("多条路径", "树上路径", "经过次数", "路径加一", "LCA", "树剖"),
+        "main_block": "你不是不会树剖或 LCA，而是还没先把“一条树上路径的贡献如何变成少数几个点的差分标记”这一步站稳。",
+        "key_bridge": "关键不是逐点更新每条路径，而是把路径贡献转成端点、LCA 和 LCA 父亲附近的差分标记，再用 DFS 子树汇总还原每个点经过次数。",
+        "next_step": "先只看一条 s 到 t 的路径：为什么可以在 s、t、lca 和 lca 的父亲附近打标记，而不是沿整条路径逐点加。",
+        "transfer_signal": "如果题目给很多树上路径，并统计点或边被经过多少次，先想树上差分：端点/LCA 打标记，最后 DFS 汇总。",
+    },
 }
+
+REVIEW_BRIDGE_GUARD_RULES = {
+    "shared_prefix_merging": {
+        "focus_terms": ("前缀", "沿前缀路径", "公共前缀", "重看所有消息"),
+        "problem_focus": "你不是在做一般字符串处理，而是在分清公共前缀为什么能先合在一起，以及查询时为什么只沿前缀路径走。",
+        "key_bridge": "关键是把相同开头先合在一起；这样查询时不用重看所有消息，只沿当前前缀那条路径往下走。",
+        "visual_hint": "101\n100\n11\n前缀 10 先合在一起\n查询时只沿前缀路径往下走",
+        "guided_walkthrough": "1. 先把 101、100、11 这三个串写出来，看前两条是不是有相同开头。\n2. 再想这些相同开头能不能先共用一段路径。\n3. 最后再说查询时为什么不用把所有消息重新逐个看一遍。",
+        "try_now": "先只回答一句：trie 省下来的，为什么是“不用重看所有消息”而不是“把答案背下来”？",
+    },
+    "check_condition": {
+        "focus_terms": ("check(mid)", "可行", "当前 mid", "返回 true"),
+        "problem_focus": "你不是在直接算答案，而是在想 `check(mid)` 到底是不是只在判断当前这个 mid 是否可行。",
+        "key_bridge": "关键是先站稳：`check(mid)` 的 true 只说明当前 mid 可行，不是已经找到最终答案。",
+        "visual_hint": "check(5)=true\n-> 只说明 5 可行\n-> 再决定区间往哪边缩",
+        "guided_walkthrough": "1. 先只看 `check(mid)` 这一句，它是不是只在判断当前 mid 能不能成立。\n2. 再把 true/false 分别翻成“当前值可行/不可行”。\n3. 最后再决定二分区间该往哪边缩。",
+        "try_now": "先只回答一句：`check(5)=true` 现在说明的是“5 可行”还是“答案就是 5”？",
+    },
+    "left_bound_update": {
+        "focus_terms": ("a[mid]", "保留 mid", "最左", "左边界"),
+        "problem_focus": "你不是一般地不会二分，而是卡在 `a[mid] == x` 时，为什么还要把 mid 这一侧保留下来继续往左找。",
+        "key_bridge": "关键是如果你要找最左边那个等于 x 的位置，命中后 mid 仍然可能就是答案，所以不能先丢掉。",
+        "visual_hint": "[1,2,2,2,3]\na[mid] == 2\n-> mid 先留作候选\n-> r = mid 继续往左缩",
+        "guided_walkthrough": "1. 先只盯 `a[mid] == x` 这一格，mid 现在是不是已经可能是答案。\n2. 如果目标是最左边那个位置，mid 这一侧能不能先丢掉。\n3. 最后再决定为什么要保留 mid 继续往左缩。",
+        "try_now": "先只回答一句：如果目标是最左边那个 2，`a[mid] == 2` 时为什么不能先丢掉 mid？",
+    },
+    "method_selection": {
+        "focus_terms": ("题面", "结构信号", "相同开头", "前缀关系"),
+        "problem_focus": "你不是已经站稳 trie 机制，而是还没从题面里指出哪个结构信号真的在支持这个方法。",
+        "key_bridge": "关键不是先报方法名，而是先回到题面，看见“很多消息有相同开头，而且还要反复按前缀查”这个信号。",
+        "visual_hint": "题面信号\n-> 很多消息\n-> 反复前缀关系\n-> 相同开头支持 trie",
+        "guided_walkthrough": "1. 先只看题面里有哪些对象和操作：消息、拦截串、前缀关系。\n2. 再找哪一个结构信号最直接支持 trie，而不是别的方法。\n3. 最后补一句：为什么“相同开头”会让 trie 变得合理。",
+        "try_now": "先只指出一句：题面里哪个结构信号在支持 trie？",
+    },
+}
+
 QUIZ_ROLE_MAIN = "main"
 QUIZ_ROLE_FOLLOWUP = "followup"
 QUIZ_ROLE_REMEDY = "remedy"
 QUIZ_ROLE_CONFIRM = "confirm"
+QUIZ_ROLE_KNOWLEDGE_CONFIRM = "knowledge_confirm"
 STRUCTURAL_QUIZ_FOCI = {
     "state_design",
     "transition_design",
@@ -225,11 +710,16 @@ STRUCTURAL_QUIZ_FOCI = {
     "general_modeling",
     "constraint_modeling",
     "boundary_debug",
+    "left_bound_update",
     "method_selection",
+    "shared_prefix_merging",
+    "lazy_semantics",
+    "tree_path_difference",
     "data_type",
     "loop_boundary",
     "recursion_structure",
     "complexity_fit",
+    "tree_diameter_candidates",
 }
 # Backward-compatible alias while the rest of the module is being migrated.
 STRUCTURAL_CONFIRM_FOCI = STRUCTURAL_QUIZ_FOCI
@@ -477,6 +967,11 @@ def _family_for_review_mode(mode: str) -> str:
     return "failure_diagnosis"
 
 
+def _build_normal_review_system_prompt(mode: str = "independent_reflect", handoff_payload: dict | None = None) -> str:
+    """第一轮结构化复盘 prompt。"""
+    return _build_review_system_prompt(mode=mode, handoff_payload=handoff_payload)
+
+
 def _build_review_system_prompt(mode: str = "independent_reflect", handoff_payload: dict | None = None) -> str:
     """按 mode 构建 review system prompt。
 
@@ -484,10 +979,28 @@ def _build_review_system_prompt(mode: str = "independent_reflect", handoff_paylo
         failure_diagnosis  — failed_verdict / stuck_bridge / editorial_transfer
         success_reflection — independent_reflect
     """
-    base = """你是 NOI 教练。
+    base = """你是 NOI 教练，不是答案生成器。
 
-请根据题目信息、学生卡点和代码片段，输出一次简洁、可执行的复盘。
-只输出 JSON，不要输出任何额外解释或 Markdown 代码块。
+你的主任务不是总结答案，而是基于学生提供的证据，帮助他跨过当前最关键的一步。
+如果格式正确但没有帮助学生跨过这一步，这次输出就算失败。
+
+先按 Evidence -> Decision -> Feedback 工作：
+
+Evidence
+- 先根据学生提供的题目、卡点、代码、提交现象，判断他当前已经会到哪一步、卡在哪一步。
+- 必须使用学生输入里的具体对象、条件、错误现象或步骤作为依据。
+- 如果证据不足，禁止直接讲题；默认按更保守、更小步的方式支架，只保留最小可判断范围。
+
+Decision
+- 每次只能解决一个当前桥梁，不同时展开多个难点。
+- 你只能在学生当前状态基础上推进半步到一步。
+- 如果不能确定学生当前已经会到哪一步，默认按更保守、更小步的方式支架。
+- 禁止直接给完整答案、完整证明或完整代码。
+- 如果你的输出已经让学生不需要自己补最后一步，说明支架过大，必须缩回。
+
+Feedback
+- 请根据题目信息、学生卡点和代码片段，输出一次简洁、可执行的复盘。
+- 只输出 JSON，不要输出任何额外解释或 Markdown 代码块。
 
 JSON 必须包含这些字段：
 error_tags
@@ -497,8 +1010,12 @@ core_design_subtags
 diagnosis
 next_action
 suggested_topic
+problem_focus
 main_block
 key_bridge
+visual_hint
+guided_walkthrough
+try_now
 next_step
 transfer_signal
 
@@ -506,80 +1023,109 @@ transfer_signal
 1. error_tags：1-3 个中文短词。
 2. error_layer：reading|method|modeling|core_design|implementation|insufficient。
 3. error_layer_confidence：high|medium|low。
-4. core_design_subtags：只有 error_layer=core_design 时可填，值只能是 state_design|transition_design|greedy_basis|check_condition|enumeration_order；否则输出 []。
+4. core_design_subtags：只有 error_layer=core_design 时可填，值只能是 state_design|transition_design|greedy_basis|check_condition|enumeration_order|tree_path_difference|tree_diameter_candidates|lazy_semantics；否则输出 []。
 5. diagnosis：直接指出核心问题，不复述题面。
 6. next_action：老师布置的下一步训练。
 7. suggested_topic：具体小专题，不要只写大类。
-8. main_block：学生具体卡住的那一步。
-9. key_bridge：解释“为什么这题能这样做”的关键桥梁。
-10. next_step：今天立刻能做的小动作。
-11. transfer_signal：下次看到什么题面信号要想到这类做法。
+8. problem_focus：学生具体卡住的那一步。
+9. main_block：兼容字段，内容与 problem_focus 保持一致。
+10. key_bridge：先抓住什么关键事实，解释“为什么这题能这样做”的关键桥梁。
+11. visual_hint：可选字段。只在有必要时输出一个文本化小图、小表或小分类框，帮助学生看清当前桥里的对象、关系或候选。禁止输出大段讲义，禁止直接给出最终比较结果、最终结论或完整答案；优先写估算、分类、对比前的半成品提示。
+12. guided_walkthrough：跟我走一遍，固定写 2-3 步微引导，每一步都要点名当前题里的对象或条件；每一步只推进一个动作，每一步最好控制在 1-2 句。
+13. try_now：现在你来试，只能给一个很小的问题或动作，必须直接检查当前桥有没有真的打通，不能退化成只做表面算数或机械抄写，除非当前桥本身就是规模估算或数量判断。
+14. next_step：兼容字段，内容与 try_now 保持一致。
+15. transfer_signal：下次看到什么题面信号要想到这类做法。
 
-规则：
+通用规则：
 1. 面向初中生，说人话，短句。
-2. 不要空话，不要只报算法名。
-3. next_step 必须是 1-2 步内可执行的小动作。
-4. 信息不够时用 insufficient + low，不要编造细节。
-5. 只有完成状态是“看题解”时，main_block、key_bridge、next_step 才允许有限提算法名；否则只写这题里具体的对象、关系、条件和步骤，不要抽象成方法名或概念名。
-6. 所有字段都要填写。
-7. 不要在字段内容里使用半角双引号；引用题面词语时直接改写，或不用引号。
-8. 优先复用题目里的对象名、条件名、公式名。
-9. next_action 和 suggested_topic 优先回到当前题，不要写专项训练、经典题、做3道、变式或拓展。
+2. 先讲对象，再讲关系，再讲这一步怎么想。
+3. 能对比时，先说最容易误会的一句话，再说正确的一句话。
+4. 禁止空话，禁止只报算法名。
+5. guided_walkthrough 必须真正带学生走 2-3 步，不能只写画图、手推、再想想；也禁止只写画图、手推、再想想。
+6. try_now 必须是 1 步内可回答、可执行的小问题或小动作，必须直接检查当前桥有没有真的打通。
+7. 只有完成状态是“看题解”时，problem_focus、main_block、key_bridge、guided_walkthrough、try_now、next_step 才允许有限提算法名；否则只写这题里具体的对象、关系、条件和步骤，不要抽象成方法名或概念名。
+8. 除 visual_hint 外，所有字段都要填写；如果 visual_hint 没有帮助，可以留空字符串。
+9. 禁止在字段内容里使用半角双引号；不要在字段内容里使用半角双引号；引用题面词语时直接改写，或不用引号。
+10. 优先复用题目里的对象名、条件名、公式名。
+11. next_action 和 suggested_topic 优先回到当前题，禁止写专项训练、经典题、做3道、变式或拓展；不要写专项训练、经典题、做3道、变式或拓展。
 
 长度控制：
-- diagnosis / main_block / key_bridge：尽量不超过 60 字
-- 其他文本字段：尽量不超过 30 字"""
+- diagnosis / problem_focus / main_block / key_bridge：尽量不超过 60 字
+- visual_hint：尽量控制在 6 行以内，只保留当前桥真正需要的对象和关系
+- guided_walkthrough：允许明显长一点，但必须保持 2-3 步
+- try_now / next_step / transfer_signal：尽量不超过 40 字"""
 
-    # family 归属（不发进 prompt，仅供代码阅读定位）：
-    #   failure_diagnosis  — failed_verdict / stuck_bridge / editorial_transfer
-    #   success_reflection — independent_reflect
-    supplements = {
+    family = _family_for_review_mode(mode)
+    family_supplements = {
+        "failure_diagnosis": """
+
+本次任务属于 failure_diagnosis。
+目标：先定位错误或卡点，再把问题缩小到学生现在能检查的一步。
+- problem_focus 必须落到当前错在哪或卡在哪，不能漂成整题总结。
+- key_bridge 必须服务当前一步，不要提前展开后面步骤。
+- guided_walkthrough 必须围绕当前桥梁做 2-3 步微引导。
+- try_now 必须是学生现在就能检查、回答或执行的一步。""",
+        "success_reflection": """
+
+本次任务属于 success_reflection。
+目标：先帮助学生说清为什么这样做对，再帮助他形成迁移信号。
+- 如果学生已经做出题目，problem_focus 优先写“不会解释为什么对”的当前缺口。
+- key_bridge 优先解释正确性依据或关键判断。
+- guided_walkthrough 必须帮助学生把“为什么对”说顺，而不是重复做法步骤。
+- transfer_signal 在本 family 中必须清楚、具体、可迁移。""",
+    }
+
+    mode_supplements = {
         "failed_verdict": """
 
 本次任务重点：学生提交有明确错误结果（WA/TLE/RE/CE）。
-- diagnosis 必须说清这个错误结果对应的具体出错位置或逻辑
-- main_block 必须说清是哪一步代码或判断出了问题，优先点名具体判断条件、连接符、代码位置或输出位置
-- main_block 不要只写“没想清楚”“组合判断语句”“思路有问题”这类模糊说法
-- main_block 不要只写“组合判断语句”，要继续落到哪个条件、哪个连接符或哪一处判断
-- next_step 必须是今天可以调试的一个最小动作
-- next_action 优先回到当前题，指出先检查哪一处代码、判断或输出
-- key_bridge 和 transfer_signal 可以简短，但不能为空
-- main_block 只说错误类型（如"且关系写错了""条件判断有问题"）不够，必须同时说明是代码里哪一处写错——点名变量名、条件表达式、判断符号或代码位置中至少一个""",
+- diagnosis 必须说清这个错误结果对应的具体出错位置或逻辑。
+- problem_focus 必须说清是哪一步代码或判断出了问题，优先点名具体判断条件、连接符、代码位置或输出位置。
+- problem_focus 禁止只写“没想清楚”“组合判断语句”“思路有问题”这类模糊说法；不要只写“没想清楚”“组合判断语句”“思路有问题”这类模糊说法。
+- problem_focus 禁止只写“组合判断语句”；不要只写“组合判断语句”，要继续落到哪个条件、哪个连接符或哪一处判断。
+- try_now 必须是今天可以调试的一个最小动作。
+- next_action 优先回到当前题，指出先检查哪一处代码、判断或输出。
+- key_bridge 和 transfer_signal 可以简短，但不能为空。
+- problem_focus 只说错误类型（如"且关系写错了""条件判断有问题"）不够，必须同时说明是代码里哪一处写错——点名变量名、条件表达式、判断符号或代码位置中至少一个。""",
         "stuck_bridge": """
 
 本次任务重点：学生卡住了，还没完成或需要提示才完成。
-- main_block 必须说清学生卡在哪个具体步骤，不能只写"不会建模"
-- key_bridge 必须先从题目原文里逐字摘出至少一个名词或条件，不允许改写或概括；再用这个原文词说明为什么这一步是关键
-- next_step 同样：必须点名题目里直接出现过的某个对象或条件，不允许用"某变量""某限制""进度"等自造概念替代
-- key_bridge 必须点名一个对象、关系、条件或状态含义，说明跨过这一步的关键事实
-- next_step 必须是今天立刻可以做的一件小事，优先写手画一次 / 逐条列出 / 手推一轮，并点名当前题里至少一个对象或条件
-- next_step 不能只写列出条件、画表格、挑一维；要点名当前题里的对象、条件或状态
-- transfer_signal 可以简短，但必须提到一个可观察的题目特征，不要给题面特征加引号，不要只写多个限制条件""",
+- problem_focus 必须说清学生卡在哪个具体步骤，不能只写"不会建模"。
+- key_bridge 必须先从题目原文里逐字摘出至少一个名词或条件，不允许改写或概括；再用这个原文词说明为什么这一步是关键。
+- try_now 同样：必须点名题目里直接出现过的某个对象或条件，不允许用"某变量""某限制""进度"等自造概念替代。兼容字段 next_step 同样：必须点名题目里直接出现过的某个对象或条件。
+- key_bridge 必须点名一个对象、关系、条件或状态含义，说明跨过这一步的关键事实。
+- guided_walkthrough 必须先围绕当前对象、关系或条件，把学生从“看不清这一步”带到“知道该先检查什么”，禁止重新讲整题总结。
+- try_now 必须是今天立刻可以做的一件小事，优先写手画一次 / 逐条列出 / 手推一轮，并点名当前题里至少一个对象或条件。
+- try_now 不能只写列出条件、画表格、挑一维；要点名当前题里的对象、条件或状态。
+- transfer_signal 可以简短，但必须提到一个可观察的题目特征，不要给题面特征加引号，不要只写多个限制条件。""",
         "editorial_transfer": """
 
 本次任务重点：学生看了题解，现在要理解和迁移。
-- diagnosis 重点说清"为什么这个方法能解决这道题"
-- key_bridge 必须包含具体结构或公式，不能只复述算法名
-- key_bridge 必须说清这道题里的哪个动作对应算法里的哪个操作（如"合并舰队指令 -> union"、"查询间距 -> 路径压缩时累加偏移量"），不能只说算法能做什么
-- transfer_signal 必须说清下次看到什么特征时联想到这类做法
-- next_step 只写回到原题的一步验证动作，不写练习题或类比""",
+- diagnosis 重点说清"为什么这个方法能解决这道题"。
+- key_bridge 必须包含具体结构或公式，不能只复述算法名。
+- key_bridge 必须说清这道题里的哪个动作对应算法里的哪个操作（如"合并舰队指令 -> union"、"查询间距 -> 路径压缩时累加偏移量"），不能只说算法能做什么。
+- guided_walkthrough 必须围绕“题目动作 -> 算法操作”的映射，一步步带学生把这条映射走顺。
+- transfer_signal 必须说清下次看到什么特征时联想到这类做法。
+- try_now 只写回到原题的一步验证动作，不写练习题或类比；禁止写练习题或类比。""",
         "independent_reflect": """
 
 本次任务重点：学生独立完成，现在做结构性复盘。
-- key_bridge 重点说清"这道题为什么这样做是对的"
-- transfer_signal 必须说清触发信号，不能只写"遇到类似题"
-- transfer_signal 必须直接引用题目里出现的具体名词或数量关系，不能写算法类型描述
-- transfer_signal 里不能出现题目名或题目编号，只能写题面里描述的条件、对象和数量关系
-- 错误示范："每个决策点可以选择做多少、后面还有更优选择"、"题目要求最少步数从起点向外扩散"、"每组有上限约束、最小化组数"——这些都是类型模板，不是题面特征
-- 正确示范："题目给出若干油站各有单价、油箱容量有上限、要求总费用最小"、"棋盘上马从指定起点按日字走法到达每个格子"、"n 件物品各有重量、每组最多两件且总重量不超过 w"
-- next_step 只写当前题的一步验证动作，不写变形和拓展
-- main_block 如果没有明显卡点，必须写清这道题的核心决策流程（如"在当前油站决定加多少油"、"从堆里弹出最小元素后更新相邻节点"），不能为空，也不能只写做出来了""",
+- key_bridge 重点说清"这道题为什么这样做是对的"。
+- guided_walkthrough 必须帮助学生把“为什么这样做对”讲顺，禁止只重复做法步骤。
+- transfer_signal 必须说清触发信号，不能只写"遇到类似题"。
+- transfer_signal 必须直接引用题目里出现的具体名词或数量关系，不能写算法类型描述。
+- transfer_signal 里不能出现题目名或题目编号，只能写题面里描述的条件、对象和数量关系。
+- 错误示范："每个决策点可以选择做多少、后面还有更优选择"、"题目要求最少步数从起点向外扩散"、"每组有上限约束、最小化组数"——这些都是类型模板，不是题面特征。
+- 正确示范："题目给出若干油站各有单价、油箱容量有上限、要求总费用最小"、"棋盘上马从指定起点按日字走法到达每个格子"、"n 件物品各有重量、每组最多两件且总重量不超过 w"。
+- try_now 只写当前题的一步验证动作，不写变形和拓展；禁止写变形和拓展。
+- problem_focus 如果没有明显卡点，必须写清这道题的核心决策流程（如"在当前油站决定加多少油"、"从堆里弹出最小元素后更新相邻节点"），不能为空，也不能只写做出来了。""",
     }
-    prompt = base + supplements.get(mode, supplements["independent_reflect"])
+    prompt = base + family_supplements[family] + mode_supplements.get(mode, mode_supplements["independent_reflect"])
+
     if handoff_payload and handoff_payload.get("source") == "aichat":
         risk_type = handoff_payload.get("risk_type", "")
         suggested_focus = handoff_payload.get("suggested_focus", "")
-        prompt += f"""
+        checkin_supplement = f"""
 
 本次复盘来自 AIChat 移交（source=checkin_reflection）。
 移交风险类型：{risk_type}
@@ -595,9 +1141,116 @@ source=checkin_reflection 仍然禁止：
 - 完整转移方程。
 - 完整 check(mid) 函数或完整 check 语义。
 - 完整树差分 / LCA 加减公式。
-- 直接给 AC 代码或修改后的整段代码。
-"""
+- 直接给 AC 代码。
+- A/B 选项里有一个是完整正确桥梁。
+- 在学生提供充分证据之前直接确认正确性。"""
+        prompt += checkin_supplement
+
     return prompt
+
+
+def _build_clarify_system_prompt() -> str:
+    return """你是 NOI 教练。当前任务不是讲题，而是帮助学生把问题说清楚。
+
+如果当前证据不足，禁止直接讲题，禁止猜方法，禁止展开完整题解。
+你只做两件事：
+1. 说明为什么现在还不能稳定复盘
+2. 给一个最小澄清问题
+
+只输出 JSON：
+{
+  remedy_text: string,
+  micro_action: string
+}
+
+要求：
+- remedy_text 必须说明当前缺少哪类证据。
+- micro_action 只能问一个问题，只能推进一步。
+- 优先帮助学生说清：题目要求你求什么、你试到哪一步、你具体卡在哪一层。
+- 禁止把 micro_action 写成多个追问，也禁止直接讲整题。""".strip()
+
+
+def _build_clarify_user_prompt(review_context: dict, remedy_action: str) -> str:
+    lines = [
+        f"题目：{review_context.get('problem_title', '')}",
+        f"题目摘要：{_compact_text(review_context.get('problem_context', ''), 180)}",
+        f"学生卡点：{_compact_text(review_context.get('bottleneck_text', ''), 120)}",
+        f"当前 error_layer：{review_context.get('error_layer', 'insufficient')}",
+        f"补救动作：{remedy_action}",
+    ]
+    return "\n".join(line for line in lines if line.strip())
+
+
+def _build_remedy_system_prompt(remedy_action: str) -> str:
+    return f"""你是 NOI 教练。当前任务是第一轮没过后的解释型补救。
+
+不重复第一轮复盘；禁止重讲整题，禁止直接给完整答案。
+你只能做一件事：只把桥缩小一步，或换一种表示方式，或纠正一个具体误解。
+当前补救动作：{remedy_action}
+
+只输出 JSON：
+{{
+  remedy_text: string,
+  visual_hint: string,
+  micro_action: string
+}}
+
+要求：
+- remedy_text 只服务当前这一小步，不展开多个难点。
+- visual_hint 可选。只在有必要时输出一个文本化小图、小表或小分类框，帮助学生看清当前桥的对象和关系。禁止直接给出最终比较结果或完整答案，优先写半成品提示。
+- micro_action 只能给一个最小动作，必须 1 步内可回答或执行，并且直接检查当前桥有没有真的打通；不能退化成只做表面算数或机械抄写，除非当前桥本身就是规模估算或数量判断。
+- 如果能换一种表示方式，就优先用更小样例、对象拆分、条件重写来解释。
+- 禁止把 micro_action 写成多步任务。""".strip()
+
+
+def _build_remedy_user_prompt(review_context: dict, remedy_action: str) -> str:
+    lines = [
+        f"题目：{review_context.get('problem_title', '')}",
+        f"核心卡点：{_compact_text(review_context.get('bottleneck_text', ''), 120)}",
+        f"problem_focus：{review_context.get('problem_focus') or review_context.get('main_block', '')}",
+        f"key_bridge：{review_context.get('key_bridge', '')}",
+        f"try_now：{review_context.get('try_now') or review_context.get('next_step', '')}",
+        f"补救动作：{remedy_action}",
+    ]
+    return "\n".join(line for line in lines if line.strip())
+
+
+def _build_bottom_out_system_prompt(remedy_action: str) -> str:
+    return f"""你是 NOI 教练。当前任务是第三轮最强支架：bottom_out。
+
+这不是新一轮自由讲题，也不是完整题解。你只能围绕当前题、当前桥，给一个更直接的 worked example。
+必须面向初中生，说短句，先讲对象，再讲关系，再讲这一步怎么想。
+禁止直接给完整答案、完整证明、完整代码。
+当前补救动作：{remedy_action}
+
+只输出 JSON：
+{{
+  remedy_text: string,
+  visual_hint: string,
+  micro_action: string
+}}
+
+要求：
+- remedy_text 必须继续围绕当前题，不要切去别的题或前置微课。
+- remedy_text 必须像老师把这一步重新讲一遍，但只讲当前桥，不讲完整解法。
+- visual_hint 尽量填写，用文本化小图、小表或小分类框做当前题的最小 worked example。
+- micro_action 只能问一个最后的最小确认问题，必须 1 步内可回答。
+- 如果你已经把整题讲完，说明支架过大，必须缩回。""".strip()
+
+
+def _build_bottom_out_user_prompt(review_context: dict, remedy_action: str) -> str:
+    lines = [
+        f"题目：{review_context.get('problem_title', '')}",
+        f"题目摘要：{_compact_text(review_context.get('problem_context', ''), 180)}",
+        f"学生核心卡点：{_compact_text(review_context.get('bottleneck_text', ''), 120)}",
+        f"problem_focus：{review_context.get('problem_focus') or review_context.get('main_block', '')}",
+        f"key_bridge：{review_context.get('key_bridge', '')}",
+        f"guided_walkthrough：{review_context.get('guided_walkthrough', '')}",
+        f"try_now：{review_context.get('try_now') or review_context.get('next_step', '')}",
+        f"当前已补救轮次：{review_context.get('remedy_count') or 0}",
+        f"补救动作：{remedy_action}",
+    ]
+    return "\n".join(line for line in lines if line.strip())
 
 
 def _build_review_user_prompt(
@@ -668,13 +1321,22 @@ def _build_review_user_prompt(
         suggested_focus = handoff_payload.get("suggested_focus", "")
         last_msg = handoff_payload.get("last_user_message", "")
         if risk_type == "ac_unclear_in_aichat":
-            lines.append("移交背景：学生已 AC 但表示不理解，AIChat 判断需结构化复盘。")
+            lines.append(f"移交背景：学生已 AC 但表示不理解，AIChat 判断需结构化复盘。")
         elif risk_type == "repeated_stuck_exit":
-            lines.append("移交背景：学生在 AIChat 反复卡住，AIChat 判断需退出当前抽象路径，进入结构化复盘。")
+            lines.append(f"移交背景：学生在 AIChat 反复卡住，AIChat 判断需退出当前抽象路径，进入结构化复盘。")
         if last_msg:
             lines.append(f"移交前最后一条消息：{last_msg[:200]}")
         if suggested_focus:
             lines.append(f"建议复盘焦点：{suggested_focus}")
+
+    bridge_constraint = _review_bridge_prompt_constraint(
+        problem_title=problem_title,
+        problem_context=problem_context,
+        bottleneck_text=bottleneck_text,
+        error_types=error_types,
+    )
+    if bridge_constraint:
+        lines.append(bridge_constraint)
 
     return "\n".join(lines)
 
@@ -757,7 +1419,15 @@ def _call_llm(messages: list[dict], chunk_callback=None) -> tuple[bool, str, dic
                         draft_preview = _extract_review_draft_preview(partial_text)
                         preview_signature = tuple(
                             draft_preview.get(key, "")
-                            for key in ("main_block", "key_bridge", "next_step", "transfer_signal")
+                            for key in (
+                                "problem_focus",
+                                "main_block",
+                                "key_bridge",
+                                "guided_walkthrough",
+                                "try_now",
+                                "next_step",
+                                "transfer_signal",
+                            )
                         )
                         if preview_signature != last_preview_signature and any(preview_signature):
                             chunk_callback(partial_text, draft_preview)
@@ -863,6 +1533,107 @@ def _contains_any(text: str, keywords: tuple[str, ...]) -> bool:
     return any(keyword.lower() in lowered for keyword in keywords)
 
 
+def _is_trie_node_count_context(text: str) -> bool:
+    return _contains_any(
+        text or "",
+        (
+            "经过次数",
+            "结束次数",
+            "经过当前前缀节点",
+            "当前前缀节点",
+            "节点该存什么",
+            "节点存什么",
+            "pass_cnt",
+            "end_cnt",
+        ),
+    )
+
+
+def _is_tree_path_difference_context(text: str) -> bool:
+    candidate = text or ""
+    tree_hits = _count_keyword_hits(
+        candidate,
+        (
+            "树上",
+            "树",
+            "节点",
+            "父亲",
+            "子树",
+            "lca",
+            "公共祖先",
+            "最近公共祖先",
+            "树剖",
+            "树链剖分",
+            "hld",
+        ),
+    )
+    path_hits = _count_keyword_hits(
+        candidate,
+        (
+            "多条路径",
+            "树上路径",
+            "树上路线",
+            "路线",
+            "每段路",
+            "一段路",
+            "路径贡献",
+            "访问贡献",
+            "路径加一",
+            "经过次数",
+            "访问次数",
+            "被访问",
+            "经过最多",
+            "整条路径",
+            "沿路",
+            "走到下一个",
+            "从 s 到 t",
+            "从s到t",
+        ),
+    )
+    diff_hits = _count_keyword_hits(
+        candidate,
+        (
+            "树上差分",
+            "差分",
+            "端点",
+            "抵消",
+            "打标记",
+            "标记",
+            "子树汇总",
+            "向上汇总",
+            "dfs 汇总",
+            "dfs汇总",
+        ),
+    )
+    return tree_hits >= 1 and path_hits >= 1 and (diff_hits >= 1 or _contains_any(candidate, ("lca", "公共祖先", "最近公共祖先", "树剖", "树链剖分")))
+
+
+def _is_shared_prefix_context(text: str) -> bool:
+    candidate = text or ""
+    if _is_tree_path_difference_context(candidate):
+        return False
+    return _contains_any(
+        candidate,
+        (
+            "trie",
+            "前缀树",
+            "公共前缀",
+            "前缀关系",
+            "相同开头",
+            "结束次数",
+            "经过当前前缀节点",
+            "当前前缀节点",
+            "重看所有消息",
+            "沿当前前缀",
+            "只沿前缀",
+            "拦截串",
+            "消息",
+            "字符串",
+            "01 串",
+        ),
+    )
+
+
 def _count_keyword_hits(text: str, keywords: tuple[str, ...]) -> int:
     lowered = (text or "").lower()
     return sum(1 for keyword in keywords if keyword.lower() in lowered)
@@ -936,6 +1707,91 @@ def _guard_review_bridge_stability(
     return review
 
 
+def _guard_review_bridge_consistency(
+    review: dict,
+    focus: str,
+    problem_title: str,
+    problem_context: str | None,
+    bottleneck_text: str,
+) -> dict:
+    rule = REVIEW_BRIDGE_GUARD_RULES.get(focus)
+    if not rule:
+        return review
+
+    if focus == "shared_prefix_merging":
+        node_count_context = _is_trie_node_count_context(
+            " ".join(
+                filter(
+                    None,
+                    [
+                        problem_title,
+                        problem_context or "",
+                        bottleneck_text,
+                        review.get("problem_focus", ""),
+                        review.get("main_block", ""),
+                        review.get("key_bridge", ""),
+                        review.get("visual_hint", ""),
+                        review.get("guided_walkthrough", ""),
+                        review.get("try_now", ""),
+                        review.get("next_step", ""),
+                        review.get("transfer_signal", ""),
+                    ],
+                )
+            )
+        )
+        if node_count_context:
+            review["problem_focus"] = "你不是在做一般字符串处理，而是在分清 Trie 节点上“经过次数”和“结束次数”各在回答什么。"
+            review["main_block"] = review["problem_focus"]
+            review["key_bridge"] = "关键是先把经过次数和结束次数分开：经过次数表示有多少消息经过当前前缀节点，结束次数表示有多少消息正好在这里结束。"
+            review["visual_hint"] = "101\n100\n11\n前缀 10 这个节点\n-> 经过次数至少是 2\n-> 结束次数另算"
+            review["guided_walkthrough"] = "1. 先只盯前缀 10 这个节点，看 101 和 100 会不会都经过它。\n2. 再把“经过次数”和“结束次数”分开说清楚。\n3. 最后再回到查询路径，看为什么只沿前缀节点往下走。"
+            review["try_now"] = "先只回答一句：前缀 10 这个节点上的经过次数，正在说明什么？"
+            review["next_step"] = review["try_now"]
+            return review
+
+    if focus == "method_selection":
+        source_text = " ".join(
+            filter(
+                None,
+                [
+                    problem_title,
+                    problem_context or "",
+                    bottleneck_text,
+                ],
+            )
+        )
+        trie_signal_terms = ("trie", "前缀", "消息", "拦截串", "相同开头", "前缀关系")
+        trie_signal_hits = _count_keyword_hits(source_text, trie_signal_terms)
+        if trie_signal_hits < 2:
+            return review
+
+    fields = (
+        "problem_focus",
+        "key_bridge",
+        "visual_hint",
+        "guided_walkthrough",
+        "try_now",
+    )
+    combined = " ".join(str(review.get(field, "")) for field in fields)
+    missing_anchor = _count_keyword_hits(combined, rule["focus_terms"]) < 2
+    too_generic = any(
+        _contains_any(str(review.get(field, "")), GENERIC_TOPIC_TERMS + GENERIC_ACTION_TERMS + GENERIC_BRIDGE_TERMS)
+        for field in fields
+    )
+
+    if not missing_anchor and not too_generic:
+        return review
+
+    review["problem_focus"] = rule["problem_focus"]
+    review["main_block"] = rule["problem_focus"]
+    review["key_bridge"] = rule["key_bridge"]
+    review["visual_hint"] = rule["visual_hint"]
+    review["guided_walkthrough"] = rule["guided_walkthrough"]
+    review["try_now"] = rule["try_now"]
+    review["next_step"] = rule["try_now"]
+    return review
+
+
 def _guard_review_against_topic_drift(
     review: dict,
     problem_title: str,
@@ -987,6 +1843,14 @@ def _guard_review_against_topic_drift(
 
     if source_focus == "method_selection":
         source_has_dp = False
+
+    # trie 节点计数语境如果被状态/实现词汇带偏，优先拉回 shared_prefix_merging。
+    if source_focus == "shared_prefix_merging" and _is_trie_node_count_context(source_text):
+        review["main_block"] = "你不是在想一般的“状态定义”，而是在分清 Trie 节点到底该记录哪两类数量。"
+        review["key_bridge"] = "关键是先把经过次数和结束次数分开：经过次数表示有多少消息经过当前前缀节点，结束次数表示有多少消息正好在这里结束。"
+        review["next_step"] = "先拿一个当前前缀节点，分别说清它的经过次数和结束次数各回答什么，再往查询路径上套。"
+        review["transfer_signal"] = "如果题目在问前缀匹配、节点计数、消息经过哪个节点，就先怀疑是不是 Trie 节点语义没站稳。"
+        return review
 
     # 背包/DP 题却冒出图/不等式/建图词汇时，用更稳的 DP 纠偏文案兜底。
     if source_has_dp and not source_has_graph and generated_has_graph:
@@ -1236,7 +2100,15 @@ def _simplify_student_language(review: dict) -> dict:
         ("子节点指针", "往下走的分支"),
     )
 
-    for key in ("main_block", "key_bridge", "next_step", "transfer_signal"):
+    for key in (
+        "problem_focus",
+        "main_block",
+        "key_bridge",
+        "guided_walkthrough",
+        "try_now",
+        "next_step",
+        "transfer_signal",
+    ):
         review[key] = _apply_text_replacements(review.get(key, ""), replacements)
 
     return review
@@ -1275,8 +2147,12 @@ def _repair_partial_json_review(text: str) -> dict:
         "diagnosis": _extract_json_style_string(text, "diagnosis"),
         "next_action": _extract_json_style_string(text, "next_action"),
         "suggested_topic": _extract_json_style_string(text, "suggested_topic"),
+        "problem_focus": _extract_json_style_string(text, "problem_focus"),
         "main_block": _extract_json_style_string(text, "main_block"),
         "key_bridge": _extract_json_style_string(text, "key_bridge"),
+        "visual_hint": _extract_json_style_string(text, "visual_hint"),
+        "guided_walkthrough": _extract_json_style_string(text, "guided_walkthrough"),
+        "try_now": _extract_json_style_string(text, "try_now"),
         "next_step": _extract_json_style_string(text, "next_step"),
         "transfer_signal": _extract_json_style_string(text, "transfer_signal"),
     }
@@ -1286,7 +2162,7 @@ def _repair_partial_json_review(text: str) -> dict:
 def _extract_review_draft_preview(text: str) -> dict:
     repaired = _repair_partial_json_review(text)
     preview = {}
-    for key in ("main_block", "key_bridge", "next_step", "transfer_signal"):
+    for key in ("problem_focus", "main_block", "key_bridge", "visual_hint", "guided_walkthrough", "try_now", "next_step", "transfer_signal"):
         value = str(repaired.get(key, "") or "").strip()
         if value:
             preview[key] = value
@@ -1294,7 +2170,10 @@ def _extract_review_draft_preview(text: str) -> dict:
 
 
 def _backfill_student_guidance(review: dict) -> dict:
-    if all(review.get(key) for key in ("main_block", "key_bridge", "next_step", "transfer_signal")):
+    if all(
+        review.get(key)
+        for key in ("problem_focus", "key_bridge", "guided_walkthrough", "try_now", "transfer_signal")
+    ):
         return review
 
     error_layer = review.get("error_layer", "insufficient")
@@ -1303,42 +2182,120 @@ def _backfill_student_guidance(review: dict) -> dict:
 
     guidance_map = {
         "state_design": {
+            "problem_focus": "你不是没想到动态规划，而是还没有先把状态里每一维到底记录什么定稳，所以一写转移就开始混。",
             "main_block": "你不是没想到动态规划，而是还没有先把状态里每一维到底记录什么定稳，所以一写转移就开始混。",
             "key_bridge": "关键是先只保留真正限制决策的量，明确每一维表示什么，再决定哪些信息根本不该进状态。",
-            "next_step": "先别急着写公式，只写一句完整的话：`dp[...]` 到底表示什么，再检查有没有多余维度。",
-            "transfer_signal": "如果你发现自己一写 DP 就想开很多维，先停下来问：每一维到底在记录什么，哪些量只是比较结果。",
-        },
+        "guided_walkthrough": "1. 先只看这题真正限制决策的量。\n2. 再用一句完整的话写清每一维记录什么。\n3. 最后删掉那些只是拿来比较结果、却不该进状态的信息。",
+        "visual_hint": "真正要进状态的量 | 只是比较结果的量\n先保留左边，再删右边",
+        "try_now": "先用一句完整的话写清 `dp[...]` 到底表示什么。",
+        "next_step": "先别急着写公式，只写一句完整的话：`dp[...]` 到底表示什么，再检查有没有多余维度。",
+        "transfer_signal": "如果你发现自己一写 DP 就想开很多维，先停下来问：每一维到底在记录什么，哪些量只是比较结果。",
+    },
         "transition_design": {
+            "problem_focus": "你不是不会写 DP，而是还没把“选”和“不选”或“从哪几种情况转来”整理完整，所以转移总会漏分支。",
             "main_block": "你不是不会写 DP，而是还没把“选”和“不选”或“从哪几种情况转来”整理完整，所以转移总会漏分支。",
             "key_bridge": "关键不是先背公式，而是先把当前状态可能从哪些上一状态来列全，再写成统一转移。",
-            "next_step": "拿一个最小样例，把当前状态的所有来源先列成中文，再对应写成转移式。",
-            "transfer_signal": "如果你写出的转移只有一支，先检查是不是漏掉了“不选当前对象”或其他来源情况。",
-        },
+        "guided_walkthrough": "1. 先盯住当前状态到底代表什么。\n2. 再把它可能来自的上一状态逐条列全。\n3. 最后再把这些来源改写成统一的转移式。",
+        "visual_hint": "当前状态 <- 来源1\n当前状态 <- 来源2\n当前状态 <- 来源3",
+        "try_now": "先把当前状态所有可能来源先列成中文。",
+        "next_step": "拿一个最小样例，把当前状态的所有来源先列成中文，再对应写成转移式。",
+        "transfer_signal": "如果你写出的转移只有一支，先检查是不是漏掉了“不选当前对象”或其他来源情况。",
+    },
         "check_condition": {
+            "problem_focus": "你不是不会二分或判定，而是还没有先把 `check` 到底在验证什么条件说清楚。",
             "main_block": "你不是不会二分或判定，而是还没有先把 `check` 到底在验证什么条件说清楚。",
             "key_bridge": "关键是先把“答案成立”翻成一句可检验的话，再决定 `check` 里需要维护哪些量。",
-            "next_step": "先写一句完整中文：`check(mid)` 返回 true 到底表示什么，再对照代码看有没有偏掉。",
-            "transfer_signal": "如果题目在问“这个值行不行”，先把“行”的定义写成一句完整判断条件。",
-        },
+        "guided_walkthrough": "1. 先把 `check(mid)` 返回 true 翻成一句完整中文。\n2. 再找出为了验证这句话必须维护哪些量。\n3. 最后回到代码里检查这些量有没有被真正维护到。",
+        "visual_hint": "check(mid)=true\n=> 说明某句话成立\n=> 为了验证它，需要维护哪些量？",
+        "try_now": "先写一句完整中文：`check(mid)` 返回 true 到底表示什么？",
+        "next_step": "先写一句完整中文：`check(mid)` 返回 true 到底表示什么，再对照代码看有没有偏掉。",
+        "transfer_signal": "如果题目在问“这个值行不行”，先把“行”的定义写成一句完整判断条件。",
+    },
         "enumeration_order": {
+            "problem_focus": "你不是不会写循环，而是还没想清楚为什么这一维必须先枚举，所以顺序一换就把旧状态覆盖掉了。",
             "main_block": "你不是不会写循环，而是还没想清楚为什么这一维必须先枚举，所以顺序一换就把旧状态覆盖掉了。",
             "key_bridge": "关键是先判断当前转移依赖的是“上一层旧值”还是“本层新值”，再决定枚举顺序。",
-            "next_step": "先在纸上标出当前状态依赖哪些旧状态，再反推这一维应该正着枚举还是倒着枚举。",
-            "transfer_signal": "如果你一改循环顺序答案就变，先检查转移依赖的是旧值还是刚更新的新值。",
-        },
+        "guided_walkthrough": "1. 先找出当前转移依赖的是旧值还是刚更新的新值。\n2. 再顺着依赖方向判断这一维应该正着枚举还是倒着枚举。\n3. 最后用一个最小样例检查顺序一变时哪一步被覆盖了。",
+        "visual_hint": "先看依赖：旧值 / 新值\n旧值 -> 常常倒着枚举\n新值 -> 常常正着枚举",
+        "try_now": "先判断当前转移依赖的是旧值还是刚更新的新值。",
+        "next_step": "先在纸上标出当前状态依赖哪些旧状态，再反推这一维应该正着枚举还是倒着枚举。",
+        "transfer_signal": "如果你一改循环顺序答案就变，先检查转移依赖的是旧值还是刚更新的新值。",
+    },
         "constraint_modeling": {
+            "problem_focus": "你不是不会图论，而是还没先把题目里的限制关系整理成统一形式，导致变量、方向和边权都混在一起。",
             "main_block": "你不是不会图论，而是还没先把题目里的限制关系整理成统一形式，导致变量、方向和边权都混在一起。",
             "key_bridge": "关键是先把每条限制改写成统一约束，再确认“谁限制谁”和这条边表示什么。",
-            "next_step": "把题面条件逐条改写成统一约束，再标出每条约束里谁是被限制的量。",
-            "transfer_signal": "如果题目一直在描述多个量之间的大小关系或先后限制，先想能不能整理成统一约束。",
-        },
+        "guided_walkthrough": "1. 先把题面条件逐条改写成统一约束。\n2. 再标出每条约束里谁限制谁。\n3. 最后再决定这条边的方向和边权应该表示什么。",
+        "visual_hint": "条件1 -> 统一约束 -> 谁限制谁\n条件2 -> 统一约束 -> 谁限制谁",
+        "try_now": "先把题面条件逐条改写成统一约束。",
+        "next_step": "把题面条件逐条改写成统一约束，再标出每条约束里谁是被限制的量。",
+        "transfer_signal": "如果题目一直在描述多个量之间的大小关系或先后限制，先想能不能整理成统一约束。",
+    },
         "general_modeling": {
+            "problem_focus": "你不是完全没思路，而是还没先把题目里的对象和关系写清楚，所以方法一直落不到地上。",
             "main_block": "你不是完全没思路，而是还没先把题目里的对象和关系写清楚，所以方法一直落不到地上。",
             "key_bridge": "关键是先确定“什么是点、什么是边、什么是状态/对象”，再考虑方法。",
-            "next_step": "先只写一行：题目里的对象有哪些，它们之间有什么关系。",
-            "transfer_signal": "如果题目表面信息很多，先不要猜算法，先把对象和关系写清楚。",
+        "guided_walkthrough": "1. 先写出题目里真正的对象有哪些。\n2. 再写这些对象之间有什么关系。\n3. 最后再判断这些对象更像点、边、状态还是别的结构。",
+        "visual_hint": "对象A <-> 对象B\n对象A 做什么\n对象B 和谁有关",
+        "try_now": "先只写一行：题目里的对象有哪些，它们之间有什么关系？",
+        "next_step": "先只写一行：题目里的对象有哪些，它们之间有什么关系。",
+        "transfer_signal": "如果题目表面信息很多，先不要猜算法，先把对象和关系写清楚。",
+    },
+        "method_selection": {
+            "problem_focus": "你不是完全不会，而是还没先从题面里找出真正支持这个方法的结构信号，所以一上来就容易凭题感猜方法。",
+            "main_block": "你不是完全不会，而是还没先从题面里找出真正支持这个方法的结构信号，所以一上来就容易凭题感猜方法。",
+            "key_bridge": "关键不是先报方法名，而是先回到题面，看清到底是哪一个结构信号在支持这个方法。",
+            "guided_walkthrough": "1. 先圈出题面里最像线索的对象、操作或限制。\n2. 再问：这些线索为什么更像在支持当前方法。\n3. 最后再回到方法名，检查它是不是和这些题面信号对得上。",
+            "visual_hint": "题面对象/操作/限制\n-> 哪一个是真线索\n-> 这条线索支持什么方法",
+            "try_now": "先指出题面里一个真正支持当前方法的结构信号。",
+            "next_step": "先别报方法名，先指出题面里一个真正支持当前方法的结构信号。",
+            "transfer_signal": "如果你一看到题就想套熟方法，先停下来问：题面里到底哪一个结构信号真的在支持它。",
+        },
+        "complexity_fit": {
+            "problem_focus": "你不是完全不会，而是还没先把数据范围和总量级放在一起判断，所以会把“能不能过”这一步留到最后碰运气。",
+            "main_block": "你不是完全不会，而是还没先把数据范围和总量级放在一起判断，所以会把“能不能过”这一步留到最后碰运气。",
+            "key_bridge": "关键不是先报一个更高级的方法名，而是先估总量级，看当前做法会不会先超时。",
+            "guided_walkthrough": "1. 先圈出题面里真正会一起变大的量。\n2. 再把这些量乘起来，估总量级会不会先炸。\n3. 最后才判断当前做法是不是还撑得住。",
+            "visual_hint": "数据范围\n-> 哪些量一起变大\n-> 总量级会不会先炸",
+            "try_now": "先只回答一句：这题更该先判断规模能不能过，还是先背方法名？",
+            "next_step": "先把会一起变大的量圈出来，再估总量级会不会先炸。",
+            "transfer_signal": "如果题面里有两个以上会一起变大的量，先别急着报方法名，先估总量级。",
+        },
+        "shared_prefix_merging": {
+            "problem_focus": "你不是完全不会 trie，而是还没先把“为什么查询时不用重看所有消息”这一步站稳。",
+            "main_block": "你不是完全不会 trie，而是还没先把“为什么查询时不用重看所有消息”这一步站稳。",
+            "key_bridge": "关键不是 trie 名字高级，而是公共前缀先合在一起后，查询时就只沿当前前缀路径走。",
+            "guided_walkthrough": "1. 先挑两三条有相同开头的串。\n2. 再看这些相同开头为什么可以先合在一起。\n3. 最后回到查询，确认为什么不用把所有消息重新拿出来比。",
+            "visual_hint": "101\n100\n11\n相同开头先并在一起\n查询时只沿前缀路径走",
+            "try_now": "先只回答一句：trie 为什么能省掉重看所有消息这件事？",
+            "next_step": "先画两三条有相同开头的串，再看查询时为什么只沿当前前缀往下走。",
+            "transfer_signal": "如果题目反复按前缀查很多字符串，先想公共前缀能不能先合在一起。",
+        },
+        "left_bound_update": {
+            "problem_focus": "你不是不会二分，而是还没先把“找到一个等于 x 的位置后，为什么还要保留它继续往左找”这一步站稳。",
+            "main_block": "你不是不会二分，而是还没先把“找到一个等于 x 的位置后，为什么还要保留它继续往左找”这一步站稳。",
+            "key_bridge": "关键不是看到相等就立刻停，而是先保留 mid 这个候选，再继续往左缩，才能找到最左位置。",
+            "guided_walkthrough": "1. 先盯住当前目标是不是“最左那个位置”。\n2. 再看 `a[mid] == x` 时，mid 为什么还可能就是答案。\n3. 最后才决定边界怎么缩，保证 mid 不会被直接丢掉。",
+            "visual_hint": "目标：最左位置\n看到相等\n-> 先保留 mid\n-> 再继续往左缩",
+            "try_now": "先只回答一句：如果 `a[mid] == x`，为什么还不能马上把 mid 丢掉？",
+            "next_step": "先说清目标是不是最左位置，再判断 `a[mid] == x` 时 mid 为什么还要保留。",
+            "transfer_signal": "如果题目要你找第一个/最左一个满足条件的位置，看到相等时先别急着停，先想 mid 要不要保留。",
+        },
+        "lazy_semantics": {
+            "problem_focus": "你不是不会线段树，而是还没先把 lazy 标记到底记录什么站稳，所以一看到下传就开始混。",
+            "main_block": "你不是不会线段树，而是还没先把 lazy 标记到底记录什么站稳，所以一看到下传就开始混。",
+            "key_bridge": "关键不是把 lazy 当成“代码还没执行完”，而是把它看成“这段区间还有一份已经确定、但还没下传给孩子的信息”。",
+            "guided_walkthrough": "1. 先只盯住一个节点和它代表的区间。\n2. 再看 lazy 记录的是这段区间还有哪份信息没下传。\n3. 最后才回到 pushdown，确认为什么孩子还没收到这份信息。",
+            "visual_hint": "父节点区间\nsum 已更新\nlazy 还挂着\n-> 孩子还没收到这份信息",
+            "try_now": "先只回答一句：lazy 标记到底记录的是哪一类信息？",
+            "next_step": "先盯住一个节点，说明 lazy 记录的到底是什么，不要先讲代码执行顺序。",
+            "transfer_signal": "如果你总把 lazy 看成“代码没跑完”，先回到区间含义，看它到底在记录哪份还没下传的信息。",
         },
     }
+
+    explicit_focus = str(review.get("focus") or "").strip()
+    if explicit_focus:
+        focus = explicit_focus
 
     guidance = guidance_map.get(focus)
     if not guidance and error_layer == "modeling":
@@ -1352,6 +2309,22 @@ def _backfill_student_guidance(review: dict) -> dict:
     for key, value in guidance.items():
         if not review.get(key):
             review[key] = value
+    _sync_guided_review_aliases(review)
+    return review
+
+
+def _sync_guided_review_aliases(review: dict) -> dict:
+    """Keep new guided fields canonical while preserving legacy aliases."""
+    if not review.get("problem_focus"):
+        review["problem_focus"] = review.get("main_block", "")
+    if not review.get("main_block"):
+        review["main_block"] = review.get("problem_focus", "")
+    if not review.get("try_now"):
+        review["try_now"] = review.get("next_step", "")
+    if not review.get("next_step"):
+        review["next_step"] = review.get("try_now", "")
+    if not review.get("visual_hint"):
+        review["visual_hint"] = ""
     return review
 
 
@@ -1412,11 +2385,16 @@ def _normalize_review(parsed: dict, fallback_text: str = "") -> dict:
         "next_action": str(parsed.get("next_action", "")).strip(),
         "suggested_topic": str(parsed.get("suggested_topic", "")).strip(),
         # v2.1 学生纠偏层
+        "problem_focus": str(parsed.get("problem_focus", parsed.get("main_block", ""))).strip(),
         "main_block": str(parsed.get("main_block", "")).strip(),
         "key_bridge": str(parsed.get("key_bridge", "")).strip(),
+        "visual_hint": str(parsed.get("visual_hint", "")).strip(),
+        "guided_walkthrough": str(parsed.get("guided_walkthrough", "")).strip(),
+        "try_now": str(parsed.get("try_now", parsed.get("next_step", ""))).strip(),
         "next_step": str(parsed.get("next_step", "")).strip(),
         "transfer_signal": str(parsed.get("transfer_signal", "")).strip(),
     }
+    _sync_guided_review_aliases(review)
 
     if review["error_layer"] not in ERROR_LAYERS:
         review["error_layer"] = "insufficient"
@@ -1428,6 +2406,10 @@ def _normalize_review(parsed: dict, fallback_text: str = "") -> dict:
         parsed.get("core_design_subtags", []),
         review["error_layer"],
     )
+    if review["error_layer"] == "core_design":
+        inferred_focus = _detect_quiz_focus(review)
+        if inferred_focus in CORE_DESIGN_SUBTAGS:
+            review["core_design_subtags"] = [inferred_focus]
 
     if not review["diagnosis"] and fallback_text:
         review["diagnosis"] = fallback_text[:200].strip()
@@ -1439,14 +2421,19 @@ def _normalize_review(parsed: dict, fallback_text: str = "") -> dict:
     review = _backfill_student_guidance(review)
 
     if review["error_layer"] == "insufficient":
-        if not review["main_block"]:
-            review["main_block"] = "你当前主要卡点还不够清晰，需要补充更多题目信息和尝试过程。"
+        if not review["problem_focus"]:
+            review["problem_focus"] = "你当前主要卡点还不够清晰，需要补充更多题目信息和尝试过程。"
         if not review["key_bridge"]:
             review["key_bridge"] = "先把题目要求、限制条件和你的思路过程写清楚，系统才能定位关键桥梁。"
-        if not review["next_step"]:
-            review["next_step"] = "补充题意、思路和具体卡住的位置后，再重新提交复盘。"
+        if not review["guided_walkthrough"]:
+            review["guided_walkthrough"] = "1. 先写清题目求什么。\n2. 再写你试了哪一步。\n3. 最后指出卡住的具体位置。"
+        if not review["visual_hint"]:
+            review["visual_hint"] = "题目求什么\n-> 你试到哪一步\n-> 你具体卡在哪"
+        if not review["try_now"]:
+            review["try_now"] = "先补充题意、思路和具体卡住的位置。"
         if not review["transfer_signal"]:
             review["transfer_signal"] = '如果你自己也说不清卡点，先写清楚“题目求什么、我试了什么、哪里出错”。'
+        _sync_guided_review_aliases(review)
 
     return review
 
@@ -1472,8 +2459,12 @@ def _parse_review(text: str) -> dict:
         "diagnosis": "",
         "next_action": "",
         "suggested_topic": "",
+        "problem_focus": "",
         "main_block": "",
         "key_bridge": "",
+        "visual_hint": "",
+        "guided_walkthrough": "",
+        "try_now": "",
         "next_step": "",
         "transfer_signal": "",
     }
@@ -1506,19 +2497,35 @@ def _parse_review(text: str) -> dict:
     if topic_match:
         parsed["suggested_topic"] = topic_match.group(1).strip()
 
+    problem_focus_match = re.search(r'(?:你卡在哪|你主要卡在哪|problem_focus|main_block)[:：]\s*(.+?)(?=\n|$)', text, re.IGNORECASE)
+    if problem_focus_match:
+        parsed["problem_focus"] = problem_focus_match.group(1).strip()
+
     main_block_match = re.search(r'(?:你主要卡在哪|main_block)[:：]\s*(.+?)(?=\n|$)', text, re.IGNORECASE)
     if main_block_match:
         parsed["main_block"] = main_block_match.group(1).strip()
 
-    key_bridge_match = re.search(r'(?:这题的关键桥梁|key_bridge)[:：]\s*(.+?)(?=\n|$)', text, re.IGNORECASE)
+    key_bridge_match = re.search(r'(?:先抓住什么|这题的关键桥梁|key_bridge)[:：]\s*(.+?)(?=\n|$)', text, re.IGNORECASE)
     if key_bridge_match:
         parsed["key_bridge"] = key_bridge_match.group(1).strip()
+
+    visual_hint_match = re.search(r'(?:看图想一想|visual_hint)[:：]\s*(.+?)(?=跟我走一遍|guided_walkthrough|现在你来试|try_now|你现在立刻该做什么|next_step|下次遇到什么信号要想到它|下次怎么认出来|transfer_signal|$)', text, re.IGNORECASE | re.DOTALL)
+    if visual_hint_match:
+        parsed["visual_hint"] = visual_hint_match.group(1).strip()
+
+    guided_walkthrough_match = re.search(r'(?:跟我走一遍|guided_walkthrough)[:：]\s*(.+?)(?=现在你来试|try_now|你现在立刻该做什么|next_step|下次遇到什么信号要想到它|下次怎么认出来|transfer_signal|$)', text, re.IGNORECASE | re.DOTALL)
+    if guided_walkthrough_match:
+        parsed["guided_walkthrough"] = guided_walkthrough_match.group(1).strip()
+
+    try_now_match = re.search(r'(?:现在你来试|try_now|你现在立刻该做什么|next_step)[:：]\s*(.+?)(?=\n|$)', text, re.IGNORECASE)
+    if try_now_match:
+        parsed["try_now"] = try_now_match.group(1).strip()
 
     next_step_match = re.search(r'(?:你现在立刻该做什么|next_step)[:：]\s*(.+?)(?=\n|$)', text, re.IGNORECASE)
     if next_step_match:
         parsed["next_step"] = next_step_match.group(1).strip()
 
-    transfer_signal_match = re.search(r'(?:下次遇到什么信号要想到它|transfer_signal)[:：]\s*(.+?)(?=\n|$)', text, re.IGNORECASE)
+    transfer_signal_match = re.search(r'(?:下次遇到什么信号要想到它|下次怎么认出来|transfer_signal)[:：]\s*(.+?)(?=\n|$)', text, re.IGNORECASE)
     if transfer_signal_match:
         parsed["transfer_signal"] = transfer_signal_match.group(1).strip()
 
@@ -1540,11 +2547,38 @@ def _quiz_text_context(review_context: dict) -> str:
 
 
 def _detect_quiz_focus(review_context: dict) -> str:
+    explicit_focus = str(review_context.get("focus") or "").strip()
+    if explicit_focus in STRUCTURAL_QUIZ_FOCI or explicit_focus in {"reading_target", "implementation_debug"}:
+        return explicit_focus
+
     error_layer = review_context.get("error_layer", "insufficient")
     subtags = review_context.get("core_design_subtags") or []
     text = _quiz_text_context(review_context)
 
     if error_layer == "core_design":
+        if _contains_any(
+            text,
+            (
+                "最左",
+                "左边界",
+                "第一个等于",
+                "第一个出现",
+                "lower_bound",
+                "保留 mid",
+                "保留mid",
+                "r = mid",
+                "右边界 = mid",
+                "a[mid] == x",
+                "a[mid]==x",
+            ),
+        ):
+            return "left_bound_update"
+        if _is_tree_path_difference_context(text):
+            return "tree_path_difference"
+        if _contains_any(text, ("lazy", "下传", "pushdown", "标记", "懒标记")):
+            return "lazy_semantics"
+        if _is_shared_prefix_context(text):
+            return "shared_prefix_merging"
         if _contains_any(text, ("递归", "base case", "结束条件", "停下来", "递归返回", "回溯", "分治", "叶子")):
             return "recursion_structure"
         for subtag in subtags:
@@ -1554,6 +2588,8 @@ def _detect_quiz_focus(review_context: dict) -> str:
                 return subtag
             if subtag in CORE_DESIGN_SUBTAGS:
                 return subtag
+        if _contains_any(text, ("直径", "最长路", "新边", "连通块", "最远点", "候选")):
+            return "tree_diameter_candidates"
         if _contains_any(text, CONSTRAINT_GRAPH_TERMS + ("同时满足", "并列约束", "谁限制谁")):
             return "constraint_modeling"
         if _contains_any(text, ("对象", "关系", "点", "边", "谁和谁")):
@@ -1577,6 +2613,23 @@ def _detect_quiz_focus(review_context: dict) -> str:
         return "general_modeling"
 
     if error_layer == "implementation":
+        if _contains_any(
+            text,
+            (
+                "最左",
+                "左边界",
+                "第一个等于",
+                "第一个出现",
+                "lower_bound",
+                "保留 mid",
+                "保留mid",
+                "r = mid",
+                "右边界 = mid",
+                "a[mid] == x",
+                "a[mid]==x",
+            ),
+        ):
+            return "left_bound_update"
         if _contains_any(text, ("long long", "int", "溢出", "精度", "范围太大", "1e18", "10^18", "double", "取模", "mod")):
             return "data_type"
         if _contains_any(text, ("循环范围", "起点", "终点", "下标", "越界", "1-indexed", "0-indexed", "i <= n", "i < n", "枚举到哪里", "边界错了")):
@@ -1586,7 +2639,65 @@ def _detect_quiz_focus(review_context: dict) -> str:
         return "implementation_debug"
 
     if error_layer == "method":
-        if _contains_any(text, ("复杂度", "O(", "数据范围", "n <=", "n<=", "会不会超时", "TLE", "超时", "能不能过")):
+        if _is_tree_path_difference_context(text):
+            return "tree_path_difference"
+        if _contains_any(
+            text,
+            (
+                "check(mid)",
+                "check（mid）",
+                "返回 true",
+                "返回true",
+                "返回 false",
+                "返回false",
+                "当前 mid 可行",
+                "当前mid可行",
+                "二分方向",
+                "往哪边缩",
+                "判定条件",
+                "可行还是太大",
+            ),
+        ):
+            return "check_condition"
+        if _is_shared_prefix_context(text) and _contains_any(text, ("公共前缀", "前缀路径", "重看所有消息", "沿当前前缀", "只沿前缀", "查询时不用重看")):
+            return "shared_prefix_merging"
+        if _contains_any(
+            text,
+            (
+                "结构信号",
+                "题面信号",
+                "支持这个方法",
+                "支持 trie",
+                "支持trie",
+                "先猜可能要 trie",
+                "先猜可能要trie",
+                "背模板",
+                "凭题感猜",
+                "猜一个方法名",
+                "为什么该用这个方法",
+            ),
+        ):
+            return "method_selection"
+        if _contains_any(
+            text,
+            (
+                "复杂度",
+                "O(",
+                "数据范围",
+                "数据量",
+                "规模",
+                "量级",
+                "乘积",
+                "总量",
+                "字符比较次数",
+                "n <=",
+                "n<=",
+                "会不会超时",
+                "TLE",
+                "超时",
+                "能不能过",
+            ),
+        ):
             return "complexity_fit"
         return "method_selection"
     if error_layer == "reading":
@@ -1601,13 +2712,18 @@ def _default_target_bridge(review_context: dict, focus: str) -> str:
     mapping = {
         "reading_target": "先看清题目到底要求什么和限制什么",
         "method_selection": "先找出题面里支持这个方法的信号",
+        "shared_prefix_merging": "先说清公共前缀为什么能先合在一起",
         "constraint_modeling": "先把题目里的限制关系写成统一形式",
         "general_modeling": "先把题目里的对象和关系写清楚",
         "state_design": "先确定状态里每一维到底表示什么",
         "transition_design": "先确认转移漏没漏掉一种情况",
+        "tree_path_difference": "先把一条树上路径贡献转成端点/LCA 标记，再用 DFS 汇总还原经过次数",
+        "tree_diameter_candidates": "先比较新最长路会来自哪几类候选",
         "check_condition": "先想清楚 check 在验证什么",
+        "left_bound_update": "先说清 `a[mid] == x` 时为什么还要保留 mid 继续往左找",
         "greedy_basis": "先说清楚为什么这个对象要优先选",
         "enumeration_order": "先确定为什么这一维必须先枚举",
+        "lazy_semantics": "先说清 lazy 标记记录的是哪份还没下传的信息",
         "data_type": "先根据数据范围确认该开什么类型",
         "loop_boundary": "先确定这个循环到底应该从哪里开始、到哪里结束",
         "recursion_structure": "先写清递归什么时候停、每一层在表示什么",
@@ -1653,6 +2769,33 @@ def _bridge_first_step_phrase(review_context: dict, focus: str, fallback: str) -
     if focus == "method_selection":
         if _contains_any(text, ("信号", "特征")):
             return "先找出题面里支持这个方法的那个信号"
+        if _contains_any(text, ("trie", "前缀", "拦截串", "消息")):
+            return "先找出题面里哪一个信号在支持 trie"
+    if focus == "shared_prefix_merging":
+        if _contains_any(text, ("公共前缀", "相同开头")):
+            return "先说清公共前缀为什么能先合在一起"
+        if _contains_any(text, ("重看所有消息", "沿当前前缀")):
+            return "先说清查询时为什么不用重看所有消息"
+    if focus == "left_bound_update":
+        if _contains_any(text, ("a[mid] == x", "a[mid]==x", "相等")):
+            return "先说清 `a[mid] == x` 时为什么还要保留 mid"
+        if _contains_any(text, ("最左", "左边界", "第一个")):
+            return "先说清为什么要保留 mid 继续往左找"
+    if focus == "lazy_semantics":
+        if _contains_any(text, ("下传", "pushdown")):
+            return "先说清 lazy 里哪份信息还没下传"
+        if _contains_any(text, ("标记", "懒标记", "lazy")):
+            return "先说清 lazy 标记到底记录什么"
+    if focus == "tree_path_difference":
+        if _contains_any(text, ("lca", "最近公共祖先", "树剖", "树链剖分")):
+            return "先说清一条路径为什么能在端点和 LCA 附近打标记"
+        if _contains_any(text, ("经过次数", "多条路径", "路径贡献")):
+            return "先说清路径贡献为什么能先差分、最后 DFS 汇总"
+    if focus == "tree_diameter_candidates":
+        if _contains_any(text, ("新边", "连起来")):
+            return "先比较加上新边后最长路会来自哪几类候选"
+        if _contains_any(text, ("直径", "最长路")):
+            return "先说清新最长路会不会经过新边"
     if focus == "data_type":
         if _contains_any(text, ("1e18", "10^18", "很大", "范围")):
             return "先看数据范围会不会超过 int"
@@ -1693,6 +2836,28 @@ def _default_bridge_feedback(correct_answer: str, review_context: dict) -> str:
 
 def _infer_algorithm_category(review_context: dict, focus: str) -> str:
     text = _quiz_text_context(review_context)
+    fallback = {
+        "state_design": "动态规划",
+        "transition_design": "动态规划",
+        "enumeration_order": "动态规划",
+        "check_condition": "判定/二分",
+        "left_bound_update": "二分边界",
+        "greedy_basis": "贪心/排序",
+        "tree_path_difference": "树上差分/LCA",
+        "tree_diameter_candidates": "树的直径",
+        "general_modeling": "图论建模",
+        "constraint_modeling": "差分约束",
+        "boundary_debug": "边界/调试",
+        "method_selection": "方法判断",
+        "shared_prefix_merging": "Trie/前缀树",
+        "lazy_semantics": "线段树",
+        "data_type": "数据类型/范围",
+        "loop_boundary": "循环/边界",
+        "recursion_structure": "递归/搜索",
+        "complexity_fit": "复杂度判断",
+    }
+    if focus in fallback:
+        return fallback[focus]
     if _contains_any(text, ("背包", "容量", "体积", "价值", "物品")):
         return "背包类"
     if _contains_any(text, ("树", "子树", "根", "节点", "树上")):
@@ -1719,22 +2884,125 @@ def _infer_algorithm_category(review_context: dict, focus: str) -> str:
         return "递归/搜索"
     if _contains_any(text, ("复杂度", "TLE", "数据范围")):
         return "复杂度判断"
-    fallback = {
-        "state_design": "动态规划",
-        "transition_design": "动态规划",
-        "enumeration_order": "动态规划",
-        "check_condition": "判定/二分",
-        "greedy_basis": "贪心/排序",
-        "general_modeling": "图论建模",
-        "constraint_modeling": "差分约束",
-        "boundary_debug": "边界/调试",
-        "method_selection": "方法判断",
-        "data_type": "数据类型/范围",
-        "loop_boundary": "循环/边界",
-        "recursion_structure": "递归/搜索",
-        "complexity_fit": "复杂度判断",
-    }
     return fallback.get(focus, "通用结构题")
+
+
+def _bridge_signal_hits(text: str, keywords: tuple[str, ...]) -> list[str]:
+    lowered = (text or "").lower()
+    hits = []
+    for keyword in keywords:
+        if keyword.lower() in lowered and keyword not in hits:
+            hits.append(keyword)
+    return hits
+
+
+def _resolve_bridge_decision(review_context: dict) -> dict:
+    """Return observation-only bridge routing metadata without changing execution focus."""
+    text = _quiz_text_context(review_context)
+    stable_focus = _detect_quiz_focus(review_context)
+    focus_source = "explicit" if str(review_context.get("focus") or "").strip() else "source_rule"
+    matched_signals: list[str] = []
+    conflict_signals: list[str] = []
+    suppressed_candidates: list[str] = []
+
+    signal_map = {
+        "tree_path_difference": (
+            "树上路径",
+            "树上路线",
+            "多条路径",
+            "经过次数",
+            "访问次数",
+            "LCA",
+            "公共祖先",
+            "树剖",
+            "差分",
+            "DFS 汇总",
+            "边",
+        ),
+        "shared_prefix_merging": (
+            "trie",
+            "前缀",
+            "消息",
+            "拦截串",
+            "经过次数",
+            "结束次数",
+        ),
+        "lazy_semantics": (
+            "lazy",
+            "懒标记",
+            "标记",
+            "pushdown",
+            "下传",
+            "区间",
+        ),
+        "method_selection": (
+            "方法",
+            "题面信号",
+            "结构信号",
+            "KMP",
+            "next 数组",
+            "失配",
+            "前后缀",
+        ),
+    }
+    matched_signals.extend(_bridge_signal_hits(text, signal_map.get(stable_focus, ())))
+
+    tree_context = _is_tree_path_difference_context(text)
+    trie_context = _is_shared_prefix_context(text) or _is_trie_node_count_context(text)
+    lazy_context = _contains_any(text, ("lazy", "懒标记", "pushdown", "下传", "标记"))
+    if tree_context and trie_context:
+        conflict_signals.append("经过次数 also matches shared_prefix_merging")
+        suppressed_candidates.append("shared_prefix_merging")
+    if tree_context and lazy_context:
+        conflict_signals.append("标记 also matches lazy_semantics")
+        suppressed_candidates.append("lazy_semantics")
+    if stable_focus != "tree_path_difference" and _is_tree_path_difference_context(text):
+        suppressed_candidates.append("tree_path_difference")
+
+    candidate_bridge_id = ""
+    candidate_parent_focus = ""
+    candidate_confidence = ""
+    open_bridge_label = ""
+    open_bridge_reason = ""
+    status = "known_bridge" if stable_focus not in {"unknown", "implementation_debug"} else "open_bridge"
+    route_confidence = "high" if status == "known_bridge" else "low"
+
+    if stable_focus == "tree_path_difference" and _contains_any(text, ("边经过", "哪条边", "道路", "每条边", "边被经过", "对边的贡献")):
+        status = "candidate_bridge"
+        candidate_bridge_id = "tree_path_difference.edge_variant"
+        candidate_parent_focus = "tree_path_difference"
+        candidate_confidence = "medium"
+        open_bridge_label = "树上边贡献差分"
+        open_bridge_reason = "当前题在问边经过次数，稳定桥仍先按树上路径差分父桥执行。"
+        route_confidence = "medium"
+
+    if _contains_any(text, ("KMP", "kmp", "next 数组", "失配", "前后缀")):
+        status = "open_bridge"
+        stable_focus = stable_focus if stable_focus != "unknown" else "method_selection"
+        candidate_bridge_id = "kmp_failure_link"
+        candidate_parent_focus = "method_selection"
+        candidate_confidence = "low"
+        open_bridge_label = "KMP 失配跳转 / failure link"
+        open_bridge_reason = "当前系统还没有稳定 KMP 机制桥，先记录为开放候选，不驱动确定性链路。"
+        matched_signals.extend(_bridge_signal_hits(text, signal_map["method_selection"]))
+        route_confidence = "low"
+
+    card_id = _knowledge_card_id(review_context, stable_focus)
+    return {
+        "status": status,
+        "stable_focus": stable_focus,
+        "card_id": card_id,
+        "route_confidence": route_confidence,
+        "focus_source": focus_source,
+        "matched_signals": list(dict.fromkeys(matched_signals)),
+        "conflict_signals": list(dict.fromkeys(conflict_signals)),
+        "suppressed_candidates": list(dict.fromkeys(suppressed_candidates)),
+        "candidate_bridge_id": candidate_bridge_id,
+        "candidate_parent_focus": candidate_parent_focus,
+        "candidate_confidence": candidate_confidence,
+        "open_bridge_label": open_bridge_label,
+        "open_bridge_reason": open_bridge_reason,
+    }
 
 
 def _load_prompt_file(relative_path: str) -> str:
@@ -1779,6 +3047,128 @@ def _state_axis_label(review_context: dict) -> tuple[str, str]:
     if _contains_any(text, ("个数", "数量", "选了", "选择了", "次数")):
         return "数量", "已经选了多少个对象"
     return "这一维", "当前推进到哪一个阶段或资源进度"
+
+
+def _state_slot_label(review_context: dict) -> str:
+    text = _quiz_text_context(review_context)
+    match = re.search(r"([A-Za-z_][A-Za-z0-9_]*(?:\[[^\]\n]{1,24}\]){1,3})", text)
+    if match:
+        return match.group(1)
+    if _contains_any(text, ("这一格", "这格")):
+        return "这一格"
+    return "这个状态格"
+
+
+def _deterministic_tree_path_difference_quiz(
+    review_context: dict,
+    target_bridge: str,
+    *,
+    level: str,
+    previous_quiz: dict | None = None,
+) -> dict:
+    focus = "tree_path_difference"
+    if level == "main":
+        return {
+            "mode": "quiz",
+            "quiz_type": "choice",
+            "question_text": "P3128 里有很多条树上路径都要给经过的点加一，为什么更该先想“端点/LCA 打标记 + DFS 汇总”，而不是每条路径逐点走一遍？",
+            "options": [
+                {"value": "A", "label": "一条路径的贡献可以先压成 s、t、LCA 和 LCA 父亲附近的差分标记，最后 DFS 汇总出每个点的经过次数"},
+                {"value": "B", "label": "因为树剖这个名字更高级，所以不需要解释路径贡献怎么被记录"},
+                {"value": "C", "label": "每条路径都沿着边逐点加一也一样稳，只是代码稍微长一点"},
+                {"value": "D", "label": "只要先求出 LCA，所有点的经过次数就会自动出现"},
+            ],
+            "correct_answer": "A",
+            "distractor_feedback": {
+                "B": "树剖或 LCA 只是帮你定位路径结构，不能替代“路径贡献怎么被差分记录”这一步。",
+                "C": "逐点走每条路径会把很多重复路径段反复更新，K 和 N 大时容易炸。树上差分正是为了省掉这件事。",
+                "D": "LCA 只告诉你路径在哪里分叉，不会自动算出每个点被经过多少次，还需要差分标记和 DFS 汇总。",
+            },
+            "explanation": "这座桥的关键是：多条树上路径不要逐点更新。先把每条路径的贡献压到端点和 LCA 附近的差分标记上，最后一次 DFS 子树汇总，还原每个点的经过次数。",
+            "bridge_feedback": "你这一步真正答对的是：树剖/LCA 只是定位路径，真正省事的是端点/LCA 差分标记，再 DFS 汇总。",
+            "target_bridge": target_bridge,
+            "difficulty_level": level,
+            "meta": {
+                "difficulty_level": level,
+                "focus": focus,
+                "algorithm_category": _infer_algorithm_category(review_context, focus),
+                **({"confirm_mode": "structure"} if level == "confirm" else {}),
+            },
+        }
+    if level == "followup":
+        return {
+            "mode": "quiz",
+            "quiz_type": "choice",
+            "question_text": "只看一条从 s 到 t 的树上路径，差分这一步最该先记住哪句话？",
+            "options": [
+                {"value": "A", "label": "先在 s、t 加贡献，再在 LCA 和 LCA 的父亲附近抵消，之后靠 DFS 汇总还原路径上点的贡献"},
+                {"value": "B", "label": "先把 s 到 t 路径上的每个点都立刻更新一遍，后面就不用汇总了"},
+                {"value": "C", "label": "先只给 LCA 加一，因为整条路径的信息都存在 LCA 上"},
+            ],
+            "correct_answer": "A",
+            "distractor_feedback": {
+                "B": "这又回到逐点更新了。树上差分想省掉的就是每条路径都沿路走一遍。",
+                "C": "LCA 是路径的分叉点，不是整条路径贡献的唯一承载点。端点和 LCA 附近都要配合标记。",
+            },
+            "explanation": "第二轮只缩到一条路径：端点先加，LCA 附近抵消，最后 DFS 汇总。这样路径贡献才会在汇总时刚好落回路径上的点。",
+            "bridge_feedback": f"你这一步真正要站稳的是：{target_bridge or '一条路径先端点/LCA 标记，最后 DFS 汇总还原经过次数。'}",
+            "target_bridge": target_bridge,
+            "difficulty_level": level,
+            "meta": {
+                "difficulty_level": level,
+                "focus": focus,
+                "algorithm_category": _infer_algorithm_category(review_context, focus),
+                "previous_question": (previous_quiz or {}).get("question_text", ""),
+            },
+        }
+    if level == "final_micro_confirm":
+        return {
+            "mode": "quiz",
+            "quiz_type": "choice",
+            "question_text": "多条树上路径统计经过次数时，是不是先把每条路径压成端点/LCA 附近的差分标记，再 DFS 汇总？",
+            "options": [
+                {"value": "A", "label": "是"},
+                {"value": "B", "label": "不是"},
+            ],
+            "correct_answer": "A",
+            "distractor_feedback": {
+                "B": "最后这题只确认一个最小事实：树上差分不是逐点走路径，而是先少数点打标记，最后 DFS 汇总还原贡献。",
+            },
+            "explanation": "最后这题只确认一个小事实：端点/LCA 附近打标记，DFS 汇总还原经过次数。",
+            "bridge_feedback": "你最后要站稳的就是：路径贡献先差分标记，最后 DFS 汇总。",
+            "target_bridge": target_bridge,
+            "difficulty_level": level,
+            "meta": {
+                "difficulty_level": level,
+                "focus": focus,
+                "algorithm_category": _infer_algorithm_category(review_context, focus),
+            },
+        }
+    return {
+        "mode": "quiz",
+        "quiz_type": "choice",
+        "question_text": "如果只盯住树上差分这一小步，下面哪种理解更稳？",
+        "options": [
+            {"value": "A", "label": "路径贡献先变成端点/LCA 附近的差分标记，最后 DFS 汇总"},
+            {"value": "B", "label": "先逐点走完每条路径，差分只是最后装饰一下"},
+            {"value": "C", "label": "只求 LCA 就够了，不需要端点标记和汇总"},
+        ],
+        "correct_answer": "A",
+        "distractor_feedback": {
+            "B": "这把树上差分的核心省事点丢掉了。它不是逐点更新后的装饰，而是替代逐点更新的记录方式。",
+            "C": "LCA 只负责定位路径分叉点，贡献还要靠端点/LCA 标记和 DFS 汇总还原。",
+        },
+        "explanation": "树上差分这一步要站稳：先少数点打标记，最后一次汇总还原路径贡献。",
+        "bridge_feedback": "你这一步真正答对的是：先差分标记，再 DFS 汇总。",
+        "target_bridge": target_bridge,
+        "difficulty_level": level,
+        "meta": {
+            "difficulty_level": level,
+            "focus": focus,
+            "algorithm_category": _infer_algorithm_category(review_context, focus),
+            **({"confirm_mode": "structure"} if level == "confirm" else {}),
+        },
+    }
 
 
 def _looks_like_process_advice_quiz(payload: dict | None, focus: str) -> bool:
@@ -1890,9 +3280,46 @@ def _deterministic_structural_quiz(
     level: str,
     previous_quiz: dict | None = None,
 ) -> dict | None:
+    if focus == "tree_path_difference":
+        return _deterministic_tree_path_difference_quiz(
+            review_context,
+            target_bridge,
+            level=level,
+            previous_quiz=previous_quiz,
+        )
+
     if focus == "state_design":
         axis, meaning = _state_axis_label(review_context)
         if level == "main":
+            slot_label = _state_slot_label(review_context)
+            if axis == "这一维" and slot_label not in {"这一格", "这格", "这个状态格"}:
+                slot_phrase = f"{slot_label} 这一格"
+                return {
+                    "mode": "quiz",
+                    "quiz_type": "choice",
+                    "question_text": f"如果先把{slot_phrase}的含义定清楚，下面哪种解释更合理？",
+                    "options": [
+                        {"value": "A", "label": "它表示这个状态本身对应的子问题结果"},
+                        {"value": "B", "label": "它表示整道题最后答案应该直接写在哪"},
+                        {"value": "C", "label": "它表示转移时顺手算出来的临时中间值"},
+                        {"value": "D", "label": "它表示代码外层循环已经写到第几轮"},
+                    ],
+                    "correct_answer": "A",
+                    "distractor_feedback": {
+                        "B": f"这个理解把{slot_phrase}当成了整题答案位置，但状态格先要站稳的是：这个状态自己对应的结果是什么。",
+                        "C": f"这个理解把{slot_phrase}当成了临时草稿位。状态格里先存的是要被反复复用的子问题结果，不是顺手算出来的临时值。",
+                        "D": f"这个理解把{slot_phrase}当成了代码书写顺序。状态格描述的是题目结构里的一个状态，不是程序写到第几轮。",
+                    },
+                    "explanation": f"这里先要站稳的是：{slot_phrase}到底记录什么。只有先把这格的含义定清楚，后面的转移才不会乱。",
+                    "bridge_feedback": f"你这一步真正答对的是：先把{slot_phrase}的状态含义定清楚，而不是先去猜答案位置、临时值或代码顺序。",
+                    "target_bridge": target_bridge,
+                    "difficulty_level": level,
+                    "meta": {
+                        "difficulty_level": level,
+                        "focus": focus,
+                        "algorithm_category": _infer_algorithm_category(review_context, focus),
+                    },
+                }
             return {
                 "mode": "quiz",
                 "quiz_type": "choice",
@@ -1918,6 +3345,58 @@ def _deterministic_structural_quiz(
                     "focus": focus,
                     "algorithm_category": _infer_algorithm_category(review_context, focus),
                     **({"confirm_mode": "structure"} if level == "confirm" else {}),
+                },
+            }
+        if level == "followup":
+            slot_label = _state_slot_label(review_context)
+            slot_phrase = f"{slot_label} 这一格" if slot_label not in {"这一格", "这格", "这个状态格"} else "这一格状态"
+            return {
+                "mode": "quiz",
+                "quiz_type": "choice",
+                "question_text": f"如果只看{slot_phrase}，它更像在记录下面哪一件事？",
+                "options": [
+                    {"value": "A", "label": "这个状态本身对应的子问题结果"},
+                    {"value": "B", "label": "整道题最后答案应该写在哪"},
+                    {"value": "C", "label": "下一步该往哪个方向转移"},
+                ],
+                "correct_answer": "A",
+                "distractor_feedback": {
+                    "B": f"这个理解把{slot_phrase}当成了最终答案格，但状态格先存的是“站在这个状态上能得到什么结果”，不是整题答案直接写哪。",
+                    "C": f"这个理解把{slot_phrase}当成了动作提示卡。转移方向是后面根据状态去决定的，不是这格本身记录的内容。",
+                },
+                "explanation": f"先把{slot_phrase}看成“这个状态自己的结果格”，不要把它和整题答案位置、下一步转移方向混在一起。",
+                "bridge_feedback": f"你这一步真正要站稳的是：{slot_phrase}先记录这个状态本身对应的子问题结果。",
+                "target_bridge": target_bridge,
+                "difficulty_level": level,
+                "meta": {
+                    "difficulty_level": level,
+                    "focus": focus,
+                    "algorithm_category": _infer_algorithm_category(review_context, focus),
+                },
+            }
+        if level == "final_micro_confirm":
+            slot_label = _state_slot_label(review_context)
+            slot_phrase = f"{slot_label} 这一格" if slot_label not in {"这一格", "这格", "这个状态格"} else "这一格状态"
+            return {
+                "mode": "quiz",
+                "quiz_type": "choice",
+                "question_text": f"如果只看{slot_phrase}，它是不是在记录这个状态本身对应的子问题结果？",
+                "options": [
+                    {"value": "A", "label": "是"},
+                    {"value": "B", "label": "不是"},
+                ],
+                "correct_answer": "A",
+                "distractor_feedback": {
+                    "B": f"{slot_phrase}先存的是“这个状态自己能得到什么结果”。如果连这一点都没站稳，后面就会把状态格、整题答案和转移动作混在一起。",
+                },
+                "explanation": f"最后这题只确认一个最小事实：{slot_phrase}存的是这个状态本身对应的子问题结果，不是最终答案位置，也不是转移模板。",
+                "bridge_feedback": f"你最后要站稳的就是：{target_bridge or f'先说清 {slot_phrase} 到底记录什么。'}",
+                "target_bridge": target_bridge,
+                "difficulty_level": level,
+                "meta": {
+                    "difficulty_level": level,
+                    "focus": focus,
+                    "algorithm_category": _infer_algorithm_category(review_context, focus),
                 },
             }
         return {
@@ -1946,6 +3425,156 @@ def _deterministic_structural_quiz(
             },
         }
 
+    if focus == "left_bound_update":
+        if level == "main":
+            return {
+                "mode": "quiz",
+                "quiz_type": "choice",
+                "question_text": "如果目标是找最左边那个等于 x 的位置，`a[mid] == x` 时下面哪种处理更稳？",
+                "options": [
+                    {"value": "A", "label": "先保留 mid 这个候选，再继续往左缩"},
+                    {"value": "B", "label": "直接把 mid 丢掉，只看它右边"},
+                    {"value": "C", "label": "一相等就立刻停，不用再看前面"},
+                    {"value": "D", "label": "先把左边界跳到 mid+1，答案后面再修"},
+                ],
+                "correct_answer": "A",
+                "distractor_feedback": {
+                    "B": "目标是找最左位置时，mid 可能就是答案，不能一相等就先把它丢掉。",
+                    "C": "一相等就停，只能保证找到一个等于 x 的位置，不能保证它已经是最左那个。",
+                    "D": "这会把 mid 直接越过去。既然要找最左位置，看到相等时就更不能先把 mid 丢掉。",
+                },
+                "explanation": "这里先要站稳的是：目标既然是最左位置，`a[mid] == x` 时 mid 仍然可能就是答案，所以要先保留它，再继续往左缩。",
+                "bridge_feedback": "你这一步真正答对的是：看到相等时先保留 mid，再继续往左找。",
+                "target_bridge": target_bridge,
+                "difficulty_level": level,
+                "meta": {
+                    "difficulty_level": level,
+                    "focus": focus,
+                    "algorithm_category": _infer_algorithm_category(review_context, focus),
+                },
+            }
+        if level == "followup":
+            return {
+                "mode": "quiz",
+                "quiz_type": "choice",
+                "question_text": "如果 `a[mid] == x`，当前这一步更该先做什么？",
+                "options": [
+                    {"value": "A", "label": "先保留 mid，再继续往左找更早的位置"},
+                    {"value": "B", "label": "先把 mid 丢掉，只看右半边"},
+                    {"value": "C", "label": "直接返回 mid，不用再确认前面"},
+                ],
+                "correct_answer": "A",
+                "distractor_feedback": {
+                    "B": "你现在找的是最左位置，mid 可能就是答案，不能先把它丢掉。",
+                    "C": "直接返回只能保证找到了一个位置，不能保证它已经是最左那个。",
+                },
+                "explanation": "先把这一小步站稳：`a[mid] == x` 时 mid 还是候选，所以要先保留 mid，再继续往左找。",
+                "bridge_feedback": "你这一步真正要站稳的是：相等时先保留 mid，再继续往左缩。",
+                "target_bridge": target_bridge,
+                "difficulty_level": level,
+                "meta": {
+                    "difficulty_level": level,
+                    "focus": focus,
+                    "algorithm_category": _infer_algorithm_category(review_context, focus),
+                },
+            }
+        if level == "final_micro_confirm":
+            return {
+                "mode": "quiz",
+                "quiz_type": "choice",
+                "question_text": "如果 `a[mid] == x`，是不是还要保留 mid，再继续往左找更早的位置？",
+                "options": [{"value": "A", "label": "是"}, {"value": "B", "label": "不是"}],
+                "correct_answer": "A",
+                "distractor_feedback": {
+                    "B": "最后这题只确认一个最小事实：找最左位置时，mid 一相等也不能先丢。",
+                },
+                "explanation": "最后这题只确认一个最小事实：目标是最左位置时，看到相等要先保留 mid。",
+                "bridge_feedback": "你最后要站稳的就是：相等时先保留 mid，再继续往左找。",
+                "target_bridge": target_bridge,
+                "difficulty_level": level,
+                "meta": {
+                    "difficulty_level": level,
+                    "focus": focus,
+                    "algorithm_category": _infer_algorithm_category(review_context, focus),
+                },
+            }
+        return None
+
+    if focus == "lazy_semantics":
+        if level == "main":
+            return {
+                "mode": "quiz",
+                "quiz_type": "choice",
+                "question_text": "如果一个线段树节点上挂着 lazy 标记，下面哪种理解更合理？",
+                "options": [
+                    {"value": "A", "label": "这段区间还有一份已经确定、但还没下传给孩子的信息"},
+                    {"value": "B", "label": "这段代码还没执行完，先记个名字提醒自己"},
+                    {"value": "C", "label": "这个节点以后不用再维护 sum 了"},
+                    {"value": "D", "label": "这个节点已经把所有孩子都更新好了"},
+                ],
+                "correct_answer": "A",
+                "distractor_feedback": {
+                    "B": "lazy 不是代码执行进度条，它记录的是区间信息还没下传到孩子。",
+                    "C": "sum 仍然要维护。lazy 只是把“还没下传的信息”先挂在当前节点上。",
+                    "D": "如果都已经下传好了，就不需要继续挂着 lazy 了。",
+                },
+                "explanation": "这里先要站稳的是：lazy 记录的是“这段区间还有一份已经确定、但还没下传给孩子的信息”，不是代码还没执行完。",
+                "bridge_feedback": "你这一步真正答对的是：lazy 记录的是还没下传的信息，不是执行进度。",
+                "target_bridge": target_bridge,
+                "difficulty_level": level,
+                "meta": {
+                    "difficulty_level": level,
+                    "focus": focus,
+                    "algorithm_category": _infer_algorithm_category(review_context, focus),
+                },
+            }
+        if level == "followup":
+            return {
+                "mode": "quiz",
+                "quiz_type": "choice",
+                "question_text": "如果只盯住 lazy 这一小步，它更像在记录下面哪类东西？",
+                "options": [
+                    {"value": "A", "label": "当前区间已经确定、但还没下传给孩子的信息"},
+                    {"value": "B", "label": "当前函数还没跑完的代码步骤"},
+                    {"value": "C", "label": "整棵树最后的最终答案"},
+                ],
+                "correct_answer": "A",
+                "distractor_feedback": {
+                    "B": "lazy 不是代码流程提示，它对应的是区间信息暂时还挂在父节点上。",
+                    "C": "最终答案不会直接塞进 lazy。lazy 只负责记录还没下传的信息。",
+                },
+                "explanation": "先把这一小步站稳：lazy 记录的是“区间信息还没下传给孩子”，不是代码执行状态。",
+                "bridge_feedback": "你这一步真正要站稳的是：lazy 存的是还没下传的信息。",
+                "target_bridge": target_bridge,
+                "difficulty_level": level,
+                "meta": {
+                    "difficulty_level": level,
+                    "focus": focus,
+                    "algorithm_category": _infer_algorithm_category(review_context, focus),
+                },
+            }
+        if level == "final_micro_confirm":
+            return {
+                "mode": "quiz",
+                "quiz_type": "choice",
+                "question_text": "lazy 标记是不是在记录还没下传的信息，不是还没执行完的代码？",
+                "options": [{"value": "A", "label": "是"}, {"value": "B", "label": "不是"}],
+                "correct_answer": "A",
+                "distractor_feedback": {
+                    "B": "最后这题只确认一个最小事实：lazy 记录的是信息还没下传，不是代码没跑完。",
+                },
+                "explanation": "最后这题只确认一个最小事实：lazy 先表示“信息还没下传给孩子”。",
+                "bridge_feedback": "你最后要站稳的就是：lazy 记录的是还没下传的信息。",
+                "target_bridge": target_bridge,
+                "difficulty_level": level,
+                "meta": {
+                    "difficulty_level": level,
+                    "focus": focus,
+                    "algorithm_category": _infer_algorithm_category(review_context, focus),
+                },
+            }
+        return None
+
     if focus == "check_condition":
         if level == "main":
             return {
@@ -1973,6 +3602,54 @@ def _deterministic_structural_quiz(
                     "focus": focus,
                     "algorithm_category": _infer_algorithm_category(review_context, focus),
                     **({"confirm_mode": "structure"} if level == "confirm" else {}),
+                },
+            }
+        if level == "followup":
+            return {
+                "mode": "quiz",
+                "quiz_type": "choice",
+                "question_text": "如果只盯住 `check(mid)` 这一小步，`check(mid)` 返回 true 时更贴近下面哪种说法？",
+                "options": [
+                    {"value": "A", "label": "说明当前 mid 可行"},
+                    {"value": "B", "label": "说明最终最优答案已经直接被算出来了"},
+                    {"value": "C", "label": "说明二分一定该往更大的方向走，不用再看条件"},
+                ],
+                "correct_answer": "A",
+                "distractor_feedback": {
+                    "B": "返回 true 只是在说“这个 mid 行得通”，不是已经把最终最优答案直接算出来了。",
+                    "C": "返回 true 先说明的是“当前 mid 可行”。至于区间怎么缩，还要看你这题是在找最大可行、最小可行还是别的边界。",
+                },
+                "explanation": "先把这一小步站稳：`check(mid)` 返回 true，表示当前这个 mid 满足条件、是可行的，不是已经把最终答案直接算出来。",
+                "bridge_feedback": "你这一步真正要站稳的是：返回 true 先表示“当前 mid 可行”，别把它和最终答案、二分方向直接绑死。",
+                "target_bridge": target_bridge,
+                "difficulty_level": level,
+                "meta": {
+                    "difficulty_level": level,
+                    "focus": focus,
+                    "algorithm_category": _infer_algorithm_category(review_context, focus),
+                },
+            }
+        if level == "final_micro_confirm":
+            return {
+                "mode": "quiz",
+                "quiz_type": "choice",
+                "question_text": "如果 `check(mid)` 返回 true，它是不是只说明当前这个 mid 可行？",
+                "options": [
+                    {"value": "A", "label": "是"},
+                    {"value": "B", "label": "不是"},
+                ],
+                "correct_answer": "A",
+                "distractor_feedback": {
+                    "B": "这一步最后只确认一个最小事实：返回 true 先说明“当前这个 mid 可行”。它还没有直接替你把最终答案或二分方向全部定死。",
+                },
+                "explanation": "最后这题只确认一个最小事实：`check(mid)` 返回 true，先表示当前这个 mid 可行。",
+                "bridge_feedback": "你最后要站稳的就是：返回 true 先表示“当前 mid 可行”。",
+                "target_bridge": target_bridge,
+                "difficulty_level": level,
+                "meta": {
+                    "difficulty_level": level,
+                    "focus": focus,
+                    "algorithm_category": _infer_algorithm_category(review_context, focus),
                 },
             }
         return {
@@ -2030,6 +3707,54 @@ def _deterministic_structural_quiz(
                     **({"confirm_mode": "structure"} if level == "confirm" else {}),
                 },
             }
+        if level == "followup":
+            return {
+                "mode": "quiz",
+                "quiz_type": "choice",
+                "question_text": "如果当前这一格要用到前一个已经算好的状态，下面哪种顺序更稳？",
+                "options": [
+                    {"value": "A", "label": "先把前一个状态算好，再来更新当前这一格"},
+                    {"value": "B", "label": "先算当前这一格，不够再回头补前一个状态"},
+                    {"value": "C", "label": "先按代码顺手的方向写循环，顺序后面再调"},
+                ],
+                "correct_answer": "A",
+                "distractor_feedback": {
+                    "B": "如果当前这一格要用前一个状态的结果，那前一个状态就不能晚到。顺序一反，当前这一格拿到的就不是已经准备好的依赖。",
+                    "C": "这里先服从的是依赖先后，不是代码顺不顺手。先把前一个状态准备好，当前这一格才有东西可用。",
+                },
+                "explanation": "先把这一小步站稳：如果当前这一格要用前一个已经算好的状态，就要先把前一个状态准备好，再来更新当前这一格。",
+                "bridge_feedback": "你这一步真正要站稳的是：谁被依赖，谁就要先算好。别把依赖顺序让给代码书写顺序。",
+                "target_bridge": target_bridge,
+                "difficulty_level": level,
+                "meta": {
+                    "difficulty_level": level,
+                    "focus": focus,
+                    "algorithm_category": _infer_algorithm_category(review_context, focus),
+                },
+            }
+        if level == "final_micro_confirm":
+            return {
+                "mode": "quiz",
+                "quiz_type": "choice",
+                "question_text": "如果当前这一格要用前一个状态的结果，是不是要先把前一个状态算好？",
+                "options": [
+                    {"value": "A", "label": "是"},
+                    {"value": "B", "label": "不是"},
+                ],
+                "correct_answer": "A",
+                "distractor_feedback": {
+                    "B": "最后这题只确认一个最小事实：既然当前这一格要用前一个状态的结果，那前一个状态就得先准备好，不能等到后面再补。",
+                },
+                "explanation": "最后这题只确认一个最小事实：依赖谁，就先把谁算好，再来更新当前这一格。",
+                "bridge_feedback": "你最后要站稳的就是：先把被依赖的前一个状态算好。",
+                "target_bridge": target_bridge,
+                "difficulty_level": level,
+                "meta": {
+                    "difficulty_level": level,
+                    "focus": focus,
+                    "algorithm_category": _infer_algorithm_category(review_context, focus),
+                },
+            }
         return {
             "mode": "quiz",
             "quiz_type": "choice",
@@ -2085,6 +3810,54 @@ def _deterministic_structural_quiz(
                     **({"confirm_mode": "structure"} if level == "confirm" else {}),
                 },
             }
+        if level == "followup":
+            return {
+                "mode": "quiz",
+                "quiz_type": "choice",
+                "question_text": "如果当前状态可能有两类合法来源，下面哪种做法更稳？",
+                "options": [
+                    {"value": "A", "label": "先把这两类合法来源想全，再决定怎么转过来"},
+                    {"value": "B", "label": "先写最顺手的那一类来源，另一类后面再补"},
+                    {"value": "C", "label": "先把循环顺序定死，来源是否想全后面再说"},
+                ],
+                "correct_answer": "A",
+                "distractor_feedback": {
+                    "B": "这还是在凭手感只抓最显眼的一支来源。只要另一类合法来源没站稳，转移就会天然缺一块。",
+                    "C": "循环顺序当然重要，但它不能代替你把合法来源想全。来源没站稳时，顺序再整齐也只是带着漏项往前跑。",
+                },
+                "explanation": "先把这一小步站稳：如果当前状态可能有两类合法来源，就先把这两类来源想全，再写具体怎么转过来。",
+                "bridge_feedback": "你这一步真正要站稳的是：先把合法来源想全，再谈具体转移。",
+                "target_bridge": target_bridge,
+                "difficulty_level": level,
+                "meta": {
+                    "difficulty_level": level,
+                    "focus": focus,
+                    "algorithm_category": _infer_algorithm_category(review_context, focus),
+                },
+            }
+        if level == "final_micro_confirm":
+            return {
+                "mode": "quiz",
+                "quiz_type": "choice",
+                "question_text": "如果当前状态可能有两类合法来源，是不是要先把这两类合法来源想全？",
+                "options": [
+                    {"value": "A", "label": "是"},
+                    {"value": "B", "label": "不是"},
+                ],
+                "correct_answer": "A",
+                "distractor_feedback": {
+                    "B": "最后这题只确认一个最小事实：只要当前状态可能有多类合法来源，就要先把这些来源想全，不能只抓最顺手的一支。",
+                },
+                "explanation": "最后这题只确认一个最小事实：先把合法来源想全，再写具体转移。",
+                "bridge_feedback": "你最后要站稳的就是：先把当前状态的合法来源想全。",
+                "target_bridge": target_bridge,
+                "difficulty_level": level,
+                "meta": {
+                    "difficulty_level": level,
+                    "focus": focus,
+                    "algorithm_category": _infer_algorithm_category(review_context, focus),
+                },
+            }
         return {
             "mode": "quiz",
             "quiz_type": "choice",
@@ -2111,7 +3884,347 @@ def _deterministic_structural_quiz(
             },
         }
 
+    if focus == "tree_diameter_candidates":
+        if level == "main":
+            return {
+                "mode": "quiz",
+                "quiz_type": "choice",
+                "question_text": "如果加上一条新边后，新的最长路更该先从下面哪几类候选里去想？",
+                "options": [
+                    {"value": "A", "label": "左边内部、右边内部、经过新边这三类候选"},
+                    {"value": "B", "label": "只要看新边两端的两个点就够了，原来的最长路不用再管"},
+                    {"value": "C", "label": "只要重新从任意点随便跑一遍，候选种类不用区分"},
+                ],
+                "correct_answer": "A",
+                "distractor_feedback": {
+                    "B": "原来左右两边内部的最长路并不会因为加了一条新边就自动消失，所以不能只盯着新边两端。",
+                    "C": "这会跳过“候选从哪里来”这一步。先把候选分清楚，后面才知道该比较哪几种情况。",
+                },
+                "explanation": "这一步最关键的是先把候选想全：新最长路不只可能经过新边，也可能仍然留在左边内部或右边内部。",
+                "bridge_feedback": "你这一步真正答对的是：先把新最长路的候选来源想全，再去比较哪一个最大。",
+                "target_bridge": target_bridge,
+                "difficulty_level": level,
+                "meta": {
+                    "difficulty_level": level,
+                    "focus": focus,
+                    "algorithm_category": _infer_algorithm_category(review_context, focus),
+                    **({"confirm_mode": "structure"} if level == "confirm" else {}),
+                },
+            }
+        if level == "followup":
+            return {
+                "mode": "quiz",
+                "quiz_type": "choice",
+                "question_text": "如果最长路经过新边，两端更该接到什么样的点？",
+                "options": [
+                    {"value": "A", "label": "连接点两侧各自离连接点最远的点"},
+                    {"value": "B", "label": "连接点两侧随便挑一个点就行"},
+                    {"value": "C", "label": "只看左边最远点，右边接哪个点无所谓"},
+                ],
+                "correct_answer": "A",
+                "distractor_feedback": {
+                    "B": "如果想让经过新边的路径尽量长，两边都要往远点接，不能随便挑一个点。",
+                    "C": "经过新边的这类候选要把左右两边都想全，不是只把一边拉长。",
+                },
+                "explanation": "先把这一小步站稳：如果最长路经过新边，两边都该尽量往各自离连接点最远的点去接。",
+                "bridge_feedback": "你这一步真正要站稳的是：经过新边时，两边都要接各自最远的点。",
+                "target_bridge": target_bridge,
+                "difficulty_level": level,
+                "meta": {
+                    "difficulty_level": level,
+                    "focus": focus,
+                    "algorithm_category": _infer_algorithm_category(review_context, focus),
+                },
+            }
+        if level == "final_micro_confirm":
+            return {
+                "mode": "quiz",
+                "quiz_type": "choice",
+                "question_text": "如果最长路经过新边，是不是要让两端都尽量接到各自最远的点？",
+                "options": [
+                    {"value": "A", "label": "是"},
+                    {"value": "B", "label": "不是"},
+                ],
+                "correct_answer": "A",
+                "distractor_feedback": {
+                    "B": "最后这题只确认一个最小事实：经过新边的候选如果想尽量长，两边都要往各自更远的点去接。",
+                },
+                "explanation": "最后这题只确认一个最小事实：经过新边时，两边都该往各自最远的点接，才能形成这类候选里的最长路径。",
+                "bridge_feedback": "你最后要站稳的就是：经过新边时，两边都要接各自最远的点。",
+                "target_bridge": target_bridge,
+                "difficulty_level": level,
+                "meta": {
+                    "difficulty_level": level,
+                    "focus": focus,
+                    "algorithm_category": _infer_algorithm_category(review_context, focus),
+                },
+            }
+        return {
+            "mode": "quiz",
+            "quiz_type": "choice",
+            "question_text": "如果只盯住新边这一小步，下面哪种说法才是对的？",
+            "options": [
+                {"value": "A", "label": "经过新边时，两边都要往各自最远的点去接"},
+                {"value": "B", "label": "经过新边时，只看其中一边最远就够了"},
+                {"value": "C", "label": "经过新边时，接到哪个点都差不多"},
+            ],
+            "correct_answer": "A",
+            "distractor_feedback": {
+                "B": "这会漏掉另一边对路径长度的贡献。经过新边的候选要把左右两边一起想。",
+                "C": "这还是把“最长路”当成随便接点。要让路径最长，两边都要尽量往远点接。",
+            },
+            "explanation": "如果最长路经过新边，关键不是随便接，而是让左右两边都尽量拉长。",
+            "bridge_feedback": "你这一步真正答对的是：经过新边时，两边都要接各自更远的点。",
+            "target_bridge": target_bridge,
+            "difficulty_level": level,
+            "meta": {
+                "difficulty_level": level,
+                "focus": focus,
+                "algorithm_category": _infer_algorithm_category(review_context, focus),
+                **({"confirm_mode": "structure"} if level == "confirm" else {}),
+            },
+        }
+
+    if focus == "greedy_basis":
+        if level == "main":
+            return {
+                "mode": "quiz",
+                "quiz_type": "choice",
+                "question_text": "如果当前要先选一个对象，下面哪种理由更能支撑这一步？",
+                "options": [
+                    {"value": "A", "label": "先选它，是因为这样更不容易破坏后面的结构或可选空间"},
+                    {"value": "B", "label": "先选它，是因为它看起来最大、最顺手、最好写"},
+                    {"value": "C", "label": "先选它，是因为贪心题通常都先处理当前这个对象"},
+                    {"value": "D", "label": "先选它，后面如果不对再回头改顺序"},
+                ],
+                "correct_answer": "A",
+                "distractor_feedback": {
+                    "B": "这还是在靠手感挑对象，不是在回答“为什么先选它不会把后面的结构破坏掉”。",
+                    "C": "贪心不是靠题感口号成立的。先选当前对象，必须有当前题里的局部理由支撑。",
+                    "D": "贪心依据不是后面再调的装饰。如果当前这一步的优先理由没站稳，后面的选择链就会一直漂。",
+                },
+                "explanation": "贪心依据最关键的不是“看起来顺手”，而是这一步先选它，为什么不会破坏后面的结构或可选空间。",
+                "bridge_feedback": "你这一步真正答对的是：先讲清当前对象为什么可以优先，而不是只靠题感或手感。",
+                "target_bridge": target_bridge,
+                "difficulty_level": level,
+                "meta": {
+                    "difficulty_level": level,
+                    "focus": focus,
+                    "algorithm_category": _infer_algorithm_category(review_context, focus),
+                    **({"confirm_mode": "structure"} if level == "confirm" else {}),
+                },
+            }
+        if level == "followup":
+            return {
+                "mode": "quiz",
+                "quiz_type": "choice",
+                "question_text": "如果当前这个对象更优先，下面哪种理由更稳？",
+                "options": [
+                    {"value": "A", "label": "先选它，能给后面留下更稳的空间或结构"},
+                    {"value": "B", "label": "先选它，只是因为它当前数值更大、更顺手"},
+                    {"value": "C", "label": "先选它，因为贪心题一般都会这么做"},
+                ],
+                "correct_answer": "A",
+                "distractor_feedback": {
+                    "B": "局部更大或更顺手，不等于局部决策更安全。这里先要站稳的是：它能不能保住后面的空间或结构。",
+                    "C": "这还是在背方法口号，不是在回答“为什么当前这个对象现在就该优先”。",
+                },
+                "explanation": "先把这一小步站稳：当前对象之所以优先，不是因为顺手，而是因为它能给后面留下更稳的空间或结构。",
+                "bridge_feedback": "你这一步真正要站稳的是：当前这个对象优先，是因为它保住了后面的空间或结构。",
+                "target_bridge": target_bridge,
+                "difficulty_level": level,
+                "meta": {
+                    "difficulty_level": level,
+                    "focus": focus,
+                    "algorithm_category": _infer_algorithm_category(review_context, focus),
+                },
+            }
+        if level == "final_micro_confirm":
+            return {
+                "mode": "quiz",
+                "quiz_type": "choice",
+                "question_text": "如果优先选当前这个对象，是不是要先说明它不会破坏后面的结构？",
+                "options": [
+                    {"value": "A", "label": "是"},
+                    {"value": "B", "label": "不是"},
+                ],
+                "correct_answer": "A",
+                "distractor_feedback": {
+                    "B": "最后这题只确认一个最小事实：当前对象之所以能先选，得先说清它不会把后面的结构或可选空间破坏掉。",
+                },
+                "explanation": "最后这题只确认一个最小事实：先选当前对象，要先有“不会破坏后面的结构”这个理由。",
+                "bridge_feedback": "你最后要站稳的就是：当前对象优先，先要说明它不会破坏后面的结构。",
+                "target_bridge": target_bridge,
+                "difficulty_level": level,
+                "meta": {
+                    "difficulty_level": level,
+                    "focus": focus,
+                    "algorithm_category": _infer_algorithm_category(review_context, focus),
+                },
+            }
+        return {
+            "mode": "quiz",
+            "quiz_type": "choice",
+            "question_text": "如果只盯住“先选谁”这一小步，下面哪种说法才是对的？",
+            "options": [
+                {"value": "A", "label": "先选它，要先说清为什么这样不会破坏后面的结构"},
+                {"value": "B", "label": "先选它，只要看起来最大最顺手就行"},
+                {"value": "C", "label": "先选它，因为贪心题通常都这么做"},
+            ],
+            "correct_answer": "A",
+            "distractor_feedback": {
+                "B": "这个说法还是只看当前手感，没有回答“为什么这一步先选它是安全的”。",
+                "C": "这个说法是在背模板口号，不是在给出当前题里的局部理由。",
+            },
+            "explanation": "先选谁这一步，最重要的不是熟悉感，而是要先说清：为什么先选它不会把后面的结构弄坏。",
+            "bridge_feedback": "你这一步真正答对的是：先给出局部优先的理由，再决定当前对象能不能先选。",
+            "target_bridge": target_bridge,
+            "difficulty_level": level,
+            "meta": {
+                "difficulty_level": level,
+                "focus": focus,
+                "algorithm_category": _infer_algorithm_category(review_context, focus),
+                **({"confirm_mode": "structure"} if level == "confirm" else {}),
+            },
+        }
+
     return None
+
+
+def _deterministic_local_followup_quiz(
+    review_context: dict,
+    focus: str,
+    target_bridge: str,
+    previous_quiz: dict | None = None,
+) -> dict | None:
+    text = " ".join(
+        str(part or "")
+        for part in (
+            review_context.get("problem_title"),
+            review_context.get("problem_context"),
+            review_context.get("bottleneck_text"),
+            review_context.get("key_bridge"),
+            review_context.get("next_step"),
+            (previous_quiz or {}).get("question_text", ""),
+        )
+    )
+    if focus == "complexity_fit":
+        return {
+            "mode": "quiz",
+            "quiz_type": "choice",
+            "question_text": "如果 M 和 N 都可能很大，当前这一步更该先确认哪件事？",
+            "options": [
+                {"value": "A", "label": "先估 M×N 这类总量级会不会先炸，再判断当前做法能不能过"},
+                {"value": "B", "label": "先假设机器跑得够快，写完再看会不会超时"},
+                {"value": "C", "label": "先背一个更高级的方法名，规模能不能过以后再说"},
+            ],
+            "correct_answer": "A",
+            "distractor_feedback": {
+                "B": "这会把最关键的总量级判断留到最后碰运气。先估 M×N 这类总量级会不会炸，才知道当前做法要不要继续。",
+                "C": "方法名不能替代规模判断。你先得知道 M×N 这类总量级会不会先炸，才能决定是否真的需要换方法。",
+            },
+            "explanation": "第二轮不再问整题该用什么方法，而是只盯住一个更小的局部动作：先把 M×N 这类总量级估出来，再看当前做法能不能过。",
+            "bridge_feedback": f"你这一步真正要站稳的是：{target_bridge or '先把总量级估出来，再判断当前复杂度能不能过。'}",
+            "target_bridge": target_bridge,
+            "difficulty_level": "followup",
+            "meta": {
+                "difficulty_level": "followup",
+                "focus": focus,
+                "algorithm_category": _infer_algorithm_category(review_context, focus),
+                "followup_mode": "local_scale_check",
+                "previous_question": (previous_quiz or {}).get("question_text", ""),
+            },
+        }
+
+    if focus == "shared_prefix_merging":
+        explanation = "第二轮不再重复整题复杂度，而是只盯住一个局部机制：查询时到底还会不会把所有消息重新看一遍。只要这一步站稳，为什么 trie 能更快就会清楚很多。"
+        bridge_feedback = (
+            f"你这一步真正要站稳的是：{target_bridge or 'trie 查询时并不会把所有消息重新逐条拿出来比，而是沿当前前缀往下走。'}"
+        )
+        return {
+            "mode": "quiz",
+            "quiz_type": "choice",
+            "question_text": "如果把所有消息先放进 trie，查询一条拦截串时，是重新看所有消息，还是只沿着当前前缀往下走？",
+            "options": [
+                {"value": "A", "label": "不用，只要沿着这条查询自己的前缀往下走"},
+                {"value": "B", "label": "要，还是得把所有消息重新逐条拿出来比"},
+                {"value": "C", "label": "只要把长度一样的消息重新看一遍就够了"},
+            ],
+            "correct_answer": "A",
+            "distractor_feedback": {
+                "B": "这还是把 trie 当成“换个容器后继续逐条比对”。可 trie 真正省下来的，就是不用把所有消息重新拿出来比，而是直接沿当前前缀往下走。",
+                "C": "查询时要看的不是“长度一样的消息”，而是当前前缀在树上对应的那条路径。长度相同不等于共享前缀。",
+            },
+            "explanation": explanation,
+            "bridge_feedback": bridge_feedback,
+            "target_bridge": target_bridge,
+            "difficulty_level": "followup",
+            "meta": {
+                "difficulty_level": "followup",
+                "focus": focus,
+                "algorithm_category": _infer_algorithm_category(review_context, focus),
+                "followup_mode": "local_mechanism",
+                "previous_question": (previous_quiz or {}).get("question_text", ""),
+            },
+        }
+
+    if focus != "method_selection":
+        return None
+
+    if _contains_any(text, ("trie", "前缀", "拦截串", "消息")):
+        return {
+            "mode": "quiz",
+            "quiz_type": "choice",
+            "question_text": "如果很多消息有相同开头，这一步更该先圈出哪一个更直接支持 trie 的小信号？",
+            "options": [
+                {"value": "A", "label": "很多消息有相同开头，说明共享前缀值得先合在一起看"},
+                {"value": "B", "label": "只要串长不超过 20，就一定该直接上 trie"},
+                {"value": "C", "label": "只是因为以前做过类似题，感觉这题像 trie"},
+            ],
+            "correct_answer": "A",
+            "distractor_feedback": {
+                "B": "串长小只是辅助信息，不是这一步最直接的小信号。现在先盯住的是：相同开头值不值得先合起来看。",
+                "C": "熟题感觉可以帮你起念头，但它不能替代题面里的这个局部信号：很多消息真的在共享前缀。",
+            },
+            "explanation": "第二轮把题面信号再缩小半步，不再问整句“为什么该用 trie”，只先确认你有没有看见“很多消息相同开头”这个局部信号。",
+            "bridge_feedback": f"你这一步真正要站稳的是：{target_bridge or '先抓题面里真正支持 trie 的结构信号。'}",
+            "target_bridge": target_bridge,
+            "difficulty_level": "followup",
+            "meta": {
+                "difficulty_level": "followup",
+                "focus": focus,
+                "algorithm_category": _infer_algorithm_category(review_context, focus),
+                "followup_mode": "local_shared_prefix_signal",
+                "previous_question": (previous_quiz or {}).get("question_text", ""),
+            },
+        }
+
+    return {
+        "mode": "quiz",
+        "quiz_type": "choice",
+        "question_text": "如果这一步先不急着报方法名，更该先盯住题面里的哪一类信息？",
+        "options": [
+            {"value": "A", "label": "题面里真正支持这个方法的结构信号"},
+            {"value": "B", "label": "这题像不像以前做过的熟题"},
+            {"value": "C", "label": "先把方法步骤背出来，题面信号后面再补"},
+        ],
+        "correct_answer": "A",
+        "distractor_feedback": {
+            "B": "熟题联想可以帮你起感觉，但它不能替代当前题面的真实结构信号。方法选对，先要靠题面支持。",
+            "C": "先背步骤会让方法和题面脱节。你得先说清题面里哪一个信号在支持当前做法。",
+        },
+        "explanation": "第二轮不再问整桥“为什么该用这个方法”，而是只缩到一个更小的局部动作：先抓题面里真正支持这个方法的结构信号。",
+        "bridge_feedback": f"你这一步真正要站稳的是：{target_bridge or '先抓题面里支持这个方法的结构信号。'}",
+        "target_bridge": target_bridge,
+        "difficulty_level": "followup",
+        "meta": {
+            "difficulty_level": "followup",
+            "focus": focus,
+            "algorithm_category": _infer_algorithm_category(review_context, focus),
+            "followup_mode": "local_signal",
+            "previous_question": (previous_quiz or {}).get("question_text", ""),
+        },
+    }
 
 
 def _parse_quiz_payload(text: str, *, expected_level: str) -> dict | None:
@@ -2442,8 +4555,133 @@ def _generate_structural_confirm_quiz(review_context: dict, focus: str, target_b
 
 
 def _main_quiz_payload(review_context: dict, focus: str, target_bridge: str) -> dict:
+    if focus in {"left_bound_update", "lazy_semantics"}:
+        payload = _deterministic_structural_quiz(review_context, focus, target_bridge, level="main")
+        if payload:
+            return payload
+
+    if focus == "complexity_fit":
+        return {
+            "mode": "quiz",
+            "quiz_type": "choice",
+            "question_text": "如果题面里两层规模都可能很大，当前这一步更该先确认双层枚举会不会超时？",
+            "options": [
+                {"value": "A", "label": "先把双层枚举的总量级和时间限制放在一起判断会不会超时"},
+                {"value": "B", "label": "先假设机器跑得够快，写完再看会不会超时"},
+                {"value": "C", "label": "先背一个更高级的方法名，规模能不能过以后再说"},
+                {"value": "D", "label": "先只看单次操作顺不顺手，不用先估总量级"},
+            ],
+            "correct_answer": "A",
+            "distractor_feedback": {
+                "B": "这会把最关键的规模判断留到最后碰运气。先知道当前做法会不会超时，才知道要不要换方法。",
+                "C": "方法名不能替代规模判断。你先得知道总量级会不会炸，才能决定是否真的需要换方法。",
+                "D": "这里最容易漏掉的不是单次操作，而是总量级。两层数量一起变大时，先估总量级才知道当前复杂度能不能过。",
+            },
+            "explanation": "第一轮先不急着报方法名，而是先站稳一个更基础的判断：两层规模一起变大时，双层枚举的总量级会不会已经明显超出时间限制。",
+            "bridge_feedback": f"你这一步真正要站稳的是：{target_bridge or '先根据数据范围判断双层枚举会不会超时。'}",
+            "target_bridge": target_bridge,
+            "difficulty_level": "main",
+            "meta": {
+                "difficulty_level": "main",
+                "focus": focus,
+                "algorithm_category": _infer_algorithm_category(review_context, focus),
+                "main_mode": "local_scale_check",
+            },
+        }
+
+    if focus == "shared_prefix_merging":
+        text = " ".join(
+            str(part or "")
+            for part in (
+                review_context.get("problem_title"),
+                review_context.get("problem_context"),
+                review_context.get("bottleneck_text"),
+                review_context.get("key_bridge"),
+                review_context.get("try_now"),
+                review_context.get("next_step"),
+            )
+        )
+        return {
+            "mode": "quiz",
+            "quiz_type": "choice",
+            "question_text": "如果把很多消息先放进 trie，查询一条拦截串时，为什么不用重看所有消息，而是沿当前前缀往下走？",
+            "options": [
+                {"value": "A", "label": "查询时不用把所有消息重新逐条拿出来比，只要沿当前前缀往下走"},
+                {"value": "B", "label": "查询时还是要把所有消息都重新看一遍，只是代码写法更短"},
+                {"value": "C", "label": "trie 会直接把整条答案背出来，所以前缀过程可以完全跳过"},
+            ],
+            "correct_answer": "A",
+            "distractor_feedback": {
+                "B": "这还是把 trie 当成“换个容器继续逐条比对”。它真正省下来的，是不用把所有消息重新拿出来比，而是直接沿当前前缀走。",
+                "C": "trie 不是魔法答案表。查询时还是要沿当前前缀路径往下走，只是不用重看所有消息。",
+            },
+            "explanation": "第一轮先不问整题复杂度，只盯住一个核心机制：trie 为什么能把“重看所有消息”变成“沿当前前缀往下走”。",
+            "bridge_feedback": f"你这一步真正要先站稳的是：{target_bridge or '查询时不重看所有消息，而是沿当前前缀往下走。'}",
+            "target_bridge": target_bridge,
+            "difficulty_level": "main",
+            "meta": {
+                "difficulty_level": "main",
+                "focus": focus,
+                "algorithm_category": _infer_algorithm_category(review_context, focus),
+                "main_mode": "local_mechanism",
+            },
+        }
+
+    if focus == "method_selection":
+        text = " ".join(
+            str(part or "")
+            for part in (
+                review_context.get("problem_title"),
+                review_context.get("problem_context"),
+                review_context.get("bottleneck_text"),
+                review_context.get("key_bridge"),
+                review_context.get("try_now"),
+                review_context.get("next_step"),
+            )
+        )
+        if _contains_any(text, ("trie", "前缀", "拦截串", "消息")):
+            return {
+                "mode": "quiz",
+                "quiz_type": "choice",
+                "question_text": "如果这题有很多字符串，而且反复在问前缀关系，下面哪一条更像支持 trie 的题面信号？",
+                "options": [
+                    {"value": "A", "label": "很多字符串有相同开头，而且还要反复按前缀查询或统计"},
+                    {"value": "B", "label": "只要串长不超过 20，就一定该直接上 trie"},
+                    {"value": "C", "label": "只要数据范围大，就一定先上 trie"},
+                    {"value": "D", "label": "只是因为以前做过类似题，所以这题大概率也该用 trie"},
+                ],
+                "correct_answer": "A",
+                "distractor_feedback": {
+                    "B": "串长小只是辅助信息，不是决定性信号。更关键的是：很多字符串共享前缀，还要反复按前缀查。",
+                    "C": "数据范围大只能提示你先换思路，不会自动说明“就一定是 trie”。还得看是不是在反复做前缀关系。",
+                    "D": "熟题感觉可以帮你起念头，但不能替代这题里真正支持 trie 的结构信号。",
+                },
+                "explanation": "第一轮先不直接讲 trie 的内部机制，而是先站稳一个更前面的判断：题面里到底哪一个结构信号在支持 trie。",
+                "bridge_feedback": f"你这一步真正要先站稳的是：{target_bridge or '先找出题面里真正支持 trie 的结构信号。'}",
+                "target_bridge": target_bridge,
+                "difficulty_level": "main",
+                "meta": {
+                    "difficulty_level": "main",
+                    "focus": focus,
+                    "algorithm_category": _infer_algorithm_category(review_context, focus),
+                    "main_mode": "local_signal",
+                },
+            }
+        return {
+            "mode": "fallback_explain",
+            "quiz_type": "",
+            "question_text": "",
+            "options": [],
+            "correct_answer": "",
+            "fallback_explain": "当前这一步更适合先把“题面里到底有哪些结构信号指向这种方法”讲清楚，而不是出一题容易变成方法口号的小测。",
+            "explanation": "当前这一步更适合先把“题面里到底有哪些结构信号指向这种方法”讲清楚，而不是出一题容易变成方法口号的小测。",
+            "target_bridge": target_bridge,
+            "difficulty_level": "main",
+            "meta": {"difficulty_level": "main"},
+        }
+
     if focus in STRUCTURAL_QUIZ_FOCI:
-        structural_payload = _generate_structural_quiz(
+        structural_payload = _deterministic_structural_quiz(
             review_context,
             focus,
             target_bridge,
@@ -2461,19 +4699,6 @@ def _main_quiz_payload(review_context: dict, focus: str, target_bridge: str) -> 
             "correct_answer": "",
             "fallback_explain": "当前这一步更适合先把题目要求和限制讲清楚，而不是出一题容易滑成读题口号的小测。",
             "explanation": "当前这一步更适合先把题目要求和限制讲清楚，而不是出一题容易滑成读题口号的小测。",
-            "target_bridge": target_bridge,
-            "difficulty_level": "main",
-            "meta": {"difficulty_level": "main"},
-        }
-    if focus == "method_selection":
-        return {
-            "mode": "fallback_explain",
-            "quiz_type": "",
-            "question_text": "",
-            "options": [],
-            "correct_answer": "",
-            "fallback_explain": "当前这一步更适合先把“题面里到底有哪些结构信号指向这种方法”讲清楚，而不是出一题容易变成方法口号的小测。",
-            "explanation": "当前这一步更适合先把“题面里到底有哪些结构信号指向这种方法”讲清楚，而不是出一题容易变成方法口号的小测。",
             "target_bridge": target_bridge,
             "difficulty_level": "main",
             "meta": {"difficulty_level": "main"},
@@ -2541,14 +4766,24 @@ def _main_quiz_payload(review_context: dict, focus: str, target_bridge: str) -> 
             "meta": {"difficulty_level": "main"},
         }
     if focus == "greedy_basis":
-        return {
+        return _deterministic_structural_quiz(review_context, focus, target_bridge, level="main") or {
             "mode": "fallback_explain",
             "quiz_type": "",
             "question_text": "",
             "options": [],
             "correct_answer": "",
-            "fallback_explain": "当前这一步更适合先把“局部决策为什么不破坏后面的结构”讲清楚，而不是出一题容易变成贪心口号的小测。",
-            "explanation": "当前这一步更适合先把“局部决策为什么不破坏后面的结构”讲清楚，而不是出一题容易变成贪心口号的小测。",
+            "explanation": "这一步更适合先换一种方式讲清楚，而不是继续出流程口号题。",
+            "target_bridge": target_bridge,
+            "difficulty_level": "main",
+            "meta": {"difficulty_level": "main"},
+        }
+    if focus == "tree_diameter_candidates":
+        return _deterministic_structural_quiz(review_context, focus, target_bridge, level="main") or {
+            "mode": "fallback_explain",
+            "quiz_type": "",
+            "question_text": "",
+            "correct_answer": "",
+            "explanation": "这一步更适合先换一种方式讲清楚，而不是继续出流程口号题。",
             "target_bridge": target_bridge,
             "difficulty_level": "main",
             "meta": {"difficulty_level": "main"},
@@ -2618,14 +4853,50 @@ def _followup_quiz_payload(review_context: dict, focus: str, target_bridge: str,
             "meta": {"difficulty_level": "followup"},
         }
 
+    local_payload = _deterministic_local_followup_quiz(
+        review_context,
+        focus,
+        target_bridge,
+        previous_quiz=previous_quiz,
+    )
+    if local_payload:
+        local_payload["meta"] = {
+            **(local_payload.get("meta") or {}),
+            "difficulty_level": "followup",
+            "micro_hint": review_context.get("main_block")
+            or "这一步还差一点，我们先只盯住最关键的那一小步。",
+            "previous_quiz_type": (previous_quiz or {}).get("quiz_type", ""),
+            "previous_question": (previous_quiz or {}).get("question_text", ""),
+        }
+        return local_payload
+
     if focus in STRUCTURAL_QUIZ_FOCI:
-        structural_payload = _generate_structural_quiz(
-            review_context,
-            focus,
-            target_bridge,
-            level="followup",
-            previous_quiz=previous_quiz,
-        )
+        if focus in {
+            "state_design",
+            "check_condition",
+            "enumeration_order",
+            "transition_design",
+            "greedy_basis",
+            "tree_path_difference",
+            "tree_diameter_candidates",
+            "left_bound_update",
+            "lazy_semantics",
+        }:
+            structural_payload = _deterministic_structural_quiz(
+                review_context,
+                focus,
+                target_bridge,
+                level="followup",
+                previous_quiz=previous_quiz,
+            )
+        else:
+            structural_payload = _generate_structural_quiz(
+                review_context,
+                focus,
+                target_bridge,
+                level="followup",
+                previous_quiz=previous_quiz,
+            )
         if structural_payload and structural_payload.get("mode") == "quiz":
             structural_payload["meta"] = {
                 **structural_payload.get("meta", {}),
@@ -2673,6 +4944,24 @@ def _easier_quiz_payload(review_context: dict, focus: str, target_bridge: str, p
             "meta": {"difficulty_level": "easier"},
         }
 
+    if focus == "tree_path_difference":
+        structural_payload = _deterministic_structural_quiz(
+            review_context,
+            focus,
+            target_bridge,
+            level="followup",
+            previous_quiz=previous_quiz,
+        )
+        if structural_payload:
+            structural_payload["difficulty_level"] = "easier"
+            structural_payload["meta"] = {
+                **structural_payload.get("meta", {}),
+                "difficulty_level": "easier",
+                "previous_quiz_type": (previous_quiz or {}).get("quiz_type", ""),
+                "previous_question": (previous_quiz or {}).get("question_text", ""),
+            }
+            return structural_payload
+
     if focus in STRUCTURAL_QUIZ_FOCI:
         structural_payload = _generate_structural_quiz(
             review_context,
@@ -2711,6 +5000,703 @@ def _easier_quiz_payload(review_context: dict, focus: str, target_bridge: str, p
     }
 
 
+def _generic_final_micro_confirm_payload(review_context: dict, focus: str, target_bridge: str) -> dict | None:
+    algorithm_category = _infer_algorithm_category(review_context, focus)
+    shared_meta = {
+        "difficulty_level": "final_micro_confirm",
+        "focus": focus,
+        "algorithm_category": algorithm_category,
+        "confirm_mode": "final_micro_confirm",
+    }
+
+    if focus == "constraint_modeling":
+        return {
+            "mode": "quiz",
+            "quiz_type": "choice",
+            "question_text": "如果这一步只是先把限制关系站稳，下面哪种做法才对？",
+            "options": [
+                {"value": "A", "label": "先把限制关系统一成同一种方向或表示，再往下建模"},
+                {"value": "B", "label": "先凭印象挑一个熟悉算法，把关系细节留到后面再补"},
+                {"value": "C", "label": "先把所有点对关系都枚举出来，关系方向反了再调"},
+            ],
+            "correct_answer": "A",
+            "distractor_feedback": {
+                "B": "这会把真正的限制关系留空，后面的建模只是在往熟悉方法上硬套，学生还是会在“谁限制谁”这一步继续混乱。",
+                "C": "这会跳过“先把关系写整齐”这一步，学生会在对象和方向还没站稳时就进入大规模枚举，错误只会被放大。",
+            },
+            "explanation": "这一步最小的确认就是：先把限制关系统一成一种表示，再继续往下建模。方向和关系没站稳，后面的边、状态或判断都会跟着歪。",
+            "bridge_feedback": f"你最后需要站稳的就是：{target_bridge or '先把限制关系统一成同一种表示。'}",
+            "target_bridge": target_bridge,
+            "difficulty_level": "final_micro_confirm",
+            "meta": shared_meta,
+        }
+
+    if focus == "general_modeling":
+        return {
+            "mode": "quiz",
+            "quiz_type": "choice",
+            "question_text": "如果这一步只是确认模型有没有站稳，下面哪句更对？",
+            "options": [
+                {"value": "A", "label": "先把题目里的对象和关系说清楚，再决定怎么表示"},
+                {"value": "B", "label": "先猜最像哪类经典题，再把题目往模板上套"},
+                {"value": "C", "label": "先写代码框架，具体对象含义可以边写边猜"},
+            ],
+            "correct_answer": "A",
+            "distractor_feedback": {
+                "B": "这会让学生绕开题目里的真实对象和关系，只靠题感猜模板，模型本身仍然是空的。",
+                "C": "对象和关系没说清楚时直接写代码，只会把模糊理解变成更难排查的实现错误。",
+            },
+            "explanation": "模型类卡点最后要确认的不是模板名，而是对象和关系有没有被说清楚。只有先站稳这件事，后续表示和算法才有依托。",
+            "bridge_feedback": f"这一步最后要站稳的是：{target_bridge or '先把对象和关系写清楚。'}",
+            "target_bridge": target_bridge,
+            "difficulty_level": "final_micro_confirm",
+            "meta": shared_meta,
+        }
+
+    if focus == "method_selection":
+        return {
+            "mode": "quiz",
+            "quiz_type": "choice",
+            "question_text": "如果这一步只确认“为什么该用这个方法”，下面哪句更对？",
+            "options": [
+                {"value": "A", "label": "先找题面里真正支持这个方法的结构信号"},
+                {"value": "B", "label": "先看这题像不像以前做过的题，像就直接套方法"},
+                {"value": "C", "label": "先背方法步骤，题面信号可以做完后再补"},
+            ],
+            "correct_answer": "A",
+            "distractor_feedback": {
+                "B": "这仍然是在靠熟悉感猜方法，不是在回答“题面里到底哪一处结构支持这个方法”。",
+                "C": "先背步骤会让方法和题面脱节，学生还是说不清为什么这道题能这样做。",
+            },
+            "explanation": "方法选择类的最终最小确认，就是看学生能不能指出题面里真正支持这个方法的结构信号，而不是靠熟悉感或背模板。",
+            "bridge_feedback": f"这一步最后要确认的是：{target_bridge or '先找出支持这个方法的题面信号。'}",
+            "target_bridge": target_bridge,
+            "difficulty_level": "final_micro_confirm",
+            "meta": shared_meta,
+        }
+
+    if focus == "reading_target":
+        return {
+            "mode": "quiz",
+            "quiz_type": "choice",
+            "question_text": "如果这一步只确认你有没有读清题目目标，下面哪句更对？",
+            "options": [
+                {"value": "A", "label": "先说清题目最后要求求什么或输出什么"},
+                {"value": "B", "label": "先猜算法类型，目标细节可以到写代码时再看"},
+                {"value": "C", "label": "先抄样例，等答案不对时再回头看目标"},
+            ],
+            "correct_answer": "A",
+            "distractor_feedback": {
+                "B": "题目目标没读清时先猜方法，后面所有判断都会建立在错目标上。",
+                "C": "样例只能帮你感受题目，不会自动替你定义最终要求求什么。",
+            },
+            "explanation": "读题目标类的最后确认，就是先把“题目到底要求你求什么”说清楚。目标不稳，后面方法和实现都会一起漂。",
+            "bridge_feedback": f"这一步最后要确认的是：{target_bridge or '先把题目最后要求求什么说清楚。'}",
+            "target_bridge": target_bridge,
+            "difficulty_level": "final_micro_confirm",
+            "meta": shared_meta,
+        }
+
+    return None
+
+
+def _deterministic_local_final_micro_confirm_payload(
+    review_context: dict,
+    focus: str,
+    target_bridge: str,
+    previous_quiz: dict | None = None,
+) -> dict | None:
+    text = " ".join(
+        str(part or "")
+        for part in (
+            review_context.get("problem_title"),
+            review_context.get("problem_context"),
+            review_context.get("bottleneck_text"),
+            review_context.get("key_bridge"),
+            review_context.get("try_now"),
+            review_context.get("next_step"),
+            (previous_quiz or {}).get("question_text", ""),
+        )
+    )
+    if focus == "complexity_fit":
+        return {
+            "mode": "quiz",
+            "quiz_type": "choice",
+            "question_text": "如果两层规模都很大，是不是应该先判断双层枚举会不会超时？",
+            "options": [
+                {"value": "A", "label": "是"},
+                {"value": "B", "label": "不是"},
+            ],
+            "correct_answer": "A",
+            "distractor_feedback": {
+                "B": "这会把最关键的规模判断跳过去。先知道当前做法会不会炸，后面才知道要不要换方法。",
+            },
+            "explanation": "最后这题只确认一个最小事实：规模大时，先判断双层枚举能不能过。",
+            "bridge_feedback": f"你最后要站稳的就是：{target_bridge or '先根据数据范围判断双层枚举会不会超时。'}",
+            "target_bridge": target_bridge,
+            "difficulty_level": "final_micro_confirm",
+            "meta": {
+                "difficulty_level": "final_micro_confirm",
+                "focus": focus,
+                "algorithm_category": _infer_algorithm_category(review_context, focus),
+                "confirm_mode": "final_micro_confirm",
+                "final_mode": "local_scale_check",
+                "previous_question": (previous_quiz or {}).get("question_text", ""),
+            },
+        }
+
+    if focus == "shared_prefix_merging":
+        return {
+            "mode": "quiz",
+            "quiz_type": "choice",
+            "question_text": "把很多消息先放进 trie 后，查一条拦截串时，真正省下来的，是不是不用重看所有消息、只沿当前前缀往下走？",
+            "options": [
+                {"value": "A", "label": "不用把所有消息重新逐条拿出来比，只要沿着当前前缀往下走"},
+                {"value": "B", "label": "不用再看前缀，系统会直接把答案完整背出来"},
+                {"value": "C", "label": "还是要把所有消息再看一遍，只是 trie 的名字更高级"},
+            ],
+            "correct_answer": "A",
+            "distractor_feedback": {
+                "B": "trie 不是魔法答案表，查询时还是要看当前这条拦截串的前缀路径，只是不用重看所有消息。",
+                "C": "这还是把 trie 当成“换个容器继续逐条比对”。真正省下来的，是不必把所有消息重新拿出来看一遍。",
+            },
+            "explanation": "最后这题不再问抽象方法判断，只确认一个最小局部事实：trie 之所以更快，是因为查询时不用把所有消息重新逐条拿出来比，而是只沿当前前缀往下走。",
+            "bridge_feedback": f"你最后要站稳的就是：{target_bridge or '查询时不重看所有消息，只沿当前前缀往下走。'}",
+            "target_bridge": target_bridge,
+            "difficulty_level": "final_micro_confirm",
+            "meta": {
+                "difficulty_level": "final_micro_confirm",
+                "focus": focus,
+                "algorithm_category": _infer_algorithm_category(review_context, focus),
+                "confirm_mode": "final_micro_confirm",
+                "final_mode": "local_mechanism",
+                "previous_question": (previous_quiz or {}).get("question_text", ""),
+            },
+        }
+
+    if focus != "method_selection":
+        return None
+
+    if _contains_any(text, ("trie", "前缀", "拦截串", "消息")):
+        return {
+            "mode": "quiz",
+            "quiz_type": "choice",
+            "question_text": "如果这题反复按前缀查询很多字符串，是不是应该先把这个信号当成支持 trie 的线索？",
+            "options": [
+                {"value": "A", "label": "是"},
+                {"value": "B", "label": "不是"},
+            ],
+            "correct_answer": "A",
+            "distractor_feedback": {
+                "B": "最后这题只确认一个最小事实：很多字符串共享前缀、还要反复按前缀查，这正是支持 trie 的题面线索。",
+            },
+            "explanation": "最后这题只确认一个最小事实：方法选择要先回到题面信号，而不是先跳进机制细节。",
+            "bridge_feedback": f"你最后要站稳的就是：{target_bridge or '先找题面里真正支持 trie 的结构信号。'}",
+            "target_bridge": target_bridge,
+            "difficulty_level": "final_micro_confirm",
+            "meta": {
+                "difficulty_level": "final_micro_confirm",
+                "focus": focus,
+                "algorithm_category": _infer_algorithm_category(review_context, focus),
+                "confirm_mode": "final_micro_confirm",
+                "final_mode": "local_signal",
+                "previous_question": (previous_quiz or {}).get("question_text", ""),
+            },
+        }
+
+    return {
+        "mode": "quiz",
+        "quiz_type": "choice",
+        "question_text": "如果这一步只确认方法依据，是不是应该先找题面里真正支持这个方法的结构信号？",
+        "options": [
+            {"value": "A", "label": "是"},
+            {"value": "B", "label": "不是"},
+        ],
+        "correct_answer": "A",
+        "distractor_feedback": {
+            "B": "方法选择这一步最小的确认，不是看你会不会背步骤，而是看你会不会先找题面里支持它的结构信号。",
+        },
+        "explanation": "最后这题只确认一个最小事实：方法依据要先回到题面信号，而不是靠熟题感觉或背模板。",
+        "bridge_feedback": f"你最后要站稳的就是：{target_bridge or '先找题面里真正支持这个方法的结构信号。'}",
+        "target_bridge": target_bridge,
+        "difficulty_level": "final_micro_confirm",
+        "meta": {
+            "difficulty_level": "final_micro_confirm",
+            "focus": focus,
+            "algorithm_category": _infer_algorithm_category(review_context, focus),
+            "confirm_mode": "final_micro_confirm",
+            "final_mode": "local_signal",
+            "previous_question": (previous_quiz or {}).get("question_text", ""),
+        },
+    }
+
+
+def generate_final_micro_confirm_quiz(review_context: dict, previous_quiz: dict | None = None) -> dict:
+    """生成第三轮补救后的最后一小题确认，优先本地确定性产出，避免再次放大模型负担。"""
+    focus = _detect_quiz_focus(review_context)
+    target_bridge = _default_target_bridge(review_context, focus)
+
+    payload = None
+    if focus in STRUCTURAL_QUIZ_FOCI:
+        payload = _deterministic_structural_quiz(
+            review_context,
+            focus,
+            target_bridge,
+            level="final_micro_confirm",
+            previous_quiz=previous_quiz,
+        )
+    if not payload:
+        payload = _deterministic_local_final_micro_confirm_payload(
+            review_context,
+            focus,
+            target_bridge,
+            previous_quiz=previous_quiz,
+        )
+    if not payload:
+        payload = _generic_final_micro_confirm_payload(review_context, focus, target_bridge)
+    if not payload:
+        return {
+            "mode": "fallback_explain",
+            "quiz_type": "",
+            "question_text": "",
+            "options": [],
+            "correct_answer": "",
+            "fallback_explain": "这一步暂时不适合继续加确认题，我们先停在这里，避免越讲越散。",
+            "explanation": "这一步暂时不适合继续加确认题，我们先停在这里，避免越讲越散。",
+            "target_bridge": target_bridge,
+            "difficulty_level": "final_micro_confirm",
+            "meta": {"difficulty_level": "final_micro_confirm", "focus": focus},
+        }
+
+    payload = _normalize_quiz_contract(payload, review_context, focus, QUIZ_ROLE_REMEDY)
+    if payload and payload.get("mode") == "quiz":
+        payload["difficulty_level"] = "final_micro_confirm"
+        payload["meta"] = {
+            **(payload.get("meta") or {}),
+            "difficulty_level": "final_micro_confirm",
+            "focus": focus,
+            "algorithm_category": (payload.get("meta") or {}).get("algorithm_category") or _infer_algorithm_category(review_context, focus),
+            "confirm_mode": "final_micro_confirm",
+            "previous_quiz_type": (previous_quiz or {}).get("quiz_type", ""),
+            "previous_question": (previous_quiz or {}).get("question_text", ""),
+        }
+    return payload
+
+
+def _knowledge_card_id(review_context: dict, focus: str, previous_quiz: dict | None = None) -> str:
+    text = " ".join(
+        str(part or "")
+        for part in (
+            review_context.get("problem_title"),
+            review_context.get("problem_context"),
+            review_context.get("bottleneck_text"),
+            review_context.get("key_bridge"),
+            (previous_quiz or {}).get("question_text", ""),
+        )
+    )
+    if focus == "left_bound_update":
+        return "binary_search.left_bound"
+    if focus == "lazy_semantics":
+        return "segment_tree.lazy_semantics"
+    if focus == "shared_prefix_merging":
+        return "string.trie.shared_prefix_merging"
+    if focus == "state_design":
+        return "dp.state_design"
+    if focus == "transition_design":
+        return "dp.transition_design"
+    if focus == "check_condition":
+        return "binary_search.check_condition"
+    if focus == "greedy_basis":
+        return "greedy.greedy_basis"
+    if focus == "tree_path_difference":
+        return "graph.tree_path_difference"
+    if focus == "tree_diameter_candidates":
+        return "graph.tree_diameter.tree_diameter_candidates"
+    if focus == "complexity_fit":
+        return "modeling.scale_estimation"
+    if focus in {"method_selection", "complexity_fit"}:
+        return "modeling.method_selection"
+    if focus == "general_modeling":
+        return "modeling.method_selection"
+    return f"bridge.{focus or 'generic'}"
+
+
+def generate_knowledge_bailout_card(review_context: dict, previous_quiz: dict | None = None) -> dict:
+    focus = _detect_quiz_focus(review_context)
+    target_bridge = _default_target_bridge(review_context, focus)
+    card_id = _knowledge_card_id(review_context, focus, previous_quiz)
+    opening = "你刚才已经试了几种方式，这不是白费。现在我们把这一步单独讲清楚，再回来确认。"
+
+    cards = {
+        "dp.state_design": {
+            "bridge_explanation": "这里最容易误会的是：dp[x][y] 这一格不是“整题答案放哪”。真正要站稳的是：它表示“站在格子 (x,y) 这个状态上，能得到的子问题结果”。先把这一格存什么说清楚，转移才不会乱。",
+            "visual_hint": "状态格 dp[x][y]\n-> 先问：它存的是什么结果\n-> 再问：这个结果从哪几格转来",
+            "algorithm_overview": "这一步在整套记忆化搜索/DP 里负责先把“状态格里存什么”站稳，也就是先把子问题结果说清楚。后面再让这些状态格彼此转移。",
+            "micro_action": "你先只回答一句：dp[x][y] 这一格是在记录哪一个子问题的结果？",
+        },
+        "dp.transition_design": {
+            "bridge_explanation": "这里最容易误会的是：先凭手感写一个最顺手的转移。真正要站稳的是：当前状态可能从哪几类前一个状态过来。先别急着写式子，先把来源想全。",
+            "visual_hint": "当前格 (i,j)\n<- 上一层 (i-1,j-1)\n<- 上一层 (i-1,j)\n先把来源想全，再写 max/min/加法",
+            "algorithm_overview": "这一步在整套 DP 里负责先把“当前状态依赖哪些前态”列出来，再决定怎么合并这些来源。",
+            "micro_action": "先只列两行：当前状态可能从哪几类前态来？",
+        },
+        "binary_search.check_condition": {
+            "bridge_explanation": "这里最容易误会的是：check(mid) 要直接算出答案。真正要站稳的是：它只回答一个小问题，现在这个 mid 行不行。先把这件事站稳，二分方向才不会乱。",
+            "visual_hint": "check(5)=true\n-> 只说明 5 还可行\n-> 再决定区间往哪边缩",
+            "algorithm_overview": "这一步在整套二分答案里负责判断“当前这个 mid 是否可行”。二分本身只负责缩区间。比如 `check(5)=true`，只说明“答案至少还能达到 5”这句话当前成立，不是已经把最终答案直接算出来了。",
+            "micro_action": "你先只说一句：check(mid) 返回 true，到底说明了什么？",
+        },
+        "binary_search.left_bound": {
+            "bridge_explanation": "这里最容易误会的是：一看到 `a[mid] == x` 就能立刻停。真正要站稳的是：如果目标是最左位置，mid 还可能就是答案，所以要先保留 mid，再继续往左找。",
+            "visual_hint": "[1,2,2,2,3]\na[mid] == 2\n-> mid 先留作候选\n-> r = mid 继续往左缩",
+            "algorithm_overview": "这一步在整套二分边界题里负责先站稳“相等时要不要保留 mid”。只有这步对了，左边界才不会被你自己丢掉。",
+            "micro_action": "先只回答一句：为什么 `a[mid] == x` 时还不能马上把 mid 丢掉？",
+        },
+        "greedy.greedy_basis": {
+            "bridge_explanation": "这里最容易误会的是：先背一个贪心结论就行。真正要站稳的是：为什么当前这个对象先选不会吃亏，还能给后面留空间。",
+            "visual_hint": "[1,3] 先选\n[3,5] 还能接上\n-> 后面还有空间\n-> 这一步才不吃亏",
+            "algorithm_overview": "这一步在整套贪心里负责解释“为什么先选它不会吃亏”。后面才谈局部最优怎样连成整体。",
+            "micro_action": "你先只回答：先选当前这个对象，为什么不会把后面堵死？",
+        },
+        "graph.tree_diameter.tree_diameter_candidates": {
+            "bridge_explanation": "这里最容易误会的是：加上一条新边后，只要盯着新边本身看。真正要站稳的是：新的最长路只可能来自左边内部、右边内部，或者经过新边把两边最远点接起来。",
+            "visual_hint": "左边最远点\n右边最远点\n经过新边接起来\n先比较这三类候选，再判断谁最长",
+            "algorithm_overview": "这一步在整套树直径思路里负责先把三类候选想全。后面才去比较哪一类真的最长。",
+            "micro_action": "先只回答一句：如果最长路经过新边，两边各该接到什么样的点？",
+        },
+        "graph.tree_path_difference": {
+            "bridge_explanation": "这里最容易误会的是：树剖或 LCA 本身会把答案算出来。真正要站稳的是：LCA 只是帮你定位一条树上路径在哪里分叉；路径贡献要先变成端点、LCA 和 LCA 父亲附近的差分标记，最后用 DFS 子树汇总还原每个点的经过次数。",
+            "visual_hint": "一条路径 s -> t\ns += 1, t += 1\nlca -= 1, parent(lca) -= 1\nDFS 向上汇总 -> 路径上的点得到贡献",
+            "algorithm_overview": "这一步在整套树上差分里负责把“很多路径逐点加一”改成“每条路径只改少数几个点”。树剖可以帮你求 LCA 或维护路径，但 P3128 这座桥的核心仍然是：端点/LCA 打标记，最后 DFS 汇总出每个点被经过多少次。",
+            "micro_action": "先只回答一句：一条 s 到 t 的路径，为什么不是沿路逐点加，而是先在端点和 LCA 附近打标记？",
+        },
+        "string.trie.shared_prefix_merging": {
+            "bridge_explanation": "这里最容易误会的是：trie 像在神奇地把答案背出来。真正要站稳的是：它先把公共前缀合在一起，所以查询时不用重看所有消息，只沿当前前缀往下走。",
+            "visual_hint": "101\n100\n11\n前缀 10 先合在一起\n查询时只沿前缀路径往下走",
+            "algorithm_overview": "这一步在整套 trie 里负责先把相同开头合并起来。后面查询时就只需要沿这条前缀路径走。比如消息有 `101`、`100`、`11`，前两条前面两位一样，就值得先把这段相同开头合在一起看。",
+            "micro_action": "先只回答一句：trie 为什么能省掉重看所有消息这件事？",
+        },
+        "modeling.method_selection": {
+            "bridge_explanation": "这里最容易误会的是：先凭题感猜一个方法名。真正要站稳的是：先看题面里有没有真正支持这个方法的结构信号。方法选对，先靠题面信号，不靠题感。",
+            "visual_hint": "题面信号\n-> 规模 / 结构 / 约束\n-> 这些信号支持哪种做法",
+            "algorithm_overview": "这一步在整套方法选择里负责先读题面信号，先抓住题面里真正的结构信号。后面才判断这些结构信号支持哪种做法。",
+            "micro_action": "先指出题面里一个真正支持当前方法的信号。",
+        },
+        "modeling.scale_estimation": {
+            "bridge_explanation": "这里最容易误会的是：先报一个更高级的方法名就行。真正要站稳的是：先估规模，如果两层数量一起变大，双层枚举很可能先炸。先把“当前做法能不能过”站稳，再判断要不要换方法。",
+            "visual_hint": "先看数据范围\n-> 再看有没有两层一起变大\n-> 最后判断双层枚举能不能撑住",
+            "algorithm_overview": "这一步在整套方法判断里负责先看规模能不能撑住当前做法，先判断双层枚举会不会先炸。后面才决定要不要换方法。",
+            "micro_action": "先只回答一句：这题更该先判断哪件事，方法名还是规模能不能过？",
+        },
+        "segment_tree.lazy_semantics": {
+            "bridge_explanation": "这里最容易误会的是：lazy 像“代码还没执行完”。真正要站稳的是：lazy 记录的是这段区间已经确定、但还没下传给孩子的信息。",
+            "visual_hint": "[1,4]\nlazy=3\n左儿长度=2\n-> pushdown: 左儿 sum += 3×2",
+            "algorithm_overview": "这一步在线段树里负责先把 lazy 的语义站稳：它记录的是区间信息暂时还挂在父节点上，后面再下传给孩子。比如节点管 `[1,4]`，`lazy=3` 表示这段区间每个数都还欠着 `+3` 没下传；如果左儿子长度是 `2`，pushdown 时左儿子的 `sum` 会先加 `3×2`。",
+            "micro_action": "先只回答一句：lazy 标记到底记录的是哪一类信息？",
+        },
+    }
+    selected = cards.get(card_id) or {
+        "bridge_explanation": f"你现在卡住的这一步，其实可以先缩成一句更白的话：{target_bridge or '先把当前桥站稳。'}",
+        "visual_hint": "先只盯这一小步\n-> 说清它在做什么\n-> 再回到整题",
+        "algorithm_overview": "先把当前桥讲清楚，再把它放回整种方法里看，理解会更稳。",
+        "micro_action": "先只用一句话，说清你现在卡住的这一步到底在确认什么。",
+    }
+    focus_text = " ".join(
+        str(part or "")
+        for part in (
+            review_context.get("problem_title"),
+            review_context.get("problem_context"),
+            review_context.get("bottleneck_text"),
+            review_context.get("key_bridge"),
+            target_bridge,
+        )
+    )
+    if card_id == "modeling.method_selection" and _contains_any(focus_text, ("trie", "前缀", "拦截串", "消息")):
+        selected = {
+            **selected,
+            "visual_hint": "101\n100\n11\n前两条前面两位一样\n-> 这就是“相同开头”的题面信号\n-> 这是支持 trie 的题面信号",
+            "algorithm_overview": "这一步在整套方法选择里负责先读题面信号：很多消息有相同开头，而且要反复按前缀查。比如消息有 `101`、`100`、`11`，前两条前面两位一样，这就是一个很直接的信号。先把这个信号抓住，下一步才会自然过渡到“这些相同开头值不值得先合在一起看”。",
+            "micro_action": "先指出题面里一个支持 trie 的信号，再补一句：为什么很多消息相同开头值得先合在一起看？",
+        }
+    if card_id == "string.trie.shared_prefix_merging" and _is_trie_node_count_context(focus_text):
+        selected = {
+            **selected,
+            "bridge_explanation": "这里最容易误会的是：trie 节点像随便存个数字就行。真正要站稳的是：经过次数记录了有多少消息经过当前前缀节点，结束次数记录了有多少消息正好在这里结束。把这两个数分清，前缀查询时才知道该沿路径累加什么。",
+            "visual_hint": "101\n100\n11\n前缀 10 这个节点\n-> 经过次数至少是 2\n-> 结束次数另算",
+            "algorithm_overview": "这一步在整套 trie 里负责先把“节点到底存什么”站稳。比如消息有 `101`、`100`、`11`，前两条都会经过前缀 `10` 这个节点，所以它的经过次数至少是 `2`；如果一条消息正好在某个节点结束，还要单独记结束次数。查询时，你才知道为什么能沿路径看经过次数和结束次数，而不是把所有消息重新翻一遍。",
+            "micro_action": "先只回答一句：经过次数表示的到底是哪一类信息？",
+        }
+    selected = _augment_knowledge_card_with_external_snippets(card_id, selected)
+    return {
+        "mode": "knowledge_card",
+        "card_id": card_id,
+        "knowledge_card_id": card_id,
+        "opening": opening,
+        "bridge_explanation": selected["bridge_explanation"],
+        "visual_hint": selected.get("visual_hint", ""),
+        "algorithm_overview": selected["algorithm_overview"],
+        "micro_action": selected["micro_action"],
+        "target_bridge": target_bridge,
+        "focus": focus,
+    }
+
+
+def generate_knowledge_confirm_quiz(
+    review_context: dict,
+    knowledge_card: dict,
+    previous_quiz: dict | None = None,
+) -> dict:
+    del previous_quiz
+    card_id = str((knowledge_card or {}).get("card_id") or "")
+    target_bridge = str((knowledge_card or {}).get("target_bridge") or "").strip()
+    focus = str((knowledge_card or {}).get("focus") or _detect_quiz_focus(review_context))
+    algorithm_category = _infer_algorithm_category(review_context, focus)
+    payload_map = {
+        "dp.state_design": {
+            "question_text": "知识卡后确认：如果只看 dp[x][y] 这一格，它更像在记录什么？",
+            "options": [
+                {"value": "A", "label": "这个状态本身对应的子问题结果"},
+                {"value": "B", "label": "整道题最后答案应该直接写在哪"},
+                {"value": "C", "label": "外层循环当前写到第几轮"},
+            ],
+            "correct_answer": "A",
+            "explanation": "知识卡后的最后确认，只看你有没有把“状态格存什么”站稳。",
+            "bridge_feedback": "先把状态格记录的子问题结果站稳。",
+            "distractor_feedback": {
+                "B": "这仍然把状态格当成整题答案位置了。状态格先存的是当前状态自己的结果。",
+                "C": "循环写到第几轮是代码过程，不是状态格本身记录的内容。",
+            },
+        },
+        "dp.transition_design": {
+            "question_text": "知识卡后确认：如果当前状态可能有两类合法来源，先要做的更像下面哪件事？",
+            "options": [
+                {"value": "A", "label": "先把两类合法来源想全"},
+                {"value": "B", "label": "先随便挑一种来源写上去"},
+                {"value": "C", "label": "先把最终答案位置定好"},
+            ],
+            "correct_answer": "A",
+            "explanation": "这题只确认一个最小事实：转移前先把合法来源想全。",
+            "bridge_feedback": "先把当前状态的来源想全。",
+            "distractor_feedback": {
+                "B": "少想一类来源，后面的转移再工整也会漏情况。",
+                "C": "这里先要站稳的是来源完整性，不是最终答案位置。",
+            },
+        },
+        "binary_search.check_condition": {
+            "question_text": "知识卡后确认：如果 `check(mid)` 返回 true，它先说明的更像下面哪句话？",
+            "options": [
+                {"value": "A", "label": "当前这个 mid 可行"},
+                {"value": "B", "label": "最终最优答案已经直接算出来了"},
+                {"value": "C", "label": "二分方向一定只能往更大的一边走"},
+            ],
+            "correct_answer": "A",
+            "explanation": "知识卡后的最后确认，只看你有没有把 check 的职责站稳。",
+            "bridge_feedback": "先把“当前这个 mid 可行”这句话站稳。",
+            "distractor_feedback": {
+                "B": "true 只是在说当前 mid 行得通，不是直接把最终答案算出来。",
+                "C": "区间往哪边缩，还要结合题目是在找最大可行还是最小可行。",
+            },
+        },
+        "binary_search.left_bound": {
+            "question_text": "知识卡后确认：如果目标是找最左那个位置，`a[mid] == x` 时更该先做什么？",
+            "options": [
+                {"value": "A", "label": "先保留 mid，再继续往左找更早的位置"},
+                {"value": "B", "label": "先把 mid 丢掉，只看右边"},
+                {"value": "C", "label": "直接返回 mid，不用再看前面"},
+            ],
+            "correct_answer": "A",
+            "explanation": "知识卡后的最后确认，只看你有没有把“相等时先保留 mid”站稳。",
+            "bridge_feedback": "先把“相等时保留 mid”这一步站稳。",
+            "distractor_feedback": {
+                "B": "目标是最左位置时，mid 可能就是答案，不能先丢。",
+                "C": "直接返回只能保证找到一个位置，不能保证它已经是最左那个。",
+            },
+        },
+        "greedy.greedy_basis": {
+            "question_text": "知识卡后确认：如果先选当前这个对象，更该先确认哪句话？",
+            "options": [
+                {"value": "A", "label": "它不会把后面的选择空间堵死"},
+                {"value": "B", "label": "它看起来最熟悉，所以先选它"},
+                {"value": "C", "label": "先选它只是为了让代码更好写"},
+            ],
+            "correct_answer": "A",
+            "explanation": "知识卡后的最后确认，只看你有没有把“为什么先选它不吃亏”站稳。",
+            "bridge_feedback": "先说明当前对象为什么不吃亏。",
+            "distractor_feedback": {
+                "B": "贪心依据不是熟悉感，而是这一步不会破坏后面的结构。",
+                "C": "代码好写不是贪心成立的理由。",
+            },
+        },
+        "graph.tree_diameter.tree_diameter_candidates": {
+            "question_text": "知识卡后确认：如果最长路经过新边，两边更该接到哪类点？",
+            "options": [
+                {"value": "A", "label": "连接点两侧各自离连接点最远的点"},
+                {"value": "B", "label": "连接点两侧随便找两个点接上就行"},
+                {"value": "C", "label": "只看左边最远点，右边接谁都差不多"},
+            ],
+            "correct_answer": "A",
+            "explanation": "知识卡后的最后确认，只看你有没有把“经过新边时两边都要接最远点”站稳。",
+            "bridge_feedback": "先把“经过新边时，两边都接各自最远点”这句话站稳。",
+            "distractor_feedback": {
+                "B": "随便接点不会得到这类候选里的最长路径，两边都要往更远的点去接。",
+                "C": "经过新边的候选要同时考虑左右两边，不是只拉长其中一边。",
+            },
+        },
+        "graph.tree_path_difference": {
+            "question_text": "知识卡后确认：P3128 这类多条树上路径统计经过次数时，更该先站稳哪句话？",
+            "options": [
+                {"value": "A", "label": "每条路径先在端点和 LCA 附近做差分标记，最后 DFS 汇总"},
+                {"value": "B", "label": "树剖或 LCA 求出来后，每个点的经过次数会自动出现"},
+                {"value": "C", "label": "每条路径都逐点加一最稳，差分只是可有可无的优化"},
+            ],
+            "correct_answer": "A",
+            "explanation": "知识卡后的最后确认，只看你有没有把“端点/LCA 标记 + DFS 汇总”这座桥站稳。",
+            "bridge_feedback": "先把“路径贡献差分标记，最后 DFS 汇总还原经过次数”站稳。",
+            "distractor_feedback": {
+                "B": "LCA 只定位路径分叉点，不会自动给出所有点的经过次数。",
+                "C": "逐点加一正是要避免的重复更新。树上差分不是装饰，而是核心记录方式。",
+            },
+        },
+        "string.trie.shared_prefix_merging": {
+            "question_text": "知识卡后确认：查询一条串时，trie 更像是在沿当前前缀做下面哪件事？",
+            "options": [
+                {"value": "A", "label": "沿着这条串的当前前缀一路往下走"},
+                {"value": "B", "label": "把所有消息重新逐条拿出来比一遍"},
+                {"value": "C", "label": "直接跳过前缀，系统自动背出答案"},
+            ],
+            "correct_answer": "A",
+            "explanation": "知识卡后的最后确认，只看你有没有把“沿前缀往下走”站稳。",
+            "bridge_feedback": "先把“只沿当前前缀往下走，不用重看所有消息”这件事站稳。",
+            "distractor_feedback": {
+                "B": "这仍然是在重看所有消息，正是 trie 想省掉的重复工作。",
+                "C": "trie 不是自动背答案，它只是把公共前缀提前合并。",
+            },
+        },
+        "modeling.method_selection": {
+            "question_text": "知识卡后确认：如果你要说明“为什么该用这个方法”，更该先说题面里的哪件事？",
+            "options": [
+                {"value": "A", "label": "题面里真正支持这个方法的结构信号"},
+                {"value": "B", "label": "这题像以前哪道熟题"},
+                {"value": "C", "label": "先把方法步骤背出来"},
+            ],
+            "correct_answer": "A",
+            "explanation": "知识卡后的最后确认，只看你会不会先抓题面信号。",
+            "bridge_feedback": "先说题面里支持这个方法的结构信号。",
+            "distractor_feedback": {
+                "B": "像不像熟题，不等于这题真的支持这个方法。",
+                "C": "背步骤不能代替题面信号判断。",
+            },
+        },
+        "modeling.scale_estimation": {
+            "question_text": "知识卡后确认：如果两层规模都可能很大，当前更该先确认哪件事？",
+            "options": [
+                {"value": "A", "label": "先判断双层枚举会不会明显超时"},
+                {"value": "B", "label": "先背一个更高级的方法名，规模以后再看"},
+                {"value": "C", "label": "先假设机器跑得够快，写完再试"},
+            ],
+            "correct_answer": "A",
+            "explanation": "知识卡后的最后确认，只看你有没有把“先做规模判断”站稳。",
+            "bridge_feedback": "先把“双层枚举会不会先炸，规模能不能撑住当前做法”这句话站稳。",
+            "distractor_feedback": {
+                "B": "方法名不能替代规模判断。先要知道当前做法会不会在这个规模下炸掉。",
+                "C": "把超时风险留到最后再碰，会让你在错误方向上走很久。",
+            },
+        },
+        "segment_tree.lazy_semantics": {
+            "question_text": "知识卡后确认：lazy 标记更像在记录下面哪类东西？",
+            "options": [
+                {"value": "A", "label": "当前区间已经确定、但还没下传给孩子的信息"},
+                {"value": "B", "label": "当前函数还没执行完的代码步骤"},
+                {"value": "C", "label": "整棵树最后的最终答案"},
+            ],
+            "correct_answer": "A",
+            "explanation": "知识卡后的最后确认，只看你有没有把 lazy 的语义站稳。",
+            "bridge_feedback": "先把 lazy 记录的是“还没下传的信息”站稳。",
+            "distractor_feedback": {
+                "B": "lazy 不是代码执行进度条，而是区间信息还挂在父节点上。",
+                "C": "最终答案不会直接塞进 lazy。lazy 只负责记录还没下传的信息。",
+            },
+        },
+    }
+    selected = payload_map.get(card_id) or {
+        "question_text": "知识卡后确认：现在你最该先说清楚下面哪件事？",
+        "options": [
+            {"value": "A", "label": target_bridge or "当前这一步到底在确认什么"},
+            {"value": "B", "label": "先猜它像哪类熟题"},
+            {"value": "C", "label": "先跳到完整解法"},
+        ],
+        "correct_answer": "A",
+        "explanation": "知识卡后的最后确认，只看你有没有把当前桥说清楚。",
+        "bridge_feedback": target_bridge or "先把当前桥说清楚。",
+        "distractor_feedback": {
+            "B": "这里先要站稳的是当前桥，不是熟题联想。",
+            "C": "直接跳完整解法，会把刚刚补的桥又冲散。",
+        },
+    }
+    focus_text = " ".join(
+        str(part or "")
+        for part in (
+            review_context.get("problem_title"),
+            review_context.get("problem_context"),
+            review_context.get("bottleneck_text"),
+            review_context.get("key_bridge"),
+            target_bridge,
+        )
+    )
+    if card_id == "string.trie.shared_prefix_merging" and _is_trie_node_count_context(focus_text):
+        selected = {
+            "question_text": "知识卡后确认：如果一个 trie 节点记录经过次数，它更像在说明下面哪句话？",
+            "options": [
+                {"value": "A", "label": "有多少消息经过当前前缀节点"},
+                {"value": "B", "label": "当前代码已经执行到了第几步"},
+                {"value": "C", "label": "整棵 trie 的最终答案已经放在这里"},
+            ],
+            "correct_answer": "A",
+            "explanation": "知识卡后的最后确认，只看你有没有把“经过次数记录的是经过当前前缀节点的消息数”站稳。",
+            "bridge_feedback": "先把“经过次数表示有多少消息经过当前前缀节点”这句话站稳。",
+            "distractor_feedback": {
+                "B": "经过次数不是代码执行进度，它是在记这条前缀路径上有多少消息走到这里。",
+                "C": "节点里的经过次数不是整题答案，只是当前前缀节点的局部统计。",
+            },
+        }
+    if card_id == "modeling.method_selection" and _contains_any(focus_text, ("trie", "前缀", "拦截串", "消息")):
+        selected = {
+            "question_text": "知识卡后确认：如果很多消息有相同开头，而且还要反复按前缀查，下面哪句更像真正支持 trie 的说明？",
+            "options": [
+                {"value": "A", "label": "很多消息有相同开头，值得先合在一起看，再按前缀一路往下查"},
+                {"value": "B", "label": "只要看到字符串题，就可以先默认套 trie"},
+                {"value": "C", "label": "先把 trie 的代码步骤背下来，题面信号以后再补"},
+            ],
+            "correct_answer": "A",
+            "explanation": "知识卡后的最后确认，不只看你会不会说“支持 trie”，还看你能不能把这个支持理由说得更贴题：很多消息有相同开头，而且要反复按前缀查，所以这些相同开头值得先合在一起看。",
+            "bridge_feedback": "先把“题面里有很多相同开头，而且这些相同开头值得先合在一起看，所以支持 trie”这句话站稳。",
+            "distractor_feedback": {
+                "B": "字符串题很多，但不是所有字符串题都该默认上 trie。还是要回到题面里看有没有共享前缀和反复前缀查询这类信号。",
+                "C": "背代码步骤不能代替方法判断。学生还是要先说清楚这题为什么支持 trie。",
+            },
+        }
+    return {
+        "mode": "quiz",
+        "quiz_type": "choice",
+        "question_text": selected["question_text"],
+        "options": selected["options"],
+        "correct_answer": selected["correct_answer"],
+        "explanation": selected["explanation"],
+        "bridge_feedback": selected["bridge_feedback"],
+        "distractor_feedback": selected["distractor_feedback"],
+        "target_bridge": target_bridge,
+        "difficulty_level": "knowledge_confirm",
+        "meta": {
+            "difficulty_level": "knowledge_confirm",
+            "knowledge_bailout": True,
+            "knowledge_card_id": card_id,
+            "knowledge_card": knowledge_card,
+            "focus": focus,
+            "algorithm_category": algorithm_category,
+        },
+    }
+
+
 def _confirm_quiz_payload(review_context: dict, focus: str, target_bridge: str, previous_quiz: dict | None = None) -> dict:
     if focus in {"unknown"}:
         return {
@@ -2727,6 +5713,17 @@ def _confirm_quiz_payload(review_context: dict, focus: str, target_bridge: str, 
                 "confirm_focus": "fallback_explain",
             },
         }
+
+    if focus == "tree_path_difference":
+        structural_payload = _deterministic_structural_quiz(
+            review_context,
+            focus,
+            target_bridge,
+            level="confirm",
+            previous_quiz=previous_quiz,
+        )
+        if structural_payload:
+            return structural_payload
 
     if focus in STRUCTURAL_QUIZ_FOCI:
         structural_payload = _generate_structural_confirm_quiz(
@@ -2994,7 +5991,186 @@ def generate_confirm_quiz_from_pool(
 
 
 def generate_remedy_explanation(review_context: dict, remedy_action: str) -> dict:
-    """生成解释类补救内容，保持可控而不开放到整题题解。"""
+    """生成解释类补救内容，优先走 clarify/remedy prompt，失败时回退到 deterministic 文案。"""
+    error_layer = review_context.get("error_layer", "insufficient")
+    if error_layer == "insufficient":
+        messages = [
+            {"role": "system", "content": _build_clarify_system_prompt()},
+            {"role": "user", "content": _build_clarify_user_prompt(review_context, remedy_action)},
+        ]
+    else:
+        deterministic = _generate_bridge_specific_remedy_explanation(review_context, remedy_action)
+        if deterministic:
+            return deterministic
+
+    if error_layer == "insufficient":
+        pass
+    elif (review_context.get("remedy_count") or 0) >= 1:
+        messages = [
+            {"role": "system", "content": _build_bottom_out_system_prompt(remedy_action)},
+            {"role": "user", "content": _build_bottom_out_user_prompt(review_context, remedy_action)},
+        ]
+    else:
+        messages = [
+            {"role": "system", "content": _build_remedy_system_prompt(remedy_action)},
+            {"role": "user", "content": _build_remedy_user_prompt(review_context, remedy_action)},
+        ]
+
+    llm_success, content, _telemetry = _call_llm(messages)
+    if llm_success:
+        parsed = _parse_remedy_explanation_payload(content)
+        if parsed:
+            return {
+                "remedy_type": "explain",
+                "remedy_action": remedy_action,
+                **parsed,
+            }
+
+    return _generate_remedy_explanation_fallback(review_context, remedy_action)
+
+
+def _parse_remedy_explanation_payload(content: str) -> dict | None:
+    try:
+        parsed = json.loads(content)
+    except Exception:
+        return None
+
+    remedy_text = str(parsed.get("remedy_text", "")).strip()
+    micro_action = str(parsed.get("micro_action", "")).strip()
+    if not remedy_text or not micro_action:
+        return None
+
+    return {
+        "remedy_text": remedy_text[:400],
+        "visual_hint": str(parsed.get("visual_hint", "")).strip()[:240],
+        "micro_action": micro_action[:160],
+    }
+
+
+def _generate_bridge_specific_remedy_explanation(review_context: dict, remedy_action: str) -> dict | None:
+    focus = _detect_quiz_focus(review_context)
+    if focus not in {
+        "transition_design",
+        "state_design",
+        "check_condition",
+        "complexity_fit",
+        "method_selection",
+        "shared_prefix_merging",
+        "lazy_semantics",
+        "left_bound_update",
+        "constraint_modeling",
+        "tree_path_difference",
+    }:
+        return None
+
+    bottleneck_text = (review_context.get("bottleneck_text") or "").strip()
+    main_block = (review_context.get("main_block") or "").strip()
+    anchor = bottleneck_text[:60] if bottleneck_text else (main_block[:60] if main_block else "")
+    opening = f"你刚才卡住的是：{anchor}。" if anchor else ""
+    if (review_context.get("remedy_count") or 0) >= 1:
+        opening += " 这次我们不再绕整题，只盯住这一个最小事实。"
+
+    payload_map = {
+        "transition_design": {
+            "remedy_text": "这里最容易误会的是：转移式像凭感觉试出来的。真正要站稳的是：先把当前状态可能从哪些更小状态转来想全，再由这些来源写出转移。",
+            "visual_hint": "当前格 (i,j)\n<- 上一层 (i-1,j-1)\n<- 上一层 (i-1,j)\n再写转移式",
+            "micro_action": "你现在先只回答一句：当前状态可能从哪几个更小状态转来？",
+        },
+        "state_design": {
+            "remedy_text": "这里最容易误会的是：状态格只是代码里随便起的一个变量。真正要站稳的是：这一格在回答哪一个更小的子问题，它记录的是这个子问题的结果。",
+            "visual_hint": "先看这一格在回答什么小问题\n-> 再说这一格存什么\n-> 后面才知道怎么转移",
+            "micro_action": "你现在先只回答一句：dp[x][y] 这一格到底在记录哪一个子问题的结果？",
+        },
+        "check_condition": {
+            "remedy_text": "这里最容易误会的是：check(mid) 要直接把答案算出来。真正要站稳的是：它只负责回答一个小问题，当前这个 mid 到底可不可行。比如 `check(5)=true`，只说明“最小跳跃距离至少为 5”这件事当前还能做到。",
+            "visual_hint": "check(5)=true\n-> 只说明 5 可行\n-> 二分再决定往哪边缩",
+            "micro_action": "你现在先只说一句：check(mid) 返回 true，到底说明了什么？",
+        },
+        "complexity_fit": {
+            "remedy_text": "这里最容易误会的是：先报一个更高级的方法名就行。真正要站稳的是：先把会一起变大的量圈出来，估一眼总量级，再判断双层枚举会不会先炸。",
+            "visual_hint": "先看数据范围\n-> 哪些量一起变大\n-> 总量级会不会先炸",
+            "micro_action": "你现在先只回答一句：这题更该先判断规模能不能过，还是先报方法名？",
+        },
+        "method_selection": {
+            "remedy_text": "这里最容易误会的是：先凭题感猜一个方法名。真正要站稳的是：先回到题面，指出哪一个结构信号真的在支持这个方法。",
+            "visual_hint": "题面对象/操作/限制\n-> 哪个是真线索\n-> 这条线索支持什么方法",
+            "micro_action": "你现在先指出题面里一个真正支持当前方法的结构信号。",
+        },
+        "shared_prefix_merging": {
+            "remedy_text": "这里最容易误会的是：trie 像在神奇地把答案背出来。真正要站稳的是：公共前缀先合在一起以后，查询时就不用重看所有消息，只沿当前前缀路径往下走。比如消息有 `101`、`100`、`11`，前两条前面两位一样，就值得先把这段相同开头合在一起看。",
+            "visual_hint": "101\n100\n11\n前缀 10 先合在一起\n查询时只沿前缀路径走",
+            "micro_action": "你现在先只回答一句：为什么查询时只沿当前前缀路径走，就能省掉重看所有消息？",
+        },
+        "lazy_semantics": {
+            "remedy_text": "这里最容易误会的是：lazy 像“代码还没执行完”。真正要站稳的是：lazy 记录的是这段区间已经确定、但还没下传给孩子的信息。比如节点管 `[1,4]`，`lazy=3` 表示这段区间每个数都还欠着 `+3`；如果左儿子长度是 `2`，pushdown 时左儿子的 `sum` 会先加 `3×2`。",
+            "visual_hint": "[1,4]\nlazy=3\n左儿长度=2\n-> pushdown: 左儿 sum += 3×2",
+            "micro_action": "你现在先只回答一句：lazy 标记到底记录的是哪一类信息？",
+        },
+        "left_bound_update": {
+            "remedy_text": "这里最容易误会的是：一看到 `a[mid] == x` 就能立刻停。真正要站稳的是：如果目标是最左位置，mid 还可能就是答案，所以要先保留 mid，再继续往左找。",
+            "visual_hint": "[1,2,2,2,3]\na[mid] == 2\n-> mid 先留作候选\n-> r = mid 继续往左缩",
+            "micro_action": "你现在先只回答一句：为什么 `a[mid] == x` 时还不能马上把 mid 丢掉？",
+        },
+        "constraint_modeling": {
+            "remedy_text": "这里最容易误会的是：先凭感觉把条件一条条硬拼在一起。真正要站稳的是：先把每条限制都翻译成同一种关系，再看这些关系是谁限制谁、能不能放进同一张图里。",
+            "visual_hint": "A <= B + c\nB <= C + d\n先统一成同一种关系\n-> 再看谁限制谁",
+            "micro_action": "你现在先只指出一句：这题里的限制该先统一翻成哪一类关系？",
+        },
+        "tree_path_difference": {
+            "remedy_text": "这里最容易误会的是：树剖/LCA 这个方法名本身会把 P3128 做完。真正要站稳的是：LCA 只是帮你找到路径分叉点；每条 s 到 t 的路径贡献要先压成 s、t、LCA 和 LCA 父亲附近的差分标记，最后 DFS 子树汇总，才还原出每个点被经过了多少次。",
+            "visual_hint": "s -> t 路径\ns += 1, t += 1\nlca -= 1, parent(lca) -= 1\nDFS 汇总 -> 点经过次数",
+            "micro_action": "你现在先只回答一句：为什么这题不是每条路径逐点加，而是先端点/LCA 打标记？",
+        },
+    }
+    selected = payload_map[focus]
+    if focus == "method_selection":
+        focus_text = " ".join(
+            str(part or "")
+            for part in (
+                review_context.get("problem_title"),
+                review_context.get("problem_context"),
+                review_context.get("bottleneck_text"),
+                review_context.get("key_bridge"),
+            )
+        )
+        if _contains_any(focus_text, ("trie", "前缀", "拦截串", "消息")):
+            selected = {
+                **selected,
+                "remedy_text": "这里最容易误会的是：先凭题感猜一个方法名。真正要站稳的是：先回到题面，看见“很多消息有相同开头，而且还要反复按前缀查”这个信号。比如消息有 `101`、`100`、`11`，前两条前面两位一样，这就是一个能看见的局部结构。先抓住这个信号，下一步你才会自然想到：这些相同开头值不值得先合在一起看。",
+                "visual_hint": "101\n100\n11\n前两条前面两位一样\n-> 这就是“相同开头”的题面信号\n-> 这是支持 trie 的题面信号",
+                "micro_action": "你现在先指出一句：题面里哪个“相同开头”信号在支持 trie？",
+            }
+    if focus == "shared_prefix_merging":
+        focus_text = " ".join(
+            str(part or "")
+            for part in (
+                review_context.get("problem_title"),
+                review_context.get("problem_context"),
+                review_context.get("bottleneck_text"),
+                review_context.get("main_block"),
+                review_context.get("key_bridge"),
+                review_context.get("next_step"),
+            )
+        )
+        if _is_trie_node_count_context(focus_text):
+            selected = {
+                **selected,
+                "remedy_text": "这里最容易误会的是：节点上随便记一个数字就够了。真正要站稳的是：经过次数表示有多少消息经过当前前缀节点，结束次数表示有多少消息正好在这里结束。比如消息有 `101`、`100`、`11`，前两条都会经过前缀 `10` 这个节点，所以它的经过次数至少是 `2`。这样查询时，你才知道为什么可以沿路径看经过次数和结束次数，而不是把所有消息重新翻一遍。",
+                "visual_hint": "101\n100\n11\n前缀 10 这个节点\n-> 经过次数至少是 2\n-> 结束次数另算",
+                "micro_action": "你现在先只回答一句：经过次数表示的到底是哪一类信息？",
+            }
+    selected = _augment_remedy_with_external_snippets(focus, selected)
+    return {
+        "remedy_type": "explain",
+        "remedy_action": remedy_action,
+        "remedy_text": f"{opening} {selected['remedy_text']}".strip(),
+        "visual_hint": selected["visual_hint"],
+        "micro_action": selected["micro_action"],
+    }
+
+
+def _generate_remedy_explanation_fallback(review_context: dict, remedy_action: str) -> dict:
+    """当前补救链路的 deterministic 兜底，确保 prompt split 失败时学习流不崩。"""
     error_layer = review_context.get("error_layer", "insufficient")
     key_bridge = review_context.get("key_bridge") or ""
     main_block = review_context.get("main_block") or ""
@@ -3006,6 +6182,7 @@ def generate_remedy_explanation(review_context: dict, remedy_action: str) -> dic
             "remedy_type": "explain",
             "remedy_action": remedy_action,
             "remedy_text": f"你刚才真正卡住的是：{bottleneck_anchor or '还没把断点说清楚'}。你现在最需要的不是继续猜方法，而是先把这题到底求什么、你试过什么、你具体断在了哪一步说清楚。",
+            "visual_hint": "题目求什么\n-> 你试到哪一步\n-> 你具体卡在哪",
             "micro_action": "你现在先用一句话写：题目要我求什么；再写一句：我试到哪一步停住了。",
         }
 
@@ -3037,11 +6214,20 @@ def generate_remedy_explanation(review_context: dict, remedy_action: str) -> dic
         }
         text = rephrase_examples.get(error_layer, main_block or "我们先只讲这一小步。")
 
+    visual_hint = ""
+    if remedy_action == REMEDY_ACTION_SMALLER_EXAMPLE:
+        visual_hint = "先只盯这一小块\n-> 把对象写出来\n-> 再看它们的关系"
+    elif remedy_action == REMEDY_ACTION_DYNAMIC:
+        visual_hint = "先看对象\n再看关系\n最后只做这一小步"
+    if (review_context.get("remedy_count") or 0) >= 1:
+        visual_hint = "当前题最小例子\n左边这一端 -> 接谁更远\n右边这一端 -> 接谁更远"
+
     remedy_prefix = f"你刚才卡住的是：{bottleneck_anchor}。" if bottleneck_anchor else ""
     return {
         "remedy_type": "explain",
         "remedy_action": remedy_action,
         "remedy_text": f"{remedy_prefix}{text}".strip(),
+        "visual_hint": visual_hint,
         "micro_action": (review_context.get("next_step") or "你现在先只盯住这一小步，不要一下看完整题。")[:120],
     }
 
@@ -3106,7 +6292,7 @@ def generate_review(
     allow_algorithm_name = completion_status == "editorial"
 
     mode = _detect_review_mode(completion_status, submission_result)
-    system_prompt = _build_review_system_prompt(mode=mode, handoff_payload=handoff_payload)
+    system_prompt = _build_normal_review_system_prompt(mode=mode, handoff_payload=handoff_payload)
     user_prompt = _build_review_user_prompt(
         problem_title=problem_title,
         oj_source=oj_source,
@@ -3170,6 +6356,27 @@ def generate_review(
         bottleneck_text=bottleneck_text,
         error_types=error_types,
     )
+    bridge_consistency_focus = _detect_quiz_focus(
+        {
+            "error_layer": review.get("error_layer", "insufficient"),
+            "core_design_subtags": review.get("core_design_subtags") or [],
+            "problem_title": problem_title,
+            "problem_context": problem_context or "",
+            "bottleneck_text": bottleneck_text,
+            "error_types": error_types or [],
+            "main_block": review.get("main_block", ""),
+            "key_bridge": review.get("key_bridge", ""),
+            "next_step": review.get("next_step", ""),
+            "transfer_signal": review.get("transfer_signal", ""),
+        }
+    )
+    review = _guard_review_bridge_consistency(
+        review,
+        focus=bridge_consistency_focus,
+        problem_title=problem_title,
+        problem_context=problem_context,
+        bottleneck_text=bottleneck_text,
+    )
     review = _guard_mst_clustering_review(
         review,
         problem_title=problem_title,
@@ -3192,6 +6399,26 @@ def generate_review(
         bottleneck_text=bottleneck_text,
     )
     review = _simplify_student_language(review)
+    bridge_route_meta = _resolve_bridge_decision(
+        {
+            "problem_title": problem_title,
+            "problem_context": problem_context or "",
+            "bottleneck_text": bottleneck_text,
+            "error_types": error_types or [],
+            "problem_tags": problem_tags or [],
+            "error_layer": review.get("error_layer", "insufficient"),
+            "error_layer_confidence": review.get("error_layer_confidence", "low"),
+            "core_design_subtags": review.get("core_design_subtags") or [],
+            "problem_focus": review.get("problem_focus", ""),
+            "main_block": review.get("main_block", ""),
+            "key_bridge": review.get("key_bridge", ""),
+            "visual_hint": review.get("visual_hint", ""),
+            "guided_walkthrough": review.get("guided_walkthrough", ""),
+            "try_now": review.get("try_now", ""),
+            "next_step": review.get("next_step", ""),
+            "transfer_signal": review.get("transfer_signal", ""),
+        }
+    )
     review_quality_flags = _detect_review_quality_flags(review, allow_algorithm_name=allow_algorithm_name)
 
     return {
@@ -3199,6 +6426,7 @@ def generate_review(
         "kind": "success",
         "review": review,
         "review_quality_flags": review_quality_flags,
+        "bridge_route_meta": bridge_route_meta,
         "telemetry": telemetry,
         "message": "复盘生成成功"
     }
