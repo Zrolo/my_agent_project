@@ -31,3 +31,6 @@ test-results/
 .superpowers/
 .tmp_*.spec.js
 agent_learning/03_noi_agent/evals/aichat/reports/
+
+# Local paper PDFs used for reading/research; keep derived notes in docs/
+agent_learning/03_noi_agent/paper*.pdf
