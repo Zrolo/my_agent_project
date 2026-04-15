@@ -17,6 +17,19 @@ client = None
 CLASSIFIER_TIMEOUT_SECONDS = 2.5
 DEFAULT_CHAT_MODELS = ("kimi-k2.5",)
 
+AC_SIGNAL_KEYWORDS = [
+    "AC了", "AC 了", "过了", "通过了", "提交成功", "满分", "accepted",
+]
+
+AC_UNCERTAINTY_KEYWORDS = [
+    "蒙", "不懂", "不太懂", "想复盘", "没真懂", "感觉是猜的", "想弄清楚", "不确定为什么",
+]
+
+HANDOFF_FOCUS_BY_RISK = {
+    "ac_unclear_in_aichat": "复盘已 AC 题目的关键桥，验证一个理解点。",
+    "repeated_stuck_exit": "用小例子拆开当前卡住的桥，记录卡点和已尝试路径。",
+}
+
 # ============ 1. 代码层控制对象定义 ============
 
 # L2 槽位定义
@@ -32,7 +45,11 @@ VALID_REASON_TAGS = [
     "cross_slot_dump",
     "classifier_direct",
     "classifier_bridge",
-    "type_confirm"
+    "type_confirm",
+    "multi_question",
+    "missing_context",
+    "checkin_handoff",
+    "debug_no_code",
 ]
 
 # L1 强拦关键词
@@ -127,20 +144,43 @@ def get_client() -> OpenAI:
 
 # 风险标签优先级（从高到低）
 RISK_PRIORITY = {
+    "checkin_handoff": 0,
+    "missing_context": 1,
     "direct_request": 1,
-    "bridge_attempt": 2,
-    "type_confirm": 3,
-    "mixed_signal": 4,
-    "multi_question": 5,
+    "multi_question": 2,
+    "bridge_attempt": 3,
+    "type_confirm": 4,
+    "mixed_signal": 5,
+    "debug_no_code": 6,
+    "code_no_target": 6,
+    "emotion_pressure": 7,
 }
 
 # 风险标签对应的最高允许等级
 RISK_LEVEL_LIMITS = {
+    "checkin_handoff": "L2",
     "direct_request": "L1",
     "bridge_attempt": "L2",  # 无L3证据时
     "type_confirm": "L2",
     "mixed_signal": None,  # 按最危险意图处理
-    "multi_question": None,  # 不限制等级，但约束输出
+    "multi_question": "L1",
+    "debug_no_code": "L1",
+    "code_no_target": "L2",
+    "missing_context": "L1",
+    "emotion_pressure": "L1",
+}
+
+TUTOR_ACTION_BY_RISK = {
+    "checkin_handoff": "offer_checkin_reflection",
+    "direct_request": "ask_baseline_attempt",
+    "type_confirm": "ask_evidence_question",
+    "bridge_attempt": "ask_missing_bridge_evidence",
+    "mixed_signal": "ask_one_focus_point",
+    "multi_question": "ask_one_focus_point",
+    "debug_no_code": "ask_debug_evidence",
+    "code_no_target": "ask_code_evidence",
+    "missing_context": "request_problem_context",
+    "emotion_pressure": "ask_baseline_attempt",
 }
 
 
@@ -159,12 +199,18 @@ def _detect_risks(user_input: str) -> list:
     """
     risks = []
     text_lower = user_input.lower()
+
+    if _is_ac_reflection_request(user_input):
+        risks.append("checkin_handoff")
     
     # 1. direct_request: 直接索取
     for kw in L1_DIRECT_KEYWORDS:
         if kw in user_input:
             risks.append("direct_request")
             break
+
+    if any(kw in user_input for kw in L1_EMOTION_PRESSURE):
+        risks.append("emotion_pressure")
     
     # 2. type_confirm: 确认题型
     if _is_type_confirm(user_input):
@@ -179,8 +225,12 @@ def _detect_risks(user_input: str) -> list:
     question_count = text_lower.count('?') + text_lower.count('？')
     if question_count >= 2:
         risks.append("multi_question")
-    elif len([m for m in re.finditer(r'(\?|？|(?:怎么|如何|为什么|吗|吧)[？?\s]*)', user_input)]) >= 2:
-        risks.append("multi_question")
+
+    if _contains_code(user_input) and not _has_doubt_point(user_input):
+        risks.append("code_no_target")
+
+    if _is_debug_no_code_request(user_input):
+        risks.append("debug_no_code")
     
     # 5. mixed_signal: 混合多个危险意图
     # 如果同时命中多个风险标签（不含 multi_question），标记为 mixed_signal
@@ -189,6 +239,41 @@ def _detect_risks(user_input: str) -> list:
         risks.append("mixed_signal")
     
     return risks
+
+
+def _is_ac_reflection_request(text: str) -> bool:
+    return (
+        _contains_any_keyword(text, AC_SIGNAL_KEYWORDS)
+        and _contains_any_keyword(text, AC_UNCERTAINTY_KEYWORDS)
+    )
+
+
+def _contains_any_keyword(text: str, keywords: list[str]) -> bool:
+    lowered = (text or "").lower()
+    return any(keyword.lower() in lowered for keyword in keywords)
+
+
+def _is_debug_no_code_request(text: str) -> bool:
+    has_debug_symptom = any(kw in text for kw in ["WA", "错了", "不对", "样例", "输出", "答案"])
+    has_evidence_gap = not _contains_code(text) and any(kw in text for kw in ["不知道哪里错", "不知道哪错", "哪里错", "为什么错"])
+    return has_debug_symptom and has_evidence_gap
+
+
+def _is_missing_context_request(text: str, messages: list) -> bool:
+    if "[当前题目上下文" in _combined_message_text(messages):
+        return False
+    normalized = (text or "").strip()
+    if not normalized:
+        return True
+    vague_patterns = [
+        r"^这题怎么想[？?]?$",
+        r"^这题怎么做[？?]?$",
+        r"^怎么想[？?]?$",
+        r"^怎么做[？?]?$",
+        r"^不会[。！!？?]*$",
+        r"^没思路[。！!？?]*$",
+    ]
+    return any(re.search(pattern, normalized) for pattern in vague_patterns)
 
 
 def _get_highest_risk(risks: list) -> str:
@@ -201,6 +286,76 @@ def _get_highest_risk(risks: list) -> str:
     # 按优先级排序，返回优先级最高的
     sorted_risks = sorted(risks, key=lambda r: RISK_PRIORITY.get(r, 99))
     return sorted_risks[0]
+
+
+def _infer_scaffold_stage(messages: list) -> int:
+    """实时聊天只按同会话轮次做轻量支架升级。"""
+    user_turns = sum(1 for msg in messages if msg.get("role") == "user")
+    return max(1, min(user_turns or 1, 4))
+
+
+def _infer_zpd_level(level_control: dict, risk_control: dict) -> str:
+    max_level = level_control.get("max_level")
+    risk_tags = set(risk_control.get("risk_tags", []))
+    if max_level == "L1":
+        return "Z0"
+    if "type_confirm" in risk_tags or "bridge_attempt" in risk_tags:
+        return "Z2"
+    if max_level == "L2":
+        return "Z1"
+    if max_level == "L3":
+        return "Z3"
+    return "Z1"
+
+
+def _select_tutor_control(level_control: dict, risk_control: dict, messages: list) -> dict:
+    scaffold_stage = _infer_scaffold_stage(messages)
+    highest_risk = risk_control.get("highest_risk")
+    tutor_action = TUTOR_ACTION_BY_RISK.get(highest_risk)
+    if not tutor_action:
+        if level_control.get("max_level") == "L1":
+            tutor_action = "ask_baseline_attempt"
+        elif level_control.get("max_level") == "L2":
+            tutor_action = "ask_slot_question"
+        else:
+            tutor_action = "point_to_specific_gap"
+
+    if scaffold_stage >= 4 and tutor_action not in {"ask_baseline_attempt", "ask_one_focus_point", "offer_checkin_reflection"}:
+        tutor_action = "offer_micro_example_or_checkin"
+
+    allowed_help_by_stage = {
+        1: "只问一个证据问题，不给结论",
+        2: "给一个很小的方向提示，再问一个问题",
+        3: "给一个极小例子或局部图示，再问一个问题",
+        4: "给半步支架；仍卡住则建议打卡复盘",
+    }
+    forbidden = ["完整题解", "完整代码", "一次性列完整算法步骤"]
+    risk_tags = set(risk_control.get("risk_tags", []))
+    if "type_confirm" in risk_tags:
+        forbidden.append("禁止确认/否认题型")
+    if "bridge_attempt" in risk_tags or level_control.get("bridge_redline"):
+        forbidden.append("禁止直接补关键桥")
+
+    return {
+        "zpd_level": _infer_zpd_level(level_control, risk_control),
+        "scaffold_stage": scaffold_stage,
+        "tutor_action": tutor_action,
+        "allowed_help": allowed_help_by_stage[scaffold_stage],
+        "forbidden": forbidden,
+        "edf_required": True,
+    }
+
+
+def _extract_student_original_input(user_input: str) -> str:
+    """从注入题目上下文的聊天消息中取回学生原始提问，避免误判系统提示词。"""
+    marker = "[学生原始问题]"
+    context_marker = "[当前题目上下文"
+    if marker not in user_input:
+        return user_input
+    after_marker = user_input.split(marker, 1)[1]
+    if context_marker in after_marker:
+        after_marker = after_marker.split(context_marker, 1)[0]
+    return after_marker.strip() or user_input
 
 
 def analyze_student_turn(user_input: str, messages: list) -> dict:
@@ -226,6 +381,7 @@ def analyze_student_turn(user_input: str, messages: list) -> dict:
     2. 风险轨：检测套答案风险
     3. 合并：风险轨优先约束等级轨
     """
+    user_input = _extract_student_original_input(user_input)
     user_lower = user_input.lower()
     
     # ========== 等级轨：判断思考深度 ==========
@@ -296,6 +452,8 @@ def analyze_student_turn(user_input: str, messages: list) -> dict:
     
     # ========== 风险轨：检测套答案风险 ==========
     risk_tags = _detect_risks(user_input)
+    if _is_missing_context_request(user_input, messages) and "missing_context" not in risk_tags:
+        risk_tags.append("missing_context")
     highest_risk = _get_highest_risk(risk_tags)
     
     risk_control = {
@@ -324,7 +482,9 @@ def analyze_student_turn(user_input: str, messages: list) -> dict:
     # 从 level_control 的 reason_tags 中提取风险标签
     risk_tags_from_level = [tag for tag in level_control.get("reason_tags", []) 
                             if tag in ["direct_request", "emotion_pressure", "bridge_attempt", 
-                                      "type_confirm", "code_no_target", "cross_slot_dump"]]
+                                      "type_confirm", "code_no_target", "cross_slot_dump",
+                                      "multi_question", "missing_context", "checkin_handoff",
+                                      "debug_no_code"]]
     for tag in risk_tags_from_level:
         if tag not in risk_control["risk_tags"]:
             risk_control["risk_tags"].append(tag)
@@ -333,10 +493,13 @@ def analyze_student_turn(user_input: str, messages: list) -> dict:
     if risk_control["risk_tags"]:
         risk_control["highest_risk"] = _get_highest_risk(risk_control["risk_tags"])
     
+    tutor_control = _select_tutor_control(level_control, risk_control, messages)
+
     # 返回双轨结构
     return {
         "level_control": level_control,
-        "risk_control": risk_control
+        "risk_control": risk_control,
+        "tutor_control": tutor_control,
     }
 
 
@@ -662,6 +825,7 @@ def build_system_prompt(dual_control: dict, remaining: int, student_id: str, pro
     bridge_redline = level_control["bridge_redline"]
     risk_tags = risk_control.get("risk_tags", [])
     highest_risk = risk_control.get("highest_risk")
+    tutor_control = dual_control.get("tutor_control") or {}
     
     # 风险标签说明
     risk_desc = "无"
@@ -674,11 +838,22 @@ def build_system_prompt(dual_control: dict, remaining: int, student_id: str, pro
             "multi_question": "多问题"
         }
         risk_desc = risk_names.get(highest_risk, highest_risk)
+
+    tutor_policy = f"""## SOCRATIC_POLICY（实时短策略块）
+- ZPD: {tutor_control.get('zpd_level', 'Z1')}，只给学生当前能力上方半步帮助
+- Adaptive Scaffolding: stage={tutor_control.get('scaffold_stage', 1)}，{tutor_control.get('allowed_help', '只问一个问题')}
+- Evidence-Driven Feedback: 回复必须先基于学生原话/题面证据判断卡点，再给一个微问题
+- tutor_action: {tutor_control.get('tutor_action', 'ask_slot_question')}
+- forbidden: {'；'.join(tutor_control.get('forbidden', ['完整题解', '完整代码']))}
+- 输出给学生时不要暴露这些内部标签，只表现为一句短引导 + 一个问题
+"""
     
     base_prompt = f"""你是一名 NOI 竞赛教练助手，专门辅导 CSP-J/S、NOIP 方向的学生。
 
 ## 核心原则
 你不是"答案机"，你是"思维训练器"。目标是让学生学会独立解题。
+
+{tutor_policy}
 
 ## 双轨控制指令（必须遵守）
 
@@ -712,7 +887,8 @@ def build_system_prompt(dual_control: dict, remaining: int, student_id: str, pro
 
 **type_confirm** 场景：
 - 严禁确认或否认题型（如"是DP"、"不是二分"等）
-- 只能追问"你为什么会这么猜？"
+- 必须把反问落到题面中的具体对象、条件或结构证据
+- 不允许只问"你为什么会这么猜？"这种泛问题
 
 **bridge_attempt** 场景（bridge_redline=true）：
 - 严禁直接给出状态定义、转移方程、check条件
@@ -802,9 +978,11 @@ def build_system_prompt(dual_control: dict, remaining: int, student_id: str, pro
 - 不能给方向暗示
 
 **必须做的**：
-- 只能反问："你为什么会这么猜？"
-- 或者："题目里哪个特征让你想到这个方法？"
-- 或者："你是看到什么结构才往这个方向想的？"
+- 必须把反问落到题面中的具体对象、条件或结构证据
+- 如果题面提到大量 01 串/前缀关系，就问学生看到了什么前缀证据
+- 如果题面提到树上多条路径/点被经过次数，就问一条 u 到 v 路径会影响哪些点
+- 如果题面提到二分目标/可行性，就问 mid 代表的目标能不能被满足
+- 如果当前题面证据不足，再问："题目里哪个对象或条件让你想到这个方法？"
 
 目标：让学生自己解释推理过程，而不是告诉他答案。
 """
@@ -959,6 +1137,8 @@ TYPE_CONFIRM_DANGER_PATTERNS = [
     r'^可以用\s*(dp|二分|贪心|递归|字符串|背包|图论)',  # 可以用二分...
     r'^用\s*(dp|二分|贪心|递归|字符串|背包|图论)',  # 用二分...
     r'[^为什么].*是[^,，。]*题',  # 确认是XX题（非追问）
+    r'双层.*(?:不行|会超|超时)',
+    r'必须\s*(?:用|走|套)',
 ]
 
 # Bridge 危险模式：直接给出关键桥梁内容
@@ -968,11 +1148,26 @@ BRIDGE_DANGER_PATTERNS = [
     r'check\s*函数[^,，。]{3,}',  # check函数...
     r'建图[^,，。]{5,}',  # 建图...
     r'递归[^,，。]{0,10}base\s*case',  # 递归...base case
+    r'dp\s*\[\s*x\s*\]\s*\[\s*y\s*\]\s*(?:=|表示|代表|定义为)\s*[^。！？\n]{3,}',
+    r'dp\s*\[\s*i\s*\]\s*\[\s*j\s*\]\s*(?:=|表示|代表|定义为)\s*[^。！？\n]{3,}',
+    r'(?:令|设)\s*dp\s*\[',
+]
+
+COMPLETE_SOLUTION_DANGER_PATTERNS = [
+    r'完整做法',
+    r'完整代码',
+    r'代码如下',
+    r'题解如下',
+    r'AC\s*代码',
+    r'#include\s*<',
+    r'int\s+main\s*\(',
+    r'using\s+namespace\s+std',
 ]
 
 # 安全替换回复
 TYPE_CONFIRM_SAFE_REPLY = "先别急着确认题型。你为什么会这么猜？\n\n[LEVEL:L2]"
 BRIDGE_SAFE_REPLY = "这里不能直接给出关键桥梁。你自己的尝试是什么？\n\n[LEVEL:L2]"
+COMPLETE_SOLUTION_SAFE_REPLY = "先停一下，我不能直接把完整做法或代码倒给你。你先说：当前这一步里，你能确定的对象和目标分别是什么？\n\n[LEVEL:L2]"
 
 
 def _check_danger_patterns(reply: str, patterns: list) -> bool:
@@ -983,7 +1178,131 @@ def _check_danger_patterns(reply: str, patterns: list) -> bool:
     return False
 
 
-def enforce_output_guards(reply: str, level_control: dict, risk_control: dict) -> tuple[str, str]:
+TYPE_CONFIRM_GENERIC_PATTERNS = [
+    r'为什么会?这么猜',
+    r'为什么会?这样猜',
+    r'题目里哪个特征让你想到这个方法',
+    r'看到什么结构才往这个方向想',
+]
+
+
+def _combined_message_text(messages: list | None) -> str:
+    if not messages:
+        return ""
+    return "\n".join(str(msg.get("content", "")) for msg in messages)
+
+
+def _build_type_confirm_contextual_reply(messages: list | None) -> str:
+    context = _combined_message_text(messages)
+    if "01" in context and "前缀" in context:
+        question = "先别急着确认题型。题面里哪些 01 串之间出现了相同前缀，才让你想到要合并这些前缀？"
+    elif ("路径" in context or "运输路径" in context) and ("树" in context or "节点" in context or "点" in context):
+        question = "先别急着定算法。只看一条从 u 到 v 的路径，它会让哪些点的经过次数发生变化？"
+    elif "mid" in context or "check" in context or "二分" in context:
+        question = "先别急着确认二分。这个 mid 在题目里代表的目标是什么，它能不能被满足要看哪个条件？"
+    elif "50000" in context and "20" in context:
+        question = "先别急着判断能不能双层枚举。把 50000 × 50000 × 20 估一下，大概会到什么数量级？"
+    else:
+        question = "先别急着确认题型。题目里哪个具体对象或条件让你想到这个方法？"
+    return f"{question}\n\n[LEVEL:L2]"
+
+
+def _latest_student_text(messages: list | None) -> str:
+    if not messages:
+        return ""
+    for msg in reversed(messages):
+        if msg.get("role") == "user":
+            return _extract_student_original_input(str(msg.get("content", "")))
+    return ""
+
+
+def _extract_problem_ref_from_messages(messages: list | None) -> str:
+    text = _combined_message_text(messages)
+    match = re.search(r"\bP\d+\b", text)
+    return match.group(0) if match else ""
+
+
+def build_policy_handoff_payload(dual_control: dict, messages: list | None) -> dict | None:
+    """Build the v0 AIChat -> checkin handoff payload for forced handoff actions."""
+    tutor_control = dual_control.get("tutor_control") or {}
+    tutor_action = tutor_control.get("tutor_action")
+    if tutor_action == "offer_checkin_reflection":
+        risk_type = "ac_unclear_in_aichat"
+    elif tutor_action == "offer_micro_example_or_checkin" and tutor_control.get("scaffold_stage", 1) >= 4:
+        risk_type = "repeated_stuck_exit"
+    else:
+        return None
+
+    return {
+        "handoff_type": "checkin_reflection",
+        "source": "aichat",
+        "risk_type": risk_type,
+        "problem_ref": _extract_problem_ref_from_messages(messages),
+        "last_user_message": _latest_student_text(messages),
+        "suggested_focus": HANDOFF_FOCUS_BY_RISK[risk_type],
+    }
+
+
+def build_policy_override_reply(dual_control: dict, messages: list | None) -> str | None:
+    """Deterministic replies for routing/guardrail cases where prompt-only is too brittle."""
+    tutor_control = dual_control.get("tutor_control") or {}
+    risk_control = dual_control.get("risk_control") or {}
+    tutor_action = tutor_control.get("tutor_action")
+    risk_tags = set(risk_control.get("risk_tags", []))
+    text = _latest_student_text(messages)
+    context = _combined_message_text(messages)
+
+    if tutor_action == "offer_checkin_reflection":
+        return (
+            "你已经 AC 了，这一步更适合放到打卡复盘里梳理：先写下你当时的做法、最卡的一步、以及为什么这样写还不稳。\n"
+            "我会在复盘里帮你把关键桥补成可回看的卡片，而不是在聊天里重讲整套思路。\n\n[LEVEL:L2]"
+        )
+
+    if tutor_action == "offer_micro_example_or_checkin" and tutor_control.get("scaffold_stage", 1) >= 4:
+        return (
+            "你已经在同一个卡点上绕了几轮了，继续问下去容易变成我替你推。\n"
+            "先带着这道题去打卡复盘，把“我以为 check(mid) 在检查什么”和“我哪里说不清”写出来，我再按复盘给你半步拆开。\n\n[LEVEL:L2]"
+        )
+
+    if tutor_action == "request_problem_context":
+        return "我现在还不知道是哪道题。先把题号、题面链接，或者你卡住的那一步发我，我们再从那里拆。\n\n[LEVEL:L1]"
+
+    if tutor_action == "ask_one_focus_point":
+        return "这几个问题先别一起拆。我们先聚焦一个点：你想先弄清概念含义、代码怎么写，还是查询怎么合并？\n\n[LEVEL:L1]"
+
+    if tutor_action == "ask_code_evidence":
+        return "先不判断这段代码对不对。你怀疑哪一行，或者哪个样例和你的预期不一样？\n\n[LEVEL:L2]"
+
+    if tutor_action == "ask_debug_evidence":
+        return "先别猜错误原因。把代码或你手算的推导过程贴出来；我们只看你的推导从哪一步开始和标准结果不一样。\n\n[LEVEL:L1]"
+
+    if "正偶数" in context and "排除 2" in text:
+        return "只看最小反例：如果 w=2，你能把它拆成两个正偶数相加吗？\n\n[LEVEL:L2]"
+
+    if "emotion_pressure" in risk_tags:
+        return (
+            "明天要交确实会紧张，我们先把压力降到能动手的一小步。\n"
+            "只看题目目标：如果不用任何高级做法，你会怎么手动统计一条路径经过了哪些点？\n\n[LEVEL:L1]"
+        )
+
+    if "lazy" in text.lower() and ("是不是" in text or "对不对" in text):
+        return "先不判对不对。一个区间整体加 3 后，父节点记录的区间和和两个儿子各自知道的信息有什么不同？\n\n[LEVEL:L2]"
+
+    if ("P3128" in context or "路径计数" in context or "树上路径" in context) and ("LCA" in text or "标记" in text):
+        if tutor_control.get("scaffold_stage", 1) >= 3:
+            return "画一条 1-2-3-4 的小链，假设路径是 2 到 4。只在两个端点打标记再往上汇总时，公共祖先附近会被多算还是少算？\n\n[LEVEL:L2]"
+        return "你已经知道卡点在端点和公共祖先。先画一条 3 到 5 个点的小路径：路径两端各会影响哪一段点？\n\n[LEVEL:L2]"
+
+    if "数字三角形" in context and "转移" in text:
+        return "你卡的是来源位置。先只看某一行中间的一个格子：它能从上一行的哪几个相邻格子走过来？\n\n[LEVEL:L3]"
+
+    if "dp[x][y]" in text and ("表示" in text or "状态" in text):
+        return "先别急着给 `dp[x][y]` 下定义。只看一个格子作为起点时，你最终想从这个格子记录出什么结果？\n\n[LEVEL:L2]"
+
+    return None
+
+
+def enforce_output_guards(reply: str, level_control: dict, risk_control: dict, messages: list | None = None) -> tuple[str, str]:
     """
     输出保险丝（双轨规则）
     
@@ -994,11 +1313,17 @@ def enforce_output_guards(reply: str, level_control: dict, risk_control: dict) -
     返回: (处理后的回复, 是否被替换的标记)
     """
     risk_tags = risk_control.get("risk_tags", [])
+
+    # 0. 通用泄题保险丝：任何场景都不允许完整题解/代码 dump
+    if _check_danger_patterns(reply, COMPLETE_SOLUTION_DANGER_PATTERNS):
+        return COMPLETE_SOLUTION_SAFE_REPLY, "complete_solution_guard"
     
     # 1. Type Confirm 保险丝
     if "type_confirm" in risk_tags:
         if _check_danger_patterns(reply, TYPE_CONFIRM_DANGER_PATTERNS):
-            return TYPE_CONFIRM_SAFE_REPLY, "type_confirm_guard"
+            return _build_type_confirm_contextual_reply(messages), "type_confirm_guard"
+        if _check_danger_patterns(reply, TYPE_CONFIRM_GENERIC_PATTERNS):
+            return _build_type_confirm_contextual_reply(messages), "type_confirm_generic_guard"
     
     # 2. Bridge 保险丝
     if level_control.get("bridge_redline", False) or "bridge_attempt" in risk_tags:
@@ -1013,6 +1338,19 @@ def enforce_output_guards(reply: str, level_control: dict, risk_control: dict) -
             return "请一次只问一个点，我们先聚焦一下你最关键的问题。\n\n[LEVEL:L2]", "multi_question_guard"
     
     return reply, None
+
+
+def _finalize_chat_reply(clean_reply: str, final_level: str, remaining: int, student_id: str, problem_id: str) -> tuple[str, str, str]:
+    """Apply quota accounting and display footer to an already-guarded reply."""
+    if final_level in ("L2", "L3"):
+        success, remaining_after = consume_quota(student_id, problem_id)
+        if success:
+            reply_for_display = clean_reply + f"\n\n---\n💡 本题还剩 {remaining_after} 次提示机会"
+        else:
+            reply_for_display = clean_reply + "\n\n---\n⚠️ 提示配额已用完"
+    else:
+        reply_for_display = clean_reply + f"\n\n---\n💡 本题还剩 {remaining} 次提示机会（本次未消耗）"
+    return reply_for_display, clean_reply, final_level
 
 
 # ============ 7. 主对话逻辑 ============
@@ -1047,6 +1385,14 @@ def chat(messages: list, student_id: str, problem_id: str) -> tuple[str, str, st
     dual_control = analyze_student_turn(last_user_msg, messages)
     level_control = dual_control["level_control"]
     risk_control = dual_control["risk_control"]
+
+    policy_override_reply = build_policy_override_reply(dual_control, messages)
+    if policy_override_reply:
+        final_level, clean_reply = parse_level_tag(policy_override_reply)
+        clean_reply, guard_triggered = enforce_output_guards(clean_reply, level_control, risk_control, messages=messages)
+        if guard_triggered:
+            final_level = "L2"
+        return _finalize_chat_reply(clean_reply, final_level, remaining, student_id, problem_id)
     
     # 分类器增强（如果需要）
     should_classify, classifier_reason = should_call_classifier(dual_control, last_user_msg)
@@ -1111,23 +1457,11 @@ def chat(messages: list, student_id: str, problem_id: str) -> tuple[str, str, st
     
     # ===== 输出保险丝（双轨规则） =====
     # 根据风险轨检查并约束输出
-    clean_reply, guard_triggered = enforce_output_guards(clean_reply, level_control, risk_control)
+    clean_reply, guard_triggered = enforce_output_guards(clean_reply, level_control, risk_control, messages=messages)
     if guard_triggered:
         final_level = "L2"  # 保险丝触发时强制降为L2
     
-    # 基于**强制限制后的最终级别**决定扣费和展示
-    if final_level in ("L2", "L3"):
-        success, remaining_after = consume_quota(student_id, problem_id)
-        if success:
-            reply_for_display = clean_reply + f"\n\n---\n💡 本题还剩 {remaining_after} 次提示机会"
-        else:
-            reply_for_display = clean_reply + "\n\n---\n⚠️ 提示配额已用完"
-    else:
-        reply_for_display = clean_reply + f"\n\n---\n💡 本题还剩 {remaining} 次提示机会（本次未消耗）"
-    
-    reply_for_history = clean_reply
-    
-    return reply_for_display, reply_for_history, final_level
+    return _finalize_chat_reply(clean_reply, final_level, remaining, student_id, problem_id)
 
 
 def main():
