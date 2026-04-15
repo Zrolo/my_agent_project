@@ -1,0 +1,795 @@
+{
+  "generated_for": "student_a",
+  "generated_batch_after_checkin_id": 3358,
+  "count": 24,
+  "entries": [
+    {
+      "focus": "dp.state_design",
+      "pid": "P1434",
+      "checkin_id": 3359,
+      "url": "http://127.0.0.1:8000/app/history/3359",
+      "problem_title": "P1434 [SHOI2002] 滑雪",
+      "created_at": "2026-04-09 14:53:07",
+      "payload": {
+        "problem_url": "https://www.luogu.com.cn/problem/P1434",
+        "problem_title": "P1434 [SHOI2002] 滑雪",
+        "completion_status": "unfinished",
+        "submission_result": "not_submitted",
+        "bottleneck_text": "我总分不清 dp[x][y] 是“从这里出发还能滑多远”，还是“滑到这里为止已经有多长”。",
+        "error_types": [
+          "状态设计",
+          "记忆化搜索"
+        ],
+        "reflection": "我总把状态方向想反。",
+        "problem_tags": [
+          "动态规划 DP",
+          "记忆化搜索"
+        ]
+      },
+      "review_snapshot": {
+        "review_id": 3243,
+        "review_status": "pending",
+        "error_layer": "insufficient",
+        "learning_status": "not_started",
+        "mastery_status": "not_assessed",
+        "problem_focus": null,
+        "key_bridge": null
+      }
+    },
+    {
+      "focus": "dp.state_design",
+      "pid": "P2015",
+      "checkin_id": 3360,
+      "url": "http://127.0.0.1:8000/app/history/3360",
+      "problem_title": "P2015 二叉苹果树",
+      "created_at": "2026-04-09 14:53:07",
+      "payload": {
+        "problem_url": "https://www.luogu.com.cn/problem/P2015",
+        "problem_title": "P2015 二叉苹果树",
+        "completion_status": "unfinished",
+        "submission_result": "not_submitted",
+        "bottleneck_text": "我总觉得状态里要分别记左右子树留几条边，不知道为什么只记“当前子树总共留几条边”就够了。",
+        "error_types": [
+          "状态设计",
+          "转移设计"
+        ],
+        "reflection": "我把状态越写越大。",
+        "problem_tags": [
+          "动态规划 DP",
+          "树形 DP"
+        ]
+      },
+      "review_snapshot": {
+        "review_id": 3244,
+        "review_status": "pending",
+        "error_layer": "insufficient",
+        "learning_status": "not_started",
+        "mastery_status": "not_assessed",
+        "problem_focus": null,
+        "key_bridge": null
+      }
+    },
+    {
+      "focus": "dp.state_design",
+      "pid": "P1115",
+      "checkin_id": 3361,
+      "url": "http://127.0.0.1:8000/app/history/3361",
+      "problem_title": "P1115 最大子段和",
+      "created_at": "2026-04-09 14:53:07",
+      "payload": {
+        "problem_url": "https://www.luogu.com.cn/problem/P1115",
+        "problem_title": "P1115 最大子段和",
+        "completion_status": "unfinished",
+        "submission_result": "wa",
+        "bottleneck_text": "我分不清 f[i] 是“前 i 个数的答案”，还是“必须以第 i 个数结尾的最好值”。",
+        "error_types": [
+          "状态设计",
+          "线性DP"
+        ],
+        "reflection": "我把局部最优和全局答案混在了一起。",
+        "problem_tags": [
+          "动态规划 DP",
+          "线性 DP"
+        ]
+      },
+      "review_snapshot": {
+        "review_id": 3245,
+        "review_status": "pending",
+        "error_layer": "insufficient",
+        "learning_status": "not_started",
+        "mastery_status": "not_assessed",
+        "problem_focus": null,
+        "key_bridge": null
+      }
+    },
+    {
+      "focus": "dp.transition_design",
+      "pid": "P1216",
+      "checkin_id": 3362,
+      "url": "http://127.0.0.1:8000/app/history/3362",
+      "problem_title": "P1216 [IOI 1994 / USACO1.5] Number Triangles",
+      "created_at": "2026-04-09 14:53:07",
+      "payload": {
+        "problem_url": "https://www.luogu.com.cn/problem/P1216",
+        "problem_title": "P1216 [IOI 1994 / USACO1.5] Number Triangles",
+        "completion_status": "unfinished",
+        "submission_result": "not_submitted",
+        "bottleneck_text": "我知道是 DP，但我老漏掉当前格子能从上一行哪两个位置转移过来。",
+        "error_types": [
+          "转移设计",
+          "动态规划 DP"
+        ],
+        "reflection": "我只想到了一个来源。",
+        "problem_tags": [
+          "动态规划 DP",
+          "递推"
+        ]
+      },
+      "review_snapshot": {
+        "review_id": 3246,
+        "review_status": "pending",
+        "error_layer": "insufficient",
+        "learning_status": "not_started",
+        "mastery_status": "not_assessed",
+        "problem_focus": null,
+        "key_bridge": null
+      }
+    },
+    {
+      "focus": "dp.transition_design",
+      "pid": "P1880",
+      "checkin_id": 3363,
+      "url": "http://127.0.0.1:8000/app/history/3363",
+      "problem_title": "P1880 [NOI1995] 石子合并",
+      "created_at": "2026-04-09 14:53:08",
+      "payload": {
+        "problem_url": "https://www.luogu.com.cn/problem/P1880",
+        "problem_title": "P1880 [NOI1995] 石子合并",
+        "completion_status": "unfinished",
+        "submission_result": "wa",
+        "bottleneck_text": "我知道要按区间长度枚举，但区间 [l,r] 为什么要枚举最后一次合并点 k，这个来源我总想不全。",
+        "error_types": [
+          "转移设计",
+          "区间DP"
+        ],
+        "reflection": "我老是直接跳到公式，不知道每一项从哪来。",
+        "problem_tags": [
+          "动态规划 DP",
+          "区间 DP"
+        ]
+      },
+      "review_snapshot": {
+        "review_id": 3247,
+        "review_status": "pending",
+        "error_layer": "insufficient",
+        "learning_status": "not_started",
+        "mastery_status": "not_assessed",
+        "problem_focus": null,
+        "key_bridge": null
+      }
+    },
+    {
+      "focus": "dp.transition_design",
+      "pid": "P2782",
+      "checkin_id": 3364,
+      "url": "http://127.0.0.1:8000/app/history/3364",
+      "problem_title": "P2782 友好城市",
+      "created_at": "2026-04-09 14:53:08",
+      "payload": {
+        "problem_url": "https://www.luogu.com.cn/problem/P2782",
+        "problem_title": "P2782 友好城市",
+        "completion_status": "unfinished",
+        "submission_result": "wa",
+        "bottleneck_text": "我知道先排序，但后面 DP 转移时，为什么只有一类前态能转过来，我总写不全。",
+        "error_types": [
+          "转移设计",
+          "排序"
+        ],
+        "reflection": "我没把能接到当前位置的前态想清楚。",
+        "problem_tags": [
+          "动态规划 DP",
+          "排序"
+        ]
+      },
+      "review_snapshot": {
+        "review_id": null,
+        "review_status": null,
+        "error_layer": null,
+        "learning_status": null,
+        "mastery_status": null,
+        "problem_focus": null,
+        "key_bridge": null
+      }
+    },
+    {
+      "focus": "binary_search.check_condition",
+      "pid": "P2678",
+      "checkin_id": 3365,
+      "url": "http://127.0.0.1:8000/app/history/3365",
+      "problem_title": "P2678 [NOIP 2015 提高组] 跳石头",
+      "created_at": "2026-04-09 14:53:08",
+      "payload": {
+        "problem_url": "https://www.luogu.com.cn/problem/P2678",
+        "problem_title": "P2678 [NOIP 2015 提高组] 跳石头",
+        "completion_status": "unfinished",
+        "submission_result": "not_submitted",
+        "bottleneck_text": "我知道要二分答案，但 check(mid) 到底是在验证“至少能不能做到 mid”还是别的，我总说不清。",
+        "error_types": [
+          "二分",
+          "判定条件"
+        ],
+        "reflection": "我会套板子，但 check 的含义不清楚。",
+        "problem_tags": [
+          "二分",
+          "贪心"
+        ]
+      },
+      "review_snapshot": {
+        "review_id": null,
+        "review_status": null,
+        "error_layer": null,
+        "learning_status": null,
+        "mastery_status": null,
+        "problem_focus": null,
+        "key_bridge": null
+      }
+    },
+    {
+      "focus": "binary_search.check_condition",
+      "pid": "P2249",
+      "checkin_id": 3366,
+      "url": "http://127.0.0.1:8000/app/history/3366",
+      "problem_title": "P2249 【深基13.例1】查找",
+      "created_at": "2026-04-09 14:53:08",
+      "payload": {
+        "problem_url": "https://www.luogu.com.cn/problem/P2249",
+        "problem_title": "P2249 【深基13.例1】查找",
+        "completion_status": "unfinished",
+        "submission_result": "wa",
+        "bottleneck_text": "我会写二分，但当 a[mid] == x 时，我总不知道应该把右边界收成 mid 还是 mid-1。",
+        "error_types": [
+          "边界处理",
+          "二分"
+        ],
+        "reflection": "我总担心把答案漏掉。",
+        "problem_tags": [
+          "二分"
+        ]
+      },
+      "review_snapshot": {
+        "review_id": null,
+        "review_status": null,
+        "error_layer": null,
+        "learning_status": null,
+        "mastery_status": null,
+        "problem_focus": null,
+        "key_bridge": null
+      }
+    },
+    {
+      "focus": "binary_search.check_condition",
+      "pid": "P1168",
+      "checkin_id": 3367,
+      "url": "http://127.0.0.1:8000/app/history/3367",
+      "problem_title": "P1168 中位数",
+      "created_at": "2026-04-09 14:53:08",
+      "payload": {
+        "problem_url": "https://www.luogu.com.cn/problem/P1168",
+        "problem_title": "P1168 中位数",
+        "completion_status": "unfinished",
+        "submission_result": "wa",
+        "bottleneck_text": "我总觉得可以靠二分位置直接判断，但不清楚到底是在“检查什么条件”。",
+        "error_types": [
+          "二分",
+          "模型转化"
+        ],
+        "reflection": "我在“答案是什么”和“check 在干什么”之间老打架。",
+        "problem_tags": [
+          "二分",
+          "堆"
+        ]
+      },
+      "review_snapshot": {
+        "review_id": null,
+        "review_status": null,
+        "error_layer": null,
+        "learning_status": null,
+        "mastery_status": null,
+        "problem_focus": null,
+        "key_bridge": null
+      }
+    },
+    {
+      "focus": "greedy.greedy_basis",
+      "pid": "P1803",
+      "checkin_id": 3368,
+      "url": "http://127.0.0.1:8000/app/history/3368",
+      "problem_title": "P1803 凌乱的yyy / 线段覆盖",
+      "created_at": "2026-04-09 14:53:08",
+      "payload": {
+        "problem_url": "https://www.luogu.com.cn/problem/P1803",
+        "problem_title": "P1803 凌乱的yyy / 线段覆盖",
+        "completion_status": "unfinished",
+        "submission_result": "wa",
+        "bottleneck_text": "我知道答案是先选结束早的区间，但我讲不清为什么这样不会把后面的选择堵死。",
+        "error_types": [
+          "贪心",
+          "方法依据"
+        ],
+        "reflection": "我只会背结论，不会解释。",
+        "problem_tags": [
+          "贪心",
+          "排序"
+        ]
+      },
+      "review_snapshot": {
+        "review_id": null,
+        "review_status": null,
+        "error_layer": null,
+        "learning_status": null,
+        "mastery_status": null,
+        "problem_focus": null,
+        "key_bridge": null
+      }
+    },
+    {
+      "focus": "greedy.greedy_basis",
+      "pid": "P1090",
+      "checkin_id": 3369,
+      "url": "http://127.0.0.1:8000/app/history/3369",
+      "problem_title": "P1090 [NOIP 2004 提高组] 合并果子",
+      "created_at": "2026-04-09 14:53:08",
+      "payload": {
+        "problem_url": "https://www.luogu.com.cn/problem/P1090",
+        "problem_title": "P1090 [NOIP 2004 提高组] 合并果子",
+        "completion_status": "unfinished",
+        "submission_result": "wa",
+        "bottleneck_text": "我知道每次取最小两堆，但说不清为什么先合并大的会更吃亏。",
+        "error_types": [
+          "贪心",
+          "堆"
+        ],
+        "reflection": "我知道做法，但不懂为什么它一定对。",
+        "problem_tags": [
+          "贪心",
+          "堆"
+        ]
+      },
+      "review_snapshot": {
+        "review_id": null,
+        "review_status": null,
+        "error_layer": null,
+        "learning_status": null,
+        "mastery_status": null,
+        "problem_focus": null,
+        "key_bridge": null
+      }
+    },
+    {
+      "focus": "greedy.greedy_basis",
+      "pid": "P5536",
+      "checkin_id": 3370,
+      "url": "http://127.0.0.1:8000/app/history/3370",
+      "problem_title": "P5536 【XR-3】核心城市",
+      "created_at": "2026-04-09 14:53:08",
+      "payload": {
+        "problem_url": "https://www.luogu.com.cn/problem/P5536",
+        "problem_title": "P5536 【XR-3】核心城市",
+        "completion_status": "unfinished",
+        "submission_result": "wa",
+        "bottleneck_text": "我知道题解是贪心，但我讲不清当前这一步为什么优先处理这个点不会破坏后面。",
+        "error_types": [
+          "贪心",
+          "树的直径"
+        ],
+        "reflection": "我有题感，但说不出依据。",
+        "problem_tags": [
+          "贪心",
+          "树的直径"
+        ]
+      },
+      "review_snapshot": {
+        "review_id": null,
+        "review_status": null,
+        "error_layer": null,
+        "learning_status": null,
+        "mastery_status": null,
+        "problem_focus": null,
+        "key_bridge": null
+      }
+    },
+    {
+      "focus": "graph.tree_diameter.tree_diameter_candidates",
+      "pid": "P2195",
+      "checkin_id": 3371,
+      "url": "http://127.0.0.1:8000/app/history/3371",
+      "problem_title": "P2195 HXY造公园",
+      "created_at": "2026-04-09 14:53:08",
+      "payload": {
+        "problem_url": "https://www.luogu.com.cn/problem/P2195",
+        "problem_title": "P2195 HXY造公园",
+        "completion_status": "unfinished",
+        "submission_result": "not_submitted",
+        "bottleneck_text": "我知道要比较新直径，但不明白“经过新边”的候选为什么要接两边最远点。",
+        "error_types": [
+          "树的直径",
+          "候选比较"
+        ],
+        "reflection": "我看得到新边，但看不出候选怎么列。",
+        "problem_tags": [
+          "树的直径",
+          "图论"
+        ]
+      },
+      "review_snapshot": {
+        "review_id": null,
+        "review_status": null,
+        "error_layer": null,
+        "learning_status": null,
+        "mastery_status": null,
+        "problem_focus": null,
+        "key_bridge": null
+      }
+    },
+    {
+      "focus": "graph.tree_diameter.tree_diameter_candidates",
+      "pid": "P5536",
+      "checkin_id": 3372,
+      "url": "http://127.0.0.1:8000/app/history/3372",
+      "problem_title": "P5536 【XR-3】核心城市",
+      "created_at": "2026-04-09 14:53:09",
+      "payload": {
+        "problem_url": "https://www.luogu.com.cn/problem/P5536",
+        "problem_title": "P5536 【XR-3】核心城市",
+        "completion_status": "unfinished",
+        "submission_result": "wa",
+        "bottleneck_text": "我知道要先找直径，但不明白为什么关键点一定跟直径路径有关。",
+        "error_types": [
+          "树的直径",
+          "候选结构"
+        ],
+        "reflection": "我知道步骤，但不知道为什么盯着这条路径。",
+        "problem_tags": [
+          "树的直径",
+          "贪心"
+        ]
+      },
+      "review_snapshot": {
+        "review_id": null,
+        "review_status": null,
+        "error_layer": null,
+        "learning_status": null,
+        "mastery_status": null,
+        "problem_focus": null,
+        "key_bridge": null
+      }
+    },
+    {
+      "focus": "graph.tree_diameter.tree_diameter_candidates",
+      "pid": "B4016",
+      "checkin_id": 3373,
+      "url": "http://127.0.0.1:8000/app/history/3373",
+      "problem_title": "B4016 树的直径",
+      "created_at": "2026-04-09 14:53:09",
+      "payload": {
+        "problem_url": "https://www.luogu.com.cn/problem/B4016",
+        "problem_title": "B4016 树的直径",
+        "completion_status": "unfinished",
+        "submission_result": "not_submitted",
+        "bottleneck_text": "我会求直径长度，但不清楚为什么最远点对一定能代表树里最关键的候选结构。",
+        "error_types": [
+          "树的直径",
+          "候选结构"
+        ],
+        "reflection": "我只会算结果，不会解释候选为什么这样列。",
+        "problem_tags": [
+          "树的直径"
+        ]
+      },
+      "review_snapshot": {
+        "review_id": null,
+        "review_status": null,
+        "error_layer": null,
+        "learning_status": null,
+        "mastery_status": null,
+        "problem_focus": null,
+        "key_bridge": null
+      }
+    },
+    {
+      "focus": "string.trie.shared_prefix_merging",
+      "pid": "P2922",
+      "checkin_id": 3374,
+      "url": "http://127.0.0.1:8000/app/history/3374",
+      "problem_title": "P2922 [USACO08DEC] Secret Message G",
+      "created_at": "2026-04-09 14:53:09",
+      "payload": {
+        "problem_url": "https://www.luogu.com.cn/problem/P2922",
+        "problem_title": "P2922 [USACO08DEC] Secret Message G",
+        "completion_status": "unfinished",
+        "submission_result": "not_submitted",
+        "bottleneck_text": "我不明白为什么把很多消息先放进 trie 后，查询时就不用再把所有消息重看一遍。",
+        "error_types": [
+          "字典树 Trie",
+          "方法理解"
+        ],
+        "reflection": "我只知道名字，不知道它到底省在哪。",
+        "problem_tags": [
+          "字典树 Trie",
+          "进制"
+        ]
+      },
+      "review_snapshot": {
+        "review_id": null,
+        "review_status": null,
+        "error_layer": null,
+        "learning_status": null,
+        "mastery_status": null,
+        "problem_focus": null,
+        "key_bridge": null
+      }
+    },
+    {
+      "focus": "string.trie.shared_prefix_merging",
+      "pid": "P10470",
+      "checkin_id": 3375,
+      "url": "http://127.0.0.1:8000/app/history/3375",
+      "problem_title": "P10470 前缀统计",
+      "created_at": "2026-04-09 14:53:09",
+      "payload": {
+        "problem_url": "https://www.luogu.com.cn/problem/P10470",
+        "problem_title": "P10470 前缀统计",
+        "completion_status": "unfinished",
+        "submission_result": "wa",
+        "bottleneck_text": "我知道 trie 能做前缀统计，但“公共前缀先合在一起”这件事我没真正看懂。",
+        "error_types": [
+          "字典树 Trie",
+          "前缀匹配"
+        ],
+        "reflection": "我把 trie 想成把所有单词分开存起来。",
+        "problem_tags": [
+          "字典树 Trie"
+        ]
+      },
+      "review_snapshot": {
+        "review_id": null,
+        "review_status": null,
+        "error_layer": null,
+        "learning_status": null,
+        "mastery_status": null,
+        "problem_focus": null,
+        "key_bridge": null
+      }
+    },
+    {
+      "focus": "string.trie.shared_prefix_merging",
+      "pid": "P12238",
+      "checkin_id": 3376,
+      "url": "http://127.0.0.1:8000/app/history/3376",
+      "problem_title": "P12238 [蓝桥杯 2023 国 Java A] 单词分类",
+      "created_at": "2026-04-09 14:53:09",
+      "payload": {
+        "problem_url": "https://www.luogu.com.cn/problem/P12238",
+        "problem_title": "P12238 [蓝桥杯 2023 国 Java A] 单词分类",
+        "completion_status": "unfinished",
+        "submission_result": "wa",
+        "bottleneck_text": "我总把 trie 想成“把所有串存起来”，没看懂它真正省的是重复前缀。",
+        "error_types": [
+          "字典树 Trie",
+          "模型转化"
+        ],
+        "reflection": "我知道要建树，但不知道为什么建完查询会更快。",
+        "problem_tags": [
+          "字典树 Trie"
+        ]
+      },
+      "review_snapshot": {
+        "review_id": null,
+        "review_status": null,
+        "error_layer": null,
+        "learning_status": null,
+        "mastery_status": null,
+        "problem_focus": null,
+        "key_bridge": null
+      }
+    },
+    {
+      "focus": "modeling.scale_estimation",
+      "pid": "P2922",
+      "checkin_id": 3377,
+      "url": "http://127.0.0.1:8000/app/history/3377",
+      "problem_title": "P2922 [USACO08DEC] Secret Message G",
+      "created_at": "2026-04-09 14:53:09",
+      "payload": {
+        "problem_url": "https://www.luogu.com.cn/problem/P2922",
+        "problem_title": "P2922 [USACO08DEC] Secret Message G",
+        "completion_status": "unfinished",
+        "submission_result": "not_submitted",
+        "bottleneck_text": "我没先算 M×N 的量级，就觉得逐条比对应该能过。",
+        "error_types": [
+          "复杂度分析",
+          "数据规模"
+        ],
+        "reflection": "我看到了 50000，但没把两个量乘起来。",
+        "problem_tags": [
+          "复杂度分析",
+          "字典树 Trie"
+        ]
+      },
+      "review_snapshot": {
+        "review_id": null,
+        "review_status": null,
+        "error_layer": null,
+        "learning_status": null,
+        "mastery_status": null,
+        "problem_focus": null,
+        "key_bridge": null
+      }
+    },
+    {
+      "focus": "modeling.scale_estimation",
+      "pid": "P1196",
+      "checkin_id": 3378,
+      "url": "http://127.0.0.1:8000/app/history/3378",
+      "problem_title": "P1196 [NOI2002] 银河英雄传说",
+      "created_at": "2026-04-09 14:53:09",
+      "payload": {
+        "problem_url": "https://www.luogu.com.cn/problem/P1196",
+        "problem_title": "P1196 [NOI2002] 银河英雄传说",
+        "completion_status": "unfinished",
+        "submission_result": "wa",
+        "bottleneck_text": "我总想每次操作都把整列重新算一遍，但没先估总复杂度。",
+        "error_types": [
+          "复杂度分析",
+          "并查集"
+        ],
+        "reflection": "我只想着怎么做，没先算会不会超时。",
+        "problem_tags": [
+          "并查集",
+          "复杂度分析"
+        ]
+      },
+      "review_snapshot": {
+        "review_id": null,
+        "review_status": null,
+        "error_layer": null,
+        "learning_status": null,
+        "mastery_status": null,
+        "problem_focus": null,
+        "key_bridge": null
+      }
+    },
+    {
+      "focus": "modeling.scale_estimation",
+      "pid": "P3958",
+      "checkin_id": 3379,
+      "url": "http://127.0.0.1:8000/app/history/3379",
+      "problem_title": "P3958 [NOIP 2017 提高组] 奶酪",
+      "created_at": "2026-04-09 14:53:09",
+      "payload": {
+        "problem_url": "https://www.luogu.com.cn/problem/P3958",
+        "problem_title": "P3958 [NOIP 2017 提高组] 奶酪",
+        "completion_status": "unfinished",
+        "submission_result": "wa",
+        "bottleneck_text": "我第一反应是暴力判断球和球之间是否可达，但没先估边数规模。",
+        "error_types": [
+          "复杂度分析",
+          "图论"
+        ],
+        "reflection": "我只想到了建边，没先算边会有多少。",
+        "problem_tags": [
+          "并查集",
+          "图论"
+        ]
+      },
+      "review_snapshot": {
+        "review_id": null,
+        "review_status": null,
+        "error_layer": null,
+        "learning_status": null,
+        "mastery_status": null,
+        "problem_focus": null,
+        "key_bridge": null
+      }
+    },
+    {
+      "focus": "modeling.method_selection",
+      "pid": "P2922",
+      "checkin_id": 3380,
+      "url": "http://127.0.0.1:8000/app/history/3380",
+      "problem_title": "P2922 [USACO08DEC] Secret Message G",
+      "created_at": "2026-04-09 14:53:09",
+      "payload": {
+        "problem_url": "https://www.luogu.com.cn/problem/P2922",
+        "problem_title": "P2922 [USACO08DEC] Secret Message G",
+        "completion_status": "unfinished",
+        "submission_result": "not_submitted",
+        "bottleneck_text": "我总是先猜“可能要 trie”，但说不清题面里到底有什么结构信号支持它。",
+        "error_types": [
+          "方法选择",
+          "字典树 Trie"
+        ],
+        "reflection": "我更像是在背模板，不是在看题面。",
+        "problem_tags": [
+          "字典树 Trie",
+          "方法选择"
+        ]
+      },
+      "review_snapshot": {
+        "review_id": null,
+        "review_status": null,
+        "error_layer": null,
+        "learning_status": null,
+        "mastery_status": null,
+        "problem_focus": null,
+        "key_bridge": null
+      }
+    },
+    {
+      "focus": "modeling.method_selection",
+      "pid": "P3372",
+      "checkin_id": 3381,
+      "url": "http://127.0.0.1:8000/app/history/3381",
+      "problem_title": "P3372 【模板】线段树 1",
+      "created_at": "2026-04-09 14:53:10",
+      "payload": {
+        "problem_url": "https://www.luogu.com.cn/problem/P3372",
+        "problem_title": "P3372 【模板】线段树 1",
+        "completion_status": "unfinished",
+        "submission_result": "not_submitted",
+        "bottleneck_text": "我知道题解用线段树，但我讲不清为什么树状数组或暴力不够。",
+        "error_types": [
+          "方法选择",
+          "线段树"
+        ],
+        "reflection": "我知道答案，但不知道方法和题目结构怎么对应。",
+        "problem_tags": [
+          "线段树",
+          "方法选择"
+        ]
+      },
+      "review_snapshot": {
+        "review_id": null,
+        "review_status": null,
+        "error_layer": null,
+        "learning_status": null,
+        "mastery_status": null,
+        "problem_focus": null,
+        "key_bridge": null
+      }
+    },
+    {
+      "focus": "modeling.method_selection",
+      "pid": "P1196",
+      "checkin_id": 3382,
+      "url": "http://127.0.0.1:8000/app/history/3382",
+      "problem_title": "P1196 [NOI2002] 银河英雄传说",
+      "created_at": "2026-04-09 14:53:10",
+      "payload": {
+        "problem_url": "https://www.luogu.com.cn/problem/P1196",
+        "problem_title": "P1196 [NOI2002] 银河英雄传说",
+        "completion_status": "unfinished",
+        "submission_result": "wa",
+        "bottleneck_text": "我知道题解是并查集，但我说不清为什么这里不是普通数组模拟，而要维护集合关系。",
+        "error_types": [
+          "方法选择",
+          "并查集"
+        ],
+        "reflection": "我能背做法，但说不清题面信号。",
+        "problem_tags": [
+          "并查集",
+          "方法选择"
+        ]
+      },
+      "review_snapshot": {
+        "review_id": null,
+        "review_status": null,
+        "error_layer": null,
+        "learning_status": null,
+        "mastery_status": null,
+        "problem_focus": null,
+        "key_bridge": null
+      }
+    }
+  ]
+}
