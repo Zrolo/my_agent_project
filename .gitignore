@@ -34,3 +34,8 @@ agent_learning/03_noi_agent/evals/aichat/reports/
 
 # Local paper PDFs used for reading/research; keep derived notes in docs/
 agent_learning/03_noi_agent/paper*.pdf
+
+# Legacy/static frontend experiments not used by the Vue entry
+agent_learning/03_noi_agent/static/js/
+agent_learning/03_noi_agent/static/vendor/
+agent_learning/03_noi_agent/static/test-tw.html
