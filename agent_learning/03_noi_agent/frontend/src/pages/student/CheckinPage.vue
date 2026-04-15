@@ -34,6 +34,26 @@ const loading = ref(false);
 const successMessage = ref('');
 const error = ref('');
 const detectedOjSource = computed(() => inferOjSourceFromProblemRef(form.problem_url));
+const HANDOFF_PAYLOAD_KEY = 'noi-agent-chat-handoff-payload';
+
+function loadHandoffPayload() {
+  const raw = window.localStorage.getItem(HANDOFF_PAYLOAD_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && parsed.source === 'aichat' ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+const handoffPayload = ref(loadHandoffPayload());
+const chatContextSummary = computed(() => {
+  if (!handoffPayload.value) return '';
+  const focus = handoffPayload.value.suggested_focus || 'AIChat 建议转打卡复盘';
+  const lastMessage = handoffPayload.value.last_user_message || '';
+  return [focus, lastMessage].filter(Boolean).join('；');
+});
 
 function toggleError(option) {
   if (form.error_types.includes(option)) {
@@ -57,8 +77,9 @@ async function submit() {
   try {
     const result = await createCheckin(auth.token, {
       ...normalizeCheckinPayload(form),
-      chat_context_summary: '',
+      chat_context_summary: chatContextSummary.value,
       problem_tags: [],
+      handoff_payload: handoffPayload.value,
     });
     successMessage.value = result.message;
     router.push(`/app/archive/${result.checkin_id}`);

@@ -103,6 +103,20 @@ test('chat page can hand current problem context to checkin flow', () => {
   assert.match(checkinPage, /window\.localStorage\.getItem\('noi-agent-chat-student-code'\)/);
 });
 
+test('chat page stores AIChat handoff payload for checkin review', () => {
+  assert.match(chatPage, /noi-agent-chat-handoff-payload/);
+  assert.match(chatPage, /function persistHandoffPayload/);
+  assert.match(chatPage, /persistHandoffPayload\(result\.handoff_payload\)/);
+});
+
+test('checkin page submits AIChat handoff payload when present', () => {
+  assert.match(checkinPage, /function loadHandoffPayload/);
+  assert.match(checkinPage, /parsed && parsed\.source === 'aichat'/);
+  assert.match(checkinPage, /const handoffPayload = ref\(loadHandoffPayload\(\)\)/);
+  assert.match(checkinPage, /handoff_payload: handoffPayload\.value/);
+  assert.match(checkinPage, /chat_context_summary: chatContextSummary\.value/);
+});
+
 test('chat page can visibly import luogu problem context before asking AI', () => {
   assert.match(apiService, /export function importProblem/);
   assert.match(apiService, /\/api\/problem-import/);

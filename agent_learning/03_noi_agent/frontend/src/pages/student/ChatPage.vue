@@ -23,6 +23,7 @@ const level = ref('');
 const messages = ref([]);
 
 window.localStorage.setItem('noi-agent-chat-session-id', sessionId.value);
+const HANDOFF_PAYLOAD_KEY = 'noi-agent-chat-handoff-payload';
 
 const canSend = computed(() => Boolean(problemId.value.trim() && message.value.trim() && !sending.value));
 const normalizedProblemUrl = computed(() => {
@@ -43,6 +44,14 @@ function persistProblemContext() {
   window.localStorage.setItem('noi-agent-chat-student-code', studentCode.value.trim());
 }
 
+function persistHandoffPayload(payload) {
+  if (payload && typeof payload === 'object') {
+    window.localStorage.setItem(HANDOFF_PAYLOAD_KEY, JSON.stringify(payload));
+    return;
+  }
+  window.localStorage.removeItem(HANDOFF_PAYLOAD_KEY);
+}
+
 function clearProblemContext() {
   problemId.value = '';
   problemTitle.value = '';
@@ -50,6 +59,7 @@ function clearProblemContext() {
   studentCode.value = '';
   problemImportMessage.value = '';
   persistProblemContext();
+  persistHandoffPayload(null);
 }
 
 function goToCheckinWithCurrentProblem() {
@@ -97,6 +107,7 @@ async function submitMessage() {
       student_code: studentCode.value.trim(),
     });
     messages.value.push({ role: 'assistant', content: result.reply });
+    persistHandoffPayload(result.handoff_payload);
     remainingQuota.value = result.remaining_quota;
     level.value = result.level;
   } catch (err) {
