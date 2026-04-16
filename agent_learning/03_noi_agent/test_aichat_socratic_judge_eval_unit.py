@@ -1,7 +1,11 @@
 import json
+import os
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
+from unittest.mock import patch
 
 from evals.aichat import run_socratic_judge_eval
 
@@ -110,6 +114,50 @@ class AIChatSocraticJudgeEvalTests(unittest.TestCase):
         self.assertEqual("case_bad", summary["results"][1]["case_id"])
         self.assertFalse(summary["results"][1]["passed"])
 
+    def test_evaluate_judge_should_write_per_case_progress(self):
+        cases_data = {
+            "rubric": {"automation_mapping": {"llm_judge": ["只问一个核心问题"]}},
+            "cases": [
+                {
+                    "id": "case_ok",
+                    "problem_ref": "P3128",
+                    "student_message": "卡住了",
+                    "problem_context": "树上路径。",
+                    "expected_reply_behavior": [],
+                    "forbidden_reply_behavior": [],
+                    "prior_messages": [],
+                },
+                {
+                    "id": "case_bad",
+                    "problem_ref": "P1048",
+                    "student_message": "dp 怎么定义",
+                    "problem_context": "背包。",
+                    "expected_reply_behavior": [],
+                    "forbidden_reply_behavior": [],
+                    "prior_messages": [],
+                },
+            ],
+        }
+        responses = {
+            "case_ok": "先看一条路径会影响哪些点？",
+            "case_bad": "完整做法是先定义 dp[i][j]...",
+        }
+        progress = StringIO()
+
+        summary = run_socratic_judge_eval.evaluate_judge(
+            cases_data,
+            responses,
+            judge_fn=lambda prompt: '{"pass": true, "score": 3, "reasons": ["ok"], "failed_criteria": []}',
+            progress_stream=progress,
+        )
+
+        log = progress.getvalue()
+        self.assertEqual(2, summary["case_count"])
+        self.assertIn("JUDGE_START index=1 total=2 case_id=case_ok", log)
+        self.assertIn("JUDGE_DONE index=1 total=2 case_id=case_ok score=3 passed=True ok=True", log)
+        self.assertIn("JUDGE_START index=2 total=2 case_id=case_bad", log)
+        self.assertIn("JUDGE_DONE index=2 total=2 case_id=case_bad score=3 passed=True ok=True", log)
+
     def test_evaluate_judge_should_fail_safe_but_generic_score_two_replies(self):
         cases_data = {
             "rubric": {"automation_mapping": {"llm_judge": ["必须贴题"]}},
@@ -168,6 +216,39 @@ class AIChatSocraticJudgeEvalTests(unittest.TestCase):
             )
 
         self.assertEqual(1, summary["passed_case_count"])
+
+    def test_main_should_set_judge_timeout_env_for_cli_run(self):
+        summary = {
+            "case_count": 1,
+            "passed_case_count": 1,
+            "failed_case_count": 0,
+            "pass_rate": 1.0,
+            "average_score": 3.0,
+            "results": [],
+        }
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            output_path = tmp / "judge.json"
+            with patch.dict(os.environ, {}, clear=True):
+                with patch.object(run_socratic_judge_eval, "evaluate_judge_file", return_value=summary) as mocked:
+                    with redirect_stdout(StringIO()):
+                        exit_code = run_socratic_judge_eval.main(
+                            [
+                                "--cases",
+                                str(tmp / "cases.json"),
+                                "--responses-jsonl",
+                                str(tmp / "responses.jsonl"),
+                                "--output-json",
+                                str(output_path),
+                                "--judge-timeout-seconds",
+                                "7",
+                            ]
+                        )
+                    self.assertEqual("7", os.environ["REVIEW_EVAL_KIMI_TIMEOUT_SECONDS"])
+                    self.assertTrue(output_path.exists())
+
+        self.assertEqual(0, exit_code)
+        mocked.assert_called_once()
 
 
 if __name__ == "__main__":

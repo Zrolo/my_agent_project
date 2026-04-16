@@ -1,4 +1,5 @@
 import json
+import os
 import tempfile
 import unittest
 from contextlib import redirect_stderr
@@ -118,6 +119,7 @@ class AIChatSocraticSuiteTests(unittest.TestCase):
             cases_path = tmp / "cases.json"
             output_dir = tmp / "report"
             self._write_json(cases_path, cases_data)
+            progress = StringIO()
 
             summary = run_socratic_suite.run_suite(
                 cases_path=cases_path,
@@ -126,13 +128,58 @@ class AIChatSocraticSuiteTests(unittest.TestCase):
                 with_judge=True,
                 chat_fn=fake_chat,
                 judge_fn=fake_judge,
+                progress_stream=progress,
             )
 
             self.assertEqual(1, summary["hard_summary"]["passed_case_count"])
             self.assertEqual(1, summary["judge_summary"]["passed_case_count"])
+            self.assertIn("JUDGE_START index=1 total=1 case_id=case_1", progress.getvalue())
+            self.assertIn("JUDGE_DONE index=1 total=1 case_id=case_1 score=3 passed=True ok=True", progress.getvalue())
             self.assertTrue((output_dir / "responses.jsonl").exists())
             self.assertTrue((output_dir / "judge_summary.json").exists())
             self.assertIn("Judge pass rate: 100.0%", (output_dir / "report.md").read_text(encoding="utf-8"))
+
+    def test_run_suite_should_apply_judge_timeout_during_judge_run(self):
+        cases_data = {
+            "rubric": {"hard_fail_patterns": [], "automation_mapping": {"llm_judge": ["只问一个核心问题"]}},
+            "cases": [
+                {
+                    "id": "case_1",
+                    "problem_ref": "P3128",
+                    "student_message": "卡住了",
+                    "problem_context": "树上路径。",
+                    "prior_messages": [],
+                    "expected_reply_behavior": [],
+                    "forbidden_reply_behavior": [],
+                    "expected_control": {"scaffold_stage": 1, "zpd_level": "Z1", "tutor_action": "ask_slot_question"},
+                }
+            ],
+        }
+        captured_timeouts = []
+
+        def fake_chat(messages, student_id, problem_id):
+            return "先看一条路径会影响哪些点？", "先看一条路径会影响哪些点？", "L2"
+
+        def fake_judge(prompt):
+            captured_timeouts.append(os.environ.get("REVIEW_EVAL_KIMI_TIMEOUT_SECONDS"))
+            return '{"pass": true, "score": 3, "reasons": ["ok"], "failed_criteria": []}'
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            cases_path = tmp / "cases.json"
+            output_dir = tmp / "report"
+            self._write_json(cases_path, cases_data)
+
+            run_socratic_suite.run_suite(
+                cases_path=cases_path,
+                output_dir=output_dir,
+                with_judge=True,
+                chat_fn=fake_chat,
+                judge_fn=fake_judge,
+                judge_timeout_seconds=11,
+            )
+
+        self.assertEqual(["11"], captured_timeouts)
 
     def test_run_suite_limit_should_apply_to_generation_and_evaluation(self):
         cases_data = {

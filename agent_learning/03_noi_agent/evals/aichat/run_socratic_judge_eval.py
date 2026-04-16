@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Callable
@@ -115,35 +116,69 @@ def judge_response(case: dict, response_text: str, rubric: dict, judge_fn: Judge
         }
 
 
-def evaluate_judge(cases_data: dict, responses: dict[str, str], judge_fn: JudgeFn = run_review_case_kimi_cli._run_kimi_cli) -> dict:
+def _write_progress(progress_stream, event: str, **fields) -> None:
+    if progress_stream is None:
+        return
+    field_text = " ".join(f"{key}={value}" for key, value in fields.items())
+    progress_stream.write(f"{event} {field_text}\n".rstrip() + "\n")
+    progress_stream.flush()
+
+
+def evaluate_judge(
+    cases_data: dict,
+    responses: dict[str, str],
+    judge_fn: JudgeFn = run_review_case_kimi_cli._run_kimi_cli,
+    progress_stream=None,
+) -> dict:
     rubric = cases_data.get("rubric", {})
     results = []
-    for case in cases_data.get("cases", []):
+    cases = cases_data.get("cases", [])
+    total = len(cases)
+    for index, case in enumerate(cases, 1):
         case_id = case["id"]
+        _write_progress(progress_stream, "JUDGE_START", index=index, total=total, case_id=case_id)
         response_text = responses.get(case_id)
         if response_text is None:
-            results.append(
-                {
-                    "case_id": case_id,
-                    "passed": False,
-                    "score": 0,
-                    "ok": False,
-                    "reasons": ["missing_response"],
-                    "failed_criteria": ["missing_response"],
-                }
+            result = {
+                "case_id": case_id,
+                "passed": False,
+                "score": 0,
+                "ok": False,
+                "reasons": ["missing_response"],
+                "failed_criteria": ["missing_response"],
+            }
+            results.append(result)
+            _write_progress(
+                progress_stream,
+                "JUDGE_DONE",
+                index=index,
+                total=total,
+                case_id=case_id,
+                score=0,
+                passed=False,
+                ok=False,
             )
             continue
         judged = judge_response(case, response_text, rubric, judge_fn=judge_fn)
         passed = bool(judged["ok"] and judged["pass"] and judged["score"] >= 3)
-        results.append(
-            {
-                "case_id": case_id,
-                "passed": passed,
-                "score": judged["score"],
-                "ok": judged["ok"],
-                "reasons": judged["reasons"],
-                "failed_criteria": judged["failed_criteria"],
-            }
+        result = {
+            "case_id": case_id,
+            "passed": passed,
+            "score": judged["score"],
+            "ok": judged["ok"],
+            "reasons": judged["reasons"],
+            "failed_criteria": judged["failed_criteria"],
+        }
+        results.append(result)
+        _write_progress(
+            progress_stream,
+            "JUDGE_DONE",
+            index=index,
+            total=total,
+            case_id=case_id,
+            score=result["score"],
+            passed=result["passed"],
+            ok=result["ok"],
         )
 
     case_count = len(results)
@@ -160,8 +195,18 @@ def evaluate_judge(cases_data: dict, responses: dict[str, str], judge_fn: JudgeF
     }
 
 
-def evaluate_judge_file(cases_path: Path, responses_path: Path, judge_fn: JudgeFn = run_review_case_kimi_cli._run_kimi_cli) -> dict:
-    return evaluate_judge(load_cases(cases_path), run_socratic_eval.load_responses(responses_path), judge_fn=judge_fn)
+def evaluate_judge_file(
+    cases_path: Path,
+    responses_path: Path,
+    judge_fn: JudgeFn = run_review_case_kimi_cli._run_kimi_cli,
+    progress_stream=None,
+) -> dict:
+    return evaluate_judge(
+        load_cases(cases_path),
+        run_socratic_eval.load_responses(responses_path),
+        judge_fn=judge_fn,
+        progress_stream=progress_stream,
+    )
 
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:
@@ -169,12 +214,19 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--cases", type=Path, default=DEFAULT_CASES_PATH, help="AIChat Socratic case JSON file.")
     parser.add_argument("--responses-jsonl", type=Path, required=True, help="JSONL with case_id and response_text fields.")
     parser.add_argument("--output-json", type=Path, help="Optional path to write judge summary JSON.")
+    parser.add_argument(
+        "--judge-timeout-seconds",
+        type=int,
+        help="Override REVIEW_EVAL_KIMI_TIMEOUT_SECONDS for this judge run.",
+    )
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(sys.argv[1:] if argv is None else argv)
-    summary = evaluate_judge_file(args.cases, args.responses_jsonl)
+    if args.judge_timeout_seconds is not None:
+        os.environ["REVIEW_EVAL_KIMI_TIMEOUT_SECONDS"] = str(args.judge_timeout_seconds)
+    summary = evaluate_judge_file(args.cases, args.responses_jsonl, progress_stream=sys.stderr)
     output = json.dumps(summary, ensure_ascii=False, indent=2)
     if args.output_json:
         args.output_json.write_text(output + "\n", encoding="utf-8")

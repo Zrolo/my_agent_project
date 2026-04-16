@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -120,6 +121,7 @@ def run_suite(
     limit: int | None = None,
     allow_judge_smoke: bool = False,
     progress_stream=None,
+    judge_timeout_seconds: int | None = None,
 ) -> dict:
     output_dir.mkdir(parents=True, exist_ok=True)
     raw_cases_data = run_chat_batch.load_cases(cases_path)
@@ -151,7 +153,22 @@ def run_suite(
 
     judge_summary = None
     if with_judge:
-        judge_summary = run_socratic_judge_eval.evaluate_judge_file(eval_cases_path, responses_path, judge_fn=judge_fn)
+        previous_timeout = os.environ.get("REVIEW_EVAL_KIMI_TIMEOUT_SECONDS")
+        if judge_timeout_seconds is not None:
+            os.environ["REVIEW_EVAL_KIMI_TIMEOUT_SECONDS"] = str(judge_timeout_seconds)
+        try:
+            judge_summary = run_socratic_judge_eval.evaluate_judge_file(
+                eval_cases_path,
+                responses_path,
+                judge_fn=judge_fn,
+                progress_stream=progress_stream,
+            )
+        finally:
+            if judge_timeout_seconds is not None:
+                if previous_timeout is None:
+                    os.environ.pop("REVIEW_EVAL_KIMI_TIMEOUT_SECONDS", None)
+                else:
+                    os.environ["REVIEW_EVAL_KIMI_TIMEOUT_SECONDS"] = previous_timeout
         judge_summary["coverage"] = (
             "smoke" if len(cases_data.get("cases", [])) < len(raw_cases_data.get("cases", [])) else "full"
         )
@@ -194,6 +211,11 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         action="store_true",
         help="Allow --with-judge to run on a limited case set. Without this flag, judge runs must cover all cases.",
     )
+    parser.add_argument(
+        "--judge-timeout-seconds",
+        type=int,
+        help="Override REVIEW_EVAL_KIMI_TIMEOUT_SECONDS while running the judge.",
+    )
     return parser.parse_args(argv)
 
 
@@ -209,6 +231,7 @@ def main(argv: list[str] | None = None) -> int:
             limit=args.limit,
             allow_judge_smoke=args.allow_judge_smoke,
             progress_stream=sys.stderr,
+            judge_timeout_seconds=args.judge_timeout_seconds,
         )
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
