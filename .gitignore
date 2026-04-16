@@ -29,6 +29,7 @@ test-results/
 # Agent-local scratch state and generated review reports
 .claude/
 .superpowers/
+.worktrees/
 .tmp_*.spec.js
 agent_learning/03_noi_agent/evals/aichat/reports/
 
