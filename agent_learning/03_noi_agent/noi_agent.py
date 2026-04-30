@@ -13,6 +13,12 @@ from model_config import get_model_candidates, is_model_unavailable_error
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 QUOTA_FILE = os.path.join(BASE_DIR, "quota.json")
+PEDAGOGICAL_JUDGE_V2_PROMPT_FILE = os.path.join(
+    BASE_DIR,
+    "docs",
+    "common",
+    "aichat_pedagogical_judge_v2_system_prompt.md",
+)
 PER_PROBLEM_HINT_LIMIT = 3
 client = None
 chat_clients = {}
@@ -382,6 +388,19 @@ def build_pedagogical_judge_request_kwargs(profile: ChatModelProfile, messages: 
         kwargs["extra_body"] = profile.extra_body
     kwargs[profile.token_param] = pedagogical_judge_max_tokens_for_profile(profile)
     return kwargs
+
+
+def _deepseek_v4_flash_judge_profile() -> ChatModelProfile:
+    return ChatModelProfile(
+        provider_id="deepseek",
+        label="DeepSeek V4 Flash",
+        model=os.environ.get("NOI_PEDAGOGICAL_JUDGE_MODEL", "deepseek-v4-flash"),
+        base_url=os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
+        api_key_envs=("DEEPSEEK_API_KEY",),
+        token_param="max_tokens",
+        thinking_mode="disabled",
+        extra_body={"thinking": {"type": "disabled"}},
+    )
 
 
 def _chat_completion_create(
@@ -896,7 +915,144 @@ def build_pedagogical_judge_prompt(
 }}"""
 
 
-def judge_learning_phase_with_llm(
+def _read_pedagogical_judge_v2_system_prompt() -> str:
+    with open(PEDAGOGICAL_JUDGE_V2_PROMPT_FILE, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+def _escape_untrusted_boundary_text(text: str) -> str:
+    escaped = text or ""
+    for tag in (
+        "student_message_untrusted",
+        "problem_statement_untrusted",
+        "student_code_untrusted",
+        "recent_dialogue_untrusted",
+    ):
+        escaped = escaped.replace(f"</{tag}>", "[escaped]")
+    return escaped
+
+
+def _wrap_untrusted(tag: str, text: str, max_chars: int) -> str:
+    compact = (text or "").strip()
+    if len(compact) > max_chars:
+        compact = compact[:max_chars].rstrip() + "..."
+    compact = _escape_untrusted_boundary_text(compact)
+    return f"<{tag}>\n{compact}\n</{tag}>"
+
+
+def _compact_problem_context_for_judge(problem_context: dict | None) -> str:
+    if not problem_context:
+        return ""
+    if isinstance(problem_context, dict):
+        parts = []
+        for key in ("problem_ref", "title", "url", "source", "summary", "statement", "content", "description"):
+            value = problem_context.get(key)
+            if value:
+                parts.append(f"{key}: {value}")
+        if parts:
+            return "\n".join(parts)
+    return str(problem_context)
+
+
+def _format_recent_dialogue_for_judge(messages: list | None) -> str:
+    lines = []
+    for msg in (messages or [])[-6:]:
+        role = "学生" if msg.get("role") == "user" else "AI"
+        content = str(msg.get("content", ""))
+        if msg.get("role") == "user":
+            content = _extract_student_original_input(content)
+        lines.append(f"{role}: {content}")
+    return "\n".join(lines)
+
+
+def _build_pedagogical_judge_v2_user_message(
+    *,
+    user_input: str,
+    messages: list,
+    problem_context: dict | None = None,
+    student_code: str | None = None,
+    rule_weak_signals: list[str] | None = None,
+) -> str:
+    context_flags = [
+        "已有题目" if problem_context else "缺少题目",
+        "学生带了代码" if student_code else "没有学生代码",
+    ]
+    problem_text = _compact_problem_context_for_judge(problem_context)
+    sections = [
+        "请根据下面材料输出 JSON 控制信号。",
+        f"context_flags: {';'.join(context_flags)}",
+        "weak_signals: " + json.dumps(rule_weak_signals or [], ensure_ascii=False),
+        _wrap_untrusted("recent_dialogue_untrusted", _format_recent_dialogue_for_judge(messages), 3600),
+        _wrap_untrusted("problem_statement_untrusted", problem_text, 2600),
+        _wrap_untrusted("student_code_untrusted", student_code or "", 2200),
+        _wrap_untrusted("student_message_untrusted", user_input or "", 1200),
+    ]
+    return "\n\n".join(sections)
+
+
+def pedagogical_judge_v2(
+    user_input: str,
+    messages: list,
+    problem_context: dict | None = None,
+    student_code: str | None = None,
+    rule_weak_signals: list[str] | None = None,
+) -> dict:
+    """返回 schema 见 prompts 文件。失败时返回 {"_failed": True, "_reason": "..."}"""
+    try:
+        system_prompt = _read_pedagogical_judge_v2_system_prompt()
+        user_message = _build_pedagogical_judge_v2_user_message(
+            user_input=user_input,
+            messages=messages,
+            problem_context=problem_context,
+            student_code=student_code,
+            rule_weak_signals=rule_weak_signals,
+        )
+        profile = _deepseek_v4_flash_judge_profile()
+        kwargs = {
+            "model": profile.model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            "response_format": {"type": "json_object"},
+            "max_tokens": int(os.environ.get("NOI_PEDAGOGICAL_JUDGE_MAX_TOKENS") or "768"),
+            "stream": False,
+            "extra_body": {"thinking": {"type": "disabled"}},
+            # default 5.0s based on M1.2.1 probe (p99=3.4s on 20-call sample);
+            # leaves ~1.6s buffer for production input variance and provider jitter.
+            # selective triggering in M2 will reduce average judge invocation rate.
+            "timeout": float(os.environ.get("NOI_PEDAGOGICAL_JUDGE_TIMEOUT_SECONDS") or "5.0"),
+        }
+        response = get_chat_client_for_profile(profile).chat.completions.create(**kwargs)
+        raw = _choice_message_text(response, allow_reasoning_fallback=False)
+        if not raw.strip():
+            return {"_failed": True, "_reason": "empty_content"}
+        try:
+            parsed = _extract_json_from_response(raw)
+        except json.JSONDecodeError as exc:
+            return {"_failed": True, "_reason": f"json_parse_failed: {exc}"}
+        except ValueError as exc:
+            return {"_failed": True, "_reason": f"extract_failed: {exc}"}
+        try:
+            return _validate_judge_schema(parsed)
+        except ValueError as exc:
+            return {"_failed": True, "_reason": f"schema_invalid: {exc}"}
+    except Exception as exc:
+        return {"_failed": True, "_reason": f"{type(exc).__name__}: {exc}"}
+
+
+def _choice_message_text(response, *, allow_reasoning_fallback: bool = False) -> str:
+    message = response.choices[0].message
+    content = getattr(message, "content", None) or ""
+    if content.strip():
+        return content
+    if allow_reasoning_fallback:
+        reasoning = getattr(message, "reasoning_content", None) or ""
+        return reasoning
+    return ""
+
+
+def _legacy_judge_learning_phase_with_llm(
     messages: list | None,
     *,
     has_problem_context: bool = False,
@@ -925,8 +1081,7 @@ def judge_learning_phase_with_llm(
         if timeout_seconds:
             kwargs["timeout"] = float(timeout_seconds)
         response = get_chat_client_for_profile(profile).chat.completions.create(**kwargs)
-        message = response.choices[0].message
-        raw = getattr(message, "content", None) or getattr(message, "reasoning_content", None) or ""
+        raw = _choice_message_text(response, allow_reasoning_fallback=True)
         judgement = json.loads(raw)
         return _learning_phase_from_pedagogical_judgement(
             judgement,
@@ -936,6 +1091,21 @@ def judge_learning_phase_with_llm(
     except Exception as exc:
         print(f"[pedagogical_judge] fallback reason={type(exc).__name__}: {exc}")
         return None
+
+
+def judge_learning_phase_with_llm(
+    messages: list | None,
+    *,
+    has_problem_context: bool = False,
+    has_student_code: bool = False,
+    provider_id: str | None = None,
+) -> dict | None:
+    return _legacy_judge_learning_phase_with_llm(
+        messages,
+        has_problem_context=has_problem_context,
+        has_student_code=has_student_code,
+        provider_id=provider_id,
+    )
 
 
 def _compact_for_aichat_memory(label: str, value: str, max_chars: int = 1200) -> str:
@@ -1005,8 +1175,7 @@ def summarize_aichat_problem_memory(
     if timeout_seconds:
         kwargs["timeout"] = float(timeout_seconds)
     response = get_chat_client_for_profile(profile).chat.completions.create(**kwargs)
-    message = response.choices[0].message
-    return (getattr(message, "content", None) or getattr(message, "reasoning_content", None) or "").strip()
+    return _choice_message_text(response, allow_reasoning_fallback=True).strip()
 
 
 def _compact_for_understanding_check(label: str, value: str, max_chars: int = 1200) -> str:
@@ -2190,7 +2359,7 @@ def chat(messages: list, student_id: str, problem_id: str, chat_model_provider: 
         provider_id=chat_model_provider,
     )
     
-    raw_reply = getattr(response.choices[0].message, "content", None) or ""
+    raw_reply = _choice_message_text(response)
     if not raw_reply.strip():
         raise RuntimeError("模型没有返回可展示的正文，请稍后重试或切换模型")
     
