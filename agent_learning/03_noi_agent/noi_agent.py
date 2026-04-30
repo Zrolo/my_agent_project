@@ -212,6 +212,19 @@ CODE_PATTERNS = [
     r'struct ', r'public:', r'private:', r'void ', r'return '
 ]
 
+_PROBLEM_REF_PATTERN = re.compile(r"\b([Pp]\d{3,5}|CF\d+[A-Z]?|AT_[a-z]+\d+)\b")
+_CODE_BLOCK_PATTERN = re.compile(r"```(?:cpp|c\+\+|python|c|java)?\s*\n([\s\S]*?)```", re.IGNORECASE)
+_RISK_TAG_TO_WEAK_SIGNAL = {
+    "type_confirm": "possible_type_confirm",
+    "bridge_attempt": "possible_bridge_attempt",
+    "emotion_pressure": "possible_indirect_emotion_pressure",
+    "code_no_target": "code_without_debug_target",
+    "missing_context": "missing_problem_context",
+    "checkin_handoff": "rule_suggests_handoff",
+    "classifier_bridge": "possible_bridge_attempt",
+    "classifier_direct": "possible_indirect_answer_request",
+}
+
 SEMANTIC_RISK_PATTERNS = [
     r'这题是.*吗',
     r'是不是',
@@ -1753,15 +1766,79 @@ def _is_judge_v2_enabled() -> bool:
     return raw in {"1", "true", "yes", "on"}
 
 
+def _is_judge_v2_selective() -> bool:
+    raw = (os.environ.get("NOI_JUDGE_V2_SELECTIVE") or "1").strip().lower()
+    return raw in {"1", "true", "yes", "on"}
+
+
+def _should_call_judge_v2(rule_result: dict, user_input: str) -> tuple[bool, str]:
+    """Decide whether to invoke judge v2 based on high-confidence rule output."""
+    if not _is_judge_v2_selective():
+        return True, ""
+
+    text = (user_input or "").strip()
+    if len(text) < 8:
+        return False, "skip_too_short"
+
+    level_control = rule_result.get("level_control", {})
+    if level_control.get("max_level") == "L1":
+        return False, "skip_l1_locked"
+
+    tutor_control = rule_result.get("tutor_control", {})
+    if tutor_control.get("tutor_action") == "request_problem_context":
+        return False, "skip_request_context"
+
+    return True, ""
+
+
+def _extract_problem_context_from_messages(messages: list) -> dict | None:
+    """Scan recent messages for a problem ref. M1.7 only passes the ref."""
+    for msg in reversed(messages or []):
+        content = str(msg.get("content", ""))
+        match = _PROBLEM_REF_PATTERN.search(content)
+        if match:
+            return {"problem_ref": match.group(1)}
+    return None
+
+
+def _extract_student_code_from_messages(messages: list) -> str | None:
+    """Scan student messages for the most recent fenced code block."""
+    for msg in reversed(messages or []):
+        if msg.get("role") != "user":
+            continue
+        content = str(msg.get("content", ""))
+        match = _CODE_BLOCK_PATTERN.search(content)
+        if match:
+            return match.group(1).strip() or None
+    return None
+
+
+def _derive_weak_signals_from_rule(rule_result: dict) -> list[str]:
+    """Map rule risk tags to judge weak_signals values declared in the prompt."""
+    risk_tags = rule_result.get("risk_control", {}).get("risk_tags", []) or []
+    out: list[str] = []
+    seen: set[str] = set()
+    for tag in risk_tags:
+        weak_signal = _RISK_TAG_TO_WEAK_SIGNAL.get(tag)
+        if weak_signal and weak_signal not in seen:
+            seen.add(weak_signal)
+            out.append(weak_signal)
+    return out
+
+
 def _apply_judge_v2_override(rule_result: dict, user_input: str, messages: list) -> dict:
     """If judge succeeds, override tutor_control. Failure preserves v0 output."""
+    should_call, _skip_reason = _should_call_judge_v2(rule_result, user_input)
+    if not should_call:
+        return rule_result
+
     try:
         judge_result = pedagogical_judge_v2(
             user_input=user_input,
             messages=messages,
-            problem_context=None,  # M1.7 will plumb actual context.
-            student_code=None,     # M1.7 will plumb actual code.
-            rule_weak_signals=[],  # M1.7 will derive weak signals from rule_result.
+            problem_context=_extract_problem_context_from_messages(messages),
+            student_code=_extract_student_code_from_messages(messages),
+            rule_weak_signals=_derive_weak_signals_from_rule(rule_result),
         )
     except Exception:
         return rule_result

@@ -224,6 +224,85 @@ class AIChatRuntimePolicyTests(unittest.TestCase):
 
         self.assertNotIn("judge_action_subtype", result["tutor_control"])
 
+    def test_judge_v2_selective_should_skip_l1_locked_turns(self):
+        """L1 强拦时不调 judge。"""
+        fake_judge_called = []
+
+        def fake_judge(**kwargs):
+            fake_judge_called.append(kwargs)
+            return {"_failed": True, "_reason": "should_not_be_called"}
+
+        with patch.dict(
+            os.environ,
+            {"NOI_JUDGE_V2_ENABLED": "true", "NOI_JUDGE_V2_SELECTIVE": "true"},
+            clear=False,
+        ), patch("noi_agent.pedagogical_judge_v2", side_effect=fake_judge):
+            messages = self._messages("给我代码")
+            analyze_student_turn(messages[-1]["content"], messages)
+
+        self.assertEqual(0, len(fake_judge_called), "L1 强拦不应触发 judge")
+
+    def test_judge_v2_selective_should_skip_short_inputs(self):
+        """太短输入不调 judge。"""
+        fake_called = []
+
+        def fake_judge(**kwargs):
+            fake_called.append(kwargs)
+            return {"_failed": True}
+
+        with patch.dict(
+            os.environ,
+            {"NOI_JUDGE_V2_ENABLED": "true", "NOI_JUDGE_V2_SELECTIVE": "true"},
+            clear=False,
+        ), patch("noi_agent.pedagogical_judge_v2", side_effect=fake_judge):
+            messages = self._messages("不会")
+            analyze_student_turn(messages[-1]["content"], messages)
+
+        self.assertEqual(0, len(fake_called))
+
+    def test_judge_v2_should_pass_real_problem_context_and_code(self):
+        """data plumbing：判断时传入实际题面引用和代码块。"""
+        captured = {}
+
+        def fake_judge(**kwargs):
+            captured.update(kwargs)
+            return {"_failed": True}
+
+        with patch.dict(
+            os.environ,
+            {"NOI_JUDGE_V2_ENABLED": "true", "NOI_JUDGE_V2_SELECTIVE": "true"},
+            clear=False,
+        ), patch("noi_agent.pedagogical_judge_v2", side_effect=fake_judge):
+            messages = [
+                {
+                    "role": "user",
+                    "content": "我做 P1119 这题，贴一下我的代码：\n```cpp\nint main(){return 0;}\n```\n为什么 WA？",
+                },
+            ]
+            analyze_student_turn(messages[-1]["content"], messages)
+
+        self.assertIsNotNone(captured.get("problem_context"))
+        self.assertEqual("P1119", captured["problem_context"]["problem_ref"])
+        self.assertIn("int main", captured.get("student_code") or "")
+
+    def test_judge_v2_non_selective_mode_should_always_call(self):
+        """关闭 selective 时，所有 turn 都调 judge（用于 eval/ablation）。"""
+        fake_called = []
+
+        def fake_judge(**kwargs):
+            fake_called.append(kwargs)
+            return {"_failed": True}
+
+        with patch.dict(
+            os.environ,
+            {"NOI_JUDGE_V2_ENABLED": "true", "NOI_JUDGE_V2_SELECTIVE": "false"},
+            clear=False,
+        ), patch("noi_agent.pedagogical_judge_v2", side_effect=fake_judge):
+            messages = self._messages("给我代码")
+            analyze_student_turn(messages[-1]["content"], messages)
+
+        self.assertEqual(1, len(fake_called), "selective=false 时即使 L1 强拦也要调 judge")
+
     def test_ac_reflection_should_force_checkin_handoff(self):
         messages = self._messages("我 P3128 AC 了！但我感觉自己做的时候有点蒙，想弄清楚为什么这样写。")
         control = analyze_student_turn(messages[-1]["content"], messages)
