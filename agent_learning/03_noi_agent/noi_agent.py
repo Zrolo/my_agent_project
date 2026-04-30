@@ -1041,6 +1041,138 @@ def pedagogical_judge_v2(
         return {"_failed": True, "_reason": f"{type(exc).__name__}: {exc}"}
 
 
+def _extract_json_object(text: str) -> dict:
+    raw = (text or "").strip()
+    if not raw:
+        raise ValueError("empty json text")
+    if raw.startswith("```"):
+        raw = re.sub(r"^```(?:json)?", "", raw, flags=re.I).strip()
+        raw = re.sub(r"```$", "", raw).strip()
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        match = re.search(r"\{[\s\S]*\}", raw)
+        if not match:
+            raise
+        return json.loads(match.group(0))
+
+
+_JUDGE_INTENTS = {
+    "learning",
+    "direct_answer_request",
+    "code_debugging",
+    "emotional_pressure",
+    "prompt_injection",
+    "unclear",
+}
+_JUDGE_PHASES = {
+    "problem_clarification",
+    "conceptual_confusion",
+    "application_gap",
+    "forming_strategy",
+    "implementation_stuck",
+    "code_debugging",
+    "likely_understood",
+    "unclear",
+}
+_JUDGE_ACTION_SUBTYPES_BY_CATEGORY = {
+    "questioning": {
+        "request_problem_context",
+        "ask_baseline_attempt",
+        "ask_slot_question",
+        "ask_one_question",
+        "ask_one_focus_point",
+    },
+    "scaffolding": {
+        "give_micro_example",
+        "give_micro_scaffold",
+        "build_application_bridge",
+        "summarize_and_bridge",
+        "point_to_specific_gap",
+    },
+    "diagnosis": {
+        "ask_debug_evidence",
+        "ask_code_evidence",
+        "diagnose_code_locally",
+    },
+    "transition": {
+        "offer_understanding_check",
+        "offer_checkin_reflection",
+        "offer_micro_example_or_checkin",
+    },
+    "safety": {
+        "refuse_injection",
+    },
+}
+_JUDGE_HELP_LEVELS = {"L1", "L2", "L3"}
+_JUDGE_INJECTION_SOURCES = {"none", "problem", "student_message", "code"}
+
+
+def _extract_json_from_response(text: str) -> dict:
+    """Parse judge JSON, accepting raw JSON or a fenced ```json block."""
+    raw = (text or "").strip()
+    if not raw:
+        raise ValueError("empty json response")
+    fence = re.fullmatch(r"```(?:json)?\s*([\s\S]*?)\s*```", raw, flags=re.I)
+    if fence:
+        raw = fence.group(1).strip()
+    return _extract_json_object(raw)
+
+
+def _validate_judge_schema(payload: dict) -> dict:
+    """Validate pedagogical judge v2 JSON without mutating or normalizing it."""
+    if not isinstance(payload, dict):
+        raise ValueError("payload must be an object")
+    required = {
+        "student_intents",
+        "primary_intent",
+        "phase",
+        "action_category",
+        "action_subtype",
+        "allowed_help_level",
+        "confidence",
+        "injection_detected",
+        "injection_source",
+        "reason",
+    }
+    missing = sorted(required - set(payload.keys()))
+    if missing:
+        raise ValueError(f"missing required fields: {', '.join(missing)}")
+
+    intents = payload["student_intents"]
+    if not isinstance(intents, list) or not 1 <= len(intents) <= 3:
+        raise ValueError("student_intents must contain 1-3 items")
+    for intent in intents:
+        if intent not in _JUDGE_INTENTS:
+            raise ValueError(f"student_intents has invalid enum: {intent}")
+    if payload["primary_intent"] != intents[0]:
+        raise ValueError("primary_intent must equal student_intents[0]")
+
+    phase = payload["phase"]
+    if phase not in _JUDGE_PHASES:
+        raise ValueError(f"phase has invalid enum: {phase}")
+
+    category = payload["action_category"]
+    if category not in _JUDGE_ACTION_SUBTYPES_BY_CATEGORY:
+        raise ValueError(f"action_category has invalid enum: {category}")
+    subtype = payload["action_subtype"]
+    if subtype not in _JUDGE_ACTION_SUBTYPES_BY_CATEGORY[category]:
+        raise ValueError(f"action_subtype has invalid enum for {category}: {subtype}")
+
+    if payload["allowed_help_level"] not in _JUDGE_HELP_LEVELS:
+        raise ValueError(f"allowed_help_level has invalid enum: {payload['allowed_help_level']}")
+    confidence = payload["confidence"]
+    if not isinstance(confidence, (int, float)) or isinstance(confidence, bool) or not 0 <= confidence <= 1:
+        raise ValueError("confidence must be a number between 0 and 1")
+    if not isinstance(payload["injection_detected"], bool):
+        raise ValueError("injection_detected must be boolean")
+    if payload["injection_source"] not in _JUDGE_INJECTION_SOURCES:
+        raise ValueError(f"injection_source has invalid enum: {payload['injection_source']}")
+    if not isinstance(payload["reason"], str) or not payload["reason"].strip():
+        raise ValueError("reason must be a non-empty string")
+    return payload
+
+
 def _choice_message_text(response, *, allow_reasoning_fallback: bool = False) -> str:
     message = response.choices[0].message
     content = getattr(message, "content", None) or ""

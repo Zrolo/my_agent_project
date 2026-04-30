@@ -6,6 +6,8 @@ from noi_agent import (
     analyze_student_turn,
     build_pedagogical_judge_prompt,
     build_policy_override_reply,
+    _extract_json_from_response,
+    _validate_judge_schema,
     enforce_output_guards,
     chat_temperature_for_model,
     chat,
@@ -35,6 +37,52 @@ class AIChatRuntimePolicyTests(unittest.TestCase):
         self.assertEqual(1, chat_temperature_for_model("kimi-k2.6"))
         self.assertEqual(1, chat_temperature_for_model("kimi-k2.5"))
         self.assertEqual(0.3, chat_temperature_for_model("deepseek-chat"))
+
+    def test_extract_json_from_response_should_strip_markdown_fence(self):
+        parsed = _extract_json_from_response(
+            '```json\n{"primary_intent": "learning", "student_intents": ["learning"]}\n```'
+        )
+
+        self.assertEqual("learning", parsed["primary_intent"])
+        self.assertEqual(["learning"], parsed["student_intents"])
+
+    def test_validate_judge_schema_should_require_primary_intent_first(self):
+        valid = {
+            "student_intents": ["learning", "code_debugging"],
+            "primary_intent": "learning",
+            "phase": "application_gap",
+            "action_category": "scaffolding",
+            "action_subtype": "build_application_bridge",
+            "allowed_help_level": "L2",
+            "confidence": 0.8,
+            "injection_detected": False,
+            "injection_source": "none",
+            "reason": "知道算法不会落题",
+        }
+
+        self.assertEqual(valid, _validate_judge_schema(valid))
+
+        invalid = dict(valid)
+        invalid["primary_intent"] = "code_debugging"
+        with self.assertRaisesRegex(ValueError, "primary_intent"):
+            _validate_judge_schema(invalid)
+
+    def test_validate_judge_schema_should_reject_invalid_enum(self):
+        payload = {
+            "student_intents": ["learning"],
+            "primary_intent": "learning",
+            "phase": "application_gap",
+            "action_category": "scaffolding",
+            "action_subtype": "ask_debug_evidence",
+            "allowed_help_level": "L2",
+            "confidence": 0.8,
+            "injection_detected": False,
+            "injection_source": "none",
+            "reason": "枚举不匹配",
+        }
+
+        with self.assertRaisesRegex(ValueError, "action_subtype"):
+            _validate_judge_schema(payload)
 
     def test_ac_reflection_should_force_checkin_handoff(self):
         messages = self._messages("我 P3128 AC 了！但我感觉自己做的时候有点蒙，想弄清楚为什么这样写。")
