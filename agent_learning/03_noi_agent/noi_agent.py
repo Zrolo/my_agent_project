@@ -7,6 +7,7 @@ NOI 竞赛教练 Agent - 限级改造版本
 import json
 import os
 import re
+from dataclasses import dataclass
 from openai import OpenAI
 from model_config import get_model_candidates, is_model_unavailable_error
 
@@ -14,8 +15,79 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 QUOTA_FILE = os.path.join(BASE_DIR, "quota.json")
 PER_PROBLEM_HINT_LIMIT = 3
 client = None
+chat_clients = {}
 CLASSIFIER_TIMEOUT_SECONDS = 2.5
 DEFAULT_CHAT_MODELS = ("kimi-k2.5",)
+
+
+def load_local_env_if_present(env_path: str | None = None) -> list[str]:
+    """Load simple KEY=VALUE lines from .env without overriding real environment."""
+    path = env_path or os.path.join(BASE_DIR, ".env")
+    if not os.path.exists(path):
+        return []
+
+    loaded: list[str] = []
+    with open(path, "r", encoding="utf-8") as f:
+        for raw_line in f:
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            if line.startswith("export "):
+                line = line[len("export "):].strip()
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if not key or key in os.environ:
+                continue
+            os.environ[key] = value
+            loaded.append(key)
+    return loaded
+
+
+load_local_env_if_present()
+
+
+@dataclass(frozen=True)
+class ChatModelProfile:
+    provider_id: str
+    label: str
+    model: str
+    base_url: str
+    api_key_envs: tuple[str, ...]
+    token_param: str = "max_completion_tokens"
+    thinking_mode: str = "provider_default"
+    extra_body: dict | None = None
+
+
+CHAT_MODEL_PROFILES = (
+    ChatModelProfile(
+        provider_id="mimo",
+        label="小米 MiMo V2.5 Pro",
+        model=os.environ.get("MIMO_MODEL", "mimo-v2.5-pro"),
+        base_url=os.environ.get("MIMO_BASE_URL", "https://api.xiaomimimo.com/v1"),
+        api_key_envs=("MIMO_API_KEY", "XIAOMI_MIMO_API_KEY"),
+        token_param="max_tokens",
+        thinking_mode="enabled",
+    ),
+    ChatModelProfile(
+        provider_id="deepseek",
+        label="DeepSeek V4 Pro",
+        model=os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-pro"),
+        base_url=os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
+        api_key_envs=("DEEPSEEK_API_KEY",),
+        token_param="max_tokens",
+        thinking_mode="enabled",
+        extra_body={"thinking": {"type": "enabled"}},
+    ),
+    ChatModelProfile(
+        provider_id="kimi",
+        label="Kimi K2.6",
+        model=os.environ.get("KIMI_MODEL", "kimi-k2.6"),
+        base_url=os.environ.get("MOONSHOT_BASE_URL", "https://api.moonshot.cn/v1"),
+        api_key_envs=("MOONSHOT_API_KEY", "OPENAI_API_KEY"),
+        thinking_mode="enabled",
+    ),
+)
 
 AC_SIGNAL_KEYWORDS = [
     "AC了", "AC 了", "过了", "通过了", "提交成功", "满分", "accepted",
@@ -32,6 +104,52 @@ HANDOFF_FOCUS_BY_RISK = {
 
 STUCK_SIGNAL_KEYWORDS = [
     "还是不会", "还是混", "说不清", "想不出", "不懂", "没思路", "想不明白",
+]
+
+PROGRESS_SIGNAL_PATTERNS = [
+    r"^(是|不是|最终|会|不会).+",
+    r"从.+到",
+    r"按.+顺序",
+    r"每.+(次|一步).+",
+    r".+(代表|表示).+",
+    r".+(合并|排序|枚举|维护|判断|返回|更新|缩|连边|取边).+",
+    r".+(内部|之间|候选|连通块|部落|边|点|栈).+",
+    r".+[-+*/]=?.+",
+]
+
+APPLICATION_GAP_PATTERNS = [
+    r"(知道|听过|学过|会).{0,24}(但|但是|可|却).{0,24}(怎么用|为什么用|用在哪里|不知道.*用|不会用|落到|切题|套)",
+    r"(知道|听过|学过|会).{0,24}(算法|知识点|做法|方法|套路).{0,24}(但|但是|可|却).{0,24}(不会|不知道|不清楚)",
+    r"(怎么用|为什么能用|用在哪里|怎么落到|怎么切入|不会套)",
+]
+
+UNDERSTANDING_OBJECT_KEYWORDS = [
+    "点", "边", "部落", "连通块", "区间", "状态", "路径", "前缀", "后缀",
+    "节点", "学校", "学生", "分数", "数组", "栈", "队列", "变量", "答案",
+    "城市", "核心", "叶子", "直径",
+]
+
+UNDERSTANDING_OPERATION_KEYWORDS = [
+    "合并", "排序", "枚举", "维护", "更新", "判断", "输出", "转移", "标记",
+    "查询", "插入", "删除", "压入", "弹出", "缩小", "比较", "连边", "取边",
+    "覆盖", "二分", "往回走", "选", "找",
+]
+
+UNDERSTANDING_RELATION_PATTERNS = [
+    r"因为.+所以",
+    r"如果.+(那么|就)",
+    r"当.+(时|之后)",
+    r"不是.+而是",
+    r"从.+到",
+    r".+之后.+才",
+    r".+减一",
+    r".+\\+\\s*1",
+    r".+<=.+",
+    r".+>=.+",
+]
+
+SHALLOW_UNDERSTANDING_CLAIMS = [
+    "懂了", "会了", "明白了", "应该是这样", "差不多", "可以了", "没问题了",
 ]
 
 # ============ 1. 代码层控制对象定义 ============
@@ -144,6 +262,187 @@ def get_client() -> OpenAI:
     return client
 
 
+def _env_first_value(names: tuple[str, ...]) -> str:
+    for name in names:
+        value = (os.environ.get(name) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _profile_by_provider(provider_id: str | None) -> ChatModelProfile | None:
+    normalized = (provider_id or "").strip().lower()
+    if not normalized:
+        return None
+    for profile in CHAT_MODEL_PROFILES:
+        if profile.provider_id == normalized:
+            return profile
+    return None
+
+
+def resolve_chat_model_profile(provider_id: str | None = None) -> ChatModelProfile:
+    explicit_profile = _profile_by_provider(provider_id)
+    if explicit_profile:
+        return explicit_profile
+
+    default_provider = (os.environ.get("NOI_DEFAULT_CHAT_PROVIDER") or "").strip().lower()
+    default_profile = _profile_by_provider(default_provider)
+    if default_profile and _env_first_value(default_profile.api_key_envs):
+        return default_profile
+
+    for profile in CHAT_MODEL_PROFILES:
+        if _env_first_value(profile.api_key_envs):
+            return profile
+
+    return CHAT_MODEL_PROFILES[0]
+
+
+def _chat_profile_public_dict(profile: ChatModelProfile) -> dict:
+    available = bool(_env_first_value(profile.api_key_envs))
+    return {
+        "provider_id": profile.provider_id,
+        "label": profile.label,
+        "model": profile.model,
+        "available": available,
+        "reason": "已配置" if available else "未配置 API Key",
+        "thinking_mode": profile.thinking_mode,
+    }
+
+
+def list_chat_model_options() -> dict:
+    """Return safe AIChat model choices for the student UI."""
+    default_profile = resolve_chat_model_profile()
+    return {
+        "default_provider": default_profile.provider_id,
+        "models": [_chat_profile_public_dict(profile) for profile in CHAT_MODEL_PROFILES],
+    }
+
+
+def get_chat_model_public_info(provider_id: str | None = None) -> dict:
+    return _chat_profile_public_dict(resolve_chat_model_profile(provider_id))
+
+
+def get_chat_client_for_profile(profile: ChatModelProfile) -> OpenAI:
+    api_key = _env_first_value(profile.api_key_envs)
+    if not api_key:
+        raise RuntimeError(f"{profile.label} 暂未配置 API Key")
+
+    cache_key = (profile.provider_id, profile.base_url, api_key[:8])
+    if cache_key not in chat_clients:
+        chat_clients[cache_key] = OpenAI(api_key=api_key, base_url=profile.base_url)
+    return chat_clients[cache_key]
+
+
+def chat_temperature_for_model(model_name: str) -> float:
+    normalized = (model_name or "").lower()
+    if normalized.startswith("kimi-k2."):
+        return 1
+    return 0.3
+
+
+def chat_max_completion_tokens_for_profile(profile: ChatModelProfile | None, env_name: str = "NOI_CHAT_MAX_COMPLETION_TOKENS") -> int | None:
+    explicit = (os.environ.get(env_name) or "").strip()
+    if explicit:
+        return int(explicit)
+    model_name = (profile.model if profile else "").lower()
+    if model_name.startswith("kimi-k2."):
+        return 30000
+    return None
+
+
+def _apply_profile_max_tokens(kwargs: dict, profile: ChatModelProfile, env_name: str = "NOI_CHAT_MAX_COMPLETION_TOKENS") -> None:
+    max_tokens = chat_max_completion_tokens_for_profile(profile, env_name=env_name)
+    if max_tokens is not None:
+        kwargs[profile.token_param] = max_tokens
+
+
+def pedagogical_judge_max_tokens_for_profile(profile: ChatModelProfile | None) -> int:
+    explicit = (os.environ.get("NOI_PEDAGOGICAL_JUDGE_MAX_TOKENS") or "").strip()
+    if explicit:
+        return int(explicit)
+    if (profile.provider_id if profile else "") == "deepseek":
+        return 4096
+    fallback = chat_max_completion_tokens_for_profile(profile, env_name="NOI_PEDAGOGICAL_JUDGE_MAX_TOKENS")
+    return fallback if fallback is not None else 1200
+
+
+def build_pedagogical_judge_request_kwargs(profile: ChatModelProfile, messages: list) -> dict:
+    kwargs = {
+        "model": profile.model,
+        "messages": messages,
+    }
+    if profile.provider_id == "deepseek":
+        kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
+        kwargs["response_format"] = {"type": "json_object"}
+        kwargs[profile.token_param] = pedagogical_judge_max_tokens_for_profile(profile)
+        return kwargs
+
+    kwargs["temperature"] = chat_temperature_for_model(profile.model)
+    if profile.extra_body:
+        kwargs["extra_body"] = profile.extra_body
+    kwargs[profile.token_param] = pedagogical_judge_max_tokens_for_profile(profile)
+    return kwargs
+
+
+def _chat_completion_create(
+    *,
+    system_prompt: str,
+    messages: list,
+    provider_id: str | None = None,
+):
+    if provider_id:
+        profile = resolve_chat_model_profile(provider_id)
+        kwargs = {
+            "model": profile.model,
+            "messages": [{"role": "system", "content": system_prompt}] + messages,
+            "temperature": chat_temperature_for_model(profile.model),
+        }
+        if profile.extra_body:
+            kwargs["extra_body"] = profile.extra_body
+        timeout_seconds = os.environ.get("NOI_CHAT_TIMEOUT_SECONDS", "").strip()
+        if timeout_seconds:
+            kwargs["timeout"] = float(timeout_seconds)
+        _apply_profile_max_tokens(kwargs, profile)
+        return get_chat_client_for_profile(profile).chat.completions.create(**kwargs)
+
+    if os.environ.get("NOI_CHAT_MODELS"):
+        return _legacy_chat_completion_create(system_prompt=system_prompt, messages=messages)
+
+    profile = resolve_chat_model_profile()
+    kwargs = {
+        "model": profile.model,
+        "messages": [{"role": "system", "content": system_prompt}] + messages,
+        "temperature": chat_temperature_for_model(profile.model),
+    }
+    if profile.extra_body:
+        kwargs["extra_body"] = profile.extra_body
+    timeout_seconds = os.environ.get("NOI_CHAT_TIMEOUT_SECONDS", "").strip()
+    if timeout_seconds:
+        kwargs["timeout"] = float(timeout_seconds)
+    _apply_profile_max_tokens(kwargs, profile)
+    return get_chat_client_for_profile(profile).chat.completions.create(**kwargs)
+
+
+def _legacy_chat_completion_create(*, system_prompt: str, messages: list):
+    last_error = None
+    for idx, model_name in enumerate(get_model_candidates("NOI_CHAT_MODELS", DEFAULT_CHAT_MODELS)):
+        try:
+            response = get_client().chat.completions.create(
+                model=model_name,
+                messages=[{"role": "system", "content": system_prompt}] + messages,
+                temperature=chat_temperature_for_model(model_name),
+            )
+            if idx > 0:
+                print(f"[noi_agent] fallback model succeeded: {model_name}")
+            return response
+        except Exception as exc:
+            last_error = exc
+            print(f"[noi_agent] LLM call failed on model {model_name}: {exc}")
+            if not is_model_unavailable_error(exc):
+                raise
+    raise last_error or RuntimeError("No available chat model")
+
+
 # ============ 2. 代码层输入分析函数（双轨版本：等级轨 + 风险轨） ============
 
 # 风险标签优先级（从高到低）
@@ -186,6 +485,10 @@ TUTOR_ACTION_BY_RISK = {
     "missing_context": "request_problem_context",
     "emotion_pressure": "ask_baseline_attempt",
 }
+
+
+def _has_chat_context_state(messages: list | None, state: str) -> bool:
+    return f"上下文状态：{state}" in _combined_message_text(messages)
 
 
 def _detect_risks(user_input: str, messages: list | None = None) -> list:
@@ -306,10 +609,605 @@ def _student_texts(messages: list | None) -> list[str]:
     ]
 
 
+def _assistant_texts(messages: list | None) -> list[str]:
+    return [
+        str(msg.get("content", ""))
+        for msg in (messages or [])
+        if msg.get("role") == "assistant"
+    ]
+
+
 def _has_repeated_stuck_signals(messages: list | None) -> bool:
     latest_three = _student_texts(messages)[-3:]
     stuck_count = sum(_contains_any_keyword(text, STUCK_SIGNAL_KEYWORDS) for text in latest_three)
     return stuck_count >= 2
+
+
+def _latest_student_made_progress(messages: list | None) -> bool:
+    """Whether the latest student turn adds usable reasoning evidence instead of just saying stuck."""
+    texts = _student_texts(messages)
+    if not texts:
+        return False
+    latest = texts[-1].strip()
+    if not latest:
+        return False
+    if _contains_any_keyword(latest, STUCK_SIGNAL_KEYWORDS):
+        return False
+    if "？" in latest or "?" in latest:
+        return False
+    if len(latest) < 6:
+        return False
+    return any(re.search(pattern, latest, flags=re.IGNORECASE) for pattern in PROGRESS_SIGNAL_PATTERNS)
+
+
+def _has_application_gap_signal(text: str) -> bool:
+    """Student likely knows a named idea but cannot connect it to the current problem."""
+    normalized = (text or "").strip()
+    if not normalized:
+        return False
+    return any(re.search(pattern, normalized, flags=re.IGNORECASE) for pattern in APPLICATION_GAP_PATTERNS)
+
+
+def _understanding_evidence_types(text: str) -> list[str]:
+    """Return lightweight evidence types for whether a student is ready to be checked.
+
+    This is not a mastery judgement. It only means the student has said enough
+    in their own words to make a small verification quiz worthwhile.
+    """
+    normalized = (text or "").strip()
+    if not normalized:
+        return []
+    if any(claim in normalized for claim in SHALLOW_UNDERSTANDING_CLAIMS) and len(normalized) < 18:
+        return []
+
+    evidence: list[str] = []
+    if any(keyword in normalized for keyword in UNDERSTANDING_OBJECT_KEYWORDS):
+        evidence.append("object")
+    if any(keyword in normalized for keyword in UNDERSTANDING_OPERATION_KEYWORDS):
+        evidence.append("operation")
+    if any(re.search(pattern, normalized) for pattern in UNDERSTANDING_RELATION_PATTERNS):
+        evidence.append("relation")
+    if any(keyword in normalized for keyword in ["错在", "问题在", "可疑", "不是", "应该检查", "输出的是", "题目要的是"]):
+        evidence.append("debug_target")
+    return evidence
+
+
+def evaluate_understanding_evidence(messages: list | None) -> dict:
+    """Evaluate whether recent student turns contain verifiable understanding evidence.
+
+    `evidence_seen` means the UI may enable a "验证一下" button. It does not mean
+    the student has mastered the point; mastery requires a later quiz or transfer check.
+    """
+    recent_student_text = "\n".join(_student_texts(messages)[-2:])
+    evidence_types = _understanding_evidence_types(recent_student_text)
+    enough_content = len(re.findall(r"[\u4e00-\u9fffA-Za-z0-9]", recent_student_text)) >= 15
+    has_two_types = len(set(evidence_types)) >= 2
+    phase = evaluate_learning_phase(messages, has_problem_context=True, has_student_code=False)
+    state = "evidence_seen" if enough_content and has_two_types and phase["can_show_verification"] else "not_ready"
+    return {
+        "understanding_state": state,
+        "evidence_types": sorted(set(evidence_types)),
+        "mastery_verified": False,
+    }
+
+
+def evaluate_learning_phase(
+    messages: list | None,
+    *,
+    has_problem_context: bool = False,
+    has_student_code: bool = False,
+    pedagogical_judgement: dict | None = None,
+) -> dict:
+    """Lightweight learning phase router for prompt control.
+
+    This is intentionally conservative: it only upgrades to verification when the
+    student has already formed a stable relation, not when they merely state a
+    plausible intuition.
+    """
+    if pedagogical_judgement:
+        if pedagogical_judgement.get("source") == "llm_rubric":
+            return pedagogical_judgement
+        return _learning_phase_from_pedagogical_judgement(
+            pedagogical_judgement,
+            has_problem_context=has_problem_context,
+            has_student_code=has_student_code,
+        )
+
+    student_texts = _student_texts(messages)
+    latest = student_texts[-1].strip() if student_texts else ""
+    recent = "\n".join(student_texts[-4:])
+    student_turn_count = len(student_texts)
+    assistant_question_streak = _recent_assistant_question_streak(messages)
+    latest_progress = _latest_student_made_progress(messages)
+    has_strategy_terms = any(
+        token in recent
+        for token in ["二分", "check", "维护", "最远", "往回走", "连通", "覆盖", "距离", "核心", "叶子", "直径"]
+    )
+    has_stable_relation = any(
+        token in latest
+        for token in ["所以", "因为", "条件就是", "满足条件", "不够", "不能只", "应该是", "可以找", "用二分", "才是", "剩下", "下一条"]
+    )
+    is_tentative_intuition = any(token in latest for token in ["我觉得", "可能", "吧", "应该还好", "好像"])
+    has_code_intent = any(token in latest for token in ["代码", "实现", "写不出", "怎么写", "函数", "变量", "循环"])
+    has_application_gap = has_problem_context and _has_application_gap_signal(latest)
+
+    if has_student_code:
+        phase = "code_debugging"
+        recommended_action = "diagnose_code"
+        question_budget = 0
+        code_help_level = "local_fix_hint"
+    elif has_code_intent:
+        phase = "implementation_scaffold"
+        recommended_action = "give_pseudocode_skeleton"
+        question_budget = 0
+        code_help_level = "pseudocode_skeleton"
+    elif has_application_gap:
+        phase = "strategy_forming"
+        recommended_action = "build_application_bridge"
+        question_budget = 0
+        code_help_level = "none"
+    elif (
+        has_strategy_terms
+        and latest_progress
+        and (assistant_question_streak >= 2 or (student_turn_count >= 6 and has_stable_relation and not is_tentative_intuition))
+    ):
+        phase = "strategy_forming"
+        recommended_action = "summarize_and_scaffold"
+        question_budget = 0
+        code_help_level = "pseudocode_skeleton"
+    elif has_strategy_terms or has_problem_context:
+        phase = "strategy_forming"
+        recommended_action = "guide_next_relation"
+        question_budget = 1
+        code_help_level = "none"
+    else:
+        phase = "problem_understanding"
+        recommended_action = "ask_grounding_question"
+        question_budget = 1
+        code_help_level = "none"
+
+    can_show_verification = (
+        phase in {"strategy_forming", "implementation_scaffold"}
+        and has_stable_relation
+        and not is_tentative_intuition
+        and recommended_action != "summarize_and_scaffold"
+        and assistant_question_streak <= 1
+        and len(re.findall(r"[\u4e00-\u9fffA-Za-z0-9]", latest)) >= 30
+    )
+    return {
+        "phase": phase,
+        "confidence": 0.78 if has_strategy_terms or has_code_intent or has_student_code else 0.62,
+        "student_state": "application_gap" if has_application_gap else ("has_partial_strategy" if has_strategy_terms else "needs_grounding"),
+        "evidence": latest[:160],
+        "recommended_action": recommended_action,
+        "question_budget": question_budget,
+        "can_show_verification": can_show_verification,
+        "can_offer_alternative_solution": can_show_verification,
+        "code_help_level": code_help_level,
+        "source": "fallback_heuristic",
+    }
+
+
+def _learning_phase_from_pedagogical_judgement(
+    judgement: dict,
+    *,
+    has_problem_context: bool = False,
+    has_student_code: bool = False,
+) -> dict:
+    state = str(judgement.get("student_state") or "needs_grounding").strip()
+    action = str(judgement.get("next_action") or "ask_grounding_question").strip()
+    allowed_actions = {
+        "lower_step",
+        "ask_grounding_question",
+        "guide_next_relation",
+        "build_application_bridge",
+        "summarize_and_scaffold",
+        "give_pseudocode_skeleton",
+        "diagnose_code",
+    }
+    if action not in allowed_actions:
+        action = "guide_next_relation" if has_problem_context else "ask_grounding_question"
+    if has_student_code:
+        phase = "code_debugging"
+        action = "diagnose_code" if action not in {"lower_step", "summarize_and_scaffold"} else action
+    elif state in {"implementation_difficulty", "implementation_scaffold"} or action == "give_pseudocode_skeleton":
+        phase = "implementation_scaffold"
+    elif state in {"forming_strategy", "early_intuition", "has_partial_strategy", "application_gap"} or action in {"guide_next_relation", "build_application_bridge", "summarize_and_scaffold"}:
+        phase = "strategy_forming"
+    else:
+        phase = "problem_understanding"
+    try:
+        question_budget = int(judgement.get("question_budget", 1))
+    except (TypeError, ValueError):
+        question_budget = 1
+    question_budget = max(0, min(question_budget, 1))
+    if action in {"build_application_bridge", "summarize_and_scaffold", "give_pseudocode_skeleton", "diagnose_code"}:
+        question_budget = 0
+    can_show_verification = bool(judgement.get("can_show_verification", False))
+    if action in {"lower_step", "build_application_bridge", "summarize_and_scaffold"}:
+        can_show_verification = False
+    return {
+        "phase": phase,
+        "confidence": float(judgement.get("confidence", 0.8) or 0.8),
+        "student_state": state,
+        "evidence": str(judgement.get("evidence") or "")[:200],
+        "recommended_action": action,
+        "question_budget": question_budget,
+        "can_show_verification": can_show_verification,
+        "can_offer_alternative_solution": bool(judgement.get("can_offer_alternative_solution", can_show_verification)),
+        "code_help_level": str(judgement.get("code_help_level") or ("local_fix_hint" if has_student_code else "none")),
+        "source": "llm_rubric",
+    }
+
+
+def build_pedagogical_judge_prompt(
+    messages: list | None,
+    *,
+    has_problem_context: bool = False,
+    has_student_code: bool = False,
+) -> str:
+    recent_messages = []
+    for msg in (messages or [])[-10:]:
+        role = "学生" if msg.get("role") == "user" else "AI"
+        content = _extract_student_original_input(str(msg.get("content", ""))) if msg.get("role") == "user" else str(msg.get("content", ""))
+        recent_messages.append(f"{role}: {content[:700]}")
+    context_flags = [
+        "已有题目" if has_problem_context else "缺少题目",
+        "学生带了代码" if has_student_code else "没有学生代码",
+    ]
+    return f"""你是信息学竞赛 AI 教练的教学状态判断器，只判断下一轮教学动作，不解题。
+
+不要按算法名或关键词是否出现来判断；看学生是否用自己的话说清对象、操作、判断关系，是否形成可执行策略。
+
+状态：
+- no_entry: 缺题目/信息
+- confused: 明确不懂、不会、无法回答
+- early_intuition: 只有直觉、算法名或零散短答
+- application_gap: 听过某知识/算法，但不知道怎么落到当前题
+- forming_strategy: 能说明对象、操作、关系，正在形成策略
+- implementation_difficulty: 思路大致清楚，但卡在代码组织
+- code_debugging: 带代码，需要定位题意与代码行为差异
+
+动作：
+- lower_step: 降台阶，用极小例子/二选一/可观察对象帮学生开口
+- ask_grounding_question: 问一个落地问题
+- guide_next_relation: 接住上一句，再问一个关系问题
+- build_application_bridge: 说明知识在当前题负责什么，给小例子迁回原题
+- summarize_and_scaffold: 停止追问，总结 2-3 条草案，指出关键缺口和下一步
+- give_pseudocode_skeleton: 给变量/函数/循环骨架，不给完整 AC 代码
+- diagnose_code: 先说代码在做什么，再指出一个最小可疑位置
+
+判定规则：连续短答或不知道 -> lower_step；听过但不会切题 -> build_application_bridge；学生已经说出正确算法、核心判断或关键条件 -> summarize_and_scaffold，不要继续追问；思路懂但不会写 -> give_pseudocode_skeleton；带代码 -> diagnose_code。小验证只在对象、操作、关系都稳定时允许。
+
+上下文标记：{';'.join(context_flags)}
+
+最近对话：
+{chr(10).join(recent_messages)}
+
+只输出 JSON，不要输出 Markdown。格式：
+{{
+  "student_state": "early_intuition|application_gap|forming_strategy|implementation_difficulty|code_debugging|confused|no_entry",
+  "next_action": "lower_step|ask_grounding_question|guide_next_relation|build_application_bridge|summarize_and_scaffold|give_pseudocode_skeleton|diagnose_code",
+  "question_budget": 0,
+  "can_show_verification": false,
+  "code_help_level": "none|pseudocode_skeleton|local_fix_hint",
+  "confidence": 0.0,
+  "evidence": "引用学生原话说明判断依据"
+}}"""
+
+
+def judge_learning_phase_with_llm(
+    messages: list | None,
+    *,
+    has_problem_context: bool = False,
+    has_student_code: bool = False,
+    provider_id: str | None = None,
+) -> dict | None:
+    """Use a short LLM rubric to judge the teaching state.
+
+    This replaces algorithm-keyword routing for teaching moves. If it fails, the
+    caller falls back to local safety heuristics rather than blocking AIChat.
+    """
+    if (os.environ.get("NOI_AICHAT_PEDAGOGICAL_JUDGE") or "1").strip().lower() in {"0", "false", "off"}:
+        return None
+    try:
+        profile = resolve_chat_model_profile(os.environ.get("NOI_PEDAGOGICAL_JUDGE_PROVIDER") or provider_id)
+        prompt = build_pedagogical_judge_prompt(
+            messages,
+            has_problem_context=has_problem_context,
+            has_student_code=has_student_code,
+        )
+        kwargs = build_pedagogical_judge_request_kwargs(
+            profile,
+            [{"role": "user", "content": prompt}],
+        )
+        timeout_seconds = (os.environ.get("NOI_PEDAGOGICAL_JUDGE_TIMEOUT_SECONDS") or "8").strip()
+        if timeout_seconds:
+            kwargs["timeout"] = float(timeout_seconds)
+        response = get_chat_client_for_profile(profile).chat.completions.create(**kwargs)
+        message = response.choices[0].message
+        raw = getattr(message, "content", None) or getattr(message, "reasoning_content", None) or ""
+        judgement = json.loads(raw)
+        return _learning_phase_from_pedagogical_judgement(
+            judgement,
+            has_problem_context=has_problem_context,
+            has_student_code=has_student_code,
+        )
+    except Exception as exc:
+        print(f"[pedagogical_judge] fallback reason={type(exc).__name__}: {exc}")
+        return None
+
+
+def _compact_for_aichat_memory(label: str, value: str, max_chars: int = 1200) -> str:
+    text = (value or "").strip()
+    if not text:
+        return ""
+    if len(text) > max_chars:
+        text = text[:max_chars].rstrip() + "..."
+    return f"{label}：{text}"
+
+
+def build_aichat_memory_update_prompt(
+    *,
+    old_summary: str = "",
+    student_message: str = "",
+    assistant_reply: str = "",
+    problem_context: str = "",
+    student_code: str = "",
+) -> str:
+    return "\n\n".join(
+        part
+        for part in [
+            "你是 AIChat 的学习状态摘要器，只整理学生在同一道题里的状态，不解题、不生成新提示。",
+            "请输出 600-1000 字以内的中文短摘要，固定包含：当前问题、学生已说清、学生误解/反复出错点、最近一次有效推进、下一步建议。",
+            "如果有代码，只概括代码问题，不保存大段代码或完整代码。不要加入完整题解、完整 AC 代码或新的算法结论。",
+            _compact_for_aichat_memory("旧摘要", old_summary, 1000),
+            _compact_for_aichat_memory("题面/题意", problem_context, 900),
+            _compact_for_aichat_memory("学生当前代码", student_code, 700),
+            _compact_for_aichat_memory("最近学生问题", student_message, 700),
+            _compact_for_aichat_memory("最近 AI 回复", assistant_reply, 900),
+        ]
+        if part
+    )
+
+
+def summarize_aichat_problem_memory(
+    *,
+    old_summary: str = "",
+    student_message: str = "",
+    assistant_reply: str = "",
+    problem_context: str = "",
+    student_code: str = "",
+    provider_id: str | None = None,
+) -> str:
+    """Use a lightweight chat call to rewrite the per-problem learning memory."""
+    profile = resolve_chat_model_profile(os.environ.get("NOI_AICHAT_MEMORY_PROVIDER") or provider_id)
+    prompt = build_aichat_memory_update_prompt(
+        old_summary=old_summary,
+        student_message=student_message,
+        assistant_reply=assistant_reply,
+        problem_context=problem_context,
+        student_code=student_code,
+    )
+    kwargs = {
+        "model": profile.model,
+        "messages": [{"role": "user", "content": prompt}],
+    }
+    if profile.provider_id == "deepseek":
+        kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
+    else:
+        kwargs["temperature"] = 0.2
+        if profile.extra_body:
+            kwargs["extra_body"] = profile.extra_body
+    explicit_max = (os.environ.get("NOI_AICHAT_MEMORY_MAX_TOKENS") or "").strip()
+    kwargs[profile.token_param] = int(explicit_max) if explicit_max else 1200
+    timeout_seconds = (os.environ.get("NOI_AICHAT_MEMORY_TIMEOUT_SECONDS") or "6").strip()
+    if timeout_seconds:
+        kwargs["timeout"] = float(timeout_seconds)
+    response = get_chat_client_for_profile(profile).chat.completions.create(**kwargs)
+    message = response.choices[0].message
+    return (getattr(message, "content", None) or getattr(message, "reasoning_content", None) or "").strip()
+
+
+def _compact_for_understanding_check(label: str, value: str, max_chars: int = 1200) -> str:
+    text = (value or "").strip()
+    if not text:
+        return ""
+    if len(text) > max_chars:
+        text = text[:max_chars].rstrip() + "..."
+    return f"{label}：{text}"
+
+
+def _recent_dialogue_for_check(messages: list | None, max_turns: int = 8) -> str:
+    lines = []
+    for item in (messages or [])[-max_turns:]:
+        role = "学生" if item.get("role") == "user" else "AI"
+        content = (item.get("content") or "").strip()
+        if content:
+            lines.append(f"{role}：{content[:700]}")
+    return "\n".join(lines)
+
+
+def build_understanding_check_system_prompt() -> str:
+    return "\n".join([
+        "你是信息学竞赛 AIChat 的理解验证器。",
+        "任务：只基于当前题目、学生代码和最近对话，生成一个很小的开放式验证问题。",
+        "先诊断学生没想明白的类型，再决定题型；quiz 必须测刚才卡住的那一步，不测整题会不会。",
+        "bottleneck_type 必须从这些值里选一个：problem_translation(题意翻译), concept_boundary(概念边界), representation_modeling(表示建模), relation_alignment(约束关系), process_tracing(操作过程), strategy_choice(策略选择), transfer_unstable(迁移不稳), code_semantics(代码语义), debugging(调试定位), complexity_awareness(复杂度意识), metacognitive(元认知), affective_load(情绪负荷)。",
+        "quiz_format 必须从这些值里选一个：judge_explain(判断+解释), small_case_explain(小样例迁移), trace_one_step(手算一步), code_trace(代码行为核对), find_counterexample(错误辨析), complexity_estimate(复杂度估算), self_explain(自我解释)。",
+        "如果主要是情绪负荷或完全信息不足，不要硬出题；返回 status=unavailable，并给一句继续对话的 message。",
+        "质量标准：贴合当前这一步、能迁移到一个小变体、30-90 秒内可回答、可判分。",
+        "优先生成四类题之一：关系判断、小样例迁移、错误辨析、代码行为核对。",
+        "必须检查学生是否真的理解当前这一步，不要检查学习态度。",
+        "不要生成通用学习习惯选择题；不要问“哪一种表现说明理解”；不要 A/B/C/D 选项。",
+        "不要照抄原样例；如果需要例子，请换成 3-6 个对象的小样例或小变体。",
+        "问题必须短、具体、可用一句话回答。",
+        "target_focus 必须写清楚这题在测的关键关系，例如“a_i=0 不是禁止可见”或“单向可达不能直接用并查集合并”。",
+        "evidence 必须摘取最近对话里显示该问题的一小句证据，不要超过 60 字。",
+        "不要泄露完整题解、完整代码或最终答案。",
+        '只返回 JSON：{"status":"ok|unavailable","bottleneck_type":"...","quiz_format":"...","evidence":"...","question":"...","target_focus":"...","message":"..."}',
+    ])
+
+
+def generate_understanding_check(
+    *,
+    messages: list | None,
+    problem_title: str = "",
+    problem_context: str = "",
+    student_code: str = "",
+    chat_model_provider: str | None = None,
+) -> dict:
+    """Use the chat model to generate one tiny, current-context understanding check."""
+    system_prompt = build_understanding_check_system_prompt()
+    user_parts = [
+        _compact_for_understanding_check("当前题目", problem_title, 200),
+        _compact_for_understanding_check("题面/题意", problem_context, 1400),
+        _compact_for_understanding_check("学生代码", student_code, 1400),
+        _compact_for_understanding_check("最近对话", _recent_dialogue_for_check(messages), 2200),
+    ]
+    user_prompt = "\n\n".join(part for part in user_parts if part) or "当前上下文不足，请判断是否能生成小验证。"
+    try:
+        response = _chat_completion_create(
+            system_prompt=system_prompt,
+            messages=[{"role": "user", "content": user_prompt}],
+            provider_id=chat_model_provider,
+        )
+        payload = _extract_json_object(response.choices[0].message.content)
+        status = str(payload.get("status") or "ok").strip()
+        if status != "ok":
+            return {
+                "status": "unavailable",
+                "message": str(payload.get("message") or "这一步还没准备好验证，先继续问 AIChat，把没想明白的地方再说具体一点。").strip(),
+                "bottleneck_type": str(payload.get("bottleneck_type") or "").strip(),
+                "quiz_format": str(payload.get("quiz_format") or "").strip(),
+                "evidence": str(payload.get("evidence") or "").strip(),
+                "target_focus": str(payload.get("target_focus") or "").strip(),
+            }
+        question = str(payload.get("question") or "").strip()
+        if not question or "哪一种表现" in question or len(question) > 260:
+            raise ValueError("invalid understanding check question")
+        return {
+            "status": "ok",
+            "question": question,
+            "target_focus": str(payload.get("target_focus") or "").strip(),
+            "bottleneck_type": str(payload.get("bottleneck_type") or "").strip(),
+            "quiz_format": str(payload.get("quiz_format") or "").strip(),
+            "evidence": str(payload.get("evidence") or "").strip(),
+        }
+    except Exception as exc:
+        return {
+            "status": "unavailable",
+            "message": f"这一步还没准备好验证，先继续问 AIChat，把没想明白的地方再说具体一点。",
+            "error": str(exc),
+        }
+
+
+def _soften_understanding_feedback(feedback: str, status: str) -> str:
+    text = (feedback or "").strip()
+    if not text:
+        return "这一步还差一点，再把关键关系补具体一点。"
+    if status == "passed":
+        return text
+
+    replacements = [
+        ("你选错了", "这一步还差一点"),
+        ("选错了", "还差一点"),
+        ("解释也很混乱", "这句还需要再对齐关键关系"),
+        ("解释很混乱", "这句还需要再对齐关键关系"),
+        ("很混乱", "还需要再理清"),
+        ("完全错误", "这一步还没对上"),
+        ("答错了", "这一步还差一点"),
+    ]
+    for old, new in replacements:
+        text = text.replace(old, new)
+    if not any(marker in text for marker in ("还差一点", "再对齐", "关键关系", "补上", "没对上")):
+        text = f"这一步还差一点：{text}"
+    return text
+
+
+def grade_understanding_check(
+    *,
+    question: str,
+    answer: str,
+    target_focus: str = "",
+    quiz_format: str = "",
+    problem_title: str = "",
+    problem_context: str = "",
+    student_code: str = "",
+    chat_model_provider: str | None = None,
+) -> dict:
+    """Use the chat model to judge whether a free-text understanding check is clear."""
+    system_prompt = "\n".join([
+        "你是信息学竞赛 AIChat 的理解验证批改器。",
+        "任务：判断学生对这个小验证的回答是否说清楚当前关键关系。",
+        "如果提供了 target_focus，必须围绕这个目标问题判定，不要泛泛判断学习态度。",
+        "如果提供了 quiz_format，要按题型目标判定：手算一步看过程，代码行为核对看变量含义，小样例迁移看能否迁移关系。",
+        "只判断当前小步，不要求完整题解，不要求完整代码。",
+        "如果学生只是说懂了、记住结论、只报算法名，判 failed 或 partial。",
+        "反馈必须短，最多两句话；不要直接给完整答案。",
+        "反馈要像教练：先指出还差哪一个关键关系，再给下一步怎么补。",
+        "不要使用否定人格或打击性表述；禁止说“你选错了”“解释很混乱”“完全错误”。",
+        "学生没通过验证不代表这题不会，只代表这个验证点还需要继续说清楚。",
+        '只返回 JSON：{"status":"passed|partial|failed","feedback":"...","followup":"...","can_review":true/false}',
+    ])
+    user_parts = [
+        _compact_for_understanding_check("当前题目", problem_title, 200),
+        _compact_for_understanding_check("题面/题意", problem_context, 1200),
+        _compact_for_understanding_check("学生代码", student_code, 1200),
+        _compact_for_understanding_check("目标问题", target_focus, 300),
+        _compact_for_understanding_check("验证题型", quiz_format, 120),
+        _compact_for_understanding_check("验证问题", question, 400),
+        _compact_for_understanding_check("学生回答", answer, 800),
+    ]
+    try:
+        response = _chat_completion_create(
+            system_prompt=system_prompt,
+            messages=[{"role": "user", "content": "\n\n".join(part for part in user_parts if part)}],
+            provider_id=chat_model_provider,
+        )
+        payload = _extract_json_object(response.choices[0].message.content)
+        status = str(payload.get("status") or "").strip()
+        if status not in {"passed", "partial", "failed"}:
+            raise ValueError("invalid understanding grade status")
+        return {
+            "status": status,
+            "feedback": _soften_understanding_feedback(str(payload.get("feedback") or "").strip(), status),
+            "followup": str(payload.get("followup") or "").strip(),
+            "can_review": bool(payload.get("can_review")) and status == "passed",
+        }
+    except Exception as exc:
+        return {
+            "status": "unavailable",
+            "feedback": "这次验证暂时没有批改成功，先继续问 AIChat，把你的解释再补具体一点。",
+            "followup": "",
+            "can_review": False,
+            "error": str(exc),
+        }
+
+
+def _is_question_heavy_reply(text: str) -> bool:
+    cleaned = re.sub(r"\[LEVEL:L[1-4]\]", "", text or "").strip()
+    if not cleaned:
+        return False
+    question_count = cleaned.count("？") + cleaned.count("?")
+    if question_count == 0:
+        return False
+    statement_markers = [
+        "你说得对", "你这一步", "我看到", "这里不是", "最可疑", "问题在",
+        "不在于", "关键是", "可以先", "先给你半步", "这说明",
+    ]
+    has_clear_scaffold = any(marker in cleaned for marker in statement_markers)
+    return question_count >= 1 and not has_clear_scaffold
+
+
+def _recent_assistant_question_streak(messages: list | None) -> int:
+    streak = 0
+    for text in reversed(_assistant_texts(messages)):
+        if _is_question_heavy_reply(text):
+            streak += 1
+            continue
+        break
+    return streak
 
 
 def _infer_zpd_level(level_control: dict, risk_control: dict) -> str:
@@ -326,14 +1224,31 @@ def _infer_zpd_level(level_control: dict, risk_control: dict) -> str:
     return "Z1"
 
 
-def _select_tutor_control(level_control: dict, risk_control: dict, messages: list) -> dict:
+def _select_tutor_control(level_control: dict, risk_control: dict, messages: list, pedagogical_judgement: dict | None = None) -> dict:
     scaffold_stage = _infer_scaffold_stage(messages)
-    if _has_repeated_stuck_signals(messages):
+    repeated_stuck = _has_repeated_stuck_signals(messages)
+    latest_made_progress = _latest_student_made_progress(messages)
+    question_streak = _recent_assistant_question_streak(messages)
+    learning_phase = evaluate_learning_phase(
+        messages,
+        has_problem_context=_has_chat_context_state(messages, "有题目"),
+        has_student_code=_has_chat_context_state(messages, "有代码"),
+        pedagogical_judgement=pedagogical_judgement,
+    )
+    if repeated_stuck:
         scaffold_stage = 4
     highest_risk = risk_control.get("highest_risk")
     tutor_action = TUTOR_ACTION_BY_RISK.get(highest_risk)
+    if _has_chat_context_state(messages, "无题目 + 有代码"):
+        tutor_action = "request_problem_context"
+    elif not tutor_action and _has_chat_context_state(messages, "有题目 + 有代码"):
+        tutor_action = "diagnose_code_with_problem"
     if not tutor_action:
-        if level_control.get("max_level") == "L1":
+        if learning_phase["recommended_action"] in {"build_application_bridge", "summarize_and_scaffold", "give_pseudocode_skeleton"}:
+            tutor_action = "give_micro_scaffold"
+        elif latest_made_progress and question_streak >= 2:
+            tutor_action = "give_micro_scaffold"
+        elif level_control.get("max_level") == "L1":
             tutor_action = "ask_baseline_attempt"
         elif level_control.get("max_level") == "L2":
             tutor_action = "ask_slot_question"
@@ -348,7 +1263,12 @@ def _select_tutor_control(level_control: dict, risk_control: dict, messages: lis
         "ask_code_evidence",
         "ask_debug_evidence",
     }
-    if scaffold_stage >= 4 and tutor_action not in stage_four_preserve_actions:
+    if (
+        scaffold_stage >= 4
+        and repeated_stuck
+        and not latest_made_progress
+        and tutor_action not in stage_four_preserve_actions
+    ):
         tutor_action = "offer_micro_example_or_checkin"
 
     allowed_help_by_stage = {
@@ -357,6 +1277,12 @@ def _select_tutor_control(level_control: dict, risk_control: dict, messages: lis
         3: "给一个极小例子或局部图示，再问一个问题",
         4: "给半步支架；仍卡住则建议打卡复盘",
     }
+    if tutor_action == "give_micro_scaffold":
+        allowed_help_by_stage[scaffold_stage] = "连续追问保护：先给半步支架，再给一个小验证；不能继续只反问"
+    if learning_phase.get("recommended_action") == "build_application_bridge":
+        allowed_help_by_stage[scaffold_stage] = "应用桥支架：先说明知识点在当前题里负责什么，再给一个小样例迁回原题；不要继续纯反问"
+    if tutor_action == "diagnose_code_with_problem":
+        allowed_help_by_stage[scaffold_stage] = "代码诊断：先对齐题目目标和代码行为，指出一个最小可疑位置，再给小验证"
     forbidden = ["完整题解", "完整代码", "一次性列完整算法步骤"]
     risk_tags = set(risk_control.get("risk_tags", []))
     if "type_confirm" in risk_tags:
@@ -371,6 +1297,9 @@ def _select_tutor_control(level_control: dict, risk_control: dict, messages: lis
         "allowed_help": allowed_help_by_stage[scaffold_stage],
         "forbidden": forbidden,
         "edf_required": True,
+        "question_streak": question_streak,
+        "latest_made_progress": latest_made_progress,
+        "learning_phase": learning_phase,
     }
 
 
@@ -381,12 +1310,15 @@ def _extract_student_original_input(user_input: str) -> str:
     if marker not in user_input:
         return user_input
     after_marker = user_input.split(marker, 1)[1]
+    strategy_marker = "[当前上下文状态与回答策略]"
+    if strategy_marker in after_marker:
+        after_marker = after_marker.split(strategy_marker, 1)[0]
     if context_marker in after_marker:
         after_marker = after_marker.split(context_marker, 1)[0]
     return after_marker.strip() or user_input
 
 
-def analyze_student_turn(user_input: str, messages: list) -> dict:
+def analyze_student_turn(user_input: str, messages: list, pedagogical_judgement: dict | None = None) -> dict:
     """
     分析学生输入，产出双轨控制对象
     
@@ -521,7 +1453,7 @@ def analyze_student_turn(user_input: str, messages: list) -> dict:
     if risk_control["risk_tags"]:
         risk_control["highest_risk"] = _get_highest_risk(risk_control["risk_tags"])
     
-    tutor_control = _select_tutor_control(level_control, risk_control, messages)
+    tutor_control = _select_tutor_control(level_control, risk_control, messages, pedagogical_judgement=pedagogical_judgement)
 
     # 返回双轨结构
     return {
@@ -859,19 +1791,7 @@ def merge_intent_with_control(control: dict, intent_tag: str) -> dict:
 # ============ 4. Prompt构造 ============
 
 def build_system_prompt(dual_control: dict, remaining: int, student_id: str, problem_id: str) -> str:
-    """
-    构建带控制块的System Prompt（双轨版本）
-    
-    Args:
-        dual_control: 双轨控制对象，包含 level_control 和 risk_control
-    
-    动态注入：
-    - MAX_LEVEL
-    - BRIDGE_REDLINE
-    - RISK_TAGS
-    - L2_SLOT_STATE (如果是L2)
-    - L2_CURRENT_SLOT (如果是L2)
-    """
+    """Build the compact runtime system prompt for AIChat."""
     level_control = dual_control["level_control"]
     risk_control = dual_control["risk_control"]
     
@@ -880,6 +1800,7 @@ def build_system_prompt(dual_control: dict, remaining: int, student_id: str, pro
     risk_tags = risk_control.get("risk_tags", [])
     highest_risk = risk_control.get("highest_risk")
     tutor_control = dual_control.get("tutor_control") or {}
+    learning_phase = tutor_control.get("learning_phase") or {}
     
     # 风险标签说明
     risk_desc = "无"
@@ -893,133 +1814,62 @@ def build_system_prompt(dual_control: dict, remaining: int, student_id: str, pro
         }
         risk_desc = risk_names.get(highest_risk, highest_risk)
 
-    tutor_policy = f"""## SOCRATIC_POLICY（实时短策略块）
-- ZPD: {tutor_control.get('zpd_level', 'Z1')}，只给学生当前能力上方半步帮助
-- Adaptive Scaffolding: stage={tutor_control.get('scaffold_stage', 1)}，{tutor_control.get('allowed_help', '只问一个问题')}
-- Evidence-Driven Feedback: 回复必须先基于学生原话/题面证据判断卡点，再给一个微问题
-- tutor_action: {tutor_control.get('tutor_action', 'ask_slot_question')}
-- forbidden: {'；'.join(tutor_control.get('forbidden', ['完整题解', '完整代码']))}
-- 输出给学生时不要暴露这些内部标签，只表现为一句短引导 + 一个问题
-"""
-    
-    base_prompt = f"""你是一名 NOI 竞赛教练助手，专门辅导 CSP-J/S、NOIP 方向的学生。
+    current_slot = level_control.get("l2_current_slot", "对象")
+    forbidden_text = "；".join(tutor_control.get("forbidden", ["完整题解", "完整代码"]))
+    risk_text = ", ".join(risk_tags) if risk_tags else "无"
+    effective_recommended_action = learning_phase.get("recommended_action", "ask_grounding_question")
+    effective_question_budget = learning_phase.get("question_budget", 1)
+    if "type_confirm" in risk_tags:
+        effective_recommended_action = "ask_grounding_question"
+        effective_question_budget = 1
+    action_guidance_lines = [
+        "- recommended_action=summarize_and_scaffold：学生已经提出完整假设，必须先收拢成 2-3 条草案，指出唯一关键缺口，给下一步；不要继续用新样例追问。",
+        "- recommended_action=give_pseudocode_skeleton：给变量/函数/循环骨架，让学生补关键行，不给完整 AC 代码。",
+        "- 学生表达不懂：不要继续问抽象问题；缩小到一个可观察对象、一个具体动作、一个二选一判断，或一个极小例子。",
+        "- 代码诊断模式：有题目+有代码时，不要先问学生完整思路；按“代码实际行为 → 题目目标 → 最小可疑位置 → 样例验证”推进。",
+    ]
+    if "type_confirm" not in risk_tags:
+        action_guidance_lines.insert(
+            0,
+            "- recommended_action=build_application_bridge：例子起步，严谨收束。先给 3-5 个对象的小样例或反例，再用一句“严谨一点说……”抽出数学关系，最后问一个“回到原题……”的问题；不要说“应用桥/关键桥”，不要继续纯反问。",
+        )
+    action_guidance = "\n".join(action_guidance_lines)
 
-## 核心原则
-你不是"答案机"，你是"思维训练器"。目标是让学生学会独立解题。
+    base_prompt = f"""你是一名 NOI/CSP 做题陪跑教练，不是答案机。目标：让学生在当前题上继续前进一步。
 
-{tutor_policy}
+## 当前控制
+- 本次回复最高级别: {max_level}
+- 桥梁红线: {'开启' if bridge_redline else '关闭'}
+- 风险标签: {risk_text}；最高风险: {risk_desc}
+- tutor_action={tutor_control.get('tutor_action', 'ask_slot_question')}；recommended_action={effective_recommended_action}；question_budget={effective_question_budget}
+- 当前应该追问的槽位：{current_slot}
+- 禁止：{forbidden_text}
 
-## 双轨控制指令（必须遵守）
+## 输出方式
+- 先回应学生上一句，再推进；学生上一轮给出了具体回答时，必须先回应他上一句里的具体内容，说明哪一部分对、哪一部分还缺。
+- 不能无视学生回答直接换一个新问题；不要写固定回复模板；每次最多一个问题，最多一个新概念，末尾保留 [LEVEL:L1|L2|L3|L4]。
+- 连续追问保护：如果学生连续回答，先收拢一句，先给半步支架，不能继续只反问；必要时给一个小验证。
+- 收束时机：学生已经说出正确算法、核心判断、关键 if/while 条件或复杂度选择后，先总结 2-3 点，再给半步代码骨架/实现注意点；不要继续让学生模拟更多样例。
+- 讲解风格：例子起步，严谨收束。给学生看得见的小例子后，必须用一句较严谨的数学表达收住，再回到原题。
 
-### 等级轨（思考深度）
-**本次回复最高级别: {max_level}**
-**桥梁红线: {'开启' if bridge_redline else '关闭'}**
+## 画图协议
+- 先判定学生没想明白的类型，再决定是否画图；按学生的可视化缺口画，不按算法名画。
+- 对齐型：学生在比较“题目要求/条件 vs 实际结果”、两个约束是否冲突、为什么符合/不符合时，必须先画 Markdown 小表格。
+- 变化型：学生说不出一步操作前后变化、范围/边界移动、指针怎么动时，必须先画 ```diagram-ascii 前后对比。
+- 结构型：学生看不出路径影响、依赖关系、状态/表格来源时，必须先画 Mermaid 或 ```diagram-ascii 小图。
+- 命中以上任一类型时，下一步必须先画 3-6 个对象的小图或小表，再继续提问；不画就继续纯文字提问，会让学生在迷雾里继续猜。
+- 不画的情形：题型确认、泛泛说“没思路/不懂”、要答案、一句话能讲清、学生明确说先别画图或直接讲。
+- 图后必须接一句：“这张图要看见的是 ___”。这句比图本身更重要；不画整题大图。
 
-### 风险轨（套答案风险）
-**风险标签: {', '.join(risk_tags) if risk_tags else '无'}**
-**优先级最高风险: {risk_desc}**
+## 动作选择
+{action_guidance}
 
-### 级别定义
-- **L1 - 引导反问（不消耗配额）**：
-  只问一个问题，不给方向，不确认题型，不说"你方向对"
-  默认问法："先别想快不快。最笨的方法你会怎么做？"
-
-- **L2 - 槽位化单步追问（消耗配额）**：
-  每次只问一个问题，一次只推进半步，不给关键桥梁，不连发2-4个问题
-  只允许围绕这4个槽位：对象、选择、限制、最简单情况
-  
-- **L3 - 针对性指出问题（消耗配额）**：
-  只指出学生哪一步有问题，不直接给正确答案
-  每次只推进半步，每次最多引入一个新概念
-  可以给3-5行伪代码或关键行，不能给完整代码/方程/结构
-
-### 风险轨约束（必须优先遵守）
-
-**direct_request** 场景：
-- 严禁给答案、代码、完整做法
-- 只能反问
-
-**type_confirm** 场景：
-- 严禁确认或否认题型（如"是DP"、"不是二分"等）
-- 必须把反问落到题面中的具体对象、条件或结构证据
-- 不允许只问"你为什么会这么猜？"这种泛问题
-
-**bridge_attempt** 场景（bridge_redline=true）：
-- 严禁直接给出状态定义、转移方程、check条件
-- 可以指出错误，不能补正确桥梁
-
-**mixed_signal** 场景：
-- 混合多个危险意图时，按最危险意图处理
-- 不按"最像思考的片段"提级
-
-**multi_question** 场景：
-- 不同时回答多个问题
-- 要求聚焦一个点
-
-## 强制输出约束
-- 用初中生/高中生能懂的话
-- 每次回复不超过5句话
-- 每次只问一个问题
-- 每次最多引入一个新概念
-- 回复最后必须保留等级标签：[LEVEL:L1] 或 [LEVEL:L2] 或 [LEVEL:L3] 或 [LEVEL:L4]
-- 标签单独一行，放在回复最后
+## 红线
+- 不给完整题解、完整 AC 代码、完整状态定义/转移方程/check 条件。
+- direct_request 只给贴题证据问题；bridge_attempt 只指出缺口不补关键桥；multi_question 优先处理最影响继续推进的一点。
+- 术语搭台阶：不要突然引入学生尚未建立的算法中间词，如 mid、check(mid)、DP状态、转移方程、LCA、差分、单调性；先用学生原话和题面对象搭台阶；费曼式验证只用于让学生用自己的话复述当前小关系。
 """
 
-    # 根据max_level添加具体行为指导
-    if max_level == "L1":
-        base_prompt += """
-
-## L1 行为要求
-学生当前处于L1限制模式，请：
-1. 只问上面定义的默认问题："先别想快不快。最笨的方法你会怎么做？"
-2. 不给任何方向暗示
-3. 不确认任何题型
-4. 不认可学生的任何预设
-"""
-    elif max_level == "L2":
-        slot_state = level_control.get("l2_slot_state", {})
-        current_slot = level_control.get("l2_current_slot", "对象")
-        
-        base_prompt += f"""
-
-## L2 槽位状态
-当前槽位填充状态：
-- 对象: {slot_state.get('对象', 'empty')}
-- 选择: {slot_state.get('选择', 'empty')}
-- 限制: {slot_state.get('限制', 'empty')}
-- 最简单情况: {slot_state.get('最简单情况', 'empty')}
-
-当前应该追问的槽位：{current_slot}
-
-## L2 行为要求
-1. 只围绕"{current_slot}"槽位问一个问题
-2. 如果学生答不出，降级问更小、更具体的问题
-3. 不要跳到其他槽位
-4. 填槽后只做极弱确认（如"嗯，这个方向可以"），不能补桥梁
-"""
-    elif max_level == "L3":
-        if bridge_redline:
-            base_prompt += """
-
-## L3 + 桥梁红线 行为要求
-学生有尝试，但在索取关键桥梁：
-1. 可以指出他哪一步方向不对
-2. 可以指出定义哪里不完整
-3. 可以指出判断条件的方向问题
-4. **禁止说出正确状态定义/转移方程/check条件**
-5. 只能让学生自己推导正确桥梁
-"""
-        else:
-            base_prompt += """
-
-## L3 行为要求
-1. 针对学生具体的尝试，指出问题所在
-2. 每次最多推进半步
-3. 可以给3-5行伪代码或关键行
-4. 不能给完整解法
-"""
-
-    # 添加 type_confirm 特殊约束（如果适用）
     if "type_confirm" in risk_tags:
         base_prompt += """
 
@@ -1041,20 +1891,12 @@ def build_system_prompt(dual_control: dict, remaining: int, student_id: str, pro
 目标：让学生自己解释推理过程，而不是告诉他答案。
 """
 
-    # 添加当前状态信息
     base_prompt += f"""
 
 ## 当前状态
 学生：{student_id}
 题目：{problem_id}
-本题剩余提示次数：{remaining} / {PER_PROBLEM_HINT_LIMIT}
-
-重要：
-1. 严格遵守上面的 MAX_LEVEL 限制
-2. 严格遵守桥梁红线规则
-3. 严格遵守 type_confirm 约束（如果适用）
-4. 回复最后一行必须是 [LEVEL:L1|L2|L3|L4] 标签
-5. 不要在回复中写配额数字
+回复最后一行必须是 [LEVEL:L1|L2|L3|L4]。
 """
 
     return base_prompt
@@ -1110,20 +1952,15 @@ def get_remaining_quota(student_id: str, problem_id: str) -> int:
 
 
 def generate_farewell_gift(problem_id: str) -> str:
-    """配额耗尽后的临别礼物（L4）"""
-    return f"""💡 这道题（{problem_id}）的提示配额已用完。
+    """旧配额路径的兼容收束文案；AIChat 主链不再因次数中断。"""
+    return f"""💡 这道题（{problem_id}）我们可以先阶段性整理一下。
 
-🎁 临别礼物：
-
-建议检查以下几点：
+可以检查以下几点：
 1. 边界条件：数组是否越界？循环范围是否正确？
 2. 初始化：DP初始状态、递归base case是否完整？
 3. 算法选择：当前复杂度是否满足数据范围？
 
-🎯 下一步：把思路整理成文字，明天找老师当面讨论。
-
----
-本题提示已用完，换题后配额会重置。
+下一步：把你最不确定的一步继续问出来，我会顺着这一步拆。
 
 [LEVEL:L4]"""
 
@@ -1135,12 +1972,16 @@ def parse_level_tag(reply: str) -> tuple[str, str]:
     从回复末尾提取 [LEVEL:Lx] 标签
     返回: (级别, 去除标签后的干净回复)
     """
-    pattern = r'\[LEVEL:(L1|L2|L3|L4)\]\s*$'
+    pattern = r'\[LEVEL\s*[:：]\s*(L1|L2|L3|L4)\]\s*$'
     match = re.search(pattern, reply, re.IGNORECASE)
     
     if match:
         level = match.group(1).upper()
         clean_reply = re.sub(pattern, '', reply, flags=re.IGNORECASE).rstrip()
+        canonical = f"[LEVEL:{level}]"
+        raw_tag = match.group(0).strip()
+        if raw_tag.upper() != canonical:
+            print(f"[aichat_level_tag] normalized raw={raw_tag!r} canonical={canonical}")
         return level, clean_reply
     
     return "", reply.strip()
@@ -1166,7 +2007,7 @@ def enforce_level_gate(level: str, max_level: str, raw_reply: str) -> tuple[str,
     if model_level_num > max_level_num:
         # 强制使用max_level对应的兜底回复
         if max_level == "L1":
-            fallback = "先别想快不快。最笨的方法你会怎么做？"
+            fallback = "我先不直接给做法。把题号或你当前卡住的那一行发我，我会从那个点开始拆。"
         elif max_level == "L2":
             fallback = "这道题你最终要记录什么信息？"
         else:
@@ -1179,86 +2020,13 @@ def enforce_level_gate(level: str, max_level: str, raw_reply: str) -> tuple[str,
     return level, raw_reply
 
 
-# ============ 6.5 输出保险丝（双轨规则） ============
-
-# Type Confirm 危险模式：明确确认或否认题型的句首/独立句
-# 使用严格正则，避免误杀追问性质的反问
-TYPE_CONFIRM_DANGER_PATTERNS = [
-    r'^是\s*(dp|二分|贪心|递归|字符串|背包|图论|动态规划|树状|bfs|dfs)',  # 是DP/是二分...
-    r'^不是\s*(dp|二分|贪心|递归|字符串|背包|图论|动态规划)',  # 不是DP/不是二分...
-    r'^这题是',  # 这题是...
-    r'^应该用',  # 应该用...
-    r'^可以用\s*(dp|二分|贪心|递归|字符串|背包|图论)',  # 可以用二分...
-    r'^用\s*(dp|二分|贪心|递归|字符串|背包|图论)',  # 用二分...
-    r'[^为什么].*是[^,，。]*题',  # 确认是XX题（非追问）
-    r'双层.*(?:不行|会超|超时)',
-    r'必须\s*(?:用|走|套)',
-]
-
-# Bridge 危险模式：直接给出关键桥梁内容
-BRIDGE_DANGER_PATTERNS = [
-    r'状态定义为[^,，。]{5,}',  # 状态定义为...
-    r'转移方程为[^,，。]{5,}',  # 转移方程为...
-    r'check\s*函数[^,，。]{3,}',  # check函数...
-    r'建图[^,，。]{5,}',  # 建图...
-    r'递归[^,，。]{0,10}base\s*case',  # 递归...base case
-    r'dp\s*\[\s*x\s*\]\s*\[\s*y\s*\]\s*(?:=|表示|代表|定义为)\s*[^。！？\n]{3,}',
-    r'dp\s*\[\s*i\s*\]\s*\[\s*j\s*\]\s*(?:=|表示|代表|定义为)\s*[^。！？\n]{3,}',
-    r'(?:令|设)\s*dp\s*\[',
-]
-
-COMPLETE_SOLUTION_DANGER_PATTERNS = [
-    r'完整做法',
-    r'完整代码',
-    r'代码如下',
-    r'题解如下',
-    r'AC\s*代码',
-    r'#include\s*<',
-    r'int\s+main\s*\(',
-    r'using\s+namespace\s+std',
-]
-
-# 安全替换回复
-TYPE_CONFIRM_SAFE_REPLY = "先别急着确认题型。你为什么会这么猜？\n\n[LEVEL:L2]"
-BRIDGE_SAFE_REPLY = "这里不能直接给出关键桥梁。你自己的尝试是什么？\n\n[LEVEL:L2]"
-COMPLETE_SOLUTION_SAFE_REPLY = "先停一下，我不能直接把完整做法或代码倒给你。你先说：当前这一步里，你能确定的对象和目标分别是什么？\n\n[LEVEL:L2]"
-
-
-def _check_danger_patterns(reply: str, patterns: list) -> bool:
-    """检查回复是否命中危险模式"""
-    for pattern in patterns:
-        if re.search(pattern, reply, re.IGNORECASE):
-            return True
-    return False
-
-
-TYPE_CONFIRM_GENERIC_PATTERNS = [
-    r'为什么会?这么猜',
-    r'为什么会?这样猜',
-    r'题目里哪个特征让你想到这个方法',
-    r'看到什么结构才往这个方向想',
-]
+# ============ 6.5 输出后处理 ============
 
 
 def _combined_message_text(messages: list | None) -> str:
     if not messages:
         return ""
     return "\n".join(str(msg.get("content", "")) for msg in messages)
-
-
-def _build_type_confirm_contextual_reply(messages: list | None) -> str:
-    context = _combined_message_text(messages)
-    if "01" in context and "前缀" in context:
-        question = "先别急着确认题型。题面里哪些 01 串之间出现了相同前缀，才让你想到要合并这些前缀？"
-    elif ("路径" in context or "运输路径" in context) and ("树" in context or "节点" in context or "点" in context):
-        question = "先别急着定算法。只看一条从 u 到 v 的路径，它会让哪些点的经过次数发生变化？"
-    elif "mid" in context or "check" in context or "二分" in context:
-        question = "先别急着确认二分。这个 mid 在题目里代表的目标是什么，它能不能被满足要看哪个条件？"
-    elif "50000" in context and "20" in context:
-        question = "先别急着判断能不能双层枚举。把 50000 × 50000 × 20 估一下，大概会到什么数量级？"
-    else:
-        question = "先别急着确认题型。题目里哪个具体对象或条件让你想到这个方法？"
-    return f"{question}\n\n[LEVEL:L2]"
 
 
 def _latest_student_text(messages: list | None) -> str:
@@ -1308,21 +2076,18 @@ def build_policy_override_reply(dual_control: dict, messages: list | None) -> st
 
     if tutor_action == "offer_checkin_reflection":
         return (
-            "你已经 AC 了，这一步更适合放到打卡复盘里梳理：先写下你当时的做法、最卡的一步、以及为什么这样写还不稳。\n"
+            "你已经 AC 了，这一步更适合放到打卡复盘里梳理：先写下你当时的做法、最没想明白的一步、以及为什么这样写还不稳。\n"
             "我会在复盘里帮你把关键桥补成可回看的卡片，而不是在聊天里重讲整套思路。\n\n[LEVEL:L2]"
         )
 
     if tutor_action == "offer_micro_example_or_checkin" and tutor_control.get("scaffold_stage", 1) >= 4:
         return (
-            "你已经在同一个卡点上绕了几轮了，继续问下去容易变成我替你推。\n"
-            "先带着这道题去打卡复盘，把“我以为 check(mid) 在检查什么”和“我哪里说不清”写出来，我再按复盘给你半步拆开。\n\n[LEVEL:L2]"
+            "你已经把困惑点说了几轮，我们先把这一步收成一条能回看的记录，避免在聊天里越绕越散。\n"
+            "带着这道题去打卡复盘：写下“我现在认为关键判断是什么”和“哪一步还对不上样例”。我会按复盘把这一步拆成一个小例子。\n\n[LEVEL:L2]"
         )
 
     if tutor_action == "request_problem_context":
-        return "我现在还不知道是哪道题。先把题号、题面链接，或者你卡住的那一步发我，我们再从那里拆。\n\n[LEVEL:L1]"
-
-    if tutor_action == "ask_one_focus_point":
-        return "这几个问题先别一起拆。我们先聚焦一个点：你想先弄清概念含义、代码怎么写，还是查询怎么合并？\n\n[LEVEL:L1]"
+        return "我现在只看到了代码，但还不知道题目目标。先补一个题目链接、题号，或者几句题面要求；有了目标后我再帮你对照代码找最小可疑点。\n\n[LEVEL:L1]"
 
     if tutor_action == "ask_code_evidence":
         return "先不判断这段代码对不对。你怀疑哪一行，或者哪个样例和你的预期不一样？\n\n[LEVEL:L2]"
@@ -1330,104 +2095,40 @@ def build_policy_override_reply(dual_control: dict, messages: list | None) -> st
     if tutor_action == "ask_debug_evidence":
         return "先别猜错误原因。把代码或你手算的推导过程贴出来；我们只看你的推导从哪一步开始和标准结果不一样。\n\n[LEVEL:L1]"
 
-    if "正偶数" in context and "排除 2" in text:
-        return "只看最小反例：如果 w=2，你能把它拆成两个正偶数相加吗？\n\n[LEVEL:L2]"
-
-    if "emotion_pressure" in risk_tags:
-        return (
-            "明天要交确实会紧张，我们先把压力降到能动手的一小步。\n"
-            "只看题目目标：如果不用任何高级做法，你会怎么手动统计一条路径经过了哪些点？\n\n[LEVEL:L1]"
-        )
-
-    if "lazy" in text.lower() and ("是不是" in text or "对不对" in text):
-        return "先不判对不对。一个区间整体加 3 后，父节点记录的区间和和两个儿子各自知道的信息有什么不同？\n\n[LEVEL:L2]"
-
-    if ("P3128" in context or "路径计数" in context or "树上路径" in context) and ("LCA" in text or "标记" in text):
-        if tutor_control.get("scaffold_stage", 1) >= 3:
-            return "画一条 1-2-3-4 的小链，假设路径是 2 到 4。只在两个端点打标记再往上汇总时，公共祖先附近会被多算还是少算？\n\n[LEVEL:L2]"
-        return "你已经知道卡点在端点和公共祖先。先画一条 3 到 5 个点的小路径：路径两端各会影响哪一段点？\n\n[LEVEL:L2]"
-
-    if "数字三角形" in context and "转移" in text:
-        return "你卡的是来源位置。先只看某一行中间的一个格子：它能从上一行的哪几个相邻格子走过来？\n\n[LEVEL:L3]"
-
-    if "dp[x][y]" in text and ("表示" in text or "状态" in text):
-        return "先别急着给 `dp[x][y]` 下定义。只看一个格子作为起点时，你最终想从这个格子记录出什么结果？\n\n[LEVEL:L2]"
-
     return None
 
 
 def enforce_output_guards(reply: str, level_control: dict, risk_control: dict, messages: list | None = None) -> tuple[str, str]:
     """
-    输出保险丝（双轨规则）
-    
-    根据风险标签检查并约束输出，确保：
-    - type_confirm 场景不确认/否认题型
-    - bridge_attempt 场景不直接给桥梁
+    Output post-processing hook.
+
+    当前 AIChat 不再使用输出侧关键词 guard。教学红线交给 system
+    prompt 和模型执行，避免字段匹配误伤正常教学对话。
     
     返回: (处理后的回复, 是否被替换的标记)
     """
-    risk_tags = risk_control.get("risk_tags", [])
-
-    # 0. 通用泄题保险丝：任何场景都不允许完整题解/代码 dump
-    if _check_danger_patterns(reply, COMPLETE_SOLUTION_DANGER_PATTERNS):
-        return COMPLETE_SOLUTION_SAFE_REPLY, "complete_solution_guard"
-    
-    # 1. Type Confirm 保险丝
-    if "type_confirm" in risk_tags:
-        if _check_danger_patterns(reply, TYPE_CONFIRM_DANGER_PATTERNS):
-            return _build_type_confirm_contextual_reply(messages), "type_confirm_guard"
-        if _check_danger_patterns(reply, TYPE_CONFIRM_GENERIC_PATTERNS):
-            return _build_type_confirm_contextual_reply(messages), "type_confirm_generic_guard"
-    
-    # 2. Bridge 保险丝
-    if level_control.get("bridge_redline", False) or "bridge_attempt" in risk_tags:
-        if _check_danger_patterns(reply, BRIDGE_DANGER_PATTERNS):
-            return BRIDGE_SAFE_REPLY, "bridge_guard"
-    
-    # 3. Multi Question 保险丝
-    if "multi_question" in risk_tags:
-        # 检测回复是否同时回答了多个问题
-        answer_count = len(re.findall(r'[。\.\!\?]？\s*(?=可以|应该|这个|那个)', reply))
-        if answer_count >= 2:
-            return "请一次只问一个点，我们先聚焦一下你最关键的问题。\n\n[LEVEL:L2]", "multi_question_guard"
-    
     return reply, None
 
 
-def _finalize_chat_reply(clean_reply: str, final_level: str, remaining: int, student_id: str, problem_id: str) -> tuple[str, str, str]:
-    """Apply quota accounting and display footer to an already-guarded reply."""
-    if final_level in ("L2", "L3"):
-        success, remaining_after = consume_quota(student_id, problem_id)
-        if success:
-            reply_for_display = clean_reply + f"\n\n---\n💡 本题还剩 {remaining_after} 次提示机会"
-        else:
-            reply_for_display = clean_reply + "\n\n---\n⚠️ 提示配额已用完"
-    else:
-        reply_for_display = clean_reply + f"\n\n---\n💡 本题还剩 {remaining} 次提示机会（本次未消耗）"
-    return reply_for_display, clean_reply, final_level
+def _finalize_chat_reply(clean_reply: str, final_level: str) -> tuple[str, str, str]:
+    """Return the model reply without hint quota gating or output rewriting."""
+    return clean_reply, clean_reply, final_level
 
 
 # ============ 7. 主对话逻辑 ============
 
-def chat(messages: list, student_id: str, problem_id: str) -> tuple[str, str, str]:
+def chat(messages: list, student_id: str, problem_id: str, chat_model_provider: str | None = None) -> tuple[str, str, str]:
     """
     主对话逻辑（双轨版本）：
-    1. 检查配额
-    2. 代码层分析：产出双轨控制对象（等级轨 + 风险轨）
-    3. 构建带双轨控制块的Prompt
-    4. 调用LLM
-    5. **硬闸门**：检查模型输出是否超过max_level
-    6. **输出保险丝**：检查并约束风险场景输出
-    7. 返回 (display_reply, history_reply, final_level)
+    1. 代码层分析：产出双轨控制对象（等级轨 + 风险轨）
+    2. 构建带双轨控制块的Prompt
+    3. 调用LLM
+    4. **硬闸门**：检查模型输出是否超过max_level
+    5. 输出后处理：不做关键词改写，仅保留接口扩展点
+    6. 返回 (display_reply, history_reply, final_level)
     
     返回: (reply_for_display, reply_for_history, final_level)
     """
-    remaining = get_remaining_quota(student_id, problem_id)
-    
-    if remaining <= 0:
-        farewell = generate_farewell_gift(problem_id)
-        return farewell, farewell, "L4"
-    
     # 获取最后一条用户输入
     last_user_msg = ""
     for msg in reversed(messages):
@@ -1435,18 +2136,28 @@ def chat(messages: list, student_id: str, problem_id: str) -> tuple[str, str, st
             last_user_msg = msg.get("content", "")
             break
     
-    # 代码层分析：产出双轨控制对象
-    dual_control = analyze_student_turn(last_user_msg, messages)
+    has_problem_context = _has_chat_context_state(messages, "有题目")
+    has_student_code = _has_chat_context_state(messages, "有代码")
+    pedagogical_judgement = judge_learning_phase_with_llm(
+        messages,
+        has_problem_context=has_problem_context,
+        has_student_code=has_student_code,
+        provider_id=chat_model_provider,
+    )
+
+    # 代码层只保留安全红线和流程红线；教学动作优先使用 LLM rubric 判断
+    dual_control = analyze_student_turn(last_user_msg, messages, pedagogical_judgement=pedagogical_judgement)
     level_control = dual_control["level_control"]
     risk_control = dual_control["risk_control"]
 
     policy_override_reply = build_policy_override_reply(dual_control, messages)
     if policy_override_reply:
         final_level, clean_reply = parse_level_tag(policy_override_reply)
+        risk_control["learning_phase"] = dual_control.get("tutor_control", {}).get("learning_phase") or {}
         clean_reply, guard_triggered = enforce_output_guards(clean_reply, level_control, risk_control, messages=messages)
         if guard_triggered:
             final_level = "L2"
-        return _finalize_chat_reply(clean_reply, final_level, remaining, student_id, problem_id)
+        return _finalize_chat_reply(clean_reply, final_level)
     
     # 分类器增强（如果需要）
     should_classify, classifier_reason = should_call_classifier(dual_control, last_user_msg)
@@ -1470,32 +2181,18 @@ def chat(messages: list, student_id: str, problem_id: str) -> tuple[str, str, st
     max_level = level_control["max_level"]  # 硬闸门上限
     
     # 构建带双轨控制块的System Prompt
-    system_prompt = build_system_prompt(dual_control, remaining, student_id, problem_id)
+    system_prompt = build_system_prompt(dual_control, 0, student_id, problem_id)
     
     # 调用LLM
-    last_error = None
-    response = None
-    for idx, model_name in enumerate(get_model_candidates("NOI_CHAT_MODELS", DEFAULT_CHAT_MODELS)):
-        try:
-            temperature = 1 if "kimi-k2.5" in model_name.lower() else 0.3
-            response = get_client().chat.completions.create(
-                model=model_name,
-                messages=[{"role": "system", "content": system_prompt}] + messages,
-                temperature=temperature,
-            )
-            if idx > 0:
-                print(f"[noi_agent] fallback model succeeded: {model_name}")
-            break
-        except Exception as exc:
-            last_error = exc
-            print(f"[noi_agent] LLM call failed on model {model_name}: {exc}")
-            if not is_model_unavailable_error(exc):
-                raise
-
-    if response is None:
-        raise last_error or RuntimeError("No available chat model")
+    response = _chat_completion_create(
+        system_prompt=system_prompt,
+        messages=messages,
+        provider_id=chat_model_provider,
+    )
     
-    raw_reply = response.choices[0].message.content
+    raw_reply = getattr(response.choices[0].message, "content", None) or ""
+    if not raw_reply.strip():
+        raise RuntimeError("模型没有返回可展示的正文，请稍后重试或切换模型")
     
     # 提取模型输出的级别标签
     model_level, clean_reply = parse_level_tag(raw_reply)
@@ -1509,13 +2206,14 @@ def chat(messages: list, student_id: str, problem_id: str) -> tuple[str, str, st
     else:
         final_level = model_level
     
-    # ===== 输出保险丝（双轨规则） =====
-    # 根据风险轨检查并约束输出
+    # ===== 输出后处理 =====
+    # 当前不做关键词改写，避免误伤正常教学对话。
+    risk_control["learning_phase"] = dual_control.get("tutor_control", {}).get("learning_phase") or {}
     clean_reply, guard_triggered = enforce_output_guards(clean_reply, level_control, risk_control, messages=messages)
     if guard_triggered:
         final_level = "L2"  # 保险丝触发时强制降为L2
     
-    return _finalize_chat_reply(clean_reply, final_level, remaining, student_id, problem_id)
+    return _finalize_chat_reply(clean_reply, final_level)
 
 
 def main():
