@@ -1748,6 +1748,37 @@ def _extract_student_original_input(user_input: str) -> str:
     return after_marker.strip() or user_input
 
 
+def _is_judge_v2_enabled() -> bool:
+    raw = (os.environ.get("NOI_JUDGE_V2_ENABLED") or "").strip().lower()
+    return raw in {"1", "true", "yes", "on"}
+
+
+def _apply_judge_v2_override(rule_result: dict, user_input: str, messages: list) -> dict:
+    """If judge succeeds, override tutor_control. Failure preserves v0 output."""
+    try:
+        judge_result = pedagogical_judge_v2(
+            user_input=user_input,
+            messages=messages,
+            problem_context=None,  # M1.7 will plumb actual context.
+            student_code=None,     # M1.7 will plumb actual code.
+            rule_weak_signals=[],  # M1.7 will derive weak signals from rule_result.
+        )
+    except Exception:
+        return rule_result
+
+    if judge_result.get("_failed"):
+        return rule_result
+
+    try:
+        mapped_tutor = map_judge_to_tutor_control(judge_result, rule_result, messages)
+    except Exception:
+        return rule_result
+
+    overridden = dict(rule_result)
+    overridden["tutor_control"] = mapped_tutor
+    return overridden
+
+
 def analyze_student_turn(user_input: str, messages: list, pedagogical_judgement: dict | None = None) -> dict:
     """
     分析学生输入，产出双轨控制对象
@@ -1886,11 +1917,18 @@ def analyze_student_turn(user_input: str, messages: list, pedagogical_judgement:
     tutor_control = _select_tutor_control(level_control, risk_control, messages, pedagogical_judgement=pedagogical_judgement)
 
     # 返回双轨结构
-    return {
+    result = {
         "level_control": level_control,
         "risk_control": risk_control,
         "tutor_control": tutor_control,
     }
+
+    # === M1.6: optional judge v2 override ===
+    if _is_judge_v2_enabled():
+        result = _apply_judge_v2_override(result, user_input, messages)
+    # === end M1.6 ===
+
+    return result
 
 
 def _is_only_restating(text: str) -> bool:

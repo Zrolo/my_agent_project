@@ -1,3 +1,4 @@
+import os
 import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -174,6 +175,54 @@ class AIChatRuntimePolicyTests(unittest.TestCase):
 
         self.assertEqual("refuse_injection", mapped["tutor_action"])
         self.assertTrue(any("提示词注入" in item for item in mapped["forbidden"]))
+
+    def test_judge_v2_disabled_should_keep_v0_tutor_control(self):
+        """默认 env var 不设置时，analyze_student_turn 行为等价 v0。"""
+        with patch.dict(os.environ, {"NOI_JUDGE_V2_ENABLED": "0"}, clear=False):
+            messages = self._messages("这题怎么做？")
+            result = analyze_student_turn(messages[-1]["content"], messages)
+
+        self.assertIn(
+            result["tutor_control"]["tutor_action"],
+            {"ask_baseline_attempt", "ask_one_question", "request_problem_context"},
+        )
+
+    def test_judge_v2_enabled_should_override_with_mapped_tutor_control(self):
+        """env var 开启 + judge 返回 mock 结果时，tutor_control 应被替换。"""
+        fake_judge = {
+            "student_intents": ["learning"],
+            "primary_intent": "learning",
+            "phase": "application_gap",
+            "action_category": "scaffolding",
+            "action_subtype": "build_application_bridge",
+            "allowed_help_level": "L2",
+            "confidence": 0.9,
+            "injection_detected": False,
+            "injection_source": "none",
+            "reason": "mock",
+        }
+
+        with patch.dict(os.environ, {"NOI_JUDGE_V2_ENABLED": "true"}, clear=False), \
+             patch("noi_agent.pedagogical_judge_v2", return_value=fake_judge):
+            messages = self._messages("我知道用 Floyd 但不会用。")
+            result = analyze_student_turn(messages[-1]["content"], messages)
+
+        self.assertEqual("give_micro_scaffold", result["tutor_control"]["tutor_action"])
+        self.assertEqual(
+            "build_application_bridge",
+            result["tutor_control"]["learning_phase"]["recommended_action"],
+        )
+
+    def test_judge_v2_failure_should_fall_back_to_v0(self):
+        """judge 返回 _failed 时，tutor_control 必须保持 v0 输出。"""
+        failed_judge = {"_failed": True, "_reason": "test_simulated"}
+
+        with patch.dict(os.environ, {"NOI_JUDGE_V2_ENABLED": "true"}, clear=False), \
+             patch("noi_agent.pedagogical_judge_v2", return_value=failed_judge):
+            messages = self._messages("这题怎么做？")
+            result = analyze_student_turn(messages[-1]["content"], messages)
+
+        self.assertNotIn("judge_action_subtype", result["tutor_control"])
 
     def test_ac_reflection_should_force_checkin_handoff(self):
         messages = self._messages("我 P3128 AC 了！但我感觉自己做的时候有点蒙，想弄清楚为什么这样写。")
