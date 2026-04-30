@@ -7,6 +7,7 @@ NOI 竞赛教练 Agent - 限级改造版本
 import json
 import os
 import re
+import time
 from dataclasses import dataclass
 from openai import OpenAI
 from model_config import get_model_candidates, is_model_unavailable_error
@@ -224,6 +225,7 @@ _RISK_TAG_TO_WEAK_SIGNAL = {
     "classifier_bridge": "possible_bridge_attempt",
     "classifier_direct": "possible_indirect_answer_request",
 }
+_JUDGE_LOG_FAILED_ONCE = False
 
 SEMANTIC_RISK_PATTERNS = [
     r'这题是.*吗',
@@ -1771,18 +1773,40 @@ def _is_judge_v2_selective() -> bool:
     return raw in {"1", "true", "yes", "on"}
 
 
+def _judge_log_path() -> str:
+    return os.environ.get("NOI_JUDGE_V2_LOG_FILE") or "/tmp/noi_judge_v2.jsonl"
+
+
+def _log_judge_event(event: dict) -> None:
+    """Append a single JSONL judge event without blocking the chat path."""
+    global _JUDGE_LOG_FAILED_ONCE
+    try:
+        line = json.dumps(event, ensure_ascii=False, default=str)
+        with open(_judge_log_path(), "a", encoding="utf-8") as f:
+            f.write(line + "\n")
+    except Exception as exc:
+        if not _JUDGE_LOG_FAILED_ONCE:
+            import sys
+
+            print(
+                f"[noi_judge_v2_log] log write failed: {type(exc).__name__}: {exc}",
+                file=sys.stderr,
+            )
+            _JUDGE_LOG_FAILED_ONCE = True
+
+
 def _should_call_judge_v2(rule_result: dict, user_input: str) -> tuple[bool, str]:
     """Decide whether to invoke judge v2 based on high-confidence rule output."""
     if not _is_judge_v2_selective():
         return True, ""
 
-    text = (user_input or "").strip()
-    if len(text) < 8:
-        return False, "skip_too_short"
-
     level_control = rule_result.get("level_control", {})
     if level_control.get("max_level") == "L1":
         return False, "skip_l1_locked"
+
+    text = (user_input or "").strip()
+    if len(text) < 8:
+        return False, "skip_too_short"
 
     tutor_control = rule_result.get("tutor_control", {})
     if tutor_control.get("tutor_action") == "request_problem_context":
@@ -1828,28 +1852,93 @@ def _derive_weak_signals_from_rule(rule_result: dict) -> list[str]:
 
 def _apply_judge_v2_override(rule_result: dict, user_input: str, messages: list) -> dict:
     """If judge succeeds, override tutor_control. Failure preserves v0 output."""
-    should_call, _skip_reason = _should_call_judge_v2(rule_result, user_input)
+    timestamp = time.time()
+    should_call, skip_reason = _should_call_judge_v2(rule_result, user_input)
     if not should_call:
+        _log_judge_event(
+            {
+                "ts": timestamp,
+                "event": "selective_skip",
+                "skip_reason": skip_reason,
+                "user_input_preview": (user_input or "")[:200],
+                "rule_max_level": rule_result.get("level_control", {}).get("max_level"),
+                "rule_tutor_action": rule_result.get("tutor_control", {}).get("tutor_action"),
+            }
+        )
         return rule_result
 
+    problem_context = _extract_problem_context_from_messages(messages)
+    student_code = _extract_student_code_from_messages(messages)
+    weak_signals = _derive_weak_signals_from_rule(rule_result)
+
+    judge_started = time.time()
     try:
         judge_result = pedagogical_judge_v2(
             user_input=user_input,
             messages=messages,
-            problem_context=_extract_problem_context_from_messages(messages),
-            student_code=_extract_student_code_from_messages(messages),
-            rule_weak_signals=_derive_weak_signals_from_rule(rule_result),
+            problem_context=problem_context,
+            student_code=student_code,
+            rule_weak_signals=weak_signals,
         )
-    except Exception:
+    except Exception as exc:
+        _log_judge_event(
+            {
+                "ts": timestamp,
+                "event": "judge_called",
+                "judge_failed": True,
+                "failure_reason": f"call_exception: {type(exc).__name__}: {exc}",
+                "latency_ms": int((time.time() - judge_started) * 1000),
+                "user_input_preview": (user_input or "")[:200],
+            }
+        )
         return rule_result
 
+    latency_ms = int((time.time() - judge_started) * 1000)
+    log_entry = {
+        "ts": timestamp,
+        "event": "judge_called",
+        "latency_ms": latency_ms,
+        "user_input_preview": (user_input or "")[:200],
+        "messages_count": len(messages or []),
+        "has_problem_context": problem_context is not None,
+        "problem_ref": (problem_context or {}).get("problem_ref"),
+        "has_student_code": bool(student_code),
+        "student_code_length": len(student_code) if student_code else 0,
+        "rule_weak_signals": weak_signals,
+        "rule_max_level": rule_result.get("level_control", {}).get("max_level"),
+        "rule_tutor_action": rule_result.get("tutor_control", {}).get("tutor_action"),
+    }
+
     if judge_result.get("_failed"):
+        log_entry["judge_failed"] = True
+        log_entry["failure_reason"] = judge_result.get("_reason")
+        _log_judge_event(log_entry)
         return rule_result
+
+    log_entry.update(
+        {
+            "judge_failed": False,
+            "primary_intent": judge_result.get("primary_intent"),
+            "phase": judge_result.get("phase"),
+            "action_category": judge_result.get("action_category"),
+            "action_subtype": judge_result.get("action_subtype"),
+            "allowed_help_level": judge_result.get("allowed_help_level"),
+            "confidence": judge_result.get("confidence"),
+            "injection_detected": judge_result.get("injection_detected"),
+            "injection_source": judge_result.get("injection_source"),
+        }
+    )
 
     try:
         mapped_tutor = map_judge_to_tutor_control(judge_result, rule_result, messages)
-    except Exception:
+    except Exception as exc:
+        log_entry["mapping_failed"] = True
+        log_entry["mapping_error"] = f"{type(exc).__name__}: {exc}"
+        _log_judge_event(log_entry)
         return rule_result
+
+    log_entry["final_tutor_action"] = mapped_tutor.get("tutor_action")
+    _log_judge_event(log_entry)
 
     overridden = dict(rule_result)
     overridden["tutor_control"] = mapped_tutor

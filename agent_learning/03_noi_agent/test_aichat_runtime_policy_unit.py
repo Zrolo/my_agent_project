@@ -1,3 +1,4 @@
+import json
 import os
 import unittest
 from types import SimpleNamespace
@@ -18,6 +19,13 @@ from noi_agent import (
     evaluate_understanding_evidence,
     evaluate_learning_phase,
 )
+
+
+def _read_log_lines(path):
+    if not os.path.exists(path):
+        return []
+    with open(path, "r", encoding="utf-8") as f:
+        return [json.loads(line) for line in f if line.strip()]
 
 
 class AIChatRuntimePolicyTests(unittest.TestCase):
@@ -302,6 +310,111 @@ class AIChatRuntimePolicyTests(unittest.TestCase):
             analyze_student_turn(messages[-1]["content"], messages)
 
         self.assertEqual(1, len(fake_called), "selective=false 时即使 L1 强拦也要调 judge")
+
+    def test_judge_v2_selective_skip_should_be_logged(self):
+        log_path = "/tmp/test_noi_judge_v2_skip.jsonl"
+        if os.path.exists(log_path):
+            os.remove(log_path)
+
+        with patch.dict(
+            os.environ,
+            {
+                "NOI_JUDGE_V2_ENABLED": "true",
+                "NOI_JUDGE_V2_SELECTIVE": "true",
+                "NOI_JUDGE_V2_LOG_FILE": log_path,
+            },
+            clear=False,
+        ):
+            messages = self._messages("给我代码")
+            analyze_student_turn(messages[-1]["content"], messages)
+
+        entries = _read_log_lines(log_path)
+        self.assertEqual(1, len(entries))
+        self.assertEqual("selective_skip", entries[0]["event"])
+        self.assertEqual("skip_l1_locked", entries[0]["skip_reason"])
+
+    def test_judge_v2_successful_call_should_log_outputs(self):
+        log_path = "/tmp/test_noi_judge_v2_success.jsonl"
+        if os.path.exists(log_path):
+            os.remove(log_path)
+
+        fake_judge = {
+            "student_intents": ["learning"],
+            "primary_intent": "learning",
+            "phase": "application_gap",
+            "action_category": "scaffolding",
+            "action_subtype": "build_application_bridge",
+            "allowed_help_level": "L2",
+            "confidence": 0.9,
+            "injection_detected": False,
+            "injection_source": "none",
+            "reason": "test",
+        }
+
+        with patch.dict(
+            os.environ,
+            {
+                "NOI_JUDGE_V2_ENABLED": "true",
+                "NOI_JUDGE_V2_LOG_FILE": log_path,
+            },
+            clear=False,
+        ), patch("noi_agent.pedagogical_judge_v2", return_value=fake_judge):
+            messages = self._messages("我知道用 Floyd 但不会用。")
+            analyze_student_turn(messages[-1]["content"], messages)
+
+        entries = _read_log_lines(log_path)
+        self.assertEqual(1, len(entries))
+        entry = entries[0]
+        self.assertEqual("judge_called", entry["event"])
+        self.assertFalse(entry["judge_failed"])
+        self.assertEqual("learning", entry["primary_intent"])
+        self.assertEqual("build_application_bridge", entry["action_subtype"])
+        self.assertIn("latency_ms", entry)
+        self.assertEqual("give_micro_scaffold", entry["final_tutor_action"])
+
+    def test_judge_v2_failed_call_should_log_failure_reason(self):
+        log_path = "/tmp/test_noi_judge_v2_fail.jsonl"
+        if os.path.exists(log_path):
+            os.remove(log_path)
+
+        failed_judge = {"_failed": True, "_reason": "schema_invalid: test"}
+
+        with patch.dict(
+            os.environ,
+            {
+                "NOI_JUDGE_V2_ENABLED": "true",
+                "NOI_JUDGE_V2_LOG_FILE": log_path,
+            },
+            clear=False,
+        ), patch("noi_agent.pedagogical_judge_v2", return_value=failed_judge):
+            messages = self._messages("我知道用 Floyd 但不会用。")
+            analyze_student_turn(messages[-1]["content"], messages)
+
+        entries = _read_log_lines(log_path)
+        self.assertEqual(1, len(entries))
+        self.assertTrue(entries[0]["judge_failed"])
+        self.assertIn("schema_invalid", entries[0]["failure_reason"])
+
+    def test_judge_v2_log_should_truncate_long_input(self):
+        log_path = "/tmp/test_noi_judge_v2_truncate.jsonl"
+        if os.path.exists(log_path):
+            os.remove(log_path)
+
+        long_input = "我有一个" * 200
+
+        with patch.dict(
+            os.environ,
+            {
+                "NOI_JUDGE_V2_ENABLED": "true",
+                "NOI_JUDGE_V2_LOG_FILE": log_path,
+            },
+            clear=False,
+        ), patch("noi_agent.pedagogical_judge_v2", return_value={"_failed": True, "_reason": "test"}):
+            messages = self._messages(long_input)
+            analyze_student_turn(messages[-1]["content"], messages)
+
+        entries = _read_log_lines(log_path)
+        self.assertEqual(200, len(entries[0]["user_input_preview"]))
 
     def test_ac_reflection_should_force_checkin_handoff(self):
         messages = self._messages("我 P3128 AC 了！但我感觉自己做的时候有点蒙，想弄清楚为什么这样写。")
