@@ -20,6 +20,18 @@ PEDAGOGICAL_JUDGE_V2_PROMPT_FILE = os.path.join(
     "common",
     "aichat_pedagogical_judge_v2_system_prompt.md",
 )
+AICHAT_TURN_TAGGER_PROMPT_FILE = os.path.join(
+    BASE_DIR,
+    "docs",
+    "common",
+    "aichat_turn_tagger_system_prompt.md",
+)
+AICHAT_SESSION_ANALYST_PROMPT_FILE = os.path.join(
+    BASE_DIR,
+    "docs",
+    "common",
+    "aichat_session_analyst_system_prompt.md",
+)
 PER_PROBLEM_HINT_LIMIT = 3
 client = None
 chat_clients = {}
@@ -64,9 +76,30 @@ class ChatModelProfile:
     token_param: str = "max_completion_tokens"
     thinking_mode: str = "provider_default"
     extra_body: dict | None = None
+    public: bool = True
 
 
 CHAT_MODEL_PROFILES = (
+    ChatModelProfile(
+        provider_id="deepseek_flash",
+        label="DeepSeek 快速",
+        model=os.environ.get("DEEPSEEK_FLASH_MODEL", "deepseek-v4-flash"),
+        base_url=os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
+        api_key_envs=("DEEPSEEK_API_KEY",),
+        token_param="max_tokens",
+        thinking_mode="enabled",
+        extra_body={"thinking": {"type": "enabled"}},
+    ),
+    ChatModelProfile(
+        provider_id="deepseek_pro",
+        label="DeepSeek 专业",
+        model=os.environ.get("DEEPSEEK_PRO_MODEL", os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-pro")),
+        base_url=os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
+        api_key_envs=("DEEPSEEK_API_KEY",),
+        token_param="max_tokens",
+        thinking_mode="enabled",
+        extra_body={"thinking": {"type": "enabled"}},
+    ),
     ChatModelProfile(
         provider_id="mimo",
         label="小米 MiMo V2.5 Pro",
@@ -75,16 +108,18 @@ CHAT_MODEL_PROFILES = (
         api_key_envs=("MIMO_API_KEY", "XIAOMI_MIMO_API_KEY"),
         token_param="max_tokens",
         thinking_mode="enabled",
+        public=False,
     ),
     ChatModelProfile(
         provider_id="deepseek",
-        label="DeepSeek V4 Pro",
+        label="DeepSeek V4 Pro（旧入口）",
         model=os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-pro"),
         base_url=os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
         api_key_envs=("DEEPSEEK_API_KEY",),
         token_param="max_tokens",
         thinking_mode="enabled",
         extra_body={"thinking": {"type": "enabled"}},
+        public=False,
     ),
     ChatModelProfile(
         provider_id="kimi",
@@ -93,6 +128,7 @@ CHAT_MODEL_PROFILES = (
         base_url=os.environ.get("MOONSHOT_BASE_URL", "https://api.moonshot.cn/v1"),
         api_key_envs=("MOONSHOT_API_KEY", "OPENAI_API_KEY"),
         thinking_mode="enabled",
+        public=False,
     ),
 )
 
@@ -295,6 +331,8 @@ def _profile_by_provider(provider_id: str | None) -> ChatModelProfile | None:
     normalized = (provider_id or "").strip().lower()
     if not normalized:
         return None
+    if normalized == "deepseek":
+        normalized = "deepseek_pro"
     for profile in CHAT_MODEL_PROFILES:
         if profile.provider_id == normalized:
             return profile
@@ -308,14 +346,14 @@ def resolve_chat_model_profile(provider_id: str | None = None) -> ChatModelProfi
 
     default_provider = (os.environ.get("NOI_DEFAULT_CHAT_PROVIDER") or "").strip().lower()
     default_profile = _profile_by_provider(default_provider)
-    if default_profile and _env_first_value(default_profile.api_key_envs):
+    if default_profile and default_profile.public and _env_first_value(default_profile.api_key_envs):
         return default_profile
 
     for profile in CHAT_MODEL_PROFILES:
-        if _env_first_value(profile.api_key_envs):
+        if profile.public and _env_first_value(profile.api_key_envs):
             return profile
 
-    return CHAT_MODEL_PROFILES[0]
+    return next((profile for profile in CHAT_MODEL_PROFILES if profile.public), CHAT_MODEL_PROFILES[0])
 
 
 def _chat_profile_public_dict(profile: ChatModelProfile) -> dict:
@@ -335,7 +373,7 @@ def list_chat_model_options() -> dict:
     default_profile = resolve_chat_model_profile()
     return {
         "default_provider": default_profile.provider_id,
-        "models": [_chat_profile_public_dict(profile) for profile in CHAT_MODEL_PROFILES],
+        "models": [_chat_profile_public_dict(profile) for profile in CHAT_MODEL_PROFILES if profile.public],
     }
 
 
@@ -381,7 +419,7 @@ def pedagogical_judge_max_tokens_for_profile(profile: ChatModelProfile | None) -
     explicit = (os.environ.get("NOI_PEDAGOGICAL_JUDGE_MAX_TOKENS") or "").strip()
     if explicit:
         return int(explicit)
-    if (profile.provider_id if profile else "") == "deepseek":
+    if (profile.provider_id if profile else "").startswith("deepseek"):
         return 4096
     fallback = chat_max_completion_tokens_for_profile(profile, env_name="NOI_PEDAGOGICAL_JUDGE_MAX_TOKENS")
     return fallback if fallback is not None else 1200
@@ -392,7 +430,7 @@ def build_pedagogical_judge_request_kwargs(profile: ChatModelProfile, messages: 
         "model": profile.model,
         "messages": messages,
     }
-    if profile.provider_id == "deepseek":
+    if profile.provider_id.startswith("deepseek"):
         kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
         kwargs["response_format"] = {"type": "json_object"}
         kwargs[profile.token_param] = pedagogical_judge_max_tokens_for_profile(profile)
@@ -935,6 +973,16 @@ def _read_pedagogical_judge_v2_system_prompt() -> str:
         return f.read()
 
 
+def _read_aichat_turn_tagger_system_prompt() -> str:
+    with open(AICHAT_TURN_TAGGER_PROMPT_FILE, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+def _read_aichat_session_analyst_system_prompt() -> str:
+    with open(AICHAT_SESSION_ANALYST_PROMPT_FILE, "r", encoding="utf-8") as f:
+        return f.read()
+
+
 def _escape_untrusted_boundary_text(text: str) -> str:
     escaped = text or ""
     for tag in (
@@ -1003,6 +1051,284 @@ def _build_pedagogical_judge_v2_user_message(
         _wrap_untrusted("student_message_untrusted", user_input or "", 1200),
     ]
     return "\n\n".join(sections)
+
+
+def _build_aichat_turn_tagger_user_message(
+    *,
+    user_input: str,
+    messages: list,
+    problem_context: dict | None = None,
+    student_code: str | None = None,
+    rule_weak_signals: list[str] | None = None,
+) -> str:
+    context_flags = [
+        "已有题目" if problem_context else "缺少题目",
+        "学生带了代码" if student_code else "没有学生代码",
+    ]
+    problem_text = _compact_problem_context_for_judge(problem_context)
+    sections = [
+        "请根据下面材料输出 JSON 标签。注意：你只做后台观察，不控制主 AIChat。",
+        f"context_flags: {';'.join(context_flags)}",
+        "weak_signals: " + json.dumps(rule_weak_signals or [], ensure_ascii=False),
+        _wrap_untrusted("recent_dialogue_untrusted", _format_recent_dialogue_for_judge(messages), 3600),
+        _wrap_untrusted("problem_statement_untrusted", problem_text, 2600),
+        _wrap_untrusted("student_code_untrusted", student_code or "", 2200),
+        _wrap_untrusted("student_message_untrusted", user_input or "", 1200),
+    ]
+    return "\n\n".join(sections)
+
+
+_TURN_TAGGER_INTENTS = {"learning", "answer_request", "code_debugging", "emotion", "injection", "unclear"}
+_TURN_TAGGER_ISSUES = {
+    "题意没读透",
+    "方法选择困难",
+    "知道算法但不会落题",
+    "代码实现卡住",
+    "调试定位困难",
+    "复杂度判断薄弱",
+    "同类迁移困难",
+    "情绪影响学习",
+    "无法判断",
+}
+_TURN_TAGGER_INJECTION_SOURCES = {"none", "problem", "student_message", "code"}
+_TURN_TAGGER_LEVELS = {"L1", "L2", "L3"}
+
+
+def _validate_turn_tag_schema(payload: dict) -> dict:
+    if not isinstance(payload, dict):
+        raise ValueError("payload must be object")
+
+    required = {
+        "primary_intent",
+        "learning_issue",
+        "understanding_evidence",
+        "missing_evidence",
+        "risk_flags",
+        "injection_detected",
+        "injection_source",
+        "same_point_loop_signal",
+        "suggested_level",
+        "confidence",
+        "short_reason",
+    }
+    missing = sorted(required - set(payload.keys()))
+    if missing:
+        raise ValueError(f"missing fields: {', '.join(missing)}")
+
+    primary_intent = str(payload["primary_intent"])
+    if primary_intent not in _TURN_TAGGER_INTENTS:
+        raise ValueError(f"invalid primary_intent: {primary_intent}")
+
+    learning_issue = str(payload["learning_issue"])
+    if learning_issue not in _TURN_TAGGER_ISSUES:
+        raise ValueError(f"invalid learning_issue: {learning_issue}")
+
+    injection_source = str(payload["injection_source"])
+    if injection_source not in _TURN_TAGGER_INJECTION_SOURCES:
+        raise ValueError(f"invalid injection_source: {injection_source}")
+
+    suggested_level = str(payload["suggested_level"])
+    if suggested_level not in _TURN_TAGGER_LEVELS:
+        raise ValueError(f"invalid suggested_level: {suggested_level}")
+
+    confidence = float(payload["confidence"])
+    if confidence < 0 or confidence > 1:
+        raise ValueError("confidence must be between 0 and 1")
+
+    def _as_str_list(value, field_name: str) -> list[str]:
+        if not isinstance(value, list):
+            raise ValueError(f"{field_name} must be list")
+        return [str(item) for item in value if str(item).strip()]
+
+    return {
+        "primary_intent": primary_intent,
+        "learning_issue": learning_issue,
+        "understanding_evidence": _as_str_list(payload["understanding_evidence"], "understanding_evidence"),
+        "missing_evidence": _as_str_list(payload["missing_evidence"], "missing_evidence"),
+        "risk_flags": _as_str_list(payload["risk_flags"], "risk_flags"),
+        "injection_detected": bool(payload["injection_detected"]),
+        "injection_source": injection_source,
+        "same_point_loop_signal": bool(payload["same_point_loop_signal"]),
+        "suggested_level": suggested_level,
+        "confidence": confidence,
+        "short_reason": str(payload["short_reason"])[:80],
+    }
+
+
+def _deepseek_v4_flash_turn_tagger_profile() -> ChatModelProfile:
+    return ChatModelProfile(
+        provider_id="deepseek",
+        label="DeepSeek V4 Flash Turn Tagger",
+        model=os.environ.get("NOI_TURN_TAGGER_MODEL", "deepseek-v4-flash"),
+        base_url=os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
+        api_key_envs=("DEEPSEEK_API_KEY",),
+        token_param="max_tokens",
+        thinking_mode="disabled",
+        extra_body={"thinking": {"type": "disabled"}},
+    )
+
+
+def tag_aichat_turn(
+    user_input: str,
+    messages: list,
+    problem_context: dict | None = None,
+    student_code: str | None = None,
+    rule_weak_signals: list[str] | None = None,
+) -> dict:
+    """Background observer tagger. It never controls the student-facing reply."""
+    try:
+        system_prompt = _read_aichat_turn_tagger_system_prompt()
+        user_message = _build_aichat_turn_tagger_user_message(
+            user_input=user_input,
+            messages=messages,
+            problem_context=problem_context,
+            student_code=student_code,
+            rule_weak_signals=rule_weak_signals,
+        )
+        profile = _deepseek_v4_flash_turn_tagger_profile()
+        response = get_chat_client_for_profile(profile).chat.completions.create(
+            model=profile.model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            response_format={"type": "json_object"},
+            max_tokens=int(os.environ.get("NOI_TURN_TAGGER_MAX_TOKENS") or "512"),
+            stream=False,
+            extra_body={"thinking": {"type": "disabled"}},
+            timeout=float(os.environ.get("NOI_TURN_TAGGER_TIMEOUT_SECONDS") or "8.0"),
+        )
+        raw = _choice_message_text(response, allow_reasoning_fallback=False)
+        if not raw.strip():
+            return {"_failed": True, "_reason": "empty_content"}
+        try:
+            parsed = _extract_json_from_response(raw)
+        except json.JSONDecodeError as exc:
+            return {"_failed": True, "_reason": f"json_parse_failed: {exc}"}
+        except ValueError as exc:
+            return {"_failed": True, "_reason": f"extract_failed: {exc}"}
+        try:
+            return _validate_turn_tag_schema(parsed)
+        except ValueError as exc:
+            return {"_failed": True, "_reason": f"schema_invalid: {exc}"}
+    except Exception as exc:
+        return {"_failed": True, "_reason": f"{type(exc).__name__}: {exc}"}
+
+
+def _deepseek_v4_pro_session_analyst_profile() -> ChatModelProfile:
+    return ChatModelProfile(
+        provider_id="deepseek",
+        label="DeepSeek V4 Pro Session Analyst",
+        model=os.environ.get("NOI_SESSION_ANALYST_MODEL", "deepseek-v4-pro"),
+        base_url=os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
+        api_key_envs=("DEEPSEEK_API_KEY",),
+        token_param="max_tokens",
+        thinking_mode="enabled",
+        extra_body={"thinking": {"type": "enabled"}},
+    )
+
+
+def _build_aichat_session_analyst_user_message(
+    *,
+    messages: list,
+    turn_tags: list | None = None,
+    summary: dict | None = None,
+    problem_context: dict | None = None,
+) -> str:
+    problem_text = _compact_problem_context_for_judge(problem_context)
+    return "\n\n".join(
+        [
+            "请根据下面材料输出 JSON 教师诊断。不要输出题解。",
+            _wrap_untrusted("problem_statement_untrusted", problem_text, 2600),
+            _wrap_untrusted("recent_dialogue_untrusted", _format_recent_dialogue_for_judge(messages), 7000),
+            "turn_tags_json:\n" + json.dumps(turn_tags or [], ensure_ascii=False, default=str)[:6000],
+            "session_summary_json:\n" + json.dumps(summary or {}, ensure_ascii=False, default=str)[:3000],
+        ]
+    )
+
+
+def _validate_session_analysis_schema(payload: dict) -> dict:
+    if not isinstance(payload, dict):
+        raise ValueError("payload must be object")
+    required = {
+        "main_issue",
+        "issue_detail",
+        "understanding_evidence",
+        "missing_evidence",
+        "teacher_next_action",
+        "recommended_practice_type",
+        "needs_followup",
+        "confidence",
+    }
+    missing = sorted(required - set(payload.keys()))
+    if missing:
+        raise ValueError(f"missing fields: {', '.join(missing)}")
+
+    def _list(value, field_name: str) -> list[str]:
+        if not isinstance(value, list):
+            raise ValueError(f"{field_name} must be list")
+        return [str(item) for item in value if str(item).strip()]
+
+    confidence = float(payload["confidence"])
+    if confidence < 0 or confidence > 1:
+        raise ValueError("confidence must be between 0 and 1")
+    return {
+        "main_issue": str(payload["main_issue"])[:40],
+        "issue_detail": str(payload["issue_detail"])[:500],
+        "understanding_evidence": _list(payload["understanding_evidence"], "understanding_evidence"),
+        "missing_evidence": _list(payload["missing_evidence"], "missing_evidence"),
+        "teacher_next_action": str(payload["teacher_next_action"])[:500],
+        "recommended_practice_type": str(payload["recommended_practice_type"])[:80],
+        "needs_followup": bool(payload["needs_followup"]),
+        "confidence": confidence,
+    }
+
+
+def analyze_aichat_session(
+    *,
+    messages: list,
+    turn_tags: list | None = None,
+    summary: dict | None = None,
+    problem_context: dict | None = None,
+) -> dict:
+    """Teacher-facing session analyst. Runs outside the student reply path."""
+    try:
+        profile = _deepseek_v4_pro_session_analyst_profile()
+        response = get_chat_client_for_profile(profile).chat.completions.create(
+            model=profile.model,
+            messages=[
+                {"role": "system", "content": _read_aichat_session_analyst_system_prompt()},
+                {
+                    "role": "user",
+                    "content": _build_aichat_session_analyst_user_message(
+                        messages=messages,
+                        turn_tags=turn_tags,
+                        summary=summary,
+                        problem_context=problem_context,
+                    ),
+                },
+            ],
+            response_format={"type": "json_object"},
+            max_tokens=int(os.environ.get("NOI_SESSION_ANALYST_MAX_TOKENS") or "1024"),
+            stream=False,
+            extra_body={"thinking": {"type": "enabled"}},
+            timeout=float(os.environ.get("NOI_SESSION_ANALYST_TIMEOUT_SECONDS") or "30.0"),
+        )
+        raw = _choice_message_text(response, allow_reasoning_fallback=False)
+        if not raw.strip():
+            return {"_failed": True, "_reason": "empty_content"}
+        try:
+            parsed = _extract_json_from_response(raw)
+        except json.JSONDecodeError as exc:
+            return {"_failed": True, "_reason": f"json_parse_failed: {exc}"}
+        except ValueError as exc:
+            return {"_failed": True, "_reason": f"extract_failed: {exc}"}
+        try:
+            return _validate_session_analysis_schema(parsed)
+        except ValueError as exc:
+            return {"_failed": True, "_reason": f"schema_invalid: {exc}"}
+    except Exception as exc:
+        return {"_failed": True, "_reason": f"{type(exc).__name__}: {exc}"}
 
 
 def pedagogical_judge_v2(

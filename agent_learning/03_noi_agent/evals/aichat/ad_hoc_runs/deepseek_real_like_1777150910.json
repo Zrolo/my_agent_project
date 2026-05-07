@@ -1,0 +1,192 @@
+{
+  "cases": [
+    {
+      "id": "real_like_tree_strategy_long",
+      "expect": "不继续新样例追问；应该总结学生策略、指出连通路径/计数缺口、给下一步",
+      "problem": "题目：X 国有 n 座城市，n-1 条长度为 1 的道路，形成一棵树。要选择 k 座核心城市，核心城市必须连通。非核心城市到核心城市的距离定义为到最近核心城市的距离。拥堵度为所有非核心城市距离的最大值。要求最小拥堵度。n <= 1e5。样例：6 3，边 1-2,2-3,2-4,1-5,5-6，答案 1，核心城市可选 1,2,5。",
+      "messages": [
+        [
+          "user",
+          "这道题我知道用树的直径，但怎么用？"
+        ],
+        [
+          "assistant",
+          "你觉得直径中间还是端点有用？"
+        ],
+        [
+          "user",
+          "我觉得是中间部分吧，因为如果是两端的话，那另外一端到当前这端岂不是更远了？"
+        ],
+        [
+          "assistant",
+          "k=1 选哪里？"
+        ],
+        [
+          "user",
+          "最中间的位置"
+        ],
+        [
+          "assistant",
+          "k=2 呢？"
+        ],
+        [
+          "user",
+          "还是最中间的两个点吧"
+        ],
+        [
+          "assistant",
+          "如果中间挂长分支呢？"
+        ],
+        [
+          "user",
+          "会"
+        ],
+        [
+          "assistant",
+          "D=1 哪些点要覆盖？"
+        ],
+        [
+          "user",
+          "6 号城市、3 号城市、4 号城市"
+        ],
+        [
+          "assistant",
+          "超过 D 时怎么选核心？"
+        ],
+        [
+          "user",
+          "我们选直径上与当前最远的非核心城市距离恰好为 D 的那个节点作为核心城市？"
+        ],
+        [
+          "assistant",
+          "还要满足核心城市连通。"
+        ],
+        [
+          "user",
+          "那我觉得这道题应该是用二分答案，我们可以二分距离，check 条件就是当前距离下核心城市的多少，每次找最远叶子节点，然后往回走 d 的位置放核心城市。"
+        ],
+        [
+          "assistant",
+          "那样只看直径中间一段可能不够。样例 D=1 你找最远叶子是哪个？"
+        ],
+        [
+          "user",
+          "我找的最远节点是 6、3、4，往回走一步会选在 2、1、5。能找到，并且满足条件是连通的"
+        ]
+      ]
+    },
+    {
+      "id": "real_like_confused_short_answers",
+      "expect": "不要因为轮数多而总结；应该降台阶，用极小对象/二选一让学生重新开口",
+      "problem": "题目：给定若干学校分数和学生估分，每个学生要找离自己估分最近的学校分数，统计所有学生的不满意度之和。学校数和学生数都可能很大，不能逐个比较所有学校。",
+      "messages": [
+        [
+          "user",
+          "这道题怎么写？"
+        ],
+        [
+          "assistant",
+          "先看题目里有哪些对象，以及我们要对它们做什么。你能说一个对象吗？"
+        ],
+        [
+          "user",
+          "不知道"
+        ],
+        [
+          "assistant",
+          "那先只看输入第一行，学校数和学生数分别代表什么？"
+        ],
+        [
+          "user",
+          "还是不懂"
+        ]
+      ]
+    },
+    {
+      "id": "real_like_code_debug_mst",
+      "expect": "有代码时不要先问完整思路；应该对齐题目目标和代码输出对象，指出最小可疑位置",
+      "problem": "题目：P4047 部落划分。给出 n 个点和 k 个部落，两个部落距离定义为两个部落中最近两点距离，要求一种划分使最近两个部落尽可能远。输出这个最大化后的最近距离。",
+      "state": "有题目 + 有代码",
+      "code": "#include <bits/stdc++.h>\nusing namespace std;\nstruct E{int u,v; double w;};\nvector<E>a; stack<double> st;\n// 已按距离排序，每次并查集合并就 st.push(w)\n// 最后弹出 k-1 条，再输出 st.top()\n",
+      "messages": [
+        [
+          "user",
+          "我感觉我的 Kruskal 思路没有问题，但是样例输出不对，为什么？"
+        ],
+        [
+          "assistant",
+          "你代码里栈里保存的是已经合并的边，还是还没有合并、连接两个部落的候选边？"
+        ],
+        [
+          "user",
+          "应该是已经合并的边"
+        ]
+      ]
+    }
+  ],
+  "results": [
+    {
+      "id": "real_like_tree_strategy_long",
+      "expect": "不继续新样例追问；应该总结学生策略、指出连通路径/计数缺口、给下一步",
+      "judge_ms": 6242,
+      "judge": {
+        "phase": "strategy_forming",
+        "confidence": 0.9,
+        "student_state": "forming_strategy",
+        "evidence": "学生说：'那我觉得这道题应该是用二分答案，我们可以二分距离，check 条件就是当前距离下核心城市的多少，每次找最远叶子节点，然后往回走 d 的位置放核心城市。' 并验证了 D=1 样例，说明已形成可执行策略，需要总结和指出关键缺口。",
+        "recommended_action": "summarize_and_scaffold",
+        "question_budget": 0,
+        "can_show_verification": false,
+        "can_offer_alternative_solution": false,
+        "code_help_level": "none",
+        "source": "llm_rubric"
+      },
+      "chat_ms": 20127,
+      "level": "L2",
+      "error": "",
+      "reply": "你的二分和贪心方向对。但每次找最远叶子往回走 D 步选点，能保证所有核心城市自动连通吗？试画一棵链上带长分支的树，D=2,k=2，看你的方法会选在哪里。"
+    },
+    {
+      "id": "real_like_confused_short_answers",
+      "expect": "不要因为轮数多而总结；应该降台阶，用极小对象/二选一让学生重新开口",
+      "judge_ms": 4143,
+      "judge": {
+        "phase": "problem_understanding",
+        "confidence": 0.95,
+        "student_state": "confused",
+        "evidence": "学生连续回答“不知道”、“还是不懂”，明确表示不懂，且没有提及任何对象、操作或关系，属于无法回答的状态，需要降台阶。",
+        "recommended_action": "lower_step",
+        "question_budget": 0,
+        "can_show_verification": false,
+        "can_offer_alternative_solution": false,
+        "code_help_level": "none",
+        "source": "llm_rubric"
+      },
+      "chat_ms": 18606,
+      "level": "L2",
+      "error": "",
+      "reply": "那你现在打开题目，只看输入格式的第一行，它写了几个整数？分别代表什么？"
+    },
+    {
+      "id": "real_like_code_debug_mst",
+      "expect": "有代码时不要先问完整思路；应该对齐题目目标和代码输出对象，指出最小可疑位置",
+      "judge_ms": 3679,
+      "judge": {
+        "phase": "code_debugging",
+        "confidence": 0.95,
+        "student_state": "code_debugging",
+        "evidence": "学生说“Kruskal思路没问题但样例输出不对”，并针对栈里是已合并边还是候选边回答“应该是已经合并的边”，表明代码行为与预期不符，需要定位差异。",
+        "recommended_action": "diagnose_code",
+        "question_budget": 0,
+        "can_show_verification": false,
+        "can_offer_alternative_solution": false,
+        "code_help_level": "local_fix_hint",
+        "source": "llm_rubric"
+      },
+      "chat_ms": 48583,
+      "level": "L2",
+      "error": "",
+      "reply": "你的栈里存的都是“已经合并的边”，但答案要找的是连接两个不同部落的最短边——也就是还没合并的边里最小的那一条。  \n想想看：要把 n 个点分成 k 个部落，需要成功合并多少次？合并够这些次数之后，下一条要检查的边就是答案所在的位置。"
+    }
+  ]
+}

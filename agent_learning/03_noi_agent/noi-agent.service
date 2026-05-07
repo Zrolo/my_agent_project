@@ -7,7 +7,7 @@ Type=simple
 User=www-data
 Group=www-data
 WorkingDirectory=/opt/noi-agent
-Environment=PATH=/opt/noi-agent/venv/bin
+Environment=PATH=/opt/noi-agent/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 EnvironmentFile=/opt/noi-agent/.env
 ExecStart=/opt/noi-agent/venv/bin/uvicorn api_server:app --host 127.0.0.1 --port 8000 --workers 2
 Restart=always

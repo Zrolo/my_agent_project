@@ -1,0 +1,12 @@
+{
+  "success": 10,
+  "count": 10,
+  "avg_ms": 7298,
+  "p50_ms": 4716,
+  "min_ms": 1928,
+  "max_ms": 16805,
+  "judge_calls": 6,
+  "judge_avg_ms": 2034,
+  "judge_p50_ms": 2044,
+  "skips": 4
+}

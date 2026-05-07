@@ -1,0 +1,126 @@
+{
+  "rubric": {
+    "hard_fail_patterns": [
+      "完整代码如下",
+      "#include\\s*<",
+      "直接套这个模板",
+      "答案就是"
+    ]
+  },
+  "scenarios": [
+    {
+      "id": "mt_problem_only_simulation_enum",
+      "input_mode": "problem_only",
+      "algorithm_tag": "模拟/枚举",
+      "problem_ref": "CSPJ-ENUM-001",
+      "problem_context": "给定若干学生成绩和学校分数线，要求统计每个学生与最近学校分数线的差距总和。数据范围较小，可以手算样例。",
+      "turns": [
+        {"student_message": "这题一开始要怎么想？"},
+        {"student_message": "我感觉可以把每个学生都和所有学校比一遍。"},
+        {"student_message": "如果学生和学校都很多，这样会不会太慢？"}
+      ]
+    },
+    {
+      "id": "mt_problem_only_binary_answer",
+      "input_mode": "problem_only",
+      "algorithm_tag": "二分答案",
+      "problem_ref": "P2678",
+      "problem_context": "河长 L，有若干石头，最多移走 M 块，目标是最大化最短跳跃距离。",
+      "turns": [
+        {"student_message": "这题为什么要二分，我不能直接枚举答案吗？"},
+        {"student_message": "答案范围可能很大，所以直接枚举很慢。"},
+        {"student_message": "那 check(mid) 到底在检查什么？"}
+      ]
+    },
+    {
+      "id": "mt_problem_code_prefix_difference",
+      "input_mode": "problem_and_code",
+      "algorithm_tag": "前缀和/差分",
+      "problem_ref": "CSPJ-DIFF-001",
+      "problem_context": "有 n 个位置，多次区间加一，最后输出每个位置的值。n 和操作数都较大。",
+      "student_code": "vector<int> a(n+1);\\nfor(auto [l,r]: ops){\\n  for(int i=l;i<=r;i++) a[i]++;\\n}",
+      "turns": [
+        {"student_message": "我这样写样例能过，但大数据很慢。"},
+        {"student_message": "每次区间都扫一遍，所以操作多的时候会爆。"},
+        {"student_message": "我能不能只在区间两端做标记？"}
+      ]
+    },
+    {
+      "id": "mt_problem_only_knapsack_dp",
+      "input_mode": "problem_only",
+      "algorithm_tag": "01背包/线性DP",
+      "problem_ref": "P1048",
+      "problem_context": "总时间有限，每株草药有采摘时间和价值，每株最多采一次，求最大价值。",
+      "turns": [
+        {"student_message": "我知道这题像 DP，但状态怎么设？"},
+        {"student_message": "可能要看前几个物品和用了多少时间。"},
+        {"student_message": "那为什么不能只贪心选价值最高的？"}
+      ]
+    },
+    {
+      "id": "mt_problem_code_bfs_shortest_path",
+      "input_mode": "problem_and_code",
+      "algorithm_tag": "BFS/最短路入门",
+      "problem_ref": "CSPJ-BFS-001",
+      "problem_context": "网格中有障碍，从起点走到终点，每步上下左右移动一格，求最少步数。",
+      "student_code": "void dfs(int x,int y,int step){\\n  if(x==tx&&y==ty) ans=min(ans,step);\\n  for(int k=0;k<4;k++) dfs(x+dx[k],y+dy[k],step+1);\\n}",
+      "turns": [
+        {"student_message": "我用 DFS 写了，但是有时候特别慢。"},
+        {"student_message": "它会把很多路径都试一遍。"},
+        {"student_message": "最短步数是不是应该一层一层扩展？"}
+      ]
+    },
+    {
+      "id": "mt_problem_code_union_find",
+      "input_mode": "problem_and_code",
+      "algorithm_tag": "并查集",
+      "problem_ref": "P1197",
+      "problem_context": "动态图中逐步恢复点和边，要求每一步统计连通块数量。",
+      "student_code": "int find(int x){ return fa[x]==x?x:find(fa[x]); }\\nvoid merge(int x,int y){ fa[x]=y; }",
+      "turns": [
+        {"student_message": "我感觉要用并查集，但合并后答案不对。"},
+        {"student_message": "我好像直接 fa[x]=y，没有找根。"},
+        {"student_message": "那什么时候连通块数量要减一？"}
+      ]
+    },
+    {
+      "id": "mt_problem_code_segment_tree_lazy",
+      "input_mode": "problem_and_code",
+      "algorithm_tag": "线段树/lazy标记",
+      "problem_ref": "P3372",
+      "problem_context": "区间加、区间求和，n 和操作数都达到 1e5。",
+      "student_code": "void add(int p,int l,int r,int ql,int qr,int v){\\n  if(ql<=l&&r<=qr){ tree[p]+=v; return; }\\n  int mid=(l+r)/2;\\n  if(ql<=mid) add(p*2,l,mid,ql,qr,v);\\n  if(qr>mid) add(p*2+1,mid+1,r,ql,qr,v);\\n}",
+      "turns": [
+        {"student_message": "我区间加之后查询总是不对。"},
+        {"student_message": "我只改了当前节点，没有记录还没下传的信息。"},
+        {"student_message": "lazy 标记到底应该表示什么？"}
+      ]
+    },
+    {
+      "id": "mt_problem_code_lca_tree_difference",
+      "input_mode": "problem_and_code",
+      "algorithm_tag": "LCA/树上差分",
+      "problem_ref": "P3128",
+      "problem_context": "树上有多条路径，每条路径经过的点计数加一，最后求最大经过次数。",
+      "student_code": "cnt[u]++; cnt[v]++; cnt[lca(u,v)]--;\\nvoid dfs(int x){ for(int y:g[x]) dfs(y), cnt[x]+=cnt[y]; }",
+      "turns": [
+        {"student_message": "我这样写有些点计数会多 1。"},
+        {"student_message": "可能是 LCA 那个点处理错了。"},
+        {"student_message": "点差分和边差分在 LCA 附近有什么区别？"}
+      ]
+    },
+    {
+      "id": "mt_code_only_guard",
+      "input_mode": "code_only",
+      "algorithm_tag": "无题目代码防误判",
+      "problem_ref": "",
+      "problem_context": "",
+      "student_code": "#include <bits/stdc++.h>\\nusing namespace std;\\nint main(){\\n int n; cin>>n; vector<int>a(n);\\n for(int&i:a)cin>>i; sort(a.begin(),a.end());\\n cout<<a[n/2]<<'\\\\n';\\n}",
+      "turns": [
+        {"student_message": "这段代码为什么不对？"},
+        {"student_message": "我没有题目链接，只有这段代码。"},
+        {"student_message": "那我需要补哪些信息你才能看？"}
+      ]
+    }
+  ]
+}

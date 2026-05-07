@@ -1,0 +1,13 @@
+[db] Database initialized at /Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/noi_agent.db
+[classifier] skipped reason=skip_l1 input_len=443
+[classifier] skipped reason=skip_high_confidence_risk input_len=462
+[classifier] skipped reason=skip_high_confidence_risk input_len=475
+[classifier] skipped reason=skip_non_semantic_l2 input_len=493
+[aichat_memory] update skipped: APITimeoutError: Request timed out.
+[classifier] skipped reason=skip_non_semantic_l2 input_len=422
+[aichat_memory] update skipped: APITimeoutError: Request timed out.
+[classifier] skipped reason=skip_non_semantic_l2 input_len=527
+[classifier] skipped reason=skip_non_semantic_l2 input_len=440
+[classifier] skipped reason=skip_high_confidence_risk input_len=458
+[aichat_memory] update skipped: APITimeoutError: Request timed out.
+{"output_dir": "evals/aichat/model_latency_runs/pro_vs_flash_20260430_212128/deepseek-v4-flash/20260430_212508", "generated_at": "2026-04-30T21:26:58", "provider_count": 1, "row_count": 8, "providers": {"deepseek": {"provider_id": "deepseek", "provider_label": "DeepSeek", "model": "deepseek-v4-flash", "thinking_mode": "enabled", "measured_count": 8, "success_count": 4, "error_count": 4, "success_rate": 0.5, "error_rate": 0.5, "quality_gate_pass_rate": 0.375, "request_ms_avg": 13718, "request_ms_p50": 14249, "request_ms_p95": 14707, "llm_ms_avg": 10798, "llm_ms_p95": 11839}}, "by_input_mode": {"deepseek": {"未标注": {"measured_count": 8, "success_count": 4, "error_count": 4, "success_rate": 0.5, "error_rate": 0.5, "quality_gate_pass_rate": 0.375, "request_ms_avg": 13718, "request_ms_p50": 14249, "request_ms_p95": 14707, "llm_ms_avg": 10798, "llm_ms_p95": 11839}}}, "by_algorithm_tag": {"deepseek": {"未标注": {"measured_count": 8, "success_count": 4, "error_count": 4, "success_rate": 0.5, "error_rate": 0.5, "quality_gate_pass_rate": 0.375, "request_ms_avg": 13718, "request_ms_p50": 14249, "request_ms_p95": 14707, "llm_ms_avg": 10798, "llm_ms_p95": 11839}}}, "fastest_provider_by_avg_request_ms": "deepseek"}

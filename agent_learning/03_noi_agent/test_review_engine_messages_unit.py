@@ -1,4 +1,5 @@
 import json
+import os
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -2563,6 +2564,82 @@ class ReviewEngineMessageSplitTests(unittest.TestCase):
         self.assertTrue(captured["stream"])
         self.assertEqual("stop", telemetry["finish_reason"])
 
+    def test_call_llm_should_default_to_deepseek_v4_pro_profile(self):
+        captured = {}
+
+        class FakeCompletions:
+            def create(self, **kwargs):
+                captured.update(kwargs)
+                return SimpleNamespace(
+                    choices=[SimpleNamespace(message=SimpleNamespace(content='{"ok": true}'), finish_reason="stop")],
+                    usage=SimpleNamespace(prompt_tokens=1, completion_tokens=1),
+                )
+
+        fake_client = SimpleNamespace(chat=SimpleNamespace(completions=FakeCompletions()))
+
+        with (
+            patch.object(review_engine, "get_client", return_value=fake_client),
+            patch.dict(os.environ, {"NOI_REVIEW_MODELS": ""}, clear=False),
+        ):
+            ok, content, telemetry = review_engine._call_llm(
+                [
+                    {"role": "system", "content": "system"},
+                    {"role": "user", "content": "user"},
+                ]
+            )
+
+        self.assertTrue(ok)
+        self.assertEqual('{"ok": true}', content)
+        self.assertEqual("deepseek-v4-pro", captured["model"])
+        self.assertIn("max_tokens", captured)
+        self.assertNotIn("max_completion_tokens", captured)
+        self.assertEqual({"thinking": {"type": "enabled"}}, captured["extra_body"])
+        self.assertEqual({"type": "json_object"}, captured["response_format"])
+        self.assertEqual("deepseek-v4-pro", telemetry["model_name"])
+
+    def test_review_client_should_use_deepseek_api_key_and_base_url(self):
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "DEEPSEEK_API_KEY": "deepseek-secret",
+                    "DEEPSEEK_BASE_URL": "https://deepseek.example/v1",
+                },
+                clear=True,
+            ),
+            patch.object(review_engine, "OpenAI", return_value="client") as mocked_openai,
+        ):
+            review_engine._review_clients = {}
+            client = review_engine.get_client("deepseek-v4-pro")
+
+        self.assertEqual("client", client)
+        mocked_openai.assert_called_once_with(
+            api_key="deepseek-secret",
+            base_url="https://deepseek.example/v1",
+        )
+
+    def test_review_engine_loads_deepseek_key_from_local_env_without_overriding(self):
+        with TemporaryDirectory() as tmpdir:
+            env_path = Path(tmpdir) / ".env"
+            env_path.write_text(
+                "\n".join(
+                    [
+                        "DEEPSEEK_API_KEY=from-file",
+                        "DEEPSEEK_BASE_URL=https://file.example/v1",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            with patch.dict(os.environ, {"DEEPSEEK_API_KEY": "already-set"}, clear=True):
+                loaded = review_engine.load_local_env_if_present(str(env_path))
+                deepseek_key = os.environ["DEEPSEEK_API_KEY"]
+                deepseek_base_url = os.environ["DEEPSEEK_BASE_URL"]
+
+        self.assertEqual(["DEEPSEEK_BASE_URL"], loaded)
+        self.assertEqual("already-set", deepseek_key)
+        self.assertEqual("https://file.example/v1", deepseek_base_url)
+
     def test_call_llm_should_keep_temperature_for_non_kimi_models(self):
         captured = {}
 
@@ -2734,6 +2811,48 @@ class ReviewEngineMessageSplitTests(unittest.TestCase):
         self.assertEqual(messages[1]["role"], "user")
         self.assertIn("只输出 JSON", messages[0]["content"])
         self.assertIn("活动安排", messages[1]["content"])
+
+    def test_review_prompt_should_require_three_dense_review_sections(self):
+        prompt = review_engine._build_review_system_prompt(mode="stuck_bridge")
+
+        self.assertIn("topic_commonality", prompt)
+        self.assertIn("solution_walkthrough", prompt)
+        self.assertIn("transfer_checklist", prompt)
+        self.assertIn("这类题在考什么", prompt)
+        self.assertIn("这道题怎么做通", prompt)
+        self.assertIn("下次怎么迁移", prompt)
+        self.assertIn("先抽象共性，再映射到当前题", prompt)
+        self.assertIn("不要对学生使用“卡点”", prompt)
+
+    def test_parse_review_should_preserve_three_dense_review_sections(self):
+        review = review_engine._parse_review(
+            """
+            {
+              "error_tags": ["复杂度"],
+              "error_layer": "method",
+              "error_layer_confidence": "high",
+              "core_design_subtags": [],
+              "diagnosis": "学生只比较了算法名，没有代入 N、M、Q。",
+              "next_action": "先估算两种做法总量级。",
+              "suggested_topic": "按时间递增维护最短路",
+              "problem_focus": "没有利用时间递增和询问递增。",
+              "main_block": "没有利用时间递增和询问递增。",
+              "key_bridge": "每修好一个村庄，只把它作为新中转点更新所有点对。",
+              "visual_hint": "",
+              "guided_walkthrough": "先看 N 小，再看 Q 大，最后看询问时间不下降。",
+              "try_now": "代入 N=200, Q=50000 算一遍。",
+              "next_step": "代入 N=200, Q=50000 算一遍。",
+              "transfer_signal": "对象按顺序开放，询问也按顺序来。",
+              "topic_commonality": "这类题的共性是对象按顺序逐步加入，询问也按顺序推进。",
+              "solution_walkthrough": "这道题维护 dist[i][j]，每个新修好的村庄 k 只做一层 Floyd 更新。",
+              "transfer_checklist": "下次先问：对象是否递增开放？询问是否递增？能否复用旧答案？"
+            }
+            """
+        )
+
+        self.assertIn("对象按顺序逐步加入", review["topic_commonality"])
+        self.assertIn("一层 Floyd", review["solution_walkthrough"])
+        self.assertIn("能否复用旧答案", review["transfer_checklist"])
 
     def test_generate_review_should_normalize_submission_result_before_routing(self):
         with (

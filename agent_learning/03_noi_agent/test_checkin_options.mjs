@@ -7,6 +7,7 @@ import {
   SUBMISSION_RESULT_OPTIONS,
   inferOjSourceFromProblemRef,
   normalizeCheckinPayload,
+  ojSourceLabel,
 } from './frontend/src/constants/checkinOptions.js';
 
 test('checkin completion status options stay aligned with backend accepted values', () => {
@@ -37,6 +38,8 @@ test('checkin payload normalization lets students submit without optional labels
 test('checkin payload normalization infers oj source from pasted problem ref', () => {
   assert.equal(inferOjSourceFromProblemRef('P2922'), 'luogu');
   assert.equal(inferOjSourceFromProblemRef('https://www.luogu.com.cn/problem/P2922'), 'luogu');
+  assert.equal(inferOjSourceFromProblemRef('http://oj.jmfes.com:8888/p/401'), 'jmfes');
+  assert.equal(inferOjSourceFromProblemRef('http://172.21.60.30:8888/p/401?tid=abc'), 'jmfes');
   assert.equal(inferOjSourceFromProblemRef('https://codeforces.com/contest/4/problem/A'), 'codeforces');
   assert.equal(inferOjSourceFromProblemRef('https://atcoder.jp/contests/abc001/tasks/abc001_1'), 'atcoder');
   assert.equal(inferOjSourceFromProblemRef('https://example.com/problem/abc'), 'other');
@@ -49,4 +52,8 @@ test('checkin payload normalization infers oj source from pasted problem ref', (
   });
 
   assert.equal(payload.oj_source, 'codeforces');
+});
+
+test('checkin source labels explain that JMYSOJ links can auto import', () => {
+  assert.equal(ojSourceLabel('jmfes'), 'JMYSOJ：可自动读取题面');
 });

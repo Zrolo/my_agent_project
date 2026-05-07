@@ -4,6 +4,7 @@ import path from 'node:path';
 
 export default defineConfig({
   root: path.resolve(__dirname, 'frontend'),
+  base: '/static/dist/',
   plugins: [vue()],
   resolve: {
     alias: {
@@ -14,17 +15,7 @@ export default defineConfig({
     outDir: path.resolve(__dirname, 'static/dist'),
     emptyOutDir: true,
     sourcemap: false,
-    rollupOptions: {
-      output: {
-        entryFileNames: 'assets/app.js',
-        chunkFileNames: 'assets/[name].js',
-        assetFileNames: (assetInfo) => {
-          if (assetInfo.name && assetInfo.name.endsWith('.css')) {
-            return 'assets/app.css';
-          }
-          return 'assets/[name][extname]';
-        },
-      },
-    },
+    // Mermaid is loaded only when a student opens a diagram. Keep warnings focused on eager chunks.
+    chunkSizeWarningLimit: 700,
   },
 });

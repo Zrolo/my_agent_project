@@ -64,6 +64,10 @@
     @apply border-archive-500 bg-archive-500 text-white shadow-lg shadow-archive-500/30;
   }
 
+  .nav-link-active-knowledge {
+    @apply border-emerald-500 bg-emerald-500 text-white shadow-lg shadow-emerald-500/30;
+  }
+
   .nav-link-active-operator {
     @apply border-operator-500 bg-operator-500 text-white shadow-lg shadow-operator-500/30;
   }
@@ -77,7 +81,7 @@
   }
 
   .button-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold text-white transition cursor-pointer;
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20 transition hover:bg-cyan-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none cursor-pointer disabled:cursor-not-allowed;
   }
 
   .button-secondary {
@@ -122,5 +126,71 @@
 
   .editorial-rule {
     @apply h-px w-full bg-gradient-to-r from-transparent via-slate-300 to-transparent;
+  }
+
+  .problem-markdown {
+    @apply max-w-none break-words;
+  }
+
+  .problem-markdown h1 {
+    @apply mb-4 text-2xl font-bold text-slate-900;
+  }
+
+  .problem-markdown h2 {
+    @apply mb-3 mt-6 text-xl font-bold text-slate-900;
+  }
+
+  .problem-markdown h3 {
+    @apply mb-2 mt-5 text-lg font-semibold text-slate-900;
+  }
+
+  .problem-markdown p {
+    @apply my-3 leading-7;
+  }
+
+  .problem-markdown ul,
+  .problem-markdown ol {
+    @apply my-3 space-y-2 pl-6;
+  }
+
+  .problem-markdown ul {
+    @apply list-disc;
+  }
+
+  .problem-markdown ol {
+    @apply list-decimal;
+  }
+
+  .problem-markdown pre {
+    @apply my-4 overflow-auto rounded-2xl border border-slate-200 bg-slate-950 p-4 text-xs leading-6 text-slate-50;
+  }
+
+  .problem-markdown code {
+    @apply rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[0.92em] text-slate-800;
+  }
+
+  .problem-markdown pre code {
+    @apply bg-transparent p-0 text-slate-50;
+  }
+
+  .problem-markdown table {
+    @apply my-4 w-full border-collapse overflow-hidden rounded-2xl text-sm;
+  }
+
+  .problem-markdown th,
+  .problem-markdown td {
+    @apply border border-slate-200 px-3 py-2 text-left;
+  }
+
+  .problem-markdown blockquote {
+    @apply my-4 border-l-4 border-chat-500 bg-chat-50/70 px-4 py-2 text-slate-600;
+  }
+
+  .code-editor-shell .cm-editor {
+    min-height: 28rem;
+  }
+
+  .code-editor-shell .cm-scroller {
+    min-height: 28rem;
   }
 }

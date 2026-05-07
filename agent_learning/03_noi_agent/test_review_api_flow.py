@@ -1,5 +1,6 @@
 import os
 import tempfile
+import time
 
 from fastapi.testclient import TestClient
 
@@ -52,11 +53,18 @@ def test_checkin_survives_review_exception():
     assert payload["review_status"] == "pending"
     assert payload["review"] is None
 
-    my_checkins = client.get("/api/checkins/me").json()["checkins"]
+    my_checkins = []
+    last_error = ""
+    for _ in range(20):
+        my_checkins = client.get("/api/checkins/me").json()["checkins"]
+        last_error = my_checkins[0]["review_last_error"] or "" if my_checkins else ""
+        if "RuntimeError" in last_error:
+            break
+        time.sleep(0.05)
     assert len(my_checkins) == 1
     assert my_checkins[0]["problem_context"]
-    assert my_checkins[0]["review_status"] == "pending"
-    assert "RuntimeError" in (my_checkins[0]["review_last_error"] or "")
+    assert my_checkins[0]["review_status"] in {"pending", "failed"}
+    assert "RuntimeError" in last_error
 
 
 def test_student_cannot_impersonate_other_student():
@@ -175,10 +183,98 @@ def test_chat_endpoint_auto_imports_luogu_context_when_only_problem_ref_is_provi
     assert "这题我只知道是 LCA" in last_user_message
 
 
+def test_jmfes_problem_import_persists_problem_and_ai_tags():
+    client = _setup_temp_app()
+    api_server.app.dependency_overrides[api_server.require_student] = (
+        lambda: {"user_id": "student_a", "role": "student"}
+    )
+    original_fetch = api_server.fetch_jmfes_problem
+    original_generate_tags = api_server.generate_problem_tags_with_ai
+
+    def fake_fetch(raw_url):
+        return {
+            "problem_url": "http://oj.jmfes.com:8888/p/401",
+            "problem_pid": "401",
+            "problem_title": "校内题 401 路径统计",
+            "problem_context": "给一棵树和若干路径，统计每个点被路径经过的次数。",
+            "problem_tags": [],
+            "oj_source": "jmfes",
+        }
+
+    def fake_generate_tags(**kwargs):
+        assert kwargs["oj_source"] == "jmfes"
+        assert "路径" in kwargs["problem_context"]
+        return ["树", "路径统计", "差分"]
+
+    api_server.fetch_jmfes_problem = fake_fetch
+    api_server.generate_problem_tags_with_ai = fake_generate_tags
+    try:
+        response = client.post("/api/problem-import", json={"url": "http://172.21.60.30:8888/p/401?tid=x"})
+    finally:
+        api_server.fetch_jmfes_problem = original_fetch
+        api_server.generate_problem_tags_with_ai = original_generate_tags
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["oj_source"] == "jmfes"
+    assert payload["problem_tags"] == ["树", "路径统计", "差分"]
+
+    problem = database.get_problem_by_source_ref("jmfes", "401")
+    assert problem is not None
+    assert problem["title"] == "校内题 401 路径统计"
+    assert database.get_problem_tags(problem["problem_id"], tag_type="ai") == ["差分", "树", "路径统计"]
+
+
+def test_problem_closure_start_records_bottleneck_event():
+    client = _setup_temp_app()
+    api_server.app.dependency_overrides[api_server.require_student] = (
+        lambda: {"user_id": "student_a", "role": "student"}
+    )
+    original_generate = api_server.generate_understanding_check
+
+    def fake_generate_understanding_check(**kwargs):
+        return {
+            "status": "ok",
+            "question": "给一个三点链，写出从最远叶子往回走 1 步到哪里。",
+            "target_focus": "二分 check 中从最远叶子回退 D 步",
+            "bottleneck_type": "process_tracing",
+            "quiz_format": "trace_one_step",
+            "evidence": "学生说知道直径但不知道 check 怎么写",
+        }
+
+    api_server.generate_understanding_check = fake_generate_understanding_check
+    try:
+        response = client.post(
+            "/api/chat/problem-closure/start",
+            json={
+                "problem_id": "P9999",
+                "session_id": "sess_bottleneck",
+                "problem_title": "树上核心城市",
+                "problem_context": "选择连通核心城市，使最大距离最小。",
+                "chat_model_provider": "deepseek",
+            },
+        )
+    finally:
+        api_server.generate_understanding_check = original_generate
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["bottleneck_type"] == "process_tracing"
+    events = database.list_problem_bottleneck_events(problem_ref="P9999")
+    assert len(events) == 1
+    assert events[0]["student_id"] == "student_a"
+    assert events[0]["bottleneck_type"] == "process_tracing"
+    assert events[0]["quiz_format"] == "trace_one_step"
+    assert events[0]["source_event"] == "closure_quiz"
+    assert events[0]["result_status"] == "generated"
+
+
 if __name__ == "__main__":
     test_validate_bottleneck_allows_specific_descriptions()
     test_checkin_survives_review_exception()
     test_student_cannot_impersonate_other_student()
     test_chat_endpoint_passes_current_problem_context_to_agent()
     test_chat_endpoint_auto_imports_luogu_context_when_only_problem_ref_is_provided()
+    test_jmfes_problem_import_persists_problem_and_ai_tags()
+    test_problem_closure_start_records_bottleneck_event()
     print("review api flow tests passed")

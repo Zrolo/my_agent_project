@@ -9,9 +9,38 @@ from pathlib import Path
 from openai import OpenAI
 from model_config import get_model_candidates, is_model_unavailable_error
 
+BASE_DIR = Path(__file__).resolve().parent
 _client = None
+_review_clients = {}
 _external_bridge_snippets_cache = None
-DEFAULT_REVIEW_MODELS = ("kimi-k2.5",)
+
+
+def load_local_env_if_present(env_path: str | None = None) -> list[str]:
+    """Load simple KEY=VALUE lines from .env without overriding real environment."""
+    path = Path(env_path) if env_path else BASE_DIR / ".env"
+    if not path.exists():
+        return []
+
+    loaded: list[str] = []
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        if line.startswith("export "):
+            line = line[len("export "):].strip()
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if not key or key in os.environ:
+            continue
+        os.environ[key] = value
+        loaded.append(key)
+    return loaded
+
+
+load_local_env_if_present()
+
+DEFAULT_REVIEW_MODELS = ("deepseek-v4-pro",)
 LLM_REQUEST_TIMEOUT_SECONDS = int(os.getenv("NOI_LLM_TIMEOUT_SECONDS", "45"))
 LLM_MAX_TOKENS = int(os.getenv("NOI_REVIEW_MAX_TOKENS", "32768"))
 REVIEW_TAG_LIMIT = int(os.getenv("NOI_REVIEW_TAG_LIMIT", "2"))
@@ -756,17 +785,73 @@ ALGORITHM_NAME_TERMS = (
 )
 
 
-def get_client():
+def _default_review_models() -> tuple[str, ...]:
+    return (os.getenv("DEEPSEEK_MODEL", "deepseek-v4-pro"),)
+
+
+def _review_provider_for_model(model_name: str | None) -> dict:
+    normalized = (model_name or "").strip().lower()
+    if normalized.startswith("deepseek"):
+        return {
+            "provider_id": "deepseek",
+            "api_key_envs": ("DEEPSEEK_API_KEY",),
+            "base_url": os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
+            "token_param": "max_tokens",
+            "extra_body": {"thinking": {"type": "enabled"}},
+        }
+    if normalized.startswith("kimi") or normalized.startswith("moonshot/"):
+        return {
+            "provider_id": "moonshot",
+            "api_key_envs": ("MOONSHOT_API_KEY", "OPENAI_API_KEY"),
+            "base_url": os.getenv("MOONSHOT_BASE_URL", "https://api.moonshot.cn/v1"),
+            "token_param": "max_completion_tokens",
+            "extra_body": None,
+        }
+    return {
+        "provider_id": "openai_compatible",
+        "api_key_envs": ("OPENAI_API_KEY",),
+        "base_url": os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+        "token_param": "max_completion_tokens",
+        "extra_body": None,
+    }
+
+
+def _first_env_value(keys: tuple[str, ...]) -> str:
+    for key in keys:
+        value = os.getenv(key, "").strip()
+        if value:
+            return value
+    return ""
+
+
+def is_review_llm_configured(model_name: str | None = None) -> bool:
+    candidates = get_model_candidates("NOI_REVIEW_MODELS", _default_review_models())
+    target_model = model_name or (candidates[0] if candidates else "")
+    provider = _review_provider_for_model(target_model)
+    return bool(_first_env_value(provider["api_key_envs"]))
+
+
+def get_client(model_name: str | None = None):
     global _client
-    if _client is None:
-        api_key = os.getenv("MOONSHOT_API_KEY")
-        if not api_key:
-            raise RuntimeError("MOONSHOT_API_KEY environment variable not set")
-        _client = OpenAI(
+    target_model = model_name or _default_review_models()[0]
+    provider = _review_provider_for_model(target_model)
+    api_key = _first_env_value(provider["api_key_envs"])
+    if not api_key:
+        env_names = " 或 ".join(provider["api_key_envs"])
+        raise RuntimeError(f"{env_names} environment variable not set")
+
+    if provider["provider_id"] == "moonshot" and not model_name:
+        if _client is None:
+            _client = OpenAI(api_key=api_key, base_url=provider["base_url"])
+        return _client
+
+    cache_key = (provider["provider_id"], provider["base_url"], api_key[:8])
+    if cache_key not in _review_clients:
+        _review_clients[cache_key] = OpenAI(
             api_key=api_key,
-            base_url="https://api.moonshot.cn/v1"
+            base_url=provider["base_url"],
         )
-    return _client
+    return _review_clients[cache_key]
 
 
 def validate_bottleneck(bottleneck_text: str) -> tuple[bool, str]:
@@ -1018,6 +1103,9 @@ guided_walkthrough
 try_now
 next_step
 transfer_signal
+topic_commonality
+solution_walkthrough
+transfer_checklist
 
 字段要求：
 1. error_tags：1-3 个中文短词。
@@ -1035,6 +1123,9 @@ transfer_signal
 13. try_now：现在你来试，只能给一个很小的问题或动作，必须直接检查当前桥有没有真的打通，不能退化成只做表面算数或机械抄写，除非当前桥本身就是规模估算或数量判断。
 14. next_step：兼容字段，内容与 try_now 保持一致。
 15. transfer_signal：下次看到什么题面信号要想到这类做法。
+16. topic_commonality：这类题在考什么。先抽象共性，再映射到当前题，并结合学生卡点解释为什么这道题不是另一个常见做法。允许写成 2-4 段 Markdown，必须有具体题面对象。
+17. solution_walkthrough：这道题怎么做通。写成压缩版题解，但不是完整代码；必须讲清核心状态/结构、更新步骤、为什么对、复杂度为什么能过，并对比学生原来的想法差在哪里。
+18. transfer_checklist：下次怎么迁移。先说同类题共性，再给 3-5 条可执行检查点；必须包含至少一个反例边界：什么时候这个思路不能直接用；最后给一个小验证问题或同类题练习方向。
 
 通用规则：
 1. 面向初中生，说人话，短句。
@@ -1048,12 +1139,14 @@ transfer_signal
 9. 禁止在字段内容里使用半角双引号；不要在字段内容里使用半角双引号；引用题面词语时直接改写，或不用引号。
 10. 优先复用题目里的对象名、条件名、公式名。
 11. next_action 和 suggested_topic 优先回到当前题，禁止写专项训练、经典题、做3道、变式或拓展；不要写专项训练、经典题、做3道、变式或拓展。
+12. 不要对学生使用“卡点”这个内部词；学生可见内容统一改写为“没想明白的地方”“当前这一步”“问题所在”。
 
 长度控制：
 - diagnosis / problem_focus / main_block / key_bridge：尽量不超过 60 字
 - visual_hint：尽量控制在 6 行以内，只保留当前桥真正需要的对象和关系
 - guided_walkthrough：允许明显长一点，但必须保持 2-3 步
-- try_now / next_step / transfer_signal：尽量不超过 40 字"""
+- try_now / next_step / transfer_signal：尽量不超过 40 字
+- topic_commonality / solution_walkthrough / transfer_checklist：这是学生主要看的三张复盘卡，可以明显长一些；每张卡都要有标题感、对比和当前题例子。"""
 
     family = _family_for_review_mode(mode)
     family_supplements = {
@@ -1356,23 +1449,26 @@ def _call_llm(messages: list[dict], chunk_callback=None) -> tuple[bool, str, dic
         "completion_tokens": 0,
         "finish_reason": "",
     }
-    candidates = get_model_candidates("NOI_REVIEW_MODELS", DEFAULT_REVIEW_MODELS)
+    candidates = get_model_candidates("NOI_REVIEW_MODELS", _default_review_models())
 
     for idx, model_name in enumerate(candidates):
         for attempt in range(2):
             try:
+                provider = _review_provider_for_model(model_name)
                 request_kwargs = {
                     "model": model_name,
                     "messages": messages,
                     "timeout": LLM_REQUEST_TIMEOUT_SECONDS,
-                    "max_completion_tokens": LLM_MAX_TOKENS,
                     "response_format": {"type": "json_object"},
                     "stream": True,
                 }
+                request_kwargs[provider["token_param"]] = LLM_MAX_TOKENS
+                if provider["extra_body"]:
+                    request_kwargs["extra_body"] = provider["extra_body"]
                 if "kimi-k2.5" not in model_name.lower():
                     request_kwargs["temperature"] = 0.3
 
-                response = get_client().chat.completions.create(
+                response = get_client(model_name).chat.completions.create(
                     **request_kwargs,
                 )
                 content_parts: list[str] = []
@@ -2108,6 +2204,9 @@ def _simplify_student_language(review: dict) -> dict:
         "try_now",
         "next_step",
         "transfer_signal",
+        "topic_commonality",
+        "solution_walkthrough",
+        "transfer_checklist",
     ):
         review[key] = _apply_text_replacements(review.get(key, ""), replacements)
 
@@ -2155,6 +2254,9 @@ def _repair_partial_json_review(text: str) -> dict:
         "try_now": _extract_json_style_string(text, "try_now"),
         "next_step": _extract_json_style_string(text, "next_step"),
         "transfer_signal": _extract_json_style_string(text, "transfer_signal"),
+        "topic_commonality": _extract_json_style_string(text, "topic_commonality"),
+        "solution_walkthrough": _extract_json_style_string(text, "solution_walkthrough"),
+        "transfer_checklist": _extract_json_style_string(text, "transfer_checklist"),
     }
     return repaired
 
@@ -2162,7 +2264,7 @@ def _repair_partial_json_review(text: str) -> dict:
 def _extract_review_draft_preview(text: str) -> dict:
     repaired = _repair_partial_json_review(text)
     preview = {}
-    for key in ("problem_focus", "main_block", "key_bridge", "visual_hint", "guided_walkthrough", "try_now", "next_step", "transfer_signal"):
+    for key in ("problem_focus", "main_block", "key_bridge", "visual_hint", "guided_walkthrough", "try_now", "next_step", "transfer_signal", "topic_commonality", "solution_walkthrough", "transfer_checklist"):
         value = str(repaired.get(key, "") or "").strip()
         if value:
             preview[key] = value
@@ -2325,6 +2427,27 @@ def _sync_guided_review_aliases(review: dict) -> dict:
         review["next_step"] = review.get("try_now", "")
     if not review.get("visual_hint"):
         review["visual_hint"] = ""
+    if not review.get("topic_commonality"):
+        transfer = review.get("transfer_signal", "")
+        bridge = review.get("key_bridge", "")
+        review["topic_commonality"] = "\n\n".join(part for part in (
+            f"这类题的共性：{transfer}" if transfer else "",
+            f"回到这道题：{bridge}" if bridge else "",
+        ) if part)
+    if not review.get("solution_walkthrough"):
+        walkthrough = review.get("guided_walkthrough", "")
+        bridge = review.get("key_bridge", "")
+        review["solution_walkthrough"] = "\n\n".join(part for part in (
+            bridge,
+            walkthrough,
+        ) if part)
+    if not review.get("transfer_checklist"):
+        try_now = review.get("try_now") or review.get("next_step", "")
+        transfer = review.get("transfer_signal", "")
+        review["transfer_checklist"] = "\n".join(part for part in (
+            f"- 下次先看：{transfer}" if transfer else "",
+            f"- 现在验证：{try_now}" if try_now else "",
+        ) if part)
     return review
 
 
@@ -2393,6 +2516,9 @@ def _normalize_review(parsed: dict, fallback_text: str = "") -> dict:
         "try_now": str(parsed.get("try_now", parsed.get("next_step", ""))).strip(),
         "next_step": str(parsed.get("next_step", "")).strip(),
         "transfer_signal": str(parsed.get("transfer_signal", "")).strip(),
+        "topic_commonality": str(parsed.get("topic_commonality", "")).strip(),
+        "solution_walkthrough": str(parsed.get("solution_walkthrough", "")).strip(),
+        "transfer_checklist": str(parsed.get("transfer_checklist", "")).strip(),
     }
     _sync_guided_review_aliases(review)
 

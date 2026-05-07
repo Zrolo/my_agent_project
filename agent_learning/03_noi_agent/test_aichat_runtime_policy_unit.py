@@ -468,24 +468,42 @@ class AIChatRuntimePolicyTests(unittest.TestCase):
             payload,
         )
 
-    def test_stage_four_stuck_should_force_checkin_exit(self):
+    def test_stage_four_stuck_without_understanding_should_localize_not_checkin(self):
         prior = [
-            {"role": "user", "content": "我不知道 check(mid) true 后怎么缩。"},
-            {"role": "assistant", "content": "先只看 mid 的含义：它是在猜哪个量？"},
-            {"role": "user", "content": "猜最小距离。"},
-            {"role": "assistant", "content": "那 check(mid) 要判断的是能不能让所有跳跃距离至少是多少？"},
-            {"role": "user", "content": "我还是混。"},
+            {"role": "user", "content": "我不会。"},
+            {"role": "assistant", "content": "你先说题目让你求什么？"},
+            {"role": "user", "content": "还是不会。"},
+            {"role": "assistant", "content": "你能说一个最小样例吗？"},
+            {"role": "user", "content": "我还是想不出来。"},
         ]
-        messages = self._messages("我还是说不清 check(mid) 到底检查什么。", prior)
+        messages = self._messages("我还是不会，完全没思路。", prior)
         control = analyze_student_turn(messages[-1]["content"], messages)
 
         reply = build_policy_override_reply(control, messages)
 
         self.assertEqual(4, control["tutor_control"]["scaffold_stage"])
-        self.assertEqual("offer_micro_example_or_checkin", control["tutor_control"]["tutor_action"])
-        self.assertIn("打卡复盘", reply)
+        self.assertEqual("give_micro_example", control["tutor_control"]["tutor_action"])
+        self.assertIn("局部补课", control["tutor_control"]["allowed_help"])
+        self.assertIsNone(reply)
 
-    def test_repeated_stuck_signals_should_force_stage_four_even_with_short_history(self):
+    def test_stage_four_unknown_and_cannot_see_should_count_as_stuck(self):
+        prior = [
+            {"role": "user", "content": "[当前上下文状态与回答策略]\n上下文状态：有题目 + 无代码\n题目让统计满足条件的对数。"},
+            {"role": "assistant", "content": "你先说题目里有哪些对象？"},
+            {"role": "user", "content": "不知道。"},
+            {"role": "assistant", "content": "那只看最小样例，里面有几个对象？"},
+            {"role": "user", "content": "还是看不出来。"},
+            {"role": "assistant", "content": "那输入中每个数代表什么？"},
+        ]
+        messages = self._messages("我还是不会。", prior)
+
+        control = analyze_student_turn(messages[-1]["content"], messages)
+
+        self.assertEqual(4, control["tutor_control"]["scaffold_stage"])
+        self.assertEqual("give_micro_example", control["tutor_control"]["tutor_action"])
+        self.assertIn("局部补课", control["tutor_control"]["allowed_help"])
+
+    def test_repeated_stuck_signals_should_micro_scaffold_with_short_history(self):
         from noi_agent import build_policy_handoff_payload
 
         prior = [
@@ -499,11 +517,10 @@ class AIChatRuntimePolicyTests(unittest.TestCase):
         payload = build_policy_handoff_payload(control, messages)
 
         self.assertEqual(4, control["tutor_control"]["scaffold_stage"])
-        self.assertEqual("offer_micro_example_or_checkin", control["tutor_control"]["tutor_action"])
-        self.assertEqual("repeated_stuck_exit", payload["risk_type"])
-        self.assertEqual("用小例子拆开当前卡住的桥，记录卡点和已尝试路径。", payload["suggested_focus"])
+        self.assertEqual("give_micro_scaffold", control["tutor_control"]["tutor_action"])
+        self.assertIsNone(payload)
 
-    def test_repeated_stuck_reply_should_not_use_ab_bridge_question(self):
+    def test_repeated_stuck_reply_should_not_use_ab_bridge_question_or_checkin(self):
         prior = [
             {"role": "user", "content": "我还是不会判断 check(mid)。"},
             {"role": "assistant", "content": "先看 mid 表示什么。"},
@@ -514,10 +531,8 @@ class AIChatRuntimePolicyTests(unittest.TestCase):
 
         reply = build_policy_override_reply(control, messages)
 
-        self.assertIn("打卡复盘", reply)
-        self.assertNotIn("check(mid)", reply)
-        self.assertNotIn("它是在统计", reply)
-        self.assertNotIn("还是在找", reply)
+        self.assertEqual("give_micro_scaffold", control["tutor_control"]["tutor_action"])
+        self.assertIsNone(reply)
 
     def test_progress_answer_should_not_be_forced_to_checkin_at_stage_four(self):
         prior = [
@@ -553,10 +568,121 @@ class AIChatRuntimePolicyTests(unittest.TestCase):
 
         self.assertEqual("give_micro_scaffold", control["tutor_control"]["tutor_action"])
         self.assertIn("连续追问保护", prompt)
-        self.assertIn("先给半步支架", prompt)
-        self.assertIn("不能继续只反问", prompt)
-        self.assertIn("先收拢一句", prompt)
-        self.assertIn("一个小验证", prompt)
+        self.assertIn("必须改为半步支架", prompt)
+        self.assertIn("不能继续追问同类问题", prompt)
+        self.assertIn("只拿一个格子、一个变量或一个条件演示一步", prompt)
+        self.assertIn("再让学生模仿一步", prompt)
+
+    def test_system_prompt_should_align_to_middle_school_student_and_minimal_gap(self):
+        messages = self._messages("我知道样例能过，但不知道下一步看哪里。")
+
+        control = analyze_student_turn(messages[-1]["content"], messages)
+        prompt = build_system_prompt(control, remaining=999, student_id="s1", problem_id="P1")
+
+        self.assertIn("初中生信息学竞赛学习者", prompt)
+        self.assertIn("那一个最小卡点", prompt)
+        self.assertIn("最影响他下一步推进", prompt)
+
+    def test_system_prompt_should_not_invent_examples_without_problem_context(self):
+        messages = self._messages("我还是说不清。", [
+            {"role": "user", "content": "我不知道这一步怎么判断。"},
+            {"role": "assistant", "content": "你先说这里要比较哪两个量？"},
+            {"role": "user", "content": "我还是不会。"},
+            {"role": "assistant", "content": "那你能说出这两个量分别是什么吗？"},
+        ])
+
+        control = analyze_student_turn(messages[-1]["content"], messages)
+        prompt = build_system_prompt(control, remaining=999, student_id="s1", problem_id="P1")
+
+        self.assertIn("缺题面上下文时，不能编造题面、小例子、变量名或故事背景", prompt)
+        self.assertIn("先让学生补题号、题面或关键条件", prompt)
+
+    def test_type_confirm_prompt_should_use_evidence_language_without_narrow_examples(self):
+        messages = self._messages("这题是不是二分？")
+
+        control = analyze_student_turn(messages[-1]["content"], messages)
+        prompt = build_system_prompt(control, remaining=999, student_id="s1", problem_id="P1")
+
+        self.assertIn("type_confirm 特殊约束", prompt)
+        self.assertIn("具体对象、条件或结构证据", prompt)
+        self.assertIn("题面里哪个对象或条件让你想到这个方向", prompt)
+        self.assertNotIn("大量 01 串", prompt)
+        self.assertNotIn("树上多条路径", prompt)
+        self.assertNotIn("二分目标", prompt)
+
+    def test_judge_v2_prompt_should_align_student_profile_and_repeated_question_guard(self):
+        with open(
+            "docs/common/aichat_pedagogical_judge_v2_system_prompt.md",
+            "r",
+            encoding="utf-8",
+        ) as f:
+            prompt = f.read()
+
+        self.assertIn("初中生信息学竞赛学习者", prompt)
+        self.assertIn("不默认他掌握大学算法术语或专业编程概念", prompt)
+        self.assertIn("AI 已连续追问 2 轮", prompt)
+
+    def test_consecutive_stuck_signals_should_trigger_micro_scaffold_before_stage_four(self):
+        prior = [
+            {"role": "user", "content": "我不知道这一步怎么判断。"},
+            {"role": "assistant", "content": "你先说这里要比较哪两个量？"},
+            {"role": "user", "content": "我还是不会。"},
+        ]
+        messages = self._messages("我还是说不清。", prior)
+
+        control = analyze_student_turn(messages[-1]["content"], messages)
+
+        self.assertEqual("give_micro_scaffold", control["tutor_control"]["tutor_action"])
+        self.assertIn("同点打转保护", control["tutor_control"]["allowed_help"])
+        self.assertNotEqual("ask_one_question", control["tutor_control"]["tutor_action"])
+        self.assertNotEqual("ask_baseline_attempt", control["tutor_control"]["tutor_action"])
+
+    def test_repeated_evidence_seeking_should_stop_asking_and_micro_scaffold(self):
+        prior = [
+            {"role": "user", "content": "我代码不对。"},
+            {"role": "assistant", "content": "你怀疑是哪一行错？"},
+            {"role": "user", "content": "全都有问题。"},
+            {"role": "assistant", "content": "你哪个样例没过？"},
+        ]
+        messages = self._messages("都过不了，你直接看。", prior)
+
+        control = analyze_student_turn(messages[-1]["content"], messages)
+
+        self.assertEqual("give_micro_scaffold", control["tutor_control"]["tutor_action"])
+        self.assertIn("同点打转保护", control["tutor_control"]["allowed_help"])
+
+    def test_first_turn_should_not_trigger_same_point_loop_protection(self):
+        messages = self._messages("这题怎么做")
+
+        control = analyze_student_turn(messages[-1]["content"], messages)
+
+        self.assertNotEqual("give_micro_scaffold", control["tutor_control"]["tutor_action"])
+
+    def test_method_progress_should_not_trigger_same_point_loop_protection(self):
+        prior = [
+            {"role": "user", "content": "我不会。"},
+            {"role": "assistant", "content": "先想对象是什么。"},
+        ]
+        messages = self._messages("我把村庄当成点，道路当成边，查询就是某个时间下的最短路。", prior)
+
+        control = analyze_student_turn(messages[-1]["content"], messages)
+
+        self.assertNotEqual("give_micro_scaffold", control["tutor_control"]["tutor_action"])
+
+    def test_stuck_with_understanding_evidence_should_offer_checkin_reflection(self):
+        prior = [
+            {"role": "user", "content": "我知道这题是把村庄当成点、道路当成边，时间小于等于 t 的点才能作为中转。"},
+            {"role": "assistant", "content": "你已经说清对象和限制了。现在卡在哪里？"},
+            {"role": "user", "content": "我还是说不清为什么每次加入一个 k 就更新所有 i,j。"},
+            {"role": "assistant", "content": "你能把 i 到 j 经过 k 的式子写出来吗？"},
+            {"role": "user", "content": "我知道是 dis[i][k]+dis[k][j]，但还是不稳。"},
+        ]
+        messages = self._messages("我 AC 了但还是讲不清楚这一步。", prior)
+
+        control = analyze_student_turn(messages[-1]["content"], messages)
+
+        self.assertEqual(4, control["tutor_control"]["scaffold_stage"])
+        self.assertEqual("offer_checkin_reflection", control["tutor_control"]["tutor_action"])
 
     def test_tree_core_dialogue_should_summarize_after_long_reasoning_chain(self):
         prior = [
@@ -1108,6 +1234,54 @@ class AIChatRuntimePolicyTests(unittest.TestCase):
         self.assertNotIn("哪一行", reply)
         self.assertNotIn("样例", reply)
 
+    def test_latest_problem_context_state_should_override_old_no_problem_state(self):
+        prior = [
+            {
+                "role": "user",
+                "content": "\n".join(
+                    [
+                        "[学生原始问题]",
+                        "我这份代码有什么问题？",
+                        "",
+                        "[当前上下文状态与回答策略]",
+                        "上下文状态：无题目 + 有代码",
+                        "回答策略：先说明现在只看到了代码，但不知道题目目标。",
+                        "",
+                        "[当前题目上下文：只用于理解学生卡点，不要直接照抄题解]",
+                        "学生当前代码: ```cpp\nint main(){return 0;}\n```",
+                    ]
+                ),
+            },
+            {
+                "role": "assistant",
+                "content": "我现在只看到了代码，但还不知道题目目标。",
+            },
+        ]
+        messages = self._messages(
+            "\n".join(
+                [
+                    "[学生原始问题]",
+                    "我测了样例是 4，这份代码有什么问题？",
+                    "",
+                    "[当前上下文状态与回答策略]",
+                    "上下文状态：有题目 + 有代码",
+                    "回答策略：必须结合题面目标、学生问题和学生代码。",
+                    "",
+                    "[当前题目上下文：只用于理解学生卡点，不要直接照抄题解]",
+                    "题目标题: 渔民相互认识",
+                    "题面/题意/约束: 给定坐标和半径 d，统计距离不超过 d 的渔民对数。",
+                    "学生当前代码: ```cpp\nint main(){return 0;}\n```",
+                ]
+            ),
+            prior,
+        )
+
+        control = analyze_student_turn(messages[-1]["content"], messages)
+        reply = build_policy_override_reply(control, messages)
+
+        self.assertEqual("diagnose_code_with_problem", control["tutor_control"]["tutor_action"])
+        self.assertIsNone(reply)
+
     def test_missing_context_should_ask_for_problem_ref_before_algorithm_slots(self):
         messages = self._messages("这题怎么想？")
         control = analyze_student_turn(messages[-1]["content"], messages)
@@ -1286,6 +1460,41 @@ class AIChatRuntimePolicyTests(unittest.TestCase):
         self.assertIn("推导", reply)
         self.assertNotIn("答案是 20", reply)
 
+    def test_claimed_code_without_payload_should_say_code_was_not_received(self):
+        messages = self._messages(
+            "这是我的代码，我测了样例=4",
+            [
+                {"role": "user", "content": "我这份代码有什么问题？"},
+                {"role": "assistant", "content": "先别猜错误原因。把代码或你手算的推导过程贴出来。"},
+            ],
+        )
+        control = analyze_student_turn(messages[-1]["content"], messages)
+
+        reply = build_policy_override_reply(control, messages)
+
+        self.assertIn("我这边没有看到代码内容", reply)
+        self.assertIn("重新粘贴", reply)
+        self.assertNotIn("先别猜错误原因", reply)
+
+    def test_frustrated_debug_loop_should_not_repeat_evidence_request(self):
+        messages = self._messages(
+            "全他妈有问题，从第一行到最后一行",
+            [
+                {"role": "user", "content": "请你看一看我们的代码为什么有问题？明明思路正确样例对了"},
+                {"role": "assistant", "content": "先别猜错误原因。把代码或你手算的推导过程贴出来；我们只看你的推导从哪一步开始和标准结果不一样。"},
+                {"role": "user", "content": "你他妈给我看看代码哪里有问题"},
+                {"role": "assistant", "content": "先不判断这段代码对不对。你怀疑哪一行，或者哪个样例和你的预期不一样？"},
+            ],
+        )
+        control = analyze_student_turn(messages[-1]["content"], messages)
+
+        reply = build_policy_override_reply(control, messages)
+
+        self.assertIn("我先接住你现在的状态", reply)
+        self.assertIn("不再让你继续猜哪一行", reply)
+        self.assertNotIn("先别猜错误原因", reply)
+        self.assertNotIn("怀疑哪一行", reply)
+
     def test_bridge_attempt_output_should_not_be_keyword_rewritten(self):
         reply, guard = enforce_output_guards(
             "比较两种定义：dp[x][y] = 从(x,y)出发的最长路径。",
@@ -1296,6 +1505,39 @@ class AIChatRuntimePolicyTests(unittest.TestCase):
 
         self.assertIsNone(guard)
         self.assertIn("dp[x][y] =", reply)
+
+    def test_fill_blank_answer_code_should_be_replaced_by_local_scaffold(self):
+        reply, guard = enforce_output_guards(
+            "\n".join(
+                [
+                    "你可以这样写：",
+                    "```cpp",
+                    "#include <bits/stdc++.h>",
+                    "using namespace std;",
+                    "int main(){",
+                    "  int n,m; cin>>n>>m;",
+                    "  vector<vector<int>> dis(n, vector<int>(n, INF));",
+                    "  for(int k=0;k<n;k++){",
+                    "    for(int i=0;i<n;i++){",
+                    "      for(int j=0;j<n;j++){",
+                    "        dis[i][j] = min(dis[i][j], ______);",
+                    "      }",
+                    "    }",
+                    "  }",
+                    "}",
+                    "```",
+                ]
+            ),
+            {"bridge_redline": False},
+            {"risk_tags": []},
+            messages=self._messages("我思路懂了，但是不知道代码怎么写"),
+        )
+
+        self.assertEqual("fill_blank_answer_code", guard)
+        self.assertNotIn("#include", reply)
+        self.assertNotIn("int main", reply)
+        self.assertIn("不能把大半份答案代码挖空", reply)
+        self.assertIn("局部伪代码片段", reply)
 
 
 if __name__ == "__main__":

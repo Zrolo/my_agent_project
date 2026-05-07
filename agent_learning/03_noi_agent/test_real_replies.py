@@ -14,6 +14,16 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from noi_agent import analyze_student_turn, build_system_prompt, L2_SLOTS
 
 
+def control_summary(control: dict) -> str:
+    level = control.get("level_control", {})
+    risk = control.get("risk_control", {})
+    return (
+        f"max_level={level.get('max_level')}, "
+        f"bridge_redline={level.get('bridge_redline')}, "
+        f"tags={risk.get('risk_tags') or level.get('reason_tags')}"
+    )
+
+
 def mock_llm_reply(system_prompt: str, user_input: str) -> str:
     """
     模拟 LLM 在约束下的回复
@@ -33,7 +43,7 @@ def mock_llm_reply(system_prompt: str, user_input: str) -> str:
     
     # 根据约束生成模拟回复（展示预期风格）
     if max_level == "L1":
-        return "先别想快不快。最笨的方法你会怎么做？\n\n[LEVEL:L1]"
+        return "我先不直接给做法。你把题目里最关键的对象圈一个出来，我们就从这个对象开始拆。\n\n[LEVEL:L1]"
     
     elif max_level == "L2":
         # 从 prompt 中提取当前槽位
@@ -71,7 +81,7 @@ def test_sample_1_l1_direct_request():
     control = analyze_student_turn(user_input, [])
     
     print(f"学生输入: {user_input}")
-    print(f"控制对象: max_level={control['max_level']}, bridge_redline={control['bridge_redline']}, tags={control['reason_tags']}")
+    print(f"控制对象: {control_summary(control)}")
     
     system = build_system_prompt(control, 3, "test", "P1001")
     reply = mock_llm_reply(system, user_input)
@@ -81,7 +91,7 @@ def test_sample_1_l1_direct_request():
     print("  - 级别为 L1 ✓")
     print("  - 只问一个问题 ✓")
     print("  - 不给方向、不确认题型 ✓")
-    print("  - 默认问法：先别想快不快... ✓")
+    print("  - 默认问法：先从小样例手算入口开始 ✓")
     
     return True
 
@@ -96,7 +106,7 @@ def test_sample_2_l2_slot_inquiry():
     control = analyze_student_turn(user_input, [])
     
     print(f"学生输入: {user_input}")
-    print(f"控制对象: max_level={control['max_level']}, bridge_redline={control['bridge_redline']}, tags={control['reason_tags']}")
+    print(f"控制对象: {control_summary(control)}")
     
     system = build_system_prompt(control, 3, "test", "P1001")
     reply = mock_llm_reply(system, user_input)
@@ -121,7 +131,7 @@ def test_sample_3_l3_normal():
     control = analyze_student_turn(user_input, [])
     
     print(f"学生输入: {user_input}")
-    print(f"控制对象: max_level={control['max_level']}, bridge_redline={control['bridge_redline']}, tags={control['reason_tags']}")
+    print(f"控制对象: {control_summary(control)}")
     
     system = build_system_prompt(control, 3, "test", "P1001")
     reply = mock_llm_reply(system, user_input)
@@ -146,7 +156,7 @@ def test_sample_4_l3_bridge_redline():
     control = analyze_student_turn(user_input, [])
     
     print(f"学生输入: {user_input}")
-    print(f"控制对象: max_level={control['max_level']}, bridge_redline={control['bridge_redline']}, tags={control['reason_tags']}")
+    print(f"控制对象: {control_summary(control)}")
     
     system = build_system_prompt(control, 3, "test", "P1001")
     reply = mock_llm_reply(system, user_input)
@@ -181,7 +191,7 @@ int main() {
     control = analyze_student_turn(user_input, [])
     
     print(f"学生输入: [贴了整段代码，没有指出怀疑点]")
-    print(f"控制对象: max_level={control['max_level']}, bridge_redline={control['bridge_redline']}, tags={control['reason_tags']}")
+    print(f"控制对象: {control_summary(control)}")
     
     system = build_system_prompt(control, 3, "test", "P1001")
     reply = mock_llm_reply(system, user_input)
@@ -206,7 +216,7 @@ def test_sample_6_cross_slot_dump():
     control = analyze_student_turn(user_input, [])
     
     print(f"学生输入: {user_input}")
-    print(f"控制对象: max_level={control['max_level']}, bridge_redline={control['bridge_redline']}, tags={control['reason_tags']}")
+    print(f"控制对象: {control_summary(control)}")
     
     system = build_system_prompt(control, 3, "test", "P1001")
     reply = mock_llm_reply(system, user_input)

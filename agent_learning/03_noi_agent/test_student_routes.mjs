@@ -3,9 +3,11 @@ import assert from 'node:assert/strict';
 import routes from './static/student_routes.js';
 
 test('parseStudentRoute understands app home and history routes', () => {
-  assert.deepEqual(routes.parseStudentRoute('/app'), { kind: 'chat' });
+  assert.deepEqual(routes.parseStudentRoute('/app'), { kind: 'home' });
+  assert.deepEqual(routes.parseStudentRoute('/app/home'), { kind: 'home' });
   assert.deepEqual(routes.parseStudentRoute('/app/chat'), { kind: 'chat' });
   assert.deepEqual(routes.parseStudentRoute('/app/workspace/chat'), { kind: 'chat' });
+  assert.deepEqual(routes.parseStudentRoute('/app/workspace/knowledge'), { kind: 'knowledge' });
   assert.deepEqual(routes.parseStudentRoute('/app/checkin'), { kind: 'checkin' });
   assert.deepEqual(routes.parseStudentRoute('/app/workspace/checkin'), { kind: 'checkin' });
   assert.deepEqual(routes.parseStudentRoute('/app/history'), { kind: 'history-list' });
@@ -15,13 +17,15 @@ test('parseStudentRoute understands app home and history routes', () => {
 });
 
 test('parseStudentRoute falls back to home for unsupported paths', () => {
-  assert.deepEqual(routes.parseStudentRoute('/'), { kind: 'chat' });
-  assert.deepEqual(routes.parseStudentRoute('/app/teacher'), { kind: 'chat' });
-  assert.deepEqual(routes.parseStudentRoute('/app/history/not-a-number'), { kind: 'chat' });
+  assert.deepEqual(routes.parseStudentRoute('/'), { kind: 'home' });
+  assert.deepEqual(routes.parseStudentRoute('/app/teacher'), { kind: 'home' });
+  assert.deepEqual(routes.parseStudentRoute('/app/history/not-a-number'), { kind: 'home' });
 });
 
 test('buildStudentRoute emits canonical student routes', () => {
+  assert.equal(routes.buildStudentRoute({ kind: 'home' }), '/app/home');
   assert.equal(routes.buildStudentRoute({ kind: 'chat' }), '/app/workspace/chat');
+  assert.equal(routes.buildStudentRoute({ kind: 'knowledge' }), '/app/workspace/knowledge');
   assert.equal(routes.buildStudentRoute({ kind: 'checkin' }), '/app/workspace/checkin');
   assert.equal(routes.buildStudentRoute({ kind: 'history-list' }), '/app/archive');
   assert.equal(routes.buildStudentRoute({ kind: 'history-detail', checkinId: 7 }), '/app/archive/7');
@@ -45,11 +49,11 @@ test('shouldSeedHistoryParent detects direct history-detail entry without intern
 });
 
 test('getUnauthenticatedFallbackPath normalizes protected student paths to public entry', () => {
-  assert.equal(routes.getUnauthenticatedFallbackPath('/app'), '/app/workspace/chat');
-  assert.equal(routes.getUnauthenticatedFallbackPath('/app/chat'), '/app/workspace/chat');
-  assert.equal(routes.getUnauthenticatedFallbackPath('/app/checkin'), '/app/workspace/chat');
-  assert.equal(routes.getUnauthenticatedFallbackPath('/app/history'), '/app/workspace/chat');
-  assert.equal(routes.getUnauthenticatedFallbackPath('/app/history/42'), '/app/workspace/chat');
+  assert.equal(routes.getUnauthenticatedFallbackPath('/app'), '/app/home');
+  assert.equal(routes.getUnauthenticatedFallbackPath('/app/chat'), '/app/home');
+  assert.equal(routes.getUnauthenticatedFallbackPath('/app/checkin'), '/app/home');
+  assert.equal(routes.getUnauthenticatedFallbackPath('/app/history'), '/app/home');
+  assert.equal(routes.getUnauthenticatedFallbackPath('/app/history/42'), '/app/home');
 });
 
 test('matchesHistoryDetailRoute only matches the active detail pathname and checkin id', () => {

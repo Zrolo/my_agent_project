@@ -22,6 +22,7 @@ export function inferOjSourceFromProblemRef(problemRef = '') {
   if (!raw) return 'other';
   if (/^[a-z][a-z0-9_]*$/i.test(raw)) return 'luogu';
   if (lower.includes('luogu.com.cn/problem/') || lower.includes('luogu.com/problem/')) return 'luogu';
+  if (lower.includes('oj.jmfes.com:8888/p/') || lower.includes('172.21.60.30:8888/p/')) return 'jmfes';
   if (lower.includes('codeforces.com/')) return 'codeforces';
   if (lower.includes('atcoder.jp/')) return 'atcoder';
   return 'other';
@@ -30,6 +31,7 @@ export function inferOjSourceFromProblemRef(problemRef = '') {
 export function ojSourceLabel(source = 'other') {
   return {
     luogu: '洛谷：可自动读取题面',
+    jmfes: 'JMYSOJ：可自动读取题面',
     codeforces: 'Codeforces：请补标题和题面',
     atcoder: 'AtCoder：请补标题和题面',
     other: '其他来源：请补标题和题面',

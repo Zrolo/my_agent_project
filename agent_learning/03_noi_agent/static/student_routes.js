@@ -1,5 +1,6 @@
 const CHAT_KIND = 'chat';
-const HOME_KIND = CHAT_KIND;
+const HOME_KIND = 'home';
+const KNOWLEDGE_KIND = 'knowledge';
 const CHECKIN_KIND = 'checkin';
 const HISTORY_LIST_KIND = 'history-list';
 const HISTORY_DETAIL_KIND = 'history-detail';
@@ -15,8 +16,14 @@ function normalizePathname(pathname = '/app') {
 
 function parseStudentRoute(pathname = '/app') {
   const normalized = normalizePathname(pathname);
-  if (normalized === '/app' || normalized === '/app/chat' || normalized === '/app/workspace/chat') {
+  if (normalized === '/app' || normalized === '/app/home') {
+    return { kind: HOME_KIND };
+  }
+  if (normalized === '/app/chat' || normalized === '/app/workspace/chat') {
     return { kind: CHAT_KIND };
+  }
+  if (normalized === '/app/workspace/knowledge') {
+    return { kind: KNOWLEDGE_KIND };
   }
   if (normalized === '/app/checkin' || normalized === '/app/workspace/checkin') {
     return { kind: CHECKIN_KIND };
@@ -33,8 +40,14 @@ function parseStudentRoute(pathname = '/app') {
 
 function buildStudentRoute(route = { kind: HOME_KIND }) {
   const kind = route?.kind || HOME_KIND;
-  if (kind === CHAT_KIND || kind === HOME_KIND) {
+  if (kind === HOME_KIND) {
+    return '/app/home';
+  }
+  if (kind === CHAT_KIND) {
     return '/app/workspace/chat';
+  }
+  if (kind === KNOWLEDGE_KIND) {
+    return '/app/workspace/knowledge';
   }
   if (kind === CHECKIN_KIND) {
     return '/app/workspace/checkin';
@@ -45,7 +58,7 @@ function buildStudentRoute(route = { kind: HOME_KIND }) {
   if (kind === HISTORY_DETAIL_KIND && Number.isFinite(Number(route.checkinId))) {
     return `/app/archive/${Number(route.checkinId)}`;
   }
-  return '/app/workspace/chat';
+  return '/app/home';
 }
 
 function shouldSeedHistoryParent(route, context = {}) {
@@ -64,7 +77,7 @@ function shouldSeedHistoryParent(route, context = {}) {
 }
 
 function getUnauthenticatedFallbackPath(_pathname = '/app') {
-  return '/app/workspace/chat';
+  return '/app/home';
 }
 
 function matchesHistoryDetailRoute(pathname = '/app', checkinId = null) {
@@ -77,6 +90,7 @@ function matchesHistoryDetailRoute(pathname = '/app', checkinId = null) {
 const api = {
   HOME_KIND,
   CHAT_KIND,
+  KNOWLEDGE_KIND,
   CHECKIN_KIND,
   HISTORY_LIST_KIND,
   HISTORY_DETAIL_KIND,

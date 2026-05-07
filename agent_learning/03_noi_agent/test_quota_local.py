@@ -7,6 +7,10 @@ import json
 import os
 import sys
 
+if __name__ != "__main__":
+    import pytest
+    pytest.skip("旧版配额本地手工演示脚本，不作为 pytest 自动回归测试。", allow_module_level=True)
+
 QUOTA_FILE = "quota.json"
 TEST_STUDENT = "测试学生"
 TEST_PROBLEM = "P1001"

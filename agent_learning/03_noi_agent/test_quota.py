@@ -18,6 +18,10 @@ import json
 import os
 import sys
 
+if __name__ != "__main__":
+    import pytest
+    pytest.skip("旧版配额手工演示脚本，不作为 pytest 自动回归测试。", allow_module_level=True)
+
 # 检查 API key
 if not os.environ.get("MOONSHOT_API_KEY"):
     print("❌ 错误：MOONSHOT_API_KEY 未设置")

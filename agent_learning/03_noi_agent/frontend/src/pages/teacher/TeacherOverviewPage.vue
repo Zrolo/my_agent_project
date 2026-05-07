@@ -1,44 +1,57 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
+import { RouterLink } from 'vue-router';
 
-import {
-  createBridgeRegistryEntry,
-  exportBridgeRuleDraft,
-  getBridgeRuleDraftDecisions,
-  getBridgeRegistryEntries,
-  getTeacherStats,
-  getResolverPatchDraft,
-  submitBridgeRuleDraftDecision,
-} from '@/services/api';
+import { getTeacherClassLearningDiagnosis } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 
 const auth = useAuthStore();
 const loading = ref(false);
 const error = ref('');
 const stats = ref(null);
-const draftMessage = ref('');
-const draftSubmitting = ref({});
-const draftDecisions = ref([]);
-const registryEntries = ref([]);
-const resolverPatchDraft = ref(null);
+
+const learningIssueFallbackRows = [
+  { id: 'problem_understanding', label: '题意没读透', count: 0, rate: 0, student_count: 0 },
+  { id: 'method_selection', label: '方法选择困难', count: 0, rate: 0, student_count: 0 },
+  { id: 'key_transformation', label: '知道算法但不会落题', count: 0, rate: 0, student_count: 0 },
+  { id: 'implementation', label: '代码实现卡住', count: 0, rate: 0, student_count: 0 },
+  { id: 'debugging', label: '调试定位困难', count: 0, rate: 0, student_count: 0 },
+  { id: 'complexity_boundary', label: '复杂度判断薄弱', count: 0, rate: 0, student_count: 0 },
+  { id: 'knowledge_transfer', label: '同类迁移困难', count: 0, rate: 0, student_count: 0 },
+];
+
+function readableLabel(value, fallback = '未命名') {
+  const text = String(value || '').trim();
+  if (!text) return fallback;
+  if (/^[a-z0-9_-]+$/i.test(text) && /[_-]/.test(text)) return fallback;
+  return text;
+}
 
 function statRows(bucket) {
   if (!bucket) return [];
   if (Array.isArray(bucket)) {
     return bucket.map((item, index) => ({
       id: item.key || item.label || item.name || `${index}`,
-      label: item.label || item.key || item.name || item.topic_l1 || item.topic_l2 || item.bridge || item.bucket || '未命名',
+      label: readableLabel(item.label || item.category || item.key || item.name || item.topic_l1 || item.topic_l2 || item.bucket, '未命名'),
       count: item.count ?? item.reviewed_count ?? 0,
       total: item.total,
       rate: item.rate,
+      student_count: item.student_count || 0,
+      teacher_action: item.teacher_action || item.teaching_suggestion,
+      resource_suggestions: item.resource_suggestions || {},
+      students: item.students || [],
+      typical_problems: item.typical_problems || [],
     }));
   }
   return Object.entries(bucket).map(([key, value]) => ({
     id: key,
-    label: value?.label || key,
+    label: readableLabel(value?.label || key, '未命名'),
     count: value?.count ?? value?.reviewed_count ?? 0,
     total: value?.total,
     rate: value?.rate,
+    student_count: value?.student_count || 0,
+    teacher_action: value?.teacher_action,
+    resource_suggestions: value?.resource_suggestions || {},
   }));
 }
 
@@ -52,102 +65,65 @@ function statCount(bucket) {
   return statRows(bucket).length;
 }
 
-const bridgeRows = computed(() => statRows(stats.value?.bridge_stats));
-const bridgeRouteStatusRows = computed(() => statRows(stats.value?.bridge_route_stats?.status));
-const candidateBridgeRows = computed(() => statRows(stats.value?.bridge_route_stats?.candidate_bridge));
-const openBridgeRows = computed(() => statRows(stats.value?.bridge_route_stats?.open_bridge));
-const bridgePromotionSuggestions = computed(() => stats.value?.bridge_route_promotion_suggestions || []);
-const topicL1Rows = computed(() => statRows(stats.value?.topic_l1_stats));
-const topicL2Rows = computed(() => statRows(stats.value?.topic_l2_stats));
-const knowledgeBailoutRows = computed(() => statRows(stats.value?.knowledge_bailout_stats));
+const learningIssueRows = computed(() => {
+  const rows = statRows(stats.value?.class_issue_summary || stats.value?.learning_issue_stats);
+  return rows.length ? rows : learningIssueFallbackRows;
+});
+
+const attentionStudents = computed(() => stats.value?.attention_students || []);
+const completionSummary = computed(() => stats.value?.practice_summary || stats.value?.completion_summary || {});
+const teachingSuggestions = computed(() => {
+  if (stats.value?.teaching_suggestions?.length) return stats.value.teaching_suggestions.slice(0, 3);
+  return learningIssueRows.value
+    .filter((row) => (Number(row.count) || 0) > 0)
+    .slice(0, 3)
+    .map((row) => ({
+      title: row.label,
+      reason: `近 15 天有 ${row.student_count || 0} 名学生出现这一类问题。`,
+      how_to_teach: row.teacher_action || '用一个 3-5 个对象的小例子讲清关键关系。',
+      students: row.students || [],
+    }));
+});
+const teachingSliceRows = computed(() =>
+  learningIssueRows.value
+    .filter((row) => (Number(row.student_count) || 0) >= 3 || (Number(row.count) || 0) > 0)
+    .slice(0, 5),
+);
+
+const topLearningIssueCount = computed(() => Math.max(1, ...learningIssueRows.value.map((row) => Number(row.count) || 0)));
+
+const overviewMetrics = computed(() => [
+  {
+    label: '今天建议关注',
+    value: attentionStudents.value.length,
+    hint: '按验证失败、支架依赖和学习证据不足聚合',
+  },
+  {
+    label: '已验证理解',
+    value: stats.value?.resolved_learning_count ?? statCount(stats.value?.mastery_status_stats),
+    hint: '完成结束验证或复盘闭环的学生证据',
+  },
+  {
+    label: '缺少验证证据',
+    value: Math.max(0, (stats.value?.active_learning_count || 0) - (stats.value?.resolved_learning_count || 0)),
+    hint: '可能已经会了，但还没有留下可靠证据',
+  },
+      {
+        label: '独立完成比例',
+        value: `${Math.round((Number(completionSummary.value.independence_ratio) || 0) * 100)}%`,
+    hint: completionSummary.value.support_fadeout_label || '近 15 天自己做出或少量提示后完成的比例',
+  },
+]);
 
 async function loadStats() {
   loading.value = true;
   error.value = '';
   try {
-    const [statsResult, decisionsResult, registryResult] = await Promise.all([
-      getTeacherStats(auth.token),
-      getBridgeRuleDraftDecisions(auth.token),
-      getBridgeRegistryEntries(auth.token),
-    ]);
-    stats.value = statsResult;
-    draftDecisions.value = decisionsResult.decisions || [];
-    registryEntries.value = registryResult.entries || [];
+    stats.value = await getTeacherClassLearningDiagnosis(auth.token, { days: 15 });
   } catch (err) {
     error.value = err.message || '加载统计失败';
   } finally {
     loading.value = false;
-  }
-}
-
-async function confirmBridgeRuleDraft(item) {
-  draftMessage.value = '';
-  draftSubmitting.value = { ...draftSubmitting.value, [item.bridge_id]: true };
-  try {
-    await submitBridgeRuleDraftDecision(auth.token, {
-      route_kind: item.route_kind,
-      bridge_id: item.bridge_id,
-      decision: 'confirmed',
-      notes: '教师已确认进入人工规则草案池；不自动转正。',
-      days: 30,
-    });
-    draftMessage.value = '草案确认已保存，不会自动转正。';
-    const result = await getBridgeRuleDraftDecisions(auth.token);
-    draftDecisions.value = result.decisions || [];
-  } catch (err) {
-    error.value = err.message || '保存草案确认失败';
-  } finally {
-    draftSubmitting.value = { ...draftSubmitting.value, [item.bridge_id]: false };
-  }
-}
-
-async function downloadBridgeRuleDraft(item) {
-  draftMessage.value = '';
-  try {
-    const markdown = await exportBridgeRuleDraft(auth.token, {
-      route_kind: item.route_kind,
-      bridge_id: item.bridge_id,
-      days: 30,
-    });
-    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = item.rule_draft?.filename || 'bridge_rule_draft.md';
-    anchor.click();
-    URL.revokeObjectURL(url);
-    draftMessage.value = '草案文件已生成下载。';
-  } catch (err) {
-    error.value = err.message || '下载草案失败';
-  }
-}
-
-async function registerBridgeRuleDraft(item) {
-  draftMessage.value = '';
-  draftSubmitting.value = { ...draftSubmitting.value, [`registry-${item.id}`]: true };
-  try {
-    await createBridgeRegistryEntry(auth.token, { decision_id: item.id });
-    const result = await getBridgeRegistryEntries(auth.token);
-    registryEntries.value = result.entries || [];
-    draftMessage.value = '已登记到 registry，resolver 未启用。';
-  } catch (err) {
-    error.value = err.message || '登记到 registry 失败';
-  } finally {
-    draftSubmitting.value = { ...draftSubmitting.value, [`registry-${item.id}`]: false };
-  }
-}
-
-async function generateResolverPatchDraft(item) {
-  draftMessage.value = '';
-  draftSubmitting.value = { ...draftSubmitting.value, [`patch-${item.id}`]: true };
-  try {
-    const result = await getResolverPatchDraft(auth.token, item.id);
-    resolverPatchDraft.value = result.patch_draft || null;
-    draftMessage.value = 'resolver patch 草案已生成，patch 草案未应用。';
-  } catch (err) {
-    error.value = err.message || '生成 resolver patch 草案失败';
-  } finally {
-    draftSubmitting.value = { ...draftSubmitting.value, [`patch-${item.id}`]: false };
   }
 }
 
@@ -157,203 +133,127 @@ onMounted(loadStats);
 <template>
   <div class="space-y-6">
     <section class="grid gap-4 lg:grid-cols-4">
-      <article class="metric-tile">
-        <p class="text-sm text-slate-400">Bridge 统计</p>
-        <p class="mt-2 text-2xl font-semibold text-slate-900">{{ stats ? statCount(stats.bridge_stats) : '—' }}</p>
-      </article>
-      <article class="metric-tile">
-        <p class="text-sm text-slate-400">Topic L1</p>
-        <p class="mt-2 text-2xl font-semibold text-slate-900">{{ stats ? statCount(stats.topic_l1_stats) : '—' }}</p>
-      </article>
-      <article class="metric-tile">
-        <p class="text-sm text-slate-400">知识卡介入</p>
-        <p class="mt-2 text-2xl font-semibold text-slate-900">{{ stats ? statCount(stats.knowledge_bailout_stats) : '—' }}</p>
-      </article>
-      <article class="metric-tile">
-        <p class="text-sm text-slate-400">人工复核</p>
-        <p class="mt-2 text-2xl font-semibold text-slate-900">{{ stats?.manual_review_stats?.length ?? '—' }}</p>
+      <article v-for="metric in overviewMetrics" :key="metric.label" class="metric-tile">
+        <p class="text-sm text-slate-400">{{ metric.label }}</p>
+        <p class="mt-2 text-2xl font-semibold text-slate-900">{{ metric.value }}</p>
+        <p class="mt-2 text-xs leading-5 text-slate-400">{{ metric.hint }}</p>
       </article>
     </section>
 
     <section class="panel">
       <div class="mb-4 flex items-center justify-between">
         <div>
-          <p class="section-eyebrow text-operator-700">Overview</p>
-          <h3 class="mt-2 font-display text-2xl font-bold text-slate-900">核心统计</h3>
+          <p class="section-eyebrow text-operator-700">首页</p>
+          <h3 class="mt-2 font-display text-2xl font-bold text-slate-900">今日带班</h3>
+          <p class="mt-2 text-sm leading-6 text-slate-500">
+            首页只帮你决定今天先看哪些学生、班级状态有什么变化，以及本周最多讲 3 条什么。
+          </p>
         </div>
         <button class="button-secondary" type="button" @click="loadStats">刷新</button>
       </div>
       <p v-if="loading" class="text-sm text-slate-500">正在加载统计...</p>
       <p v-else-if="error" class="rounded-2xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">{{ error }}</p>
       <div v-else class="grid gap-6 xl:grid-cols-2">
-        <div class="space-y-4">
-          <div class="bento-card workspace-card-operator">
-            <p class="text-sm font-semibold text-operator-700">高频知识桥分布</p>
-            <div v-if="bridgeRows.length" class="mt-4 space-y-3">
-              <div v-for="row in bridgeRows" :key="row.id" class="rounded-[22px] border border-white/70 bg-white/85 p-4">
-                <div class="flex items-center justify-between gap-3">
-                  <p class="min-w-0 break-words text-sm font-semibold text-slate-800">{{ row.label }}</p>
-                  <span class="tag-pill bg-operator-100 text-operator-700">{{ row.count }} 次</span>
-                </div>
-                <p class="mt-2 text-xs text-slate-500">占比 {{ formatRate(row.rate) }}<span v-if="row.total"> · 共 {{ row.total }} 条</span></p>
-              </div>
+        <div class="bento-card border-rose-100 bg-gradient-to-br from-white via-rose-50/60 to-orange-50/40 xl:col-span-2">
+          <div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p class="text-sm font-semibold text-rose-700">今天建议关注</p>
+              <h4 class="mt-2 font-display text-xl font-bold text-slate-900">今天先看谁：按证据排序，不按 AIChat 次数排序</h4>
             </div>
-            <p v-else class="mt-4 rounded-[22px] border border-dashed border-operator-200 bg-white/70 p-4 text-sm text-slate-500">暂无统计数据</p>
+            <span class="tag-pill bg-white text-rose-700">数据不足也会提示</span>
           </div>
-          <div class="bento-card border-cyan-100 bg-gradient-to-br from-white via-cyan-50/70 to-sky-50/60">
-            <p class="text-sm font-semibold text-cyan-700">桥路由审查</p>
-            <div v-if="bridgeRouteStatusRows.length" class="mt-4 grid gap-3 sm:grid-cols-3">
-              <div v-for="row in bridgeRouteStatusRows" :key="row.id" class="rounded-[20px] border border-cyan-100 bg-white/85 p-4">
-                <p class="break-words text-sm font-semibold text-slate-800">{{ row.label }}</p>
-                <p class="mt-2 text-xs text-slate-500">{{ row.count }} 条 · {{ formatRate(row.rate) }}</p>
-              </div>
-            </div>
-            <div class="mt-4 grid gap-3 sm:grid-cols-2">
-              <div class="rounded-[20px] border border-cyan-100 bg-white/80 p-4">
-                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700">候选桥 Top</p>
-                <p v-if="candidateBridgeRows.length" class="mt-2 break-words text-sm text-slate-700">{{ candidateBridgeRows[0].label }} · {{ candidateBridgeRows[0].count }} 条</p>
-                <p v-else class="mt-2 text-sm text-slate-500">暂无候选桥</p>
-              </div>
-              <div class="rounded-[20px] border border-sky-100 bg-white/80 p-4">
-                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-sky-700">开放桥 Top</p>
-                <p v-if="openBridgeRows.length" class="mt-2 break-words text-sm text-slate-700">{{ openBridgeRows[0].label }} · {{ openBridgeRows[0].count }} 条</p>
-                <p v-else class="mt-2 text-sm text-slate-500">暂无开放桥</p>
-              </div>
-            </div>
-          </div>
-          <div class="bento-card border-emerald-100 bg-gradient-to-br from-white via-emerald-50/70 to-lime-50/50">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <p class="text-sm font-semibold text-emerald-700">转正规则建议</p>
-              <span class="tag-pill bg-white text-emerald-700">需要教师确认</span>
-            </div>
-            <p class="mt-2 text-xs text-slate-500">这些只是候选规则线索，不会自动转正。</p>
-            <p v-if="draftMessage" class="mt-3 rounded-2xl bg-emerald-100 px-4 py-3 text-sm font-medium text-emerald-800">{{ draftMessage }}</p>
-            <div v-if="bridgePromotionSuggestions.length" class="mt-4 space-y-3">
-              <div v-for="item in bridgePromotionSuggestions.slice(0, 4)" :key="`${item.route_kind}-${item.bridge_id}`" class="rounded-[20px] border border-emerald-100 bg-white/85 p-4">
-                <div class="flex flex-wrap items-start justify-between gap-3">
-                  <div class="min-w-0">
-                    <p class="break-words text-sm font-semibold text-slate-800">{{ item.bridge_id }}</p>
-                    <p class="mt-1 text-xs text-slate-500">{{ item.route_kind }} · {{ item.parent_focus || item.stable_focus || 'unknown' }} · {{ item.count }} 条</p>
-                  </div>
-                  <span class="tag-pill bg-emerald-100 text-emerald-700">不会自动转正</span>
+          <div v-if="attentionStudents.length" class="mt-4 grid gap-3 lg:grid-cols-2">
+            <article v-for="item in attentionStudents" :key="item.student_id" class="rounded-[22px] border border-white/80 bg-white/85 p-4">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p class="text-xs font-semibold tracking-[0.12em] text-slate-400">涉及学生</p>
+                  <p class="mt-1 font-semibold text-slate-900">{{ item.student_id }}</p>
                 </div>
-                <p class="mt-3 break-words text-xs leading-5 text-slate-500">
-                  证据：{{ (item.evidence_signals || []).slice(0, 3).join(' / ') || '暂无' }}
-                </p>
-                <div class="mt-3 grid gap-2 sm:grid-cols-2">
-                  <p class="break-words text-xs text-slate-500">草案文件：{{ item.rule_draft?.filename || '待生成' }}</p>
-                  <p class="break-words text-xs text-slate-500">草案状态：{{ item.rule_draft?.integration_status || 'draft_only' }}</p>
-                </div>
-                <div class="mt-4 flex flex-wrap gap-2">
-                  <button class="button-secondary text-xs" type="button" @click="downloadBridgeRuleDraft(item)">下载草案</button>
-                  <button
-                    class="button-primary bg-gradient-to-r from-emerald-500 to-teal-500 text-xs"
-                    type="button"
-                    :disabled="draftSubmitting[item.bridge_id]"
-                    @click="confirmBridgeRuleDraft(item)"
-                  >
-                    {{ draftSubmitting[item.bridge_id] ? '正在确认...' : '确认进入草案池' }}
-                  </button>
-                </div>
+                <span class="tag-pill bg-rose-100 text-rose-700">{{ item.status || '建议看看' }}</span>
               </div>
-            </div>
-            <p v-else class="mt-4 rounded-[22px] border border-dashed border-emerald-200 bg-white/70 p-4 text-sm text-slate-500">暂无转正规则建议</p>
+              <p class="mt-3 text-sm font-semibold text-slate-800">{{ item.reason || '学习证据不足，建议课堂观察。' }}</p>
+              <p class="mt-2 text-xs leading-5 text-slate-500">证据：{{ item.evidence || item.problem_title || '暂无明确证据' }}</p>
+              <p class="mt-2 text-xs leading-5 text-slate-600">老师下一步：{{ item.teacher_action || '先看最近对话，再决定是否当面追问。' }}</p>
+              <RouterLink class="mt-3 inline-flex rounded-[8px] bg-white px-3 py-2 text-xs font-semibold text-rose-700 ring-1 ring-rose-100" :to="`/app/teacher/students/${item.student_id}`">
+                查看学生详情
+              </RouterLink>
+            </article>
           </div>
-          <div class="bento-card border-teal-100 bg-gradient-to-br from-white via-teal-50/70 to-cyan-50/50">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <p class="text-sm font-semibold text-teal-700">草案审查历史</p>
-              <button class="button-secondary text-xs" type="button" @click="loadStats">加载历史</button>
-            </div>
-            <div v-if="draftDecisions.length" class="mt-4 space-y-3">
-              <div v-for="item in draftDecisions.slice(0, 5)" :key="item.id" class="rounded-[20px] border border-teal-100 bg-white/85 p-4">
-                <div class="flex flex-wrap items-start justify-between gap-3">
-                  <div class="min-w-0">
-                    <p class="break-words text-sm font-semibold text-slate-800">{{ item.bridge_id }}</p>
-                    <p class="mt-1 text-xs text-slate-500">{{ item.route_kind }} · {{ item.parent_focus || 'unknown' }}</p>
-                  </div>
-                  <span class="tag-pill bg-teal-100 text-teal-700">{{ item.decision }}</span>
-                </div>
-                <p class="mt-3 break-words text-xs leading-5 text-slate-500">草案文件：{{ item.draft_filename || '—' }}</p>
-                <p class="mt-1 break-words text-xs leading-5 text-slate-500">备注：{{ item.notes || '—' }}</p>
-                <button
-                  v-if="item.decision === 'confirmed'"
-                  class="button-secondary mt-3 text-xs"
-                  type="button"
-                  :disabled="draftSubmitting[`registry-${item.id}`]"
-                  @click="registerBridgeRuleDraft(item)"
-                >
-                  {{ draftSubmitting[`registry-${item.id}`] ? '正在登记...' : '登记到 registry' }}
-                </button>
-              </div>
-            </div>
-            <p v-else class="mt-4 rounded-[22px] border border-dashed border-teal-200 bg-white/70 p-4 text-sm text-slate-500">暂无草案审查历史</p>
-          </div>
-          <div class="bento-card border-indigo-100 bg-gradient-to-br from-white via-indigo-50/70 to-blue-50/50">
-            <p class="text-sm font-semibold text-indigo-700">正式 bridge registry</p>
-            <p class="mt-2 text-xs text-slate-500">这里是人工登记簿，resolver 未启用。</p>
-            <div v-if="registryEntries.length" class="mt-4 space-y-3">
-              <div v-for="item in registryEntries.slice(0, 5)" :key="item.id" class="rounded-[20px] border border-indigo-100 bg-white/85 p-4">
-                <div class="flex flex-wrap items-start justify-between gap-3">
-                  <div class="min-w-0">
-                    <p class="break-words text-sm font-semibold text-slate-800">{{ item.bridge_id }}</p>
-                    <p class="mt-1 text-xs text-slate-500">{{ item.route_kind }} · {{ item.parent_focus || 'unknown' }}</p>
-                  </div>
-                  <span class="tag-pill bg-indigo-100 text-indigo-700">{{ item.registry_status }}</span>
-                </div>
-                <p class="mt-3 break-words text-xs leading-5 text-slate-500">resolver 未启用：{{ item.resolver_enabled ? '否' : '是' }}</p>
-                <p class="mt-1 break-words text-xs leading-5 text-slate-500">草案文件：{{ item.draft_filename || '—' }}</p>
-                <button
-                  class="button-secondary mt-3 text-xs"
-                  type="button"
-                  :disabled="draftSubmitting[`patch-${item.id}`]"
-                  @click="generateResolverPatchDraft(item)"
-                >
-                  {{ draftSubmitting[`patch-${item.id}`] ? '正在生成...' : '生成 resolver patch 草案' }}
-                </button>
-              </div>
-            </div>
-            <div v-if="resolverPatchDraft" class="mt-4 rounded-[20px] border border-indigo-100 bg-white/85 p-4">
-              <p class="text-xs font-semibold uppercase tracking-[0.16em] text-indigo-700">resolver patch 草案</p>
-              <p class="mt-2 break-words text-sm font-semibold text-slate-800">{{ resolverPatchDraft.bridge_id }}</p>
-              <p class="mt-2 text-xs text-slate-500">patch 草案未应用 · {{ resolverPatchDraft.target_file }} · {{ resolverPatchDraft.patch_status }}</p>
-            </div>
-            <p v-else class="mt-4 rounded-[22px] border border-dashed border-indigo-200 bg-white/70 p-4 text-sm text-slate-500">暂无 registry 记录</p>
-          </div>
-          <div class="bento-card border-slate-200 bg-white">
-            <p class="text-sm font-semibold text-slate-700">知识域分布</p>
-            <div v-if="topicL1Rows.length" class="mt-4 grid gap-3 sm:grid-cols-2">
-              <div v-for="row in topicL1Rows" :key="row.id" class="rounded-[20px] border border-slate-100 bg-slate-50/80 p-4">
-                <p class="break-words text-sm font-semibold text-slate-800">{{ row.label }}</p>
-                <p class="mt-2 text-xs text-slate-500">{{ row.count }} 次 · {{ formatRate(row.rate) }}</p>
-              </div>
-            </div>
-            <p v-else class="mt-4 rounded-[22px] border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">暂无统计数据</p>
-          </div>
+          <p v-else class="mt-4 rounded-[22px] border border-dashed border-rose-200 bg-white/70 p-4 text-sm text-slate-500">
+            暂无需要优先关注的学生；如果某些学生记录很少，建议从学生页看“数据不足”。
+          </p>
         </div>
-        <div class="space-y-4">
-          <div class="bento-card border-fuchsia-100 bg-gradient-to-br from-white via-fuchsia-50/65 to-violet-50/50">
-            <p class="text-sm font-semibold text-fuchsia-700">知识子域分布</p>
-            <div v-if="topicL2Rows.length" class="mt-4 space-y-3">
-              <div v-for="row in topicL2Rows" :key="row.id" class="rounded-[20px] border border-fuchsia-100 bg-white/80 p-4">
-                <p class="break-words text-sm font-semibold text-slate-800">{{ row.label }}</p>
-                <p class="mt-2 text-xs text-slate-500">{{ row.count }} 次 · {{ formatRate(row.rate) }}</p>
+
+        <div class="bento-card border-cyan-100 bg-gradient-to-br from-white via-cyan-50/70 to-sky-50/50">
+          <p class="text-sm font-semibold text-cyan-700">最近练习概况</p>
+          <h4 class="mt-2 font-display text-xl font-bold text-slate-900">看完成量，也看完成方式</h4>
+          <div class="mt-4 grid gap-3 sm:grid-cols-2">
+            <div class="rounded-[8px] border border-white/80 bg-white/85 p-4">
+              <p class="text-xs font-semibold text-slate-400">最近 15 天完成题数</p>
+              <p class="mt-2 text-2xl font-semibold text-slate-900">{{ completionSummary.completed_count || completionSummary.total_15_days || 0 }}</p>
+            </div>
+            <div class="rounded-[8px] border border-white/80 bg-white/85 p-4">
+              <p class="text-xs font-semibold text-slate-400">独立 / 少量提示比例</p>
+              <p class="mt-2 text-2xl font-semibold text-slate-900">{{ Math.round((Number(completionSummary.independence_ratio) || 0) * 100) }}%</p>
+            </div>
+            <div class="rounded-[8px] border border-white/80 bg-white/85 p-4">
+              <p class="text-xs font-semibold text-slate-400">AIChat 后完成</p>
+              <p class="mt-2 text-2xl font-semibold text-slate-900">{{ completionSummary.aichat_assisted_count || completionSummary.aichat_assisted_15_days || 0 }}</p>
+            </div>
+            <div class="rounded-[8px] border border-white/80 bg-white/85 p-4">
+              <p class="text-xs font-semibold text-slate-400">AC / 验证证据</p>
+              <p class="mt-2 text-2xl font-semibold text-slate-900">{{ completionSummary.accepted_count || completionSummary.accepted_15_days || 0 }}</p>
+            </div>
+          </div>
+          <p class="mt-4 rounded-[8px] border border-cyan-100 bg-white/80 p-3 text-sm leading-6 text-slate-600">
+            {{ completionSummary.support_fadeout_label || '先看最近 15 天是否有独立完成和验证证据。' }}
+          </p>
+        </div>
+
+        <div class="bento-card workspace-card-operator">
+          <p class="text-sm font-semibold text-operator-700">班级最近主要问题</p>
+          <p class="mt-2 text-xs text-slate-500">按“知识点 + 教学切片”看，不再按词语出现次数统计。涉及学生少于阈值的问题不挤到首页。</p>
+          <div v-if="teachingSliceRows.length" class="mt-4 space-y-3">
+            <div v-for="row in teachingSliceRows" :key="row.id" class="rounded-[22px] border border-white/70 bg-white/85 p-4">
+              <div class="flex items-center justify-between gap-3">
+                <p class="min-w-0 break-words text-sm font-semibold text-slate-800">{{ row.label }}</p>
+                <span class="tag-pill bg-operator-100 text-operator-700">{{ row.count }} 次</span>
+              </div>
+              <div class="mt-3 h-2 overflow-hidden rounded-full bg-operator-50">
+                <div class="h-full rounded-full bg-operator-500" :style="{ width: `${Math.max(8, Math.round((Number(row.count) || 0) / topLearningIssueCount * 100))}%` }" />
+              </div>
+              <p class="mt-2 text-xs text-slate-500">
+                涉及学生 {{ row.student_count || 0 }} 人 · 占比 {{ formatRate(row.rate) }}
+              </p>
+              <p class="mt-2 text-xs leading-5 text-slate-600">建议讲法：{{ row.teacher_action || '用一个 3-5 个对象的小例子讲清关键关系。' }}</p>
+              <div class="mt-3 grid gap-2 text-xs leading-5 text-slate-600">
+                <p>推荐练习：{{ row.resource_suggestions?.recommended_exercise || '安排一道同类低难度题。' }}</p>
+                <p>讲解要点：{{ row.resource_suggestions?.mini_lesson || row.teacher_action || '先讲清关键关系。' }}</p>
+                <p>课堂活动：{{ row.resource_suggestions?.classroom_activity || '让学生先口头说出关键步骤，再写代码。' }}</p>
               </div>
             </div>
-            <p v-else class="mt-4 rounded-[22px] border border-dashed border-fuchsia-200 bg-white/70 p-4 text-sm text-slate-500">暂无统计数据</p>
           </div>
-          <div class="bento-card border-orange-100 bg-gradient-to-br from-white via-orange-50/70 to-amber-50/60">
-            <p class="text-sm font-semibold text-orange-700">知识卡介入分布</p>
-            <div v-if="knowledgeBailoutRows.length" class="mt-4 space-y-3">
-              <div v-for="row in knowledgeBailoutRows" :key="row.id" class="rounded-[20px] border border-orange-100 bg-white/80 p-4">
-                <div class="flex items-center justify-between gap-3">
-                  <p class="break-words text-sm font-semibold text-slate-800">{{ row.label }}</p>
-                  <span class="tag-pill bg-orange-100 text-orange-700">{{ formatRate(row.rate) }}</span>
-                </div>
-                <p class="mt-2 text-xs text-slate-500">{{ row.count }} 次<span v-if="row.total"> · 共 {{ row.total }} 条</span></p>
+          <p v-else class="mt-4 rounded-[22px] border border-dashed border-operator-200 bg-white/70 p-4 text-sm text-slate-500">
+            暂无学习问题分类数据
+          </p>
+        </div>
+
+        <div class="bento-card border-emerald-100 bg-gradient-to-br from-white via-emerald-50/70 to-teal-50/50">
+          <p class="text-sm font-semibold text-emerald-700">本周教学建议</p>
+          <h4 class="mt-2 font-display text-xl font-bold text-slate-900">最多 3 条，避免每个问题都要讲</h4>
+          <div v-if="teachingSuggestions.length" class="mt-4 space-y-3">
+            <div v-for="row in teachingSuggestions" :key="`advice-${row.title}`" class="rounded-[20px] border border-emerald-100 bg-white/85 p-4">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <p class="break-words text-sm font-semibold text-slate-800">{{ row.title }}</p>
+                <span class="tag-pill bg-emerald-100 text-emerald-700">{{ row.students?.length || 0 }} 名学生</span>
               </div>
+              <p class="mt-2 text-xs leading-5 text-slate-600">为什么讲：{{ row.reason }}</p>
+              <p class="mt-1 text-xs leading-5 text-slate-600">怎么讲：{{ row.how_to_teach }}</p>
             </div>
-            <p v-else class="mt-4 rounded-[22px] border border-dashed border-orange-200 bg-white/70 p-4 text-sm text-slate-500">暂无统计数据</p>
           </div>
+          <p v-else class="mt-4 rounded-[20px] border border-dashed border-emerald-200 bg-white/70 p-4 text-sm text-slate-500">
+            暂无需要优先介入的问题。
+          </p>
         </div>
       </div>
     </section>

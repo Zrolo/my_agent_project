@@ -136,6 +136,30 @@ class ReviewAsyncApiTests(unittest.TestCase):
         self.assertIn("diff[u]++", last_user_message)
         self.assertIn("我不知道这里为什么要用树上差分。", last_user_message)
 
+    def test_chat_endpoint_should_not_read_hint_quota(self):
+        def fake_chat(messages, student_id, problem_id):
+            return "先把题目对象说清楚。", "先把题目对象说清楚。", "L1"
+
+        with (
+            patch.object(api_server, "chat", side_effect=fake_chat),
+            patch.object(api_server, "get_remaining_quota", side_effect=AssertionError("学生端聊天接口不应读取旧配额")),
+        ):
+            response = self.client.post(
+                "/chat",
+                headers=auth_headers(self.owner_id),
+                json={
+                    "student_id": self.owner_id,
+                    "problem_id": "P3128",
+                    "message": "这题怎么开始？",
+                    "session_id": f"sess_no_quota_{self.owner_id}",
+                    "problem_context": "给一棵树和多条运输路径。",
+                },
+            )
+
+        self.assertEqual(200, response.status_code, response.text)
+        self.assertEqual("先把题目对象说清楚。", response.json()["reply"])
+        self.assertEqual(0, response.json()["remaining_quota"])
+
     def test_chat_endpoint_auto_imports_luogu_context_when_only_problem_ref_is_provided(self):
         captured = {}
 
@@ -198,7 +222,7 @@ class ReviewAsyncApiTests(unittest.TestCase):
         self.assertEqual("P3128", payload["problem_ref"])
         self.assertIn("复盘已 AC", payload["suggested_focus"])
 
-    def test_chat_tutor_policy_uses_zpd_scaffolding_and_edf_for_type_confirm(self):
+    def test_chat_tutor_policy_keeps_type_confirm_redline_without_legacy_policy_block(self):
         control = noi_agent.analyze_student_turn("这题是不是用树剖 LCA 加差分？", [])
 
         tutor_control = control.get("tutor_control") or {}
@@ -214,16 +238,17 @@ class ReviewAsyncApiTests(unittest.TestCase):
             problem_id="P3128",
         )
 
-        self.assertIn("SOCRATIC_POLICY", prompt)
-        self.assertIn("ZPD", prompt)
-        self.assertIn("Adaptive Scaffolding", prompt)
-        self.assertIn("Evidence-Driven Feedback", prompt)
+        self.assertNotIn("SOCRATIC_POLICY", prompt)
+        self.assertNotIn("Adaptive Scaffolding", prompt)
+        self.assertNotIn("Evidence-Driven Feedback", prompt)
         self.assertIn("ask_evidence_question", prompt)
+        self.assertIn("type_confirm 特殊约束", prompt)
+        self.assertIn("不能确认题型", prompt)
         self.assertIn("必须把反问落到题面中的具体对象、条件或结构证据", prompt)
         self.assertNotIn("只能反问：\"你为什么会这么猜？\"", prompt)
-        self.assertLess(len(prompt), 3600)
+        self.assertLess(len(prompt), 3000)
 
-    def test_chat_output_guard_blocks_complete_solution_or_code_dump(self):
+    def test_chat_output_guard_is_noop_even_for_complete_solution_or_code_words(self):
         level_control = {"bridge_redline": False}
         risk_control = {"risk_tags": []}
 
@@ -233,12 +258,11 @@ class ReviewAsyncApiTests(unittest.TestCase):
             risk_control,
         )
 
-        self.assertEqual("complete_solution_guard", trigger)
-        self.assertIn("先停一下", guarded)
-        self.assertIn("[LEVEL:L2]", guarded)
-        self.assertNotIn("int main", guarded)
+        self.assertIsNone(trigger)
+        self.assertIn("完整代码如下", guarded)
+        self.assertIn("int main", guarded)
 
-    def test_chat_type_confirm_generic_guard_uses_problem_context_evidence(self):
+    def test_chat_type_confirm_generic_reply_is_not_backend_rewritten(self):
         level_control = {"bridge_redline": False}
         risk_control = {"risk_tags": ["type_confirm"]}
         messages = [
@@ -255,10 +279,8 @@ class ReviewAsyncApiTests(unittest.TestCase):
             messages=messages,
         )
 
-        self.assertEqual("type_confirm_generic_guard", trigger)
-        self.assertIn("01", guarded)
-        self.assertIn("前缀", guarded)
-        self.assertIn("[LEVEL:L2]", guarded)
+        self.assertIsNone(trigger)
+        self.assertEqual("先别急着确认题型。你为什么会这么猜？", guarded)
 
     def test_chat_analysis_ignores_injected_problem_context_instructions(self):
         message = "\n".join(
@@ -279,7 +301,7 @@ class ReviewAsyncApiTests(unittest.TestCase):
         self.assertIn("type_confirm", control["risk_control"]["risk_tags"])
         self.assertNotIn("direct_request", control["risk_control"]["risk_tags"])
 
-    def test_chat_full_flow_replaces_generic_type_confirm_with_context_question(self):
+    def test_chat_full_flow_keeps_model_type_confirm_reply_without_backend_rewrite(self):
         class FakeCompletions:
             def create(self, **kwargs):
                 class Message:
@@ -311,7 +333,6 @@ class ReviewAsyncApiTests(unittest.TestCase):
 
         with (
             patch.object(noi_agent, "get_remaining_quota", return_value=3),
-            patch.object(noi_agent, "consume_quota", return_value=(True, 2)),
             patch.object(noi_agent, "get_client", return_value=FakeClient()),
         ):
             reply_for_display, reply_for_history, final_level = noi_agent.chat(
@@ -321,10 +342,11 @@ class ReviewAsyncApiTests(unittest.TestCase):
             )
 
         self.assertEqual("L2", final_level)
-        self.assertIn("01", reply_for_history)
-        self.assertIn("前缀", reply_for_history)
-        self.assertNotIn("为什么会这么猜", reply_for_history)
-        self.assertIn("本题还剩 2 次提示机会", reply_for_display)
+        self.assertIn("为什么会这么猜", reply_for_history)
+        self.assertNotIn("01", reply_for_history)
+        self.assertNotIn("前缀", reply_for_history)
+        self.assertNotIn("本题还剩", reply_for_display)
+        self.assertNotIn("提示配额", reply_for_display)
 
     def test_checkin_validation_uses_reflection_as_detail_evidence(self):
         payload = {

@@ -15,38 +15,48 @@ watch(
   (role) => {
     if (!auth.isAuthenticated) return;
     if (role === 'student') {
-      router.replace('/app/workspace/chat');
+      router.replace(defaultPathForRole('student'));
     }
   },
   { immediate: true },
 );
 
 const navItems = [
-  { label: '总览', to: '/app/teacher/overview', section: 'overview' },
-  { label: '复核', to: '/app/teacher/review', section: 'review' },
+  { label: '首页', to: '/app/teacher/overview', section: 'overview' },
   { label: '学生', to: '/app/teacher/students', section: 'students' },
-  { label: '记录', to: '/app/teacher/checkins', section: 'checkins' },
+  { label: '复盘', to: '/app/teacher/reflection', section: 'reflection' },
+  { label: '班级管理', to: '/app/teacher/class-management', section: 'class-management' },
 ];
 
 const heroConfig = computed(() => {
   const section = route.meta.section || 'overview';
-  if (section === 'review') {
+  if (section === 'reflection') {
     return {
       accent: 'from-orange-500 via-rose-500 to-red-500',
-      eyebrow: 'Review Ops',
-      title: '人工复核',
+      eyebrow: '复盘闭环',
+      title: '复盘',
     };
   }
-  if (section === 'students' || section === 'checkins') {
+  if (section === 'class-management') {
     return {
       accent: 'from-slate-500 via-cyan-600 to-teal-600',
-      eyebrow: 'Records & Students',
-      title: section === 'students' ? '学生' : '记录',
+      eyebrow: '班级管理',
+      title: '班级管理',
+    };
+  }
+  if (section === 'students' || section === 'aichat-history') {
+    return {
+      accent: 'from-slate-500 via-cyan-600 to-teal-600',
+      eyebrow: '学生与记录',
+      title:
+        section === 'students'
+          ? '学生'
+          : '学习记录',
     };
   }
   return {
     accent: 'from-indigo-600 via-violet-600 to-fuchsia-500',
-    eyebrow: 'Teacher Overview',
+    eyebrow: '教师总览',
     title: '总览',
   };
 });
@@ -89,7 +99,7 @@ function handleLogout() {
               T
             </div>
             <div>
-              <p class="text-sm font-semibold uppercase tracking-[0.26em] text-slate-400">NOI Agent Teacher</p>
+              <p class="text-sm font-semibold tracking-[0.18em] text-slate-400">教师端</p>
               <h1 class="font-display text-2xl font-bold text-slate-900">运营工作台</h1>
             </div>
           </div>

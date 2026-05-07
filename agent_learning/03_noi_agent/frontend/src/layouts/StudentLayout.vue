@@ -22,25 +22,47 @@ watch(
 );
 
 const navItems = [
+  { label: '首页', to: '/app/home', section: 'home' },
   { label: 'AI 解答', to: '/app/workspace/chat', section: 'chat' },
-  { label: '打卡复盘', to: '/app/workspace/checkin', section: 'checkin' },
-  { label: '历史打卡', to: '/app/archive', section: 'archive' },
+  { label: '学习记录', to: '/app/workspace/checkin', section: 'checkin' },
+  { label: '使用反馈', to: '/app/workspace/feedback', section: 'feedback' },
 ];
 
 const heroConfig = computed(() => {
   const section = route.meta.section || 'chat';
+  if (section === 'home') {
+    return {
+      accent: 'from-cyan-500 via-sky-500 to-emerald-500',
+      eyebrow: 'Home',
+      title: '首页',
+    };
+  }
   if (section === 'checkin') {
     return {
       accent: 'from-checkin-500 via-amber-400 to-orange-600',
-      eyebrow: 'Check-in Studio',
-      title: '打卡复盘',
+      eyebrow: 'Learning Records',
+      title: '学习记录',
     };
   }
   if (section === 'archive') {
     return {
       accent: 'from-archive-500 via-violet-500 to-fuchsia-500',
       eyebrow: 'Archive Deck',
-      title: '历史打卡',
+      title: '历史记录',
+    };
+  }
+  if (section === 'knowledge') {
+    return {
+      accent: 'from-emerald-500 via-sky-500 to-cyan-500',
+      eyebrow: 'Knowledge Bridge',
+      title: '知识补全',
+    };
+  }
+  if (section === 'feedback') {
+    return {
+      accent: 'from-emerald-500 via-cyan-500 to-sky-500',
+      eyebrow: 'Feedback',
+      title: '使用反馈',
     };
   }
   return {
@@ -50,11 +72,16 @@ const heroConfig = computed(() => {
   };
 });
 
+const showHero = computed(() => route.meta.section !== 'chat');
+
 function navClass(section) {
   const active = route.meta.section === section;
   if (!active) return 'nav-link nav-link-idle';
   if (section === 'checkin') return 'nav-link nav-link-active-checkin';
   if (section === 'archive') return 'nav-link nav-link-active-archive';
+  if (section === 'knowledge') return 'nav-link nav-link-active-knowledge';
+  if (section === 'feedback') return 'nav-link nav-link-active-chat';
+  if (section === 'home') return 'nav-link nav-link-active-chat';
   return 'nav-link nav-link-active-chat';
 }
 
@@ -83,7 +110,7 @@ function handleLogout() {
   />
 
   <div v-else class="app-shell px-4 py-6 md:px-6 lg:px-8">
-    <div class="mx-auto flex max-w-7xl flex-col gap-6">
+    <div :class="['mx-auto flex max-w-7xl flex-col', showHero ? 'gap-6' : 'gap-4']">
       <header class="glass-nav p-4 md:p-5">
         <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div class="flex items-center gap-4">
@@ -115,7 +142,7 @@ function handleLogout() {
         </div>
       </header>
 
-      <section :class="['hero-band bg-gradient-to-br', heroConfig.accent]">
+      <section v-if="showHero" :class="['hero-band bg-gradient-to-br', heroConfig.accent]">
         <p class="section-eyebrow text-white/75">{{ heroConfig.eyebrow }}</p>
         <div class="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>

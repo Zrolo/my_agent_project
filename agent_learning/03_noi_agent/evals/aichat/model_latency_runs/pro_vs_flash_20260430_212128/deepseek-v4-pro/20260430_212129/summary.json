@@ -1,0 +1,59 @@
+{
+  "generated_at": "2026-04-30T21:25:07",
+  "provider_count": 1,
+  "row_count": 8,
+  "providers": {
+    "deepseek": {
+      "provider_id": "deepseek",
+      "provider_label": "DeepSeek",
+      "model": "deepseek-v4-pro",
+      "thinking_mode": "enabled",
+      "measured_count": 8,
+      "success_count": 3,
+      "error_count": 5,
+      "success_rate": 0.375,
+      "error_rate": 0.625,
+      "quality_gate_pass_rate": 0.375,
+      "request_ms_avg": 27190,
+      "request_ms_p50": 30173,
+      "request_ms_p95": 31394,
+      "llm_ms_avg": 22324,
+      "llm_ms_p95": 26295
+    }
+  },
+  "by_input_mode": {
+    "deepseek": {
+      "未标注": {
+        "measured_count": 8,
+        "success_count": 3,
+        "error_count": 5,
+        "success_rate": 0.375,
+        "error_rate": 0.625,
+        "quality_gate_pass_rate": 0.375,
+        "request_ms_avg": 27190,
+        "request_ms_p50": 30173,
+        "request_ms_p95": 31394,
+        "llm_ms_avg": 22324,
+        "llm_ms_p95": 26295
+      }
+    }
+  },
+  "by_algorithm_tag": {
+    "deepseek": {
+      "未标注": {
+        "measured_count": 8,
+        "success_count": 3,
+        "error_count": 5,
+        "success_rate": 0.375,
+        "error_rate": 0.625,
+        "quality_gate_pass_rate": 0.375,
+        "request_ms_avg": 27190,
+        "request_ms_p50": 30173,
+        "request_ms_p95": 31394,
+        "llm_ms_avg": 22324,
+        "llm_ms_p95": 26295
+      }
+    }
+  },
+  "fastest_provider_by_avg_request_ms": "deepseek"
+}

@@ -10,6 +10,8 @@ import os
 import re
 import threading
 import time
+from datetime import datetime, timedelta, timezone
+from html import unescape
 from functools import lru_cache
 from typing import Literal, List, Optional, Dict
 from urllib.parse import urlparse
@@ -26,20 +28,34 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 from auth import (
     authenticate_user,
+    create_student_account,
     create_token,
     get_current_user,
+    list_student_accounts,
     require_student,
     require_teacher,
+    reset_student_password,
     security,
+    set_student_active,
 )
 from noi_agent import (
     PER_PROBLEM_HINT_LIMIT,
     analyze_student_turn,
     build_policy_handoff_payload,
     chat,
+    evaluate_understanding_evidence,
+    _chat_completion_create,
+    _extract_json_object,
+    generate_understanding_check,
+    get_chat_model_public_info,
+    grade_understanding_check,
     get_remaining_quota,
+    list_chat_model_options,
     load_quota,
     save_quota,
+    summarize_aichat_problem_memory,
+    analyze_aichat_session,
+    tag_aichat_turn,
 )
 from database import (
     LEARNING_STATUS_KNOWLEDGE_BAILOUT,
@@ -56,7 +72,12 @@ from database import (
     MASTERY_STATUS_NOT_MASTERED,
     REVIEW_STATUS_COMPLETED,
     REVIEW_STATUS_PENDING,
+    create_teacher_announcement,
     init_db,
+    create_aichat_problem_closure,
+    create_problem_bottleneck_event,
+    create_student_problem_completion,
+    create_student_feedback,
     create_checkin,
     get_checkin_detail_by_id,
     create_review_quiz,
@@ -98,6 +119,30 @@ from database import (
     mark_review_failed,
     mark_review_pending,
     record_quiz_attempt,
+    get_aichat_problem_closure,
+    get_aichat_learning_issue_stats,
+    get_aichat_problem_memory,
+    get_db,
+    get_latest_student_announcement,
+    grade_aichat_problem_closure,
+    record_aichat_message,
+    record_aichat_turn_tag,
+    get_aichat_session_analysis,
+    get_aichat_session_analysis_health,
+    list_aichat_messages,
+    list_aichat_turn_tags,
+    list_student_feedback,
+    list_student_problem_completions,
+    list_teacher_announcements,
+    list_teacher_aichat_observations,
+    list_teacher_aichat_evidence_students,
+    list_teacher_aichat_evidence_sessions,
+    get_teacher_aichat_evidence_session_detail,
+    upsert_aichat_session_analysis,
+    create_teacher_student_note,
+    get_class_learning_diagnosis,
+    get_student_learning_dossier,
+    list_teacher_student_notes,
     record_checkin_stats,
     record_rejected_checkin,
     get_problem_by_luogu_pid,
@@ -106,8 +151,15 @@ from database import (
     get_review_events_for_checkin,
     list_teacher_review_samples,
     get_usage_stats,
+    get_class_completion_summary,
+    get_class_exit_trigger_summary,
+    get_student_completion_summary,
+    get_student_exit_trigger_summary,
+    has_problem_bottleneck_event,
     list_related_problems_by_luogu_pid,
+    upsert_external_problem,
     record_review_event,
+    upsert_aichat_problem_memory,
     upsert_review_manual_review,
     upsert_bridge_rule_draft_decision,
     list_bridge_rule_draft_decisions,
@@ -141,6 +193,7 @@ from review_engine import (
     generate_confirm_quiz_from_pool,
     generate_remedy_explanation,
     generate_review,
+    is_review_llm_configured,
     transfer_signal_has_explicit_trigger,
     validate_bottleneck,
 )
@@ -152,6 +205,7 @@ from problem_bank import (
     normalize_luogu_problem_ref,
     retry_problem_analysis_by_pid,
 )
+from code_runner import get_runner_health, run_cpp17_sample
 
 # 初始化数据库
 init_db()
@@ -336,12 +390,30 @@ def normalize_luogu_problem_url(raw_url: str) -> Optional[str]:
     return normalized_url
 
 
+def normalize_jmfes_problem_url(raw_url: str) -> Optional[str]:
+    raw = (raw_url or "").strip()
+    if not raw:
+        return None
+    candidate = raw if re.match(r"^https?://", raw, re.I) else f"http://{raw}"
+    parsed = urlparse(candidate)
+    host = parsed.netloc.lower()
+    path = parsed.path or ""
+    if host not in {"oj.jmfes.com:8888", "oj.jmfes.com", "172.21.60.30:8888", "172.21.60.30"}:
+        return None
+    match = re.match(r"^/p/([A-Za-z0-9_-]+)$", path)
+    if not match:
+        return None
+    return f"http://oj.jmfes.com:8888/p/{match.group(1)}"
+
+
 def infer_oj_source_from_problem_ref(raw_ref: str, declared_source: str = "other") -> str:
     raw = (raw_ref or "").strip()
     declared = (declared_source or "other").strip().lower()
     if raw:
         if normalize_luogu_problem_ref(raw)[0]:
             return "luogu"
+        if normalize_jmfes_problem_url(raw):
+            return "jmfes"
         host = urlparse(raw if re.match(r"^https?://", raw, re.I) else f"https://{raw}").netloc.lower()
         if host.endswith("luogu.com.cn") or host.endswith("luogu.com"):
             return "luogu"
@@ -351,7 +423,7 @@ def infer_oj_source_from_problem_ref(raw_ref: str, declared_source: str = "other
             return "atcoder"
         if re.match(r"^https?://", raw, re.I):
             return "other"
-    return declared if declared in {"luogu", "codeforces", "atcoder", "other"} else "other"
+    return declared if declared in {"luogu", "jmfes", "codeforces", "atcoder", "other"} else "other"
 
 
 @lru_cache(maxsize=1)
@@ -555,6 +627,123 @@ def fetch_luogu_problem(raw_url: str) -> dict:
     }
 
 
+def _clean_jmfes_problem_html(fragment: str) -> str:
+    cleaned = fragment or ""
+    cleaned = re.sub(r"<span class=\"katex-mathml\">.*?</span>", "", cleaned, flags=re.S)
+    cleaned = re.sub(r"<span class=\"katex-html\"[^>]*>", "", cleaned, flags=re.S)
+    cleaned = re.sub(r"</span>", "", cleaned, flags=re.S)
+    cleaned = re.sub(
+        r"<h[1-6][^>]*>(.*?)</h[1-6]>",
+        lambda m: f"\n\n## {re.sub(r'<[^>]+>', '', m.group(1)).strip()}\n",
+        cleaned,
+        flags=re.S,
+    )
+    cleaned = re.sub(
+        r"<pre[^>]*><code[^>]*>(.*?)</code></pre>",
+        lambda m: f"\n```text\n{unescape(re.sub(r'<[^>]+>', '', m.group(1))).strip()}\n```\n",
+        cleaned,
+        flags=re.S,
+    )
+    cleaned = re.sub(r"<li[^>]*>", "\n- ", cleaned, flags=re.S)
+    cleaned = re.sub(r"</li>", "", cleaned, flags=re.S)
+    cleaned = re.sub(r"<br\s*/?>", "\n", cleaned, flags=re.S)
+    cleaned = re.sub(r"</p>", "\n\n", cleaned, flags=re.S)
+    cleaned = re.sub(r"<p[^>]*>", "", cleaned, flags=re.S)
+    cleaned = re.sub(r"<[^>]+>", "", cleaned, flags=re.S)
+    cleaned = unescape(cleaned)
+    cleaned = re.sub(r"\r\n?", "\n", cleaned)
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip()
+
+
+def fetch_jmfes_problem(raw_url: str) -> dict:
+    normalized_url = normalize_jmfes_problem_url(raw_url)
+    if not normalized_url:
+        raise ValueError("请输入有效的 JMYSOJ 题目链接")
+
+    response = requests.get(normalized_url, timeout=20)
+    response.raise_for_status()
+    html = response.text
+
+    title_match = re.search(r"<h1 class=\"section__title\">\s*(?:#\d+\.\s*)?(.*?)\s*</h1>", html, re.S)
+    content_match = re.search(r"<div class=\"problem-content\"[^>]*>(.*?)<div class=\"medium-3 columns\">", html, re.S)
+    body_match = re.search(
+        r"data-fragment-id=\"problem-description\"[^>]*>(.*)",
+        content_match.group(1) if content_match else "",
+        re.S,
+    )
+    pid_match = re.search(r"/p/([A-Za-z0-9_-]+)$", normalized_url)
+
+    title = _clean_jmfes_problem_html(title_match.group(1)) if title_match else ""
+    context = _clean_jmfes_problem_html(body_match.group(1)) if body_match else ""
+    pid = pid_match.group(1) if pid_match else None
+
+    if not title:
+        raise ValueError("未读取到 JMYSOJ 题目标题")
+    if not context:
+        raise ValueError("未读取到 JMYSOJ 题面正文，请稍后重试或手动补充题面")
+
+    return {
+        "problem_url": normalized_url,
+        "problem_pid": pid,
+        "problem_title": title,
+        "problem_context": context,
+        "problem_tags": [],
+        "oj_source": "jmfes",
+    }
+
+
+def _normalize_ai_problem_tags(raw_tags) -> list[str]:
+    tags = []
+    seen = set()
+    for raw_tag in raw_tags or []:
+        tag = str(raw_tag).strip()
+        tag = re.sub(r"\s+", "", tag)
+        if not tag or len(tag) > 18 or tag in seen:
+            continue
+        if any(ch in tag for ch in "{}[]<>`"):
+            continue
+        seen.add(tag)
+        tags.append(tag)
+        if len(tags) >= 6:
+            break
+    return tags
+
+
+def generate_problem_tags_with_ai(
+    *,
+    problem_title: str,
+    problem_context: str,
+    oj_source: str = "",
+    chat_model_provider: str | None = None,
+) -> list[str]:
+    context = (problem_context or "").strip()
+    if not context:
+        return []
+    system_prompt = (
+        "你是信息学竞赛题库标注助手。请只根据题目标题和题面，提取 2 到 6 个简短中文标签，"
+        "优先标算法/数据结构/建模方式，例如：树、图论、最短路、差分、动态规划、二分、贪心、字符串。"
+        "不要输出题解、不要推理过程、不要写代码。只输出 JSON：{\"tags\":[\"标签1\",\"标签2\"]}。"
+    )
+    user_text = (
+        f"题源：{oj_source or 'unknown'}\n"
+        f"标题：{(problem_title or '').strip()[:120]}\n"
+        f"题面：{context[:4000]}"
+    )
+    try:
+        response = _chat_completion_create(
+            system_prompt=system_prompt,
+            messages=[{"role": "user", "content": user_text}],
+            provider_id=chat_model_provider,
+        )
+        content = response.choices[0].message.content or ""
+        parsed = _extract_json_object(content)
+        return _normalize_ai_problem_tags(parsed.get("tags") or [])
+    except Exception as exc:
+        print(f"[problem_tags] AI tag generation failed: {exc}")
+        return []
+
+
 def trigger_problem_analysis_if_needed_by_pid(pid: str | None):
     if not pid:
         return
@@ -620,6 +809,7 @@ class ChatRequest(BaseModel):
     problem_context: str = Field(default="", description="当前题面、约束或学生整理的题意")
     student_code: str = Field(default="", description="学生当前相关代码片段")
     chat_context_summary: str = Field(default="", description="同题上下文摘要")
+    chat_model_provider: str = Field(default="", description="AIChat 模型提供方")
 
 
 class ChatResponse(BaseModel):
@@ -627,6 +817,108 @@ class ChatResponse(BaseModel):
     remaining_quota: int
     level: str
     handoff_payload: Optional[dict] = None
+    understanding_state: str = "not_ready"
+    understanding_evidence: List[str] = Field(default_factory=list)
+    chat_model_provider: str = ""
+    chat_model_label: str = ""
+
+
+class UnderstandingCheckGenerateRequest(BaseModel):
+    problem_id: str = Field(default="")
+    session_id: str = Field(default="")
+    problem_title: str = Field(default="")
+    problem_context: str = Field(default="")
+    student_code: str = Field(default="")
+    chat_model_provider: str = Field(default="")
+
+
+class UnderstandingCheckGradeRequest(BaseModel):
+    question: str = Field(..., min_length=1)
+    answer: str = Field(..., min_length=1)
+    target_focus: str = Field(default="")
+    quiz_format: str = Field(default="")
+    problem_id: str = Field(default="")
+    session_id: str = Field(default="")
+    problem_title: str = Field(default="")
+    problem_context: str = Field(default="")
+    student_code: str = Field(default="")
+    chat_model_provider: str = Field(default="")
+
+
+class ProblemClosureStartRequest(BaseModel):
+    problem_id: str = Field(default="")
+    session_id: str = Field(default="")
+    problem_title: str = Field(default="")
+    problem_context: str = Field(default="")
+    student_code: str = Field(default="")
+    chat_model_provider: str = Field(default="")
+
+
+class ProblemClosureGradeRequest(BaseModel):
+    closure_id: int = Field(..., ge=1)
+    answer: str = Field(..., min_length=1)
+    quiz_format: str = Field(default="")
+    problem_id: str = Field(default="")
+    session_id: str = Field(default="")
+    problem_title: str = Field(default="")
+    problem_context: str = Field(default="")
+    student_code: str = Field(default="")
+    chat_model_provider: str = Field(default="")
+
+
+class CodeRunRequest(BaseModel):
+    language: str = Field(..., min_length=1)
+    code: str = Field(..., min_length=1)
+    stdin: str = Field(default="")
+    expected_output: str = Field(default="")
+    problem_ref: str = Field(default="")
+
+
+class CodeRunResponse(BaseModel):
+    status: str
+    message: str
+    stdout: str = ""
+    stderr: str = ""
+    compile_output: str = ""
+    elapsed_ms: int = 0
+    exit_code: Optional[int] = None
+    matched_expected: Optional[bool] = None
+    output_limited: bool = False
+
+
+class StudentFeedbackRequest(BaseModel):
+    category: Literal["aichat", "checkin", "code", "page", "other"] = "other"
+    rating: int = Field(..., ge=1, le=5)
+    content: str = Field(..., min_length=1)
+    page_context: str = Field(default="")
+
+
+class StudentProblemCompletionRequest(BaseModel):
+    problem_id: str = Field(default="")
+    problem_title: str = Field(default="")
+    problem_url: str = Field(default="")
+    reported_completion: Literal[
+        "self_solved",
+        "small_hint",
+        "classroom_taught",
+        "aichat_assisted",
+        "editorial_completed",
+        "unsure",
+    ] = "unsure"
+    result_status: Literal["accepted", "sample_passed", "unsure"] = "unsure"
+    key_step_summary: str = Field(..., min_length=6, max_length=500)
+    session_id: str = Field(default="")
+
+
+class TeacherAnnouncementRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=80)
+    body_markdown: str = Field(..., min_length=1, max_length=5000)
+    pinned: bool = True
+    status: Literal["published", "draft"] = "published"
+
+
+class TeacherAnnouncementStatusRequest(BaseModel):
+    status: Literal["published", "draft", "archived"]
 
 
 def _compact_chat_context_line(label: str, value: str, max_chars: int = 1200) -> Optional[str]:
@@ -638,25 +930,66 @@ def _compact_chat_context_line(label: str, value: str, max_chars: int = 1200) ->
     return f"{label}: {text}"
 
 
-def build_chat_message_with_problem_context(request: ChatRequest) -> str:
+def _has_chat_problem_context(request: ChatRequest) -> bool:
+    return any(
+        [
+            bool(request.problem_title.strip()),
+            bool(request.problem_url.strip()),
+            len(request.problem_context.strip()) >= 10,
+        ]
+    )
+
+
+def _build_chat_context_strategy(request: ChatRequest) -> list[str]:
+    has_problem = _has_chat_problem_context(request)
+    has_code = bool(request.student_code.strip())
+
+    if has_problem and has_code:
+        return [
+            "上下文状态：有题目 + 有代码",
+            "回答策略：必须结合题面目标、学生问题和学生代码；先对齐题目目标与代码实现，再定位一个最小可疑位置。",
+            "边界：可以指出可疑行、变量含义或判断条件的不一致，但不要直接给最终代码。",
+        ]
+    if has_problem and not has_code:
+        return [
+            "上下文状态：有题目 + 无代码",
+            "回答策略：苏格拉底提问为主，基于题面证据和学生原话搭台阶；不要突然抛出学生尚未铺垫过的算法术语。",
+            "费曼验证：只在关键小步后让学生用自己的话复述当前小关系，不要展开成长讲解。",
+        ]
+    if not has_problem and has_code:
+        return [
+            "上下文状态：无题目 + 有代码",
+            "回答策略：先说明现在只看到了代码，但不知道题目目标；请学生先补题目链接或题号。",
+            "边界：不要先分析代码，不要猜题意，不能判断算法是否正确。",
+        ]
+    return [
+        "上下文状态：无题目 + 无代码",
+        "回答策略：先索取最小上下文，包括题号/链接、简短题意、学生卡在哪一步。",
+        "边界：不要直接进入算法教学，不要猜题型，不要给通用题解。",
+    ]
+
+
+def build_chat_message_with_problem_context(request: ChatRequest, memory_summary: str = "") -> str:
     context_lines = [
         _compact_chat_context_line("题目标题", request.problem_title, 200),
         _compact_chat_context_line("题目链接", request.problem_url, 300),
+        _compact_chat_context_line("同题短摘要记忆", memory_summary, 1000),
         _compact_chat_context_line("题面/题意/约束", request.problem_context, 1800),
         _compact_chat_context_line("学生当前代码", request.student_code, 1800),
         _compact_chat_context_line("同题上下文摘要", request.chat_context_summary, 800),
     ]
     context_lines = [line for line in context_lines if line]
-    if not context_lines:
-        return request.message
     return "\n".join([
         "[学生原始问题]",
         request.message,
         "",
+        "[当前上下文状态与回答策略]",
+        *_build_chat_context_strategy(request),
+        "",
         "[当前题目上下文：只用于理解学生卡点，不要直接照抄题解]",
         *context_lines,
         "",
-        "请优先围绕学生当前问题给渐进提示；除非学生明确要求完整代码，否则不要直接给最终代码。",
+        "请优先围绕学生当前问题给渐进提示；即使学生要求完整代码，也不要直接给最终代码；只指出当前最小卡点和下一步验证方式。",
     ])
 
 
@@ -666,12 +999,17 @@ def enrich_chat_request_with_luogu_context(request: ChatRequest) -> ChatRequest:
         return request
 
     problem_ref = (request.problem_url or request.problem_id or "").strip()
-    normalized_url = normalize_luogu_problem_url(problem_ref)
+    normalized_luogu_url = normalize_luogu_problem_url(problem_ref)
+    normalized_jmfes_url = normalize_jmfes_problem_url(problem_ref)
+    normalized_url = normalized_luogu_url or normalized_jmfes_url
     if not normalized_url:
         return request
 
     try:
-        imported_problem = fetch_luogu_problem(normalized_url)
+        if normalized_luogu_url:
+            imported_problem = fetch_luogu_problem(normalized_url)
+        else:
+            imported_problem = fetch_jmfes_problem(normalized_url)
     except Exception as exc:
         print(f"[chat_context] luogu import skipped for {problem_ref}: {exc}")
         return request
@@ -704,7 +1042,7 @@ class ResetQuotaRequest(BaseModel):
 class CheckinRequest(BaseModel):
     problem_url: str = Field(default="")
     problem_title: str = Field(default="")
-    oj_source: str = Field(..., pattern="^(luogu|codeforces|atcoder|other)$")
+    oj_source: str = Field(..., pattern="^(luogu|jmfes|codeforces|atcoder|other)$")
     completion_status: str = Field(..., pattern="^(independent|hinted|editorial|unfinished)$")
     bottleneck_text: str = Field(..., min_length=15)
     error_types: List[str] = Field(..., min_items=1)
@@ -780,6 +1118,44 @@ class TeacherManualReviewRequest(BaseModel):
     review_grounded: Literal["grounded", "mixed", "vague"]
     student_can_move_next: Literal["yes", "no", "unsure"]
     notes: str = Field(default="", max_length=500)
+
+
+class TeacherStudentCreateRequest(BaseModel):
+    display_name: str = Field(..., min_length=1, description="显示姓名")
+    user_id: str = Field(default="", description="登录账号，留空则自动生成")
+    password: str = Field(default="", description="初始密码，留空则自动生成")
+
+
+class TeacherStudentBulkCreateRow(BaseModel):
+    row_index: Optional[int] = None
+    display_name: str = Field(default="", description="显示姓名")
+    user_id: str = Field(default="", description="登录账号，留空则自动生成")
+    password: str = Field(default="", description="初始密码，留空则自动生成")
+
+
+class TeacherStudentBulkCreateRequest(BaseModel):
+    rows: List[TeacherStudentBulkCreateRow] = Field(default_factory=list)
+
+
+class TeacherStudentPasswordResetRequest(BaseModel):
+    password: str = Field(default="", description="新密码，留空则自动生成")
+
+
+class TeacherStudentStatusRequest(BaseModel):
+    active: bool
+
+
+class TeacherStudentNoteRequest(BaseModel):
+    student_id: str = Field(..., min_length=1)
+    note: str = Field(..., min_length=1, max_length=2000)
+    status: Literal["handled", "continue_followup", "watch", "resolved"] = "continue_followup"
+    next_followup_at: str = Field(default="", max_length=80)
+    intervention_type: str = Field(default="", max_length=80)
+    target_issue: str = Field(default="", max_length=120)
+
+
+class AichatSessionAnalysisRetryRequest(BaseModel):
+    session_id: str = Field(..., min_length=1)
 
 
 class BridgeRuleDraftDecisionRequest(BaseModel):
@@ -1319,12 +1695,12 @@ def _start_problem_analysis_job(pid: str):
 
 
 def retry_pending_reviews(limit: int = 10) -> dict:
-    if not os.environ.get("MOONSHOT_API_KEY"):
+    if not is_review_llm_configured():
         return {
             "attempted": 0,
             "completed": 0,
             "still_pending": 0,
-            "message": "MOONSHOT_API_KEY 未配置，已跳过待生成复盘重试",
+            "message": "复盘生成模型 API Key 未配置，已跳过待生成复盘重试",
         }
 
     jobs = get_pending_review_jobs(limit)
@@ -1422,6 +1798,242 @@ def login(request: LoginRequest):
     )
 
 
+@app.get("/api/health/runner")
+def code_runner_healthcheck() -> dict:
+    return get_runner_health().to_dict()
+
+
+@app.post("/api/student/code/run", response_model=CodeRunResponse)
+def run_student_code_endpoint(
+    request: CodeRunRequest,
+    user: dict = Depends(require_student),
+):
+    if request.language != "cpp17":
+        return CodeRunResponse(
+            status="invalid_request",
+            message="目前只支持 C++17 代码运行。",
+        )
+    return CodeRunResponse(**run_cpp17_sample(
+        code=request.code,
+        stdin=request.stdin,
+        expected_output=request.expected_output,
+    ))
+
+
+@app.get("/api/chat/models")
+def get_chat_models_endpoint(user: dict = Depends(require_student)):
+    return list_chat_model_options()
+
+
+def _update_aichat_problem_memory_after_chat(
+    *,
+    student_id: str,
+    problem_id: str,
+    session_id: str,
+    old_summary: str,
+    student_message: str,
+    assistant_reply: str,
+    problem_context: str,
+    student_code: str,
+    provider_id: str = "",
+) -> None:
+    try:
+        new_summary = summarize_aichat_problem_memory(
+            old_summary=old_summary,
+            student_message=student_message,
+            assistant_reply=assistant_reply,
+            problem_context=problem_context,
+            student_code=student_code,
+            provider_id=provider_id or None,
+        )
+        if new_summary.strip():
+            upsert_aichat_problem_memory(
+                student_id=student_id,
+                problem_id=problem_id,
+                summary=new_summary,
+                source_session_id=session_id,
+            )
+    except Exception as exc:
+        print(f"[aichat_memory] update skipped: {type(exc).__name__}: {exc}")
+
+
+def _schedule_aichat_problem_memory_update(**kwargs) -> None:
+    thread = threading.Thread(
+        target=_update_aichat_problem_memory_after_chat,
+        kwargs=kwargs,
+        daemon=True,
+    )
+    thread.start()
+
+
+TURN_TAGGER_PROMPT_VERSION = "turn_tagger_v1.0.0"
+SESSION_ANALYST_PROMPT_VERSION = "session_analyst_v1.0.0"
+
+
+def _is_aichat_turn_tagger_enabled() -> bool:
+    raw = (os.environ.get("NOI_TURN_TAGGER_ENABLED") or "").strip().lower()
+    return raw in {"1", "true", "yes", "on"}
+
+
+def _run_aichat_turn_tagging(
+    *,
+    student_id: str,
+    student_username: str = "",
+    student_real_name: str = "",
+    problem_id: str = "",
+    session_id: str = "",
+    turn_id: str = "",
+    user_input: str,
+    messages: list,
+    problem_context: dict | None = None,
+    student_code: str = "",
+    rule_weak_signals: list[str] | None = None,
+) -> None:
+    """Run Turn Tagger in the background and persist its observer labels."""
+    try:
+        tag = tag_aichat_turn(
+            user_input=user_input,
+            messages=messages,
+            problem_context=problem_context,
+            student_code=student_code,
+            rule_weak_signals=rule_weak_signals,
+        )
+        if tag.get("_failed"):
+            print(f"[aichat_turn_tagger] skipped failed={tag.get('_reason')}")
+            return
+        record_aichat_turn_tag(
+            student_id=student_id,
+            student_username=student_username or student_id,
+            student_real_name=student_real_name or student_username or student_id,
+            problem_id=problem_id,
+            session_id=session_id,
+            turn_id=turn_id,
+            role="student",
+            primary_intent=tag.get("primary_intent", ""),
+            learning_issue=tag.get("learning_issue", ""),
+            understanding_evidence=tag.get("understanding_evidence") or [],
+            missing_evidence=tag.get("missing_evidence") or [],
+            risk_flags=tag.get("risk_flags") or [],
+            injection_detected=bool(tag.get("injection_detected")),
+            injection_source=tag.get("injection_source", "none"),
+            same_point_loop_signal=bool(tag.get("same_point_loop_signal")),
+            suggested_level=tag.get("suggested_level", ""),
+            confidence=float(tag.get("confidence") or 0),
+            short_reason=tag.get("short_reason", ""),
+            model=os.environ.get("NOI_TURN_TAGGER_MODEL", "deepseek-v4-flash"),
+            prompt_version=TURN_TAGGER_PROMPT_VERSION,
+        )
+    except Exception as exc:
+        print(f"[aichat_turn_tagger] record failed: {type(exc).__name__}: {exc}")
+
+
+def _schedule_aichat_turn_tagging(**kwargs) -> None:
+    if not _is_aichat_turn_tagger_enabled():
+        return
+    thread = threading.Thread(
+        target=_run_aichat_turn_tagging,
+        kwargs=kwargs,
+        daemon=True,
+    )
+    thread.start()
+
+
+def _messages_for_session_analyst(detail: dict) -> list[dict]:
+    """Convert persisted teacher evidence messages into chat-style dialogue."""
+    converted: list[dict] = []
+    for message in detail.get("messages") or []:
+        role = message.get("role")
+        if role == "student":
+            chat_role = "user"
+        elif role == "ai_coach":
+            chat_role = "assistant"
+        else:
+            chat_role = "system"
+        converted.append(
+            {
+                "role": chat_role,
+                "content": message.get("content", ""),
+                "created_at": message.get("created_at", ""),
+            }
+        )
+    return converted
+
+
+def _run_aichat_session_analysis(session_id: str) -> None:
+    """Generate teacher-facing analysis for one AIChat session."""
+    detail = get_teacher_aichat_evidence_session_detail(session_id)
+    if not detail:
+        upsert_aichat_session_analysis(
+            session_id=session_id,
+            status="failed",
+            failure_reason="session_not_found",
+            model=os.environ.get("NOI_SESSION_ANALYST_MODEL", "deepseek-v4-pro"),
+            prompt_version=SESSION_ANALYST_PROMPT_VERSION,
+        )
+        return
+
+    summary = detail.get("summary") or {}
+    student_id = summary.get("student_id", "")
+    problem_id = summary.get("problem_id", "")
+    try:
+        turn_tags = list_aichat_turn_tags(session_id=session_id, limit=200, ascending=True)
+        analysis = analyze_aichat_session(
+            messages=_messages_for_session_analyst(detail),
+            turn_tags=turn_tags,
+            summary=summary,
+            problem_context={"problem_ref": problem_id} if problem_id else None,
+        )
+        if analysis.get("_failed"):
+            upsert_aichat_session_analysis(
+                session_id=session_id,
+                student_id=student_id,
+                problem_id=problem_id,
+                status="failed",
+                failure_reason=analysis.get("_reason", "unknown_failure"),
+                model=os.environ.get("NOI_SESSION_ANALYST_MODEL", "deepseek-v4-pro"),
+                prompt_version=SESSION_ANALYST_PROMPT_VERSION,
+            )
+            return
+        upsert_aichat_session_analysis(
+            session_id=session_id,
+            student_id=student_id,
+            problem_id=problem_id,
+            status="completed",
+            analysis_json=analysis,
+            main_issue=analysis.get("main_issue", ""),
+            teacher_next_action=analysis.get("teacher_next_action", ""),
+            needs_followup=bool(analysis.get("needs_followup")),
+            model=os.environ.get("NOI_SESSION_ANALYST_MODEL", "deepseek-v4-pro"),
+            prompt_version=SESSION_ANALYST_PROMPT_VERSION,
+        )
+    except Exception as exc:
+        upsert_aichat_session_analysis(
+            session_id=session_id,
+            student_id=student_id,
+            problem_id=problem_id,
+            status="failed",
+            failure_reason=f"{type(exc).__name__}: {exc}",
+            model=os.environ.get("NOI_SESSION_ANALYST_MODEL", "deepseek-v4-pro"),
+            prompt_version=SESSION_ANALYST_PROMPT_VERSION,
+        )
+
+
+def _session_analysis_response(row: dict | None) -> dict:
+    if not row:
+        return {"status": "missing", "analysis": None}
+    return {
+        "status": row.get("status") or "processing",
+        "analysis": row.get("analysis_json") or None,
+        "main_issue": row.get("main_issue", ""),
+        "teacher_next_action": row.get("teacher_next_action", ""),
+        "needs_followup": bool(row.get("needs_followup")),
+        "failure_reason": row.get("failure_reason", ""),
+        "model": row.get("model", ""),
+        "prompt_version": row.get("prompt_version", ""),
+        "updated_at": row.get("updated_at", ""),
+    }
+
+
 # ============ Chat Endpoint ============
 @app.post("/chat", response_model=ChatResponse)
 def chat_endpoint(
@@ -1438,43 +2050,344 @@ def chat_endpoint(
 
     # 构建会话 key
     session_key = (user["user_id"], request.problem_id, request.session_id)
+    memory_row = get_aichat_problem_memory(student_id=user["user_id"], problem_id=request.problem_id)
+    memory_summary = (memory_row or {}).get("summary", "")
     
     # 获取或创建会话历史
     if session_key not in session_histories:
-        session_histories[session_key] = []
+        restored_rows = list_aichat_messages(
+            student_id=user["user_id"],
+            problem_id=request.problem_id,
+            session_id=request.session_id,
+            limit=80,
+            ascending=True,
+        )
+        session_histories[session_key] = [
+            {"role": row["role"], "content": row["content"]}
+            for row in restored_rows
+            if row["role"] in {"user", "assistant"} and row["content"]
+        ]
     
-    messages = session_histories[session_key].copy()
-    messages.append({"role": "user", "content": build_chat_message_with_problem_context(request)})
+    full_history = session_histories[session_key]
+    current_user_content = build_chat_message_with_problem_context(request, memory_summary=memory_summary)
+    messages = full_history[-10:].copy()
+    messages.append({"role": "user", "content": current_user_content})
     handoff_payload = build_policy_handoff_payload(
         analyze_student_turn(messages[-1]["content"], messages),
         messages,
     )
 
     try:
-        reply_for_display, reply_for_history, final_level = chat(
-            messages,
-            user["user_id"],
-            request.problem_id,
-        )
+        selected_provider = request.chat_model_provider.strip()
+        if selected_provider:
+            reply_for_display, reply_for_history, final_level = chat(
+                messages,
+                user["user_id"],
+                request.problem_id,
+                selected_provider,
+            )
+        else:
+            reply_for_display, reply_for_history, final_level = chat(
+                messages,
+                user["user_id"],
+                request.problem_id,
+            )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Chat failed: {exc}") from exc
 
-    # 更新会话历史
-    messages.append({"role": "assistant", "content": reply_for_history})
-    session_histories[session_key] = messages
+    # 更新会话历史。内存里保留学生原始问题，当前题目上下文会在每轮请求重新拼接，
+    # 避免旧题面/代码块随历史反复进入模型。
+    full_history.append({"role": "user", "content": request.message})
+    full_history.append({"role": "assistant", "content": reply_for_history})
+    session_histories[session_key] = full_history
+
+    try:
+        has_problem_context = _has_chat_problem_context(request)
+        has_student_code = bool(request.student_code.strip())
+        record_aichat_message(
+            student_id=user["user_id"],
+            problem_id=request.problem_id,
+            session_id=request.session_id,
+            role="user",
+            content=request.message,
+            problem_title=request.problem_title,
+            problem_url=request.problem_url,
+            has_problem_context=has_problem_context,
+            has_student_code=has_student_code,
+        )
+        record_aichat_message(
+            student_id=user["user_id"],
+            problem_id=request.problem_id,
+            session_id=request.session_id,
+            role="assistant",
+            content=reply_for_history,
+            problem_title=request.problem_title,
+            problem_url=request.problem_url,
+            has_problem_context=has_problem_context,
+            has_student_code=has_student_code,
+        )
+    except Exception as exc:
+        print(f"[aichat_message] record failed: {exc}")
+
+    _schedule_aichat_problem_memory_update(
+        student_id=user["user_id"],
+        problem_id=request.problem_id,
+        session_id=request.session_id,
+        old_summary=memory_summary,
+        student_message=request.message,
+        assistant_reply=reply_for_history,
+        problem_context=request.problem_context,
+        student_code=request.student_code,
+        provider_id=request.chat_model_provider.strip(),
+    )
+
+    _schedule_aichat_turn_tagging(
+        student_id=user["user_id"],
+        student_username=user.get("username") or user["user_id"],
+        student_real_name=user.get("display_name") or user.get("real_name") or user.get("username") or user["user_id"],
+        problem_id=request.problem_id,
+        session_id=request.session_id,
+        turn_id=str(uuid4()),
+        user_input=request.message,
+        messages=full_history[-12:],
+        problem_context={
+            "problem_ref": request.problem_id,
+            "title": request.problem_title,
+            "url": request.problem_url,
+            "statement": request.problem_context,
+        },
+        student_code=request.student_code,
+        rule_weak_signals=[],
+    )
     
     # 清理旧会话（保留最近1000个）
     if len(session_histories) > 1000:
         oldest_key = next(iter(session_histories))
         del session_histories[oldest_key]
 
-    # final_level 是 chat() 返回的真实最终等级（已经过硬闸门限制，与配额结算一致）
+    # final_level 是 chat() 返回的真实最终等级（已经过硬闸门限制）
+    chat_model_info = get_chat_model_public_info(request.chat_model_provider)
+    understanding = evaluate_understanding_evidence(full_history)
+    if (
+        understanding.get("understanding_state") == "evidence_seen"
+        and request.problem_id
+        and not has_problem_bottleneck_event(
+            student_id=student_id,
+            problem_ref=request.problem_id,
+            session_id=request.session_id,
+            source_event="aichat_exit_ready",
+        )
+    ):
+        create_problem_bottleneck_event(
+            student_id=student_id,
+            problem_ref=request.problem_id,
+            session_id=request.session_id,
+            source_event="aichat_exit_ready",
+            result_status="ready",
+            bottleneck_type="understanding_ready",
+            target_focus="学生已经留下可进入验证或记录的理解证据",
+            evidence="、".join(understanding.get("evidence_types") or [])[:300],
+        )
     return ChatResponse(
         reply=reply_for_display,
-        remaining_quota=get_remaining_quota(user["user_id"], request.problem_id),
+        remaining_quota=0,
         level=final_level,
         handoff_payload=handoff_payload,
+        understanding_state=understanding["understanding_state"],
+        understanding_evidence=understanding["evidence_types"],
+        chat_model_provider=chat_model_info.get("provider_id", ""),
+        chat_model_label=chat_model_info.get("label", ""),
     )
+
+
+@app.get("/api/chat/history")
+def get_chat_history_endpoint(
+    problem_id: str = "",
+    session_id: str = "",
+    limit: int = 80,
+    user: dict = Depends(require_student),
+):
+    rows = list_aichat_messages(
+        student_id=user["user_id"],
+        problem_id=problem_id,
+        session_id=session_id,
+        limit=limit,
+        ascending=True,
+    )
+    return {
+        "messages": [
+            {"role": row["role"], "content": row["content"]}
+            for row in rows
+            if row["role"] in {"user", "assistant"} and row["content"]
+        ]
+    }
+
+
+@app.post("/api/chat/understanding-check/generate")
+def generate_understanding_check_endpoint(
+    request: UnderstandingCheckGenerateRequest,
+    user: dict = Depends(require_student),
+):
+    recent_rows = list_aichat_messages(
+        student_id=user["user_id"],
+        problem_id=request.problem_id,
+        session_id=request.session_id,
+        limit=12,
+        ascending=True,
+    )
+    recent_messages = [
+        {"role": row["role"], "content": row["content"]}
+        for row in recent_rows
+        if row["role"] in {"user", "assistant"} and row["content"]
+    ]
+    return generate_understanding_check(
+        messages=recent_messages,
+        problem_title=request.problem_title,
+        problem_context=request.problem_context,
+        student_code=request.student_code,
+        chat_model_provider=request.chat_model_provider,
+    )
+
+
+@app.post("/api/chat/understanding-check/grade")
+def grade_understanding_check_endpoint(
+    request: UnderstandingCheckGradeRequest,
+    user: dict = Depends(require_student),
+):
+    del user
+    return grade_understanding_check(
+        question=request.question,
+        answer=request.answer,
+        target_focus=request.target_focus,
+        quiz_format=request.quiz_format,
+        problem_title=request.problem_title,
+        problem_context=request.problem_context,
+        student_code=request.student_code,
+        chat_model_provider=request.chat_model_provider,
+    )
+
+
+@app.post("/api/chat/problem-closure/start")
+def start_problem_closure_endpoint(
+    request: ProblemClosureStartRequest,
+    user: dict = Depends(require_student),
+):
+    recent_rows = list_aichat_messages(
+        student_id=user["user_id"],
+        problem_id=request.problem_id,
+        session_id=request.session_id,
+        limit=12,
+        ascending=True,
+    )
+    recent_messages = [
+        {"role": row["role"], "content": row["content"]}
+        for row in recent_rows
+        if row["role"] in {"user", "assistant"} and row["content"]
+    ]
+    result = generate_understanding_check(
+        messages=recent_messages,
+        problem_title=request.problem_title,
+        problem_context=request.problem_context,
+        student_code=request.student_code,
+        chat_model_provider=request.chat_model_provider,
+    )
+    if result.get("status") != "ok":
+        return {
+            "status": result.get("status") or "unavailable",
+            "message": result.get("message") or "这一步还没准备好验证，先继续问 AIChat。",
+            "closure_id": None,
+        }
+    closure_id = create_aichat_problem_closure(
+        student_id=user["user_id"],
+        problem_id=request.problem_id,
+        session_id=request.session_id,
+        problem_title=request.problem_title,
+        question=result.get("question") or "",
+        target_focus=result.get("target_focus") or "",
+    )
+    create_problem_bottleneck_event(
+        student_id=user["user_id"],
+        problem_ref=request.problem_id,
+        session_id=request.session_id,
+        source_event="closure_quiz",
+        result_status="generated",
+        bottleneck_type=result.get("bottleneck_type") or "",
+        quiz_format=result.get("quiz_format") or "",
+        target_focus=result.get("target_focus") or "",
+        evidence=result.get("evidence") or "",
+    )
+    return {
+        "status": "ok",
+        "closure_id": closure_id,
+        "question": result.get("question") or "",
+        "target_focus": result.get("target_focus") or "",
+        "bottleneck_type": result.get("bottleneck_type") or "",
+        "quiz_format": result.get("quiz_format") or "",
+        "evidence": result.get("evidence") or "",
+        "message": "先回答这个小问题，确认你是真的理解了这一题。",
+    }
+
+
+@app.post("/api/chat/problem-closure/grade")
+def grade_problem_closure_endpoint(
+    request: ProblemClosureGradeRequest,
+    user: dict = Depends(require_student),
+):
+    closure = get_aichat_problem_closure(request.closure_id)
+    if not closure or closure["student_id"] != user["user_id"]:
+        raise HTTPException(status_code=404, detail="没有找到这次结束本题记录")
+    result = grade_understanding_check(
+        question=closure["question"],
+        answer=request.answer,
+        target_focus=closure.get("target_focus", ""),
+        quiz_format=request.quiz_format,
+        problem_title=request.problem_title or closure.get("problem_title", ""),
+        problem_context=request.problem_context,
+        student_code=request.student_code,
+        chat_model_provider=request.chat_model_provider,
+    )
+    raw_status = str(result.get("status") or "failed")
+    status = raw_status if raw_status in {"passed", "partial", "failed", "unavailable"} else "failed"
+    can_review = bool(result.get("can_review")) and status == "passed"
+    final_status = "passed" if can_review else status
+    points_awarded = 2 if can_review else 0
+    next_review_at = ""
+    next_review_message = ""
+    if can_review:
+        next_review_at = (datetime.now(timezone.utc) + timedelta(days=3)).replace(microsecond=0).isoformat()
+        next_review_message = "已记录本题理解结果，建议 3 天后再做一次迁移复习。"
+    updated = grade_aichat_problem_closure(
+        closure_id=request.closure_id,
+        student_id=user["user_id"],
+        status=final_status,
+        answer=request.answer,
+        feedback=result.get("feedback") or "已检查你的回答。",
+        followup=result.get("followup") or "",
+        points_awarded=points_awarded,
+        next_review_at=next_review_at,
+    )
+    create_problem_bottleneck_event(
+        student_id=user["user_id"],
+        problem_ref=closure.get("problem_id", ""),
+        session_id=closure.get("session_id", ""),
+        source_event="problem_closure_passed" if can_review else "problem_closure_failed",
+        result_status=final_status,
+        bottleneck_type=result.get("bottleneck_type") or "",
+        quiz_format=request.quiz_format,
+        target_focus=closure.get("target_focus", ""),
+        evidence=(request.answer or "")[:300],
+        ai_confidence=result.get("confidence") or "",
+    )
+    return {
+        "status": final_status,
+        "closure_id": request.closure_id,
+        "feedback": updated["feedback"] if updated else result.get("feedback", ""),
+        "followup": updated["followup"] if updated else result.get("followup", ""),
+        "points_awarded": points_awarded,
+        "next_review_at": next_review_at,
+        "next_review_message": next_review_message,
+        "can_start_next_problem": can_review,
+    }
 
 
 # ============ Quota Endpoints ============
@@ -1530,25 +2443,60 @@ def import_problem(
     user: dict = Depends(require_student),
 ):
     del user
-    normalized_url = normalize_luogu_problem_url(request.url.strip())
+    raw_ref = request.url.strip()
+    normalized_luogu_url = normalize_luogu_problem_url(raw_ref)
+    normalized_jmfes_url = normalize_jmfes_problem_url(raw_ref)
+    normalized_url = normalized_luogu_url or normalized_jmfes_url
     if not normalized_url:
-        raise HTTPException(status_code=400, detail="当前仅支持导入洛谷题号或公开题目链接")
+        raise HTTPException(status_code=400, detail="当前支持导入洛谷题号/公开题目链接，以及 JMYSOJ 题目链接")
 
     try:
-        payload = fetch_luogu_problem(normalized_url)
+        if normalized_luogu_url:
+            payload = fetch_luogu_problem(normalized_url)
+        else:
+            payload = fetch_jmfes_problem(normalized_url)
     except requests.HTTPError as exc:
-        raise HTTPException(status_code=502, detail=f"读取洛谷题面失败：{exc}") from exc
+        source_name = "洛谷" if normalized_luogu_url else "JMYSOJ"
+        raise HTTPException(status_code=502, detail=f"读取{source_name}题面失败：{exc}") from exc
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    oj_source = payload.get("oj_source") or ("luogu" if normalized_luogu_url else "other")
+    problem_tags = _normalize_ai_problem_tags(payload.get("problem_tags", []))
+    tag_type = "algo" if oj_source == "luogu" and problem_tags else "ai"
+    if not problem_tags:
+        problem_tags = generate_problem_tags_with_ai(
+            problem_title=payload.get("problem_title", ""),
+            problem_context=payload.get("problem_context", ""),
+            oj_source=oj_source,
+        )
+        tag_type = "ai"
+        payload["problem_tags"] = problem_tags
+
+    problem_pid = str(payload.get("problem_pid") or "").strip()
+    if problem_pid:
+        try:
+            upsert_external_problem(
+                source=oj_source,
+                source_problem_id=problem_pid,
+                title=payload.get("problem_title", ""),
+                problem_context=payload.get("problem_context", ""),
+                problem_url=payload.get("problem_url", normalized_url),
+                problem_tags=problem_tags,
+                tag_type=tag_type,
+                raw_payload=payload,
+            )
+        except Exception as exc:
+            print(f"[problem_import] persist failed for {oj_source}:{problem_pid}: {exc}")
 
     return ProblemImportResponse(
         problem_url=payload["problem_url"],
         problem_pid=payload.get("problem_pid"),
         problem_title=payload["problem_title"],
         problem_context=payload["problem_context"],
-        problem_tags=payload.get("problem_tags", []),
-        oj_source="luogu",
-        message="已自动导入洛谷题目标题、题面和标签",
+        problem_tags=problem_tags,
+        oj_source=oj_source,
+        message="已自动导入题目标题和题面",
     )
 
 
@@ -1610,14 +2558,18 @@ def create_checkin_endpoint(
     analysis_source = None
     session_id = _new_checkin_session_id()
 
-    if resolved_oj_source == "luogu" and resolved_problem_url:
+    if resolved_oj_source in {"luogu", "jmfes"} and resolved_problem_url:
         try:
-            imported_problem = fetch_luogu_problem(resolved_problem_url)
+            imported_problem = (
+                fetch_luogu_problem(resolved_problem_url)
+                if resolved_oj_source == "luogu"
+                else fetch_jmfes_problem(resolved_problem_url)
+            )
         except Exception as exc:
             if not resolved_problem_title or len(resolved_problem_context) < 10:
                 raise HTTPException(
                     status_code=422,
-                    detail=f"洛谷题目自动导入失败：{exc}",
+                    detail=f"{'洛谷' if resolved_oj_source == 'luogu' else 'JMYSOJ'}题目自动导入失败：{exc}",
                 ) from exc
         else:
             resolved_problem_url = imported_problem["problem_url"]
@@ -1636,9 +2588,10 @@ def create_checkin_endpoint(
     if not resolved_problem_title:
         raise HTTPException(status_code=422, detail="请填写题目标题，或提供可自动导入的洛谷链接")
 
-    if resolved_oj_source == "luogu":
+    if resolved_oj_source in {"luogu", "jmfes"}:
         if len(resolved_problem_context) < 10:
-            raise HTTPException(status_code=422, detail="请提供可导入的洛谷题号 / 链接，或手动补充题面 / Markdown")
+            source_name = "洛谷" if resolved_oj_source == "luogu" else "JMYSOJ"
+            raise HTTPException(status_code=422, detail=f"请提供可导入的{source_name}题目链接，或手动补充题面 / Markdown")
     else:
         if len(resolved_problem_context) < 10:
             raise HTTPException(status_code=422, detail="当前来源暂不支持自动导入，请至少粘贴10个字的题面 / Markdown")
@@ -1732,6 +2685,330 @@ def get_checkin_detail_endpoint(
             if quiz and quiz.get("status") != "replaced"
         ]
     return item
+
+
+@app.post("/api/student/feedback")
+def submit_student_feedback_endpoint(
+    request: StudentFeedbackRequest,
+    user: dict = Depends(require_student),
+):
+    content = (request.content or "").strip()
+    if len(content) < 5:
+        raise HTTPException(status_code=422, detail={"message": "反馈内容至少写 5 个字"})
+    feedback_id = create_student_feedback(
+        student_id=user["user_id"],
+        category=request.category,
+        rating=request.rating,
+        content=content,
+        page_context=request.page_context,
+    )
+    return {
+        "status": "ok",
+        "message": "反馈已提交，老师可以在教师端看到。",
+        "feedback_id": feedback_id,
+    }
+
+
+@app.post("/api/student/problem-completions")
+def create_student_problem_completion_endpoint(
+    request: StudentProblemCompletionRequest,
+    user: dict = Depends(require_student),
+):
+    record = create_student_problem_completion(
+        student_id=user["user_id"],
+        problem_id=request.problem_id,
+        problem_title=request.problem_title,
+        problem_url=request.problem_url,
+        reported_completion=request.reported_completion,
+        result_status=request.result_status,
+        key_step_summary=request.key_step_summary,
+        session_id=request.session_id,
+    )
+    points_awarded = int(record.get("points_awarded") or 0)
+    if points_awarded > 0:
+        message = f"做题记录已保存，获得 +{points_awarded} 积分。老师看到的是学习证据，不和别人比较。"
+    else:
+        message = "做题记录已保存。等你更确定这题后，再补一条记录也可以。"
+    return {
+        "status": "ok",
+        "message": message,
+        "record": record,
+    }
+
+
+@app.get("/api/student/problem-completions")
+def list_student_problem_completion_endpoint(
+    limit: int = 50,
+    days: int = 365,
+    user: dict = Depends(require_student),
+):
+    records = list_student_problem_completions(
+        student_id=user["user_id"],
+        limit=limit,
+        days=days,
+    )
+    return {
+        "status": "ok",
+        "records": records,
+    }
+
+
+def _serialize_teacher_announcement(row: dict | None) -> dict | None:
+    if not row:
+        return None
+    row = dict(row)
+    return {
+        "id": row["id"],
+        "title": row.get("title") or "",
+        "body_markdown": row.get("body_markdown") or "",
+        "pinned": bool(row.get("pinned")),
+        "status": row.get("status") or "published",
+        "created_by": row.get("created_by") or "",
+        "created_at": row.get("created_at"),
+        "updated_at": row.get("updated_at"),
+        "published_at": row.get("published_at"),
+    }
+
+
+BOTTLENECK_LABELS = {
+    "problem_translation": "题意翻译",
+    "concept_boundary": "概念边界",
+    "representation_modeling": "表示建模",
+    "constraint_relation": "约束关系",
+    "process_tracing": "过程追踪",
+    "strategy_choice": "策略选择",
+    "transfer": "迁移不稳",
+    "code_semantics": "代码语义",
+    "debug_location": "调试定位",
+    "complexity_awareness": "复杂度意识",
+    "metacognition": "复盘表达",
+    "affective": "情绪压力",
+    "current_bottleneck": "当前这一步",
+}
+
+
+def _bottleneck_label(raw: str) -> str:
+    text = (raw or "").strip()
+    return BOTTLENECK_LABELS.get(text, text or "当前这一步")
+
+
+def _build_student_home_snapshot(student_id: str) -> dict:
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        '''
+        SELECT COUNT(DISTINCT problem_id) AS value
+        FROM aichat_messages
+        WHERE student_id = ?
+          AND role = 'user'
+          AND created_at >= datetime('now', '-30 days')
+        ''',
+        (student_id,),
+    )
+    active_problem_count = int((cursor.fetchone() or {"value": 0})["value"] or 0)
+
+    cursor.execute(
+        '''
+        SELECT
+            COALESCE(SUM(CASE WHEN status = 'passed' THEN 1 ELSE 0 END), 0) AS passed_count,
+            COALESCE(SUM(points_awarded), 0) AS points
+        FROM aichat_problem_closures
+        WHERE student_id = ?
+          AND created_at >= datetime('now', '-30 days')
+        ''',
+        (student_id,),
+    )
+    closure_stats = cursor.fetchone()
+    passed_count = int((closure_stats or {"passed_count": 0})["passed_count"] or 0)
+    points = int((closure_stats or {"points": 0})["points"] or 0)
+    cursor.execute(
+        '''
+        SELECT COALESCE(SUM(points_awarded), 0) AS points
+        FROM student_problem_completions
+        WHERE student_id = ?
+          AND created_at >= datetime('now', '-30 days')
+        ''',
+        (student_id,),
+    )
+    completion_points = int((cursor.fetchone() or {"points": 0})["points"] or 0)
+    points += completion_points
+
+    cursor.execute(
+        '''
+        SELECT COUNT(*) AS value
+        FROM reviews r
+        JOIN checkins c ON c.id = r.checkin_id
+        WHERE c.student_id = ?
+          AND r.review_status = ?
+          AND c.created_at >= datetime('now', '-30 days')
+        ''',
+        (student_id, REVIEW_STATUS_COMPLETED),
+    )
+    completed_reviews = int((cursor.fetchone() or {"value": 0})["value"] or 0)
+
+    cursor.execute(
+        '''
+        SELECT id, problem_id, session_id, problem_title, status, question, target_focus, created_at
+        FROM aichat_problem_closures
+        WHERE student_id = ?
+          AND status != 'passed'
+        ORDER BY id DESC
+        LIMIT 1
+        ''',
+        (student_id,),
+    )
+    pending_closure = cursor.fetchone()
+
+    cursor.execute(
+        '''
+        SELECT problem_id, session_id, problem_title, problem_url, content, created_at
+        FROM aichat_messages
+        WHERE student_id = ?
+          AND role = 'user'
+        ORDER BY id DESC
+        LIMIT 1
+        ''',
+        (student_id,),
+    )
+    latest_chat = cursor.fetchone()
+
+    cursor.execute(
+        '''
+        SELECT bottleneck_type, COUNT(*) AS count
+        FROM problem_bottleneck_events
+        WHERE student_id = ?
+          AND bottleneck_type != ''
+          AND created_at >= datetime('now', '-30 days')
+        GROUP BY bottleneck_type
+        ORDER BY count DESC, MAX(id) DESC
+        LIMIT 3
+        ''',
+        (student_id,),
+    )
+    bottlenecks = [
+        {"label": _bottleneck_label(row["bottleneck_type"]), "count": int(row["count"] or 0)}
+        for row in cursor.fetchall()
+    ]
+
+    cursor.execute(
+        '''
+        SELECT id, problem_id, problem_title, target_focus, next_review_at
+        FROM aichat_problem_closures
+        WHERE student_id = ?
+          AND status = 'passed'
+          AND next_review_at != ''
+        ORDER BY next_review_at ASC, id DESC
+        LIMIT 2
+        ''',
+        (student_id,),
+    )
+    reminders = [
+        {
+            "title": row["problem_title"] or row["problem_id"] or "复习提醒",
+            "description": f"回看一下：{row['target_focus'] or '这一步思路'}",
+            "action_label": "去复习",
+            "action_path": "/app/workspace/chat",
+            "next_review_at": row["next_review_at"],
+        }
+        for row in cursor.fetchall()
+    ]
+    conn.close()
+    completion_summary = get_student_completion_summary(student_id, days=15)
+    exit_trigger_summary = get_student_exit_trigger_summary(student_id, days=15)
+    recent_completions = list_student_problem_completions(student_id=student_id, limit=3, days=30)
+
+    if pending_closure:
+        continue_learning = {
+            "kind": "problem_closure",
+            "title": pending_closure["problem_title"] or pending_closure["problem_id"] or "继续结束验证",
+            "description": pending_closure["question"] or "还有一道结束验证等你确认。",
+            "action_label": "继续结束验证",
+            "action_path": "/app/workspace/chat",
+            "problem_id": pending_closure["problem_id"],
+            "problem_title": pending_closure["problem_title"],
+        }
+    elif latest_chat:
+        continue_learning = {
+            "kind": "aichat",
+            "title": latest_chat["problem_title"] or latest_chat["problem_id"] or "继续上一题",
+            "description": "你最近在 AIChat 里问过这道题，可以接着聊或整理一下。",
+            "action_label": "继续问 AI",
+            "action_path": "/app/workspace/chat",
+            "problem_id": latest_chat["problem_id"],
+            "problem_title": latest_chat["problem_title"],
+        }
+    else:
+        continue_learning = {
+            "kind": "empty",
+            "title": "开始今天的练习",
+            "description": "读入一道题，先把没想明白的地方发给 AIChat。",
+            "action_label": "开始问 AI",
+            "action_path": "/app/workspace/chat",
+            "problem_id": "",
+            "problem_title": "",
+        }
+
+    return {
+        "announcement": _serialize_teacher_announcement(get_latest_student_announcement()),
+        "continue_learning": continue_learning,
+        "stats": [
+            {"label": "本月练习题数", "value": active_problem_count},
+            {"label": "理解验证通过", "value": passed_count},
+            {"label": "复盘完成", "value": completed_reviews},
+            {"label": "近 15 天做题记录", "value": completion_summary["last_15_days"]},
+            {"label": "积分", "value": points},
+        ],
+        "completion_summary": completion_summary,
+        "exit_trigger_summary": exit_trigger_summary,
+        "recent_completions": recent_completions,
+        "recent_bottlenecks": bottlenecks,
+        "review_reminders": reminders,
+    }
+
+
+@app.get("/api/student/home")
+def get_student_home_endpoint(user: dict = Depends(require_student)):
+    return _build_student_home_snapshot(user["user_id"])
+
+
+def _build_teacher_attention_students(days: int = 7) -> list[dict]:
+    observations = list_teacher_aichat_observations(limit=80, days=days)
+    grouped: dict[str, dict] = {}
+    for item in observations:
+        student_id = item.get("student_id") or ""
+        if not student_id:
+            continue
+        row = grouped.setdefault(
+            student_id,
+            {
+                "student_id": student_id,
+                "status": "建议看看",
+                "reason": "AIChat 有学习记录但缺少验证证据。",
+                "evidence": item.get("evidence") or item.get("latest_student_message") or "",
+                "teacher_action": item.get("teacher_action") or item.get("suggested_teacher_action") or "先看最近一次 AIChat 对话证据。",
+                "problem_title": item.get("problem_title") or item.get("problem_id") or "未绑定题目",
+                "severity": "medium",
+            },
+        )
+        if (item.get("student_message_count") or 0) >= 4:
+            row["status"] = "优先关注"
+            row["reason"] = "同一题对话轮次较多，可能仍缺少可验证的理解证据。"
+            row["severity"] = "high"
+    completions_by_student: dict[str, dict] = {}
+    for student_id in list(grouped.keys()):
+        completions_by_student[student_id] = get_student_completion_summary(student_id, days=15)
+    for student_id, summary in completions_by_student.items():
+        if summary["last_15_days"] <= 0:
+            grouped[student_id]["reason"] = "AIChat 有学习记录，但近 15 天缺少验证证据和做题记录。"
+        elif summary["self_solved_15_days"] >= 1 and summary["aichat_assisted_15_days"] == 0:
+            grouped[student_id]["status"] = "正在独立推进"
+            grouped[student_id]["reason"] = "近 15 天有自主做题记录，建议继续观察是否能稳定迁移。"
+            grouped[student_id]["severity"] = "low"
+    return sorted(
+        grouped.values(),
+        key=lambda row: {"high": 0, "medium": 1, "low": 2}.get(row["severity"], 1),
+    )[:8]
 
 
 @app.post("/api/review-events", response_model=ReviewEventResponse)
@@ -2449,6 +3726,173 @@ def remedy_resolve_endpoint(
 
 
 # ============ Teacher Dashboard Endpoints ============
+@app.get("/api/teacher/announcements")
+def list_teacher_announcements_endpoint(
+    user: dict = Depends(require_teacher),
+    limit: int = 20,
+):
+    del user
+    return {
+        "announcements": [
+            _serialize_teacher_announcement(row)
+            for row in list_teacher_announcements(limit=limit)
+        ]
+    }
+
+
+@app.post("/api/teacher/announcements")
+def create_teacher_announcement_endpoint(
+    request: TeacherAnnouncementRequest,
+    user: dict = Depends(require_teacher),
+):
+    title = (request.title or "").strip()
+    body = (request.body_markdown or "").strip()
+    if not title:
+        raise HTTPException(status_code=422, detail={"message": "公告标题不能为空"})
+    if not body:
+        raise HTTPException(status_code=422, detail={"message": "公告内容不能为空"})
+    announcement_id = create_teacher_announcement(
+        title=title,
+        body_markdown=body,
+        pinned=request.pinned,
+        status=request.status,
+        created_by=user["user_id"],
+    )
+    announcement = next(
+        (row for row in list_teacher_announcements(limit=50, include_archived=True) if row["id"] == announcement_id),
+        None,
+    )
+    return {
+        "status": "ok",
+        "message": "公告已发布，学生首页会看到。",
+        "announcement": _serialize_teacher_announcement(announcement),
+    }
+
+
+@app.get("/api/teacher/students")
+def list_teacher_students_endpoint(
+    user: dict = Depends(require_teacher),
+):
+    del user
+    return {"students": list_student_accounts()}
+
+
+@app.post("/api/teacher/students")
+def create_teacher_student_endpoint(
+    request: TeacherStudentCreateRequest,
+    user: dict = Depends(require_teacher),
+):
+    del user
+    try:
+        student = create_student_account(
+            display_name=request.display_name,
+            user_id=request.user_id,
+            password=request.password,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail={"message": str(exc)}) from exc
+    return {"status": "ok", "student": student}
+
+
+def _student_bulk_error_code(message: str) -> str:
+    if "显示姓名" in message:
+        return "missing_display_name"
+    if "已经存在" in message:
+        return "duplicate_user_id"
+    if "登录账号" in message:
+        return "invalid_user_id"
+    if "密码" in message:
+        return "invalid_password"
+    return "parse_error"
+
+
+@app.post("/api/teacher/students/bulk")
+def create_teacher_students_bulk_endpoint(
+    request: TeacherStudentBulkCreateRequest,
+    user: dict = Depends(require_teacher),
+):
+    del user
+    success_rows = []
+    failed_rows = []
+    for index, row in enumerate(request.rows, start=1):
+        row_index = row.row_index or index
+        display_name = (row.display_name or "").strip()
+        user_id = (row.user_id or "").strip()
+        password = (row.password or "").strip()
+        if not display_name:
+            failed_rows.append({
+                "row_index": row_index,
+                "display_name": display_name,
+                "user_id": user_id,
+                "error_code": "missing_display_name",
+                "error_message": "请填写显示姓名",
+            })
+            continue
+        try:
+            student = create_student_account(
+                display_name=display_name,
+                user_id=user_id,
+                password=password,
+            )
+        except ValueError as exc:
+            message = str(exc)
+            failed_rows.append({
+                "row_index": row_index,
+                "display_name": display_name,
+                "user_id": user_id,
+                "error_code": _student_bulk_error_code(message),
+                "error_message": message,
+            })
+            continue
+        success_rows.append({
+            "row_index": row_index,
+            "student": student,
+        })
+    return {
+        "status": "ok",
+        "success_rows": success_rows,
+        "failed_rows": failed_rows,
+    }
+
+
+@app.post("/api/teacher/students/{student_id}/reset-password")
+def reset_teacher_student_password_endpoint(
+    student_id: str,
+    request: TeacherStudentPasswordResetRequest,
+    user: dict = Depends(require_teacher),
+):
+    del user
+    try:
+        student = reset_student_password(student_id, request.password)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail={"message": str(exc)}) from exc
+    return {"status": "ok", "student": student}
+
+
+@app.post("/api/teacher/students/{student_id}/status")
+def update_teacher_student_status_endpoint(
+    student_id: str,
+    request: TeacherStudentStatusRequest,
+    user: dict = Depends(require_teacher),
+):
+    del user
+    try:
+        student = set_student_active(student_id, request.active)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail={"message": str(exc)}) from exc
+    return {"status": "ok", "student": student}
+
+
+@app.get("/api/teacher/student-feedback")
+def list_teacher_student_feedback_endpoint(
+    user: dict = Depends(require_teacher),
+    limit: int = 100,
+    offset: int = 0,
+):
+    del user
+    return {"feedback": list_student_feedback(limit=limit, offset=offset)}
+
+
 @app.get("/api/teacher/review-samples")
 def get_teacher_review_samples(
     user: dict = Depends(require_teacher),
@@ -2622,6 +4066,20 @@ def get_teacher_stats(
     bridge_route_stats = get_bridge_route_stats(days)
     bridge_route_promotion_suggestions = get_bridge_route_promotion_suggestions(days)
     knowledge_bailout_stats = get_knowledge_bailout_stats(days)
+    learning_issue_stats = get_aichat_learning_issue_stats(7)
+    completion_summary = get_class_completion_summary(15)
+    exit_trigger_summary = get_class_exit_trigger_summary(15)
+    attention_students = _build_teacher_attention_students(days=7)
+    teaching_suggestions = [
+        {
+            "title": row.get("label") or "近期学习问题",
+            "reason": f"近 7 天有 {row.get('student_count', 0)} 名学生出现这一类问题。",
+            "how_to_teach": row.get("teacher_action") or "先看学生最近一次 AIChat 证据，再用一个小样例讲清关键关系。",
+            "students": [example.get("student_id", "") for example in (row.get("examples") or []) if example.get("student_id")],
+            "evidence": row.get("examples") or [],
+        }
+        for row in learning_issue_stats[:3]
+    ]
     manual_review_stats = get_manual_review_stats(days, teacher_id=user["user_id"])
     manual_review_stats_by_mode = get_manual_review_stats_breakdown(days, group_by="review_mode", teacher_id=user["user_id"])
     manual_review_stats_by_family = get_manual_review_stats_breakdown(days, group_by="review_family", teacher_id=user["user_id"])
@@ -2638,6 +4096,11 @@ def get_teacher_stats(
         "bridge_route_stats": bridge_route_stats,
         "bridge_route_promotion_suggestions": bridge_route_promotion_suggestions,
         "knowledge_bailout_stats": knowledge_bailout_stats,
+        "learning_issue_stats": learning_issue_stats,
+        "completion_summary": completion_summary,
+        "exit_trigger_summary": exit_trigger_summary,
+        "attention_students": attention_students,
+        "teaching_suggestions": teaching_suggestions,
         "manual_review_stats": manual_review_stats,
         "manual_review_stats_by_mode": manual_review_stats_by_mode,
         "manual_review_stats_by_family": manual_review_stats_by_family,
@@ -2651,6 +4114,200 @@ def get_teacher_flags(
     """Teacher gets flagged students"""
     flags = get_student_flags()
     return {"flags": flags}
+
+
+@app.get("/api/teacher/aichat-observations")
+def get_teacher_aichat_observations(
+    user: dict = Depends(require_teacher),
+    limit: int = 30,
+    days: int = 30,
+):
+    """Teacher sees recent AIChat-only learning bottlenecks."""
+    del user
+    observations = list_teacher_aichat_observations(limit=limit, days=days)
+    return {"observations": observations}
+
+
+@app.get("/api/teacher/student-dossier")
+def get_teacher_student_dossier(
+    student_id: str,
+    days: int = 15,
+    user: dict = Depends(require_teacher),
+):
+    """Teacher sees one student's recent learning diagnosis dossier."""
+    del user
+    clean_student_id = (student_id or "").strip()
+    if not clean_student_id:
+        raise HTTPException(status_code=422, detail={"message": "student_id 不能为空"})
+    return get_student_learning_dossier(clean_student_id, days=days)
+
+
+@app.get("/api/teacher/class-learning-diagnosis")
+def get_teacher_class_learning_diagnosis(
+    days: int = 15,
+    user: dict = Depends(require_teacher),
+):
+    """Teacher sees class-level learning diagnosis for the homepage."""
+    del user
+    return get_class_learning_diagnosis(days=days)
+
+
+@app.post("/api/teacher/student-notes")
+def create_teacher_student_note_endpoint(
+    request: TeacherStudentNoteRequest,
+    user: dict = Depends(require_teacher),
+):
+    """Teacher writes a follow-up note for a student."""
+    note = create_teacher_student_note(
+        student_id=request.student_id,
+        teacher_id=user.get("user_id", ""),
+        note=request.note,
+        status=request.status,
+        next_followup_at=request.next_followup_at,
+        intervention_type=request.intervention_type,
+        target_issue=request.target_issue,
+    )
+    return {"status": "ok", "note": note}
+
+
+@app.get("/api/teacher/student-notes")
+def get_teacher_student_notes_endpoint(
+    student_id: str,
+    user: dict = Depends(require_teacher),
+):
+    """Teacher lists follow-up notes for a student."""
+    del user
+    clean_student_id = (student_id or "").strip()
+    if not clean_student_id:
+        raise HTTPException(status_code=422, detail={"message": "student_id 不能为空"})
+    return {"notes": list_teacher_student_notes(clean_student_id)}
+
+
+@app.get("/api/teacher/aichat_students")
+def get_teacher_aichat_students(
+    user: dict = Depends(require_teacher),
+):
+    """Teacher sees students who have complete AIChat evidence records."""
+    del user
+    return {"students": list_teacher_aichat_evidence_students()}
+
+
+@app.get("/api/teacher/aichat_sessions")
+def get_teacher_aichat_sessions(
+    student_id: str,
+    user: dict = Depends(require_teacher),
+):
+    """Teacher sees one student's AIChat evidence sessions."""
+    del user
+    clean_student_id = (student_id or "").strip()
+    if not clean_student_id:
+        raise HTTPException(status_code=422, detail={"message": "student_id 不能为空"})
+    return {"sessions": list_teacher_aichat_evidence_sessions(clean_student_id)}
+
+
+@app.get("/api/teacher/aichat_session_detail")
+def get_teacher_aichat_session_detail(
+    session_id: str,
+    user: dict = Depends(require_teacher),
+):
+    """Teacher sees complete messages, summary, and judge labels for a session."""
+    del user
+    clean_session_id = (session_id or "").strip()
+    if not clean_session_id:
+        raise HTTPException(status_code=422, detail={"message": "session_id 不能为空"})
+    detail = get_teacher_aichat_evidence_session_detail(clean_session_id)
+    if not detail:
+        raise HTTPException(status_code=404, detail={"message": "未找到对应 AIChat 会话"})
+    return detail
+
+
+@app.get("/api/teacher/aichat_session_analysis")
+def get_teacher_aichat_session_analysis(
+    session_id: str,
+    background_tasks: BackgroundTasks,
+    user: dict = Depends(require_teacher),
+):
+    """Teacher-facing lazy session analysis.
+
+    Trigger: teacher opens a session. If no analysis exists, create a
+    processing row and generate outside the student reply path.
+    """
+    del user
+    clean_session_id = (session_id or "").strip()
+    if not clean_session_id:
+        raise HTTPException(status_code=422, detail={"message": "session_id 不能为空"})
+
+    detail = get_teacher_aichat_evidence_session_detail(clean_session_id)
+    if not detail:
+        raise HTTPException(status_code=404, detail={"message": "未找到对应 AIChat 会话"})
+
+    existing = get_aichat_session_analysis(clean_session_id)
+    if existing and existing.get("status") in {"completed", "failed", "processing"}:
+        return _session_analysis_response(existing)
+
+    summary = detail.get("summary") or {}
+    upsert_aichat_session_analysis(
+        session_id=clean_session_id,
+        student_id=summary.get("student_id", ""),
+        problem_id=summary.get("problem_id", ""),
+        status="processing",
+        model=os.environ.get("NOI_SESSION_ANALYST_MODEL", "deepseek-v4-pro"),
+        prompt_version=SESSION_ANALYST_PROMPT_VERSION,
+    )
+
+    if (os.environ.get("NOI_SESSION_ANALYST_SYNC") or "").strip().lower() in {"1", "true", "yes", "on"}:
+        _run_aichat_session_analysis(clean_session_id)
+        return _session_analysis_response(get_aichat_session_analysis(clean_session_id))
+
+    background_tasks.add_task(_run_aichat_session_analysis, clean_session_id)
+    return _session_analysis_response(get_aichat_session_analysis(clean_session_id))
+
+
+@app.post("/api/teacher/aichat_session_analysis/retry")
+def retry_teacher_aichat_session_analysis(
+    request: AichatSessionAnalysisRetryRequest,
+    background_tasks: BackgroundTasks,
+    user: dict = Depends(require_teacher),
+):
+    """Teacher manually regenerates one session analysis."""
+    del user
+    clean_session_id = (request.session_id or "").strip()
+    if not clean_session_id:
+        raise HTTPException(status_code=422, detail={"message": "session_id 不能为空"})
+    detail = get_teacher_aichat_evidence_session_detail(clean_session_id)
+    if not detail:
+        raise HTTPException(status_code=404, detail={"message": "未找到对应 AIChat 会话"})
+
+    summary = detail.get("summary") or {}
+    upsert_aichat_session_analysis(
+        session_id=clean_session_id,
+        student_id=summary.get("student_id", ""),
+        problem_id=summary.get("problem_id", ""),
+        status="processing",
+        analysis_json={},
+        main_issue="",
+        teacher_next_action="",
+        needs_followup=False,
+        model=os.environ.get("NOI_SESSION_ANALYST_MODEL", "deepseek-v4-pro"),
+        prompt_version=SESSION_ANALYST_PROMPT_VERSION,
+        failure_reason="",
+    )
+    if (os.environ.get("NOI_SESSION_ANALYST_SYNC") or "").strip().lower() in {"1", "true", "yes", "on"}:
+        _run_aichat_session_analysis(clean_session_id)
+        return _session_analysis_response(get_aichat_session_analysis(clean_session_id))
+
+    background_tasks.add_task(_run_aichat_session_analysis, clean_session_id)
+    return _session_analysis_response(get_aichat_session_analysis(clean_session_id))
+
+
+@app.get("/api/teacher/aichat_session_analysis/health")
+def get_teacher_aichat_session_analysis_health(
+    user: dict = Depends(require_teacher),
+    days: int = 7,
+):
+    """Teacher sees whether the Session Analyst pipeline is healthy."""
+    del user
+    return get_aichat_session_analysis_health(days=days)
 
 
 @app.get("/api/teacher/usage")
@@ -2738,7 +4395,14 @@ def serve_frontend(path: str = ""):
     if first_segment and first_segment not in allowed_prefixes:
         return RedirectResponse(url="/app")
 
-    return FileResponse(os.path.join(BASE_DIR, "static", "index.html"))
+    return FileResponse(
+        os.path.join(BASE_DIR, "static", "dist", "index.html"),
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
 
 
 # Mount static files

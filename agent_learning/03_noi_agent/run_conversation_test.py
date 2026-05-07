@@ -1,5 +1,10 @@
 import json
 import os
+
+if __name__ != "__main__":
+    import pytest
+    pytest.skip("旧版真实 LLM 手工演示脚本，不作为 pytest 自动回归测试。", allow_module_level=True)
+
 from noi_agent import chat, load_quota, QUOTA_FILE
 
 # 清理旧的测试数据

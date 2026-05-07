@@ -1,0 +1,12 @@
+[db] Database initialized at /Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/noi_agent.db
+[classifier] skipped reason=skip_l1 input_len=443
+[classifier] skipped reason=skip_high_confidence_risk input_len=462
+[aichat_memory] update skipped: APITimeoutError: Request timed out.
+[classifier] skipped reason=skip_high_confidence_risk input_len=475
+[aichat_memory] update skipped: APITimeoutError: Request timed out.
+[classifier] skipped reason=skip_non_semantic_l2 input_len=493
+[classifier] skipped reason=skip_non_semantic_l2 input_len=422
+[classifier] skipped reason=skip_non_semantic_l2 input_len=527
+[classifier] skipped reason=skip_non_semantic_l2 input_len=440
+[classifier] skipped reason=skip_high_confidence_risk input_len=458
+{"output_dir": "evals/aichat/model_latency_runs/pro_vs_flash_20260430_212128/deepseek-v4-pro/20260430_212129", "generated_at": "2026-04-30T21:25:07", "provider_count": 1, "row_count": 8, "providers": {"deepseek": {"provider_id": "deepseek", "provider_label": "DeepSeek", "model": "deepseek-v4-pro", "thinking_mode": "enabled", "measured_count": 8, "success_count": 3, "error_count": 5, "success_rate": 0.375, "error_rate": 0.625, "quality_gate_pass_rate": 0.375, "request_ms_avg": 27190, "request_ms_p50": 30173, "request_ms_p95": 31394, "llm_ms_avg": 22324, "llm_ms_p95": 26295}}, "by_input_mode": {"deepseek": {"未标注": {"measured_count": 8, "success_count": 3, "error_count": 5, "success_rate": 0.375, "error_rate": 0.625, "quality_gate_pass_rate": 0.375, "request_ms_avg": 27190, "request_ms_p50": 30173, "request_ms_p95": 31394, "llm_ms_avg": 22324, "llm_ms_p95": 26295}}}, "by_algorithm_tag": {"deepseek": {"未标注": {"measured_count": 8, "success_count": 3, "error_count": 5, "success_rate": 0.375, "error_rate": 0.625, "quality_gate_pass_rate": 0.375, "request_ms_avg": 27190, "request_ms_p50": 30173, "request_ms_p95": 31394, "llm_ms_avg": 22324, "llm_ms_p95": 26295}}}, "fastest_provider_by_avg_request_ms": "deepseek"}

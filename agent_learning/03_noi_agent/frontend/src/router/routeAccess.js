@@ -1,4 +1,4 @@
-export const STUDENT_HOME_PATH = '/app/workspace/chat';
+export const STUDENT_HOME_PATH = '/app/home';
 export const TEACHER_HOME_PATH = '/app/teacher/overview';
 
 export function isTeacherPath(path = '') {

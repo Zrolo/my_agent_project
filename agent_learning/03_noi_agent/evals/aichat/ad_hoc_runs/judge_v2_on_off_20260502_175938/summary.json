@@ -1,0 +1,25 @@
+{
+  "judge_off": {
+    "success": 10,
+    "count": 10,
+    "avg_ms": 10421,
+    "p50_ms": 6852,
+    "min_ms": 1,
+    "max_ms": 29103
+  },
+  "judge_on": {
+    "success": 10,
+    "count": 10,
+    "avg_ms": 10077,
+    "p50_ms": 10034,
+    "min_ms": 2334,
+    "max_ms": 21394
+  },
+  "judge_v2": {
+    "avg_ms": 2263,
+    "p50_ms": 2232,
+    "min_ms": 1972,
+    "max_ms": 2844,
+    "failed": 0
+  }
+}

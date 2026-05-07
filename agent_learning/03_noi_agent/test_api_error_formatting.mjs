@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   createCheckin,
   formatApiErrorDetail,
+  login,
   setUnauthorizedHandler,
 } from './frontend/src/services/api.js';
 
@@ -45,6 +46,52 @@ test('api request invokes unauthorized handler on expired token', async () => {
     assert.equal(called, true);
   } finally {
     setUnauthorizedHandler(null);
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('api request turns html error pages into readable Chinese errors', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({
+    ok: false,
+    status: 502,
+    headers: {
+      get(name) {
+        return name.toLowerCase() === 'content-type' ? 'text/html; charset=utf-8' : null;
+      },
+    },
+    text: async () => '<html><h1>502 Bad Gateway</h1></html>',
+  });
+
+  try {
+    await assert.rejects(
+      () => createCheckin('token', {}),
+      /服务器暂时没有返回可识别的接口数据/,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('api request turns unexpected html success pages into readable Chinese errors', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({
+    ok: true,
+    status: 200,
+    headers: {
+      get(name) {
+        return name.toLowerCase() === 'content-type' ? 'text/html; charset=utf-8' : null;
+      },
+    },
+    text: async () => '<html><body>login page</body></html>',
+  });
+
+  try {
+    await assert.rejects(
+      () => login({ user_id: 'student', password: 'pw' }),
+      /服务器暂时没有返回可识别的接口数据/,
+    );
+  } finally {
     globalThis.fetch = originalFetch;
   }
 });
