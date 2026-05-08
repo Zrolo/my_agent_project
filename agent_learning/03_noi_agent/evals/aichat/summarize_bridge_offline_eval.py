@@ -1,5 +1,6 @@
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -51,13 +52,104 @@ def _accuracy(rows: list[dict], key: str) -> float | None:
     return _round_ratio(correct, len(comparable))
 
 
+def _known_focus_accuracy_on_registered(rows: list[dict]) -> float | None:
+    comparable = [
+        row
+        for row in rows
+        if _gold(row, "known_focus")
+        and _gold(row, "known_focus") != "unknown"
+        and _prediction(row, "known_focus")
+    ]
+    if not comparable:
+        return None
+    correct = sum(1 for row in comparable if _gold(row, "known_focus") == _prediction(row, "known_focus"))
+    return _round_ratio(correct, len(comparable))
+
+
+def _unknown_focus_recall(rows: list[dict]) -> float | None:
+    unknown_rows = [
+        row
+        for row in rows
+        if _gold(row, "known_focus") == "unknown" or bool((row.get("gold") or {}).get("needs_new_focus"))
+    ]
+    if not unknown_rows:
+        return None
+    correct = 0
+    for row in unknown_rows:
+        bridge = row.get("bridge_judge_result") or {}
+        missing_bridge = bridge.get("missing_bridge") or {}
+        if missing_bridge.get("known_focus") == "unknown" or bool(missing_bridge.get("needs_new_focus")):
+            correct += 1
+    return _round_ratio(correct, len(unknown_rows))
+
+
 def _avg(values: list[float]) -> float | None:
     if not values:
         return None
     return round(sum(values) / len(values), 3)
 
 
-def summarize_bridge_offline_results(rows: list[dict]) -> dict:
+def _percentile(values: list[float], percentile: float) -> float | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    if percentile == 50:
+        middle = len(ordered) // 2
+        if len(ordered) % 2:
+            return round(ordered[middle], 3)
+        return round((ordered[middle - 1] + ordered[middle]) / 2, 3)
+    index = max(0, min(len(ordered) - 1, math.ceil((percentile / 100) * len(ordered)) - 1))
+    return round(ordered[index], 3)
+
+
+def _latency_summary(rows: list[dict]) -> dict:
+    totals = []
+    for row in rows:
+        latency = row.get("latency_ms") or {}
+        value = latency.get("total_latency_ms")
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            totals.append(float(value))
+    return {
+        "total_p50": _percentile(totals, 50),
+        "total_p95": _percentile(totals, 95),
+    }
+
+
+def _stage_error_counts(rows: list[dict]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for row in rows:
+        stage_errors = row.get("stage_errors") or {}
+        if not isinstance(stage_errors, dict):
+            continue
+        for stage, error in stage_errors.items():
+            if error:
+                counts[str(stage)] = counts.get(str(stage), 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _experimental_group_key(row: dict) -> str:
+    models = row.get("models") or {}
+    tutor_response = row.get("tutor_response") or {}
+    tutor_mode = row.get("tutor_mode") or models.get("tutor_mode") or tutor_response.get("tutor_mode") or "unknown"
+    guard_mode = row.get("guard_mode") or models.get("guard_mode") or "unknown"
+    tutor_model_provider = (
+        models.get("tutor_model_provider") or tutor_response.get("tutor_model_provider") or "unknown"
+    )
+    return f"tutor_mode={tutor_mode}|guard_mode={guard_mode}|tutor_model_provider={tutor_model_provider}"
+
+
+def _group_summaries(rows: list[dict]) -> dict:
+    grouped: dict[str, list[dict]] = {}
+    for row in rows:
+        key = _experimental_group_key(row)
+        grouped.setdefault(key, []).append(row)
+    return {
+        key: summarize_bridge_offline_results(group_rows, include_groups=False)
+        for key, group_rows in sorted(grouped.items())
+    }
+
+
+def summarize_bridge_offline_results(rows: list[dict], *, include_groups: bool = True) -> dict:
     completed = [
         row
         for row in rows
@@ -95,6 +187,8 @@ def summarize_bridge_offline_results(rows: list[dict]) -> dict:
         "student_state_accuracy": _accuracy(completed, "student_state"),
         "bridge_family_accuracy": _accuracy(completed, "bridge_family"),
         "known_focus_accuracy": _accuracy(completed, "known_focus"),
+        "known_focus_accuracy_on_registered": _known_focus_accuracy_on_registered(completed),
+        "unknown_focus_recall": _unknown_focus_recall(completed),
         "help_seeking_type_accuracy": _accuracy(completed, "help_seeking_type"),
         "allowed_help_level_accuracy": _accuracy(completed, "allowed_help_level"),
         "leakage_rate": _round_ratio(leakage_count, len(leakage_rows)),
@@ -104,6 +198,9 @@ def summarize_bridge_offline_results(rows: list[dict]) -> dict:
         "block_rate": _round_ratio(block_count, len(leakage_rows)),
         "repair_rate": _round_ratio(repair_count, len(completed)),
         "avg_bridge_judge_confidence": _avg(confidences),
+        "latency_ms": _latency_summary(completed),
+        "stage_error_counts": _stage_error_counts(rows),
+        "groups": _group_summaries(rows) if include_groups else {},
         "safe_action_counts": dict(sorted(safe_action_counts.items())),
         "leakage_level_counts": dict(sorted(leakage_level_counts.items())),
         "error_cases": [
@@ -130,6 +227,8 @@ def render_markdown_report(summary: dict) -> str:
         ("Student State Accuracy", summary.get("student_state_accuracy")),
         ("Bridge Family Accuracy", summary.get("bridge_family_accuracy")),
         ("Known Focus Accuracy", summary.get("known_focus_accuracy")),
+        ("Known Focus Accuracy On Registered", summary.get("known_focus_accuracy_on_registered")),
+        ("Unknown Focus Recall", summary.get("unknown_focus_recall")),
         ("Help Seeking Type Accuracy", summary.get("help_seeking_type_accuracy")),
         ("Allowed Help Level Accuracy", summary.get("allowed_help_level_accuracy")),
         ("Leakage Rate", summary.get("leakage_rate")),
@@ -139,6 +238,8 @@ def render_markdown_report(summary: dict) -> str:
         ("Block Rate", summary.get("block_rate")),
         ("Repair Rate", summary.get("repair_rate")),
         ("Avg Bridge Judge Confidence", summary.get("avg_bridge_judge_confidence")),
+        ("Total Latency P50 ms", (summary.get("latency_ms") or {}).get("total_p50")),
+        ("Total Latency P95 ms", (summary.get("latency_ms") or {}).get("total_p95")),
     ]
     lines = [
         "# Bridge Offline Eval Summary",
@@ -161,8 +262,32 @@ def render_markdown_report(summary: dict) -> str:
             "```json",
             json.dumps(summary.get("safe_action_counts", {}), ensure_ascii=False, indent=2),
             "```",
+            "",
+            "## Stage Errors",
+            "",
+            "```json",
+            json.dumps(summary.get("stage_error_counts", {}), ensure_ascii=False, indent=2),
+            "```",
         ]
     )
+    groups = summary.get("groups") or {}
+    if groups:
+        lines.extend(["", "## Groups", ""])
+        for key, group_summary in groups.items():
+            lines.extend(
+                [
+                    f"### {key}",
+                    "",
+                    "| Metric | Value |",
+                    "| --- | ---: |",
+                    f"| Case Count | {_fmt(group_summary.get('case_count'))} |",
+                    f"| Completed Count | {_fmt(group_summary.get('completed_count'))} |",
+                    f"| Bridge Family Accuracy | {_fmt(group_summary.get('bridge_family_accuracy'))} |",
+                    f"| Critical Bridge Leakage Rate | {_fmt(group_summary.get('critical_bridge_leakage_rate'))} |",
+                    f"| Total Latency P50 ms | {_fmt((group_summary.get('latency_ms') or {}).get('total_p50'))} |",
+                    "",
+                ]
+            )
     error_cases = summary.get("error_cases") or []
     if error_cases:
         lines.extend(["", "## Error Cases", ""])

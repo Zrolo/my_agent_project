@@ -1,0 +1,125 @@
+{
+  "version": "focus_registry_v1",
+  "description": "Compact NOI focus registry for offline Bridge Judge evaluation. The registry is used as a candidate set for missing_bridge.known_focus; it is not a gold label file.",
+  "focuses": [
+    {
+      "focus_id": "state_design",
+      "bridge_family": "representation_bridge",
+      "description": "学生知道大概方向，但不能定义 DP 状态、数组格子、维度或状态含义。",
+      "aliases": ["状态定义", "状态设计", "维度选择", "dp 含义", "数组含义"],
+      "example_student_utterances": ["我知道要 DP，但不知道 dp[i][j] 应该表示什么。"]
+    },
+    {
+      "focus_id": "transition_design",
+      "bridge_family": "transition_bridge",
+      "description": "学生已有状态或结构雏形，但不知道当前状态从哪些前置情况转移而来，或漏掉来源。",
+      "aliases": ["转移设计", "转移方程", "来源关系", "漏情况", "状态转移"],
+      "example_student_utterances": ["状态我大概会设，但不知道这一格能从哪里转移过来。"]
+    },
+    {
+      "focus_id": "check_condition",
+      "bridge_family": "predicate_bridge",
+      "description": "二分、判定或循环中的 check/if 条件语义不清，不知道候选答案如何翻译成可行性判断。",
+      "aliases": ["check", "判定函数", "可行性判断", "二分判断", "条件怎么写"],
+      "example_student_utterances": ["我知道要二分，但 check 里面到底判断什么？"]
+    },
+    {
+      "focus_id": "enumeration_order",
+      "bridge_family": "ordering_bridge",
+      "description": "学生不理解循环、枚举、更新或 DP 遍历顺序为什么必须这样安排。",
+      "aliases": ["枚举顺序", "循环顺序", "更新顺序", "倒序循环", "遍历顺序"],
+      "example_student_utterances": ["为什么这里 j 要倒着循环，正着不行吗？"]
+    },
+    {
+      "focus_id": "greedy_basis",
+      "bridge_family": "selection_bridge",
+      "description": "学生能猜到贪心或局部选择，但不知道为什么这个选择安全，缺少交换、反例或不变式依据。",
+      "aliases": ["贪心依据", "局部最优", "交换证明", "为什么选这个", "贪心正确性"],
+      "example_student_utterances": ["为什么每次选最小的就一定不会亏？"]
+    },
+    {
+      "focus_id": "tree_path_difference",
+      "bridge_family": "aggregation_bridge",
+      "description": "树上多条路径贡献如何转成端点/LCA 差分标记，并通过 DFS 汇总还原经过次数。",
+      "aliases": ["树上差分", "路径贡献", "LCA 标记", "端点打标记", "DFS 汇总", "经过次数"],
+      "example_student_utterances": ["我知道要 LCA，但不知道每条路径到底在哪里加减标记。"]
+    },
+    {
+      "focus_id": "general_modeling",
+      "bridge_family": "modeling_bridge",
+      "description": "学生读懂局部题意，但不知道把题面对象、关系或操作抽象成可计算结构。",
+      "aliases": ["建模", "抽象对象", "对象关系", "结构化", "题意转模型"],
+      "example_student_utterances": ["题目我看懂了，但不知道这些东西应该抽象成什么。"]
+    },
+    {
+      "focus_id": "constraint_modeling",
+      "bridge_family": "modeling_bridge",
+      "description": "学生不能把限制条件、范围、依赖或不等式转成算法中的结构关系。",
+      "aliases": ["约束建模", "限制条件", "依赖关系", "不等式", "合法性"],
+      "example_student_utterances": ["这些限制到底要怎么体现在状态或者边里？"]
+    },
+    {
+      "focus_id": "boundary_debug",
+      "bridge_family": "boundary_bridge",
+      "description": "边界、特判、初始化、下标或最小规模样例导致 WA/RE，但学生缺少定位方法。",
+      "aliases": ["边界", "特判", "初始化", "最小情况", "边界调试"],
+      "example_student_utterances": ["大样例好像能过，但小数据和边界总是 WA。"]
+    },
+    {
+      "focus_id": "method_selection",
+      "bridge_family": "selection_bridge",
+      "description": "学生不知道题面特征如何支持选择某类算法或数据结构，容易只猜算法名。",
+      "aliases": ["方法选择", "算法选择", "题型判断", "为什么用这个", "是不是某算法"],
+      "example_student_utterances": ["这题是不是二分？我看不出从哪里判断。"]
+    },
+    {
+      "focus_id": "data_type",
+      "bridge_family": "boundary_bridge",
+      "description": "整数范围、溢出、精度或哨兵值选择不当导致错误。",
+      "aliases": ["long long", "溢出", "精度", "1e18", "数据范围"],
+      "example_student_utterances": ["我看不出这里为什么 int 会炸。"]
+    },
+    {
+      "focus_id": "loop_boundary",
+      "bridge_family": "boundary_bridge",
+      "description": "循环起止、0/1 下标、包含端点、数组越界或 off-by-one 边界不清。",
+      "aliases": ["下标", "越界", "循环范围", "0-indexed", "1-indexed", "off by one"],
+      "example_student_utterances": ["这里到底应该循环到 n 还是 n-1？"]
+    },
+    {
+      "focus_id": "recursion_structure",
+      "bridge_family": "transition_bridge",
+      "description": "递归、分治、DFS 或搜索中的 base case、拆分关系和返回值含义不清。",
+      "aliases": ["递归", "base case", "什么时候停", "分治", "DFS 返回值"],
+      "example_student_utterances": ["递归函数每次应该返回什么，什么时候停？"]
+    },
+    {
+      "focus_id": "complexity_fit",
+      "bridge_family": "complexity_bridge",
+      "description": "学生不知道如何用数据范围判断算法复杂度是否可行，或 TLE 后无法调整思路。",
+      "aliases": ["复杂度", "TLE", "n <=", "O(n^2)", "能不能过"],
+      "example_student_utterances": ["n 这么大，我这个双重循环到底能不能过？"]
+    },
+    {
+      "focus_id": "lazy_semantics",
+      "bridge_family": "aggregation_bridge",
+      "description": "线段树懒标记的含义、下传时机、区间影响如何延迟保存与传播不清。",
+      "aliases": ["lazy", "懒标记", "pushdown", "区间修改", "标记下传"],
+      "example_student_utterances": ["我知道要 lazy，但不明白这个标记到底表示什么。"]
+    },
+    {
+      "focus_id": "shared_prefix_merging",
+      "bridge_family": "aggregation_bridge",
+      "description": "Trie/前缀结构中公共前缀如何合并存储、如何用节点计数或路径共享减少重复比较。",
+      "aliases": ["Trie", "字典树", "公共前缀", "前缀合并", "节点计数"],
+      "example_student_utterances": ["我不懂为什么建 trie 后就不用把所有字符串重看一遍。"]
+    },
+    {
+      "focus_id": "left_bound_update",
+      "bridge_family": "boundary_bridge",
+      "description": "二分查找左边界、右边界或答案边界更新方向不清，容易写反或死循环。",
+      "aliases": ["左边界", "右边界", "二分边界", "l r 更新", "lower_bound"],
+      "example_student_utterances": ["找到相等以后为什么还要往左边收缩？"]
+    }
+  ]
+}

@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import sys
+import time
 from pathlib import Path
 from typing import Callable
 
@@ -10,6 +11,7 @@ from noi_agent import bridge_judge_v1, chat as noi_agent_chat, leakage_judge_v1,
 
 DEFAULT_SEED_PATH = Path("docs/research/bridgebench_cp_seed_v1.jsonl")
 DEFAULT_OUTPUT_PATH = Path("evals/aichat/bridge_offline_eval_results.jsonl")
+DEFAULT_FOCUS_REGISTRY_PATH = Path("docs/research/focus_registry_v1.json")
 
 BridgeJudgeFn = Callable[..., dict]
 TutorFn = Callable[[dict, list[dict], dict], dict]
@@ -32,6 +34,52 @@ def load_seed_rows(path: Path = DEFAULT_SEED_PATH) -> list[dict]:
         except json.JSONDecodeError as exc:
             raise ValueError(f"Invalid JSONL at {path}:{line_number}: {exc}") from exc
     return rows
+
+
+def load_focus_registry(path: Path = DEFAULT_FOCUS_REGISTRY_PATH) -> list[dict]:
+    if not path.exists():
+        return []
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(data, dict):
+        data = data.get("focuses", [])
+    if not isinstance(data, list):
+        raise ValueError(f"Focus registry must be a list or contain a focuses list: {path}")
+    registry = []
+    for item in data:
+        if isinstance(item, str):
+            registry.append({"focus_id": item})
+        elif isinstance(item, dict) and item.get("focus_id"):
+            registry.append(dict(item))
+    return registry
+
+
+def _compact_focus_registry(focus_registry: list | None) -> list:
+    compact = []
+    for item in focus_registry or []:
+        if isinstance(item, str):
+            compact.append(item)
+            continue
+        if not isinstance(item, dict):
+            continue
+        focus_id = item.get("focus_id")
+        if not focus_id:
+            continue
+        aliases = item.get("aliases") or []
+        compact.append(
+            {
+                "focus_id": focus_id,
+                "bridge_family": item.get("bridge_family", ""),
+                "description": item.get("description", ""),
+                "aliases": aliases[:8] if isinstance(aliases, list) else [],
+            }
+        )
+    return compact
+
+
+def _focus_registry_for_row(row: dict, focus_registry: list | None) -> list:
+    if "available_known_focus" in row:
+        return _compact_focus_registry(row.get("available_known_focus") or [])
+    return _compact_focus_registry(focus_registry)
 
 
 def _compact_context_line(label: str, value: str, max_chars: int = 1800) -> str | None:
@@ -80,6 +128,7 @@ def _call_current_system_tutor(row: dict, messages: list[dict], chat_model_provi
     )
     return {
         "baseline_group": "current_system",
+        "tutor_mode": "current_system",
         "tutor_model_provider": chat_model_provider or "default",
         "response_text": response_text,
         "history_text": history_text,
@@ -97,6 +146,72 @@ def _make_default_tutor_fn(chat_model_provider: str | None) -> TutorFn:
         messages,
         chat_model_provider=chat_model_provider,
     )
+
+
+def _bridge_contract_message(bridge_result: dict) -> dict:
+    missing_bridge = bridge_result.get("missing_bridge") or {}
+    contract = {
+        "missing_bridge": {
+            "family": missing_bridge.get("family", ""),
+            "subtype": missing_bridge.get("subtype", ""),
+            "known_focus": missing_bridge.get("known_focus", ""),
+            "description": missing_bridge.get("description", ""),
+        },
+        "allowed_help_level": bridge_result.get("allowed_help_level", ""),
+        "help_form": bridge_result.get("help_form", ""),
+        "help_forms": _bridge_help_forms(bridge_result),
+        "forbidden_content": bridge_result.get("forbidden_content") or [],
+        "leakage_risk": bridge_result.get("leakage_risk", ""),
+    }
+    return {
+        "role": "assistant",
+        "content": "\n".join(
+            [
+                "[Offline Bridge Contract - research control, not student text]",
+                json.dumps(contract, ensure_ascii=False, indent=2),
+                "请下一轮回复严格遵守 allowed_help_level 和 help_form，只补半步，不要出现 forbidden_content。",
+            ]
+        ),
+    }
+
+
+def _call_bridge_contract_tutor(
+    row: dict,
+    messages: list[dict],
+    bridge_result: dict,
+    chat_model_provider: str | None = None,
+) -> dict:
+    if messages:
+        contract_messages = [*messages[:-1], _bridge_contract_message(bridge_result), messages[-1]]
+    else:
+        contract_messages = [_bridge_contract_message(bridge_result)]
+    problem_ref = (row.get("problem_ref") or row.get("id") or "unknown_problem").strip()
+    case_id = row.get("id") or problem_ref
+    response_text, history_text, level = noi_agent_chat(
+        contract_messages,
+        "bridge_offline_eval_student",
+        f"{problem_ref}::{case_id}",
+        chat_model_provider=chat_model_provider,
+    )
+    return {
+        "baseline_group": "bridge_contract_tutor",
+        "tutor_mode": "bridge_contract",
+        "tutor_model_provider": chat_model_provider or "default",
+        "response_text": response_text,
+        "history_text": history_text,
+        "level": level,
+    }
+
+
+def _make_tutor_fn(tutor_mode: str, chat_model_provider: str | None) -> TutorFn:
+    if tutor_mode == "bridge_contract":
+        return lambda row, messages, bridge_result: _call_bridge_contract_tutor(
+            row,
+            messages,
+            bridge_result,
+            chat_model_provider=chat_model_provider,
+        )
+    return _make_default_tutor_fn(chat_model_provider)
 
 
 def _bridge_help_forms(bridge_result: dict) -> list[str]:
@@ -130,6 +245,24 @@ def _write_progress(progress_stream, event: str, **fields) -> None:
         flush()
 
 
+def _finish_case_result(
+    result: dict,
+    *,
+    latency_ms: dict[str, float],
+    stage_errors: dict[str, str],
+    total_start: float,
+) -> dict:
+    latency_ms["total_latency_ms"] = round((time.perf_counter() - total_start) * 1000, 3)
+    result["latency_ms"] = latency_ms
+    result["stage_errors"] = stage_errors
+    result["retry_count"] = 0
+    return result
+
+
+def _record_latency(latency_ms: dict[str, float], key: str, start: float) -> None:
+    latency_ms[key] = round((time.perf_counter() - start) * 1000, 3)
+
+
 def _run_one_bridge_offline_case(
     row: dict,
     *,
@@ -138,7 +271,13 @@ def _run_one_bridge_offline_case(
     leakage_judge_fn: LeakageJudgeFn,
     repair_fn: RepairFn,
     chat_model_provider: str | None,
+    focus_registry: list | None,
+    guard_mode: str,
+    tutor_mode: str,
 ) -> dict:
+    total_start = time.perf_counter()
+    latency_ms: dict[str, float] = {}
+    stage_errors: dict[str, str] = {}
     messages = build_messages_from_seed_row(row)
     student_message = row.get("student_message", "")
     problem_context = {
@@ -151,57 +290,107 @@ def _run_one_bridge_offline_case(
         "problem_ref": row.get("problem_ref", ""),
         "topic": row.get("topic", ""),
         "student_message": student_message,
+        "tutor_mode": tutor_mode,
+        "guard_mode": guard_mode,
+        "focus_registry_size": len(_focus_registry_for_row(row, focus_registry)),
         "models": {
             "judge_model": _judge_model_name(),
             "judge_provider": "deepseek",
             "tutor_model_provider": chat_model_provider or "default",
+            "tutor_mode": tutor_mode,
+            "guard_mode": guard_mode,
         },
         "gold": _case_gold(row),
     }
 
-    bridge_result = bridge_judge_fn(
-        student_message=student_message,
-        messages=messages,
-        problem_context=problem_context,
-        student_code=row.get("student_code"),
-        available_known_focus=row.get("available_known_focus", []),
-    )
+    stage_start = time.perf_counter()
+    try:
+        bridge_result = bridge_judge_fn(
+            student_message=student_message,
+            messages=messages,
+            problem_context=problem_context,
+            student_code=row.get("student_code"),
+            available_known_focus=_focus_registry_for_row(row, focus_registry),
+        )
+    except Exception as exc:
+        _record_latency(latency_ms, "bridge_judge_latency_ms", stage_start)
+        stage_errors["bridge_judge"] = f"{type(exc).__name__}: {exc}"
+        result["error"] = "bridge_judge_exception"
+        return _finish_case_result(result, latency_ms=latency_ms, stage_errors=stage_errors, total_start=total_start)
+    _record_latency(latency_ms, "bridge_judge_latency_ms", stage_start)
     result["bridge_judge_result"] = bridge_result
     if bridge_result.get("_failed"):
+        stage_errors["bridge_judge"] = str(bridge_result.get("_error") or "_failed")
         result["error"] = "bridge_judge_failed"
-        return result
+        return _finish_case_result(result, latency_ms=latency_ms, stage_errors=stage_errors, total_start=total_start)
 
-    tutor_result = tutor_fn(row, messages, bridge_result)
+    stage_start = time.perf_counter()
+    try:
+        tutor_result = tutor_fn(row, messages, bridge_result)
+    except Exception as exc:
+        _record_latency(latency_ms, "tutor_latency_ms", stage_start)
+        stage_errors["tutor"] = f"{type(exc).__name__}: {exc}"
+        result["error"] = "tutor_exception"
+        return _finish_case_result(result, latency_ms=latency_ms, stage_errors=stage_errors, total_start=total_start)
+    _record_latency(latency_ms, "tutor_latency_ms", stage_start)
     result["tutor_response"] = tutor_result
     candidate_response = tutor_result.get("response_text", "")
 
-    forbidden_content = bridge_result.get("forbidden_content") or []
-    if row.get("gold_forbidden_completion") and row["gold_forbidden_completion"] not in forbidden_content:
+    forbidden_content = list(bridge_result.get("forbidden_content") or [])
+    used_gold_forbidden = False
+    if (
+        guard_mode == "oracle"
+        and row.get("gold_forbidden_completion")
+        and row["gold_forbidden_completion"] not in forbidden_content
+    ):
         forbidden_content = [*forbidden_content, row["gold_forbidden_completion"]]
+        used_gold_forbidden = True
+    result["guard_contract"] = {
+        "guard_mode": guard_mode,
+        "used_gold_forbidden_completion": used_gold_forbidden,
+        "forbidden_content": forbidden_content,
+    }
 
-    leakage_result = leakage_judge_fn(
-        student_message=student_message,
-        messages=messages,
-        problem_context=problem_context,
-        current_missing_bridge=bridge_result.get("missing_bridge", {}),
-        allowed_help_level=bridge_result.get("allowed_help_level", ""),
-        help_forms=_bridge_help_forms(bridge_result),
-        forbidden_content=forbidden_content,
-        candidate_response=candidate_response,
-        student_already_stated_bridge=bool(row.get("student_already_stated_bridge", False)),
-    )
-    result["leakage_judge_result"] = leakage_result
-
-    if leakage_result.get("safe_action") in {"rewrite", "block"} and not leakage_result.get("_failed"):
-        result["repair_result"] = repair_fn(
-            original_candidate_response=candidate_response,
-            leakage_judge_result=leakage_result,
-            bridge_judge_result=bridge_result,
+    stage_start = time.perf_counter()
+    try:
+        leakage_result = leakage_judge_fn(
             student_message=student_message,
             messages=messages,
+            problem_context=problem_context,
+            current_missing_bridge=bridge_result.get("missing_bridge", {}),
+            allowed_help_level=bridge_result.get("allowed_help_level", ""),
+            help_forms=_bridge_help_forms(bridge_result),
+            forbidden_content=forbidden_content,
+            candidate_response=candidate_response,
+            student_already_stated_bridge=bool(row.get("student_already_stated_bridge", False)),
         )
+    except Exception as exc:
+        _record_latency(latency_ms, "leakage_judge_latency_ms", stage_start)
+        stage_errors["leakage_judge"] = f"{type(exc).__name__}: {exc}"
+        result["error"] = "leakage_judge_exception"
+        return _finish_case_result(result, latency_ms=latency_ms, stage_errors=stage_errors, total_start=total_start)
+    _record_latency(latency_ms, "leakage_judge_latency_ms", stage_start)
+    result["leakage_judge_result"] = leakage_result
+    if leakage_result.get("_failed"):
+        stage_errors["leakage_judge"] = str(leakage_result.get("_error") or "_failed")
 
-    return result
+    if leakage_result.get("safe_action") in {"rewrite", "block"} and not leakage_result.get("_failed"):
+        stage_start = time.perf_counter()
+        try:
+            result["repair_result"] = repair_fn(
+                original_candidate_response=candidate_response,
+                leakage_judge_result=leakage_result,
+                bridge_judge_result=bridge_result,
+                student_message=student_message,
+                messages=messages,
+            )
+        except Exception as exc:
+            stage_errors["repair"] = f"{type(exc).__name__}: {exc}"
+            result["error"] = "repair_exception"
+        finally:
+            _record_latency(latency_ms, "repair_latency_ms", stage_start)
+
+    return _finish_case_result(result, latency_ms=latency_ms, stage_errors=stage_errors, total_start=total_start)
 
 
 def run_bridge_offline_eval_rows(
@@ -212,11 +401,22 @@ def run_bridge_offline_eval_rows(
     leakage_judge_fn: LeakageJudgeFn = leakage_judge_v1,
     repair_fn: RepairFn = repair_response_v1,
     chat_model_provider: str | None = None,
+    tutor_mode: str = "current_system",
+    guard_mode: str = "predicted",
+    focus_registry: list | None = None,
+    focus_registry_path: Path | None = DEFAULT_FOCUS_REGISTRY_PATH,
     limit: int | None = None,
     progress_stream=None,
 ) -> list[dict]:
+    if guard_mode not in {"predicted", "oracle"}:
+        raise ValueError(f"Unsupported guard_mode: {guard_mode}")
+    if tutor_mode not in {"current_system", "bridge_contract"}:
+        raise ValueError(f"Unsupported tutor_mode: {tutor_mode}")
     selected = rows[:limit] if limit is not None else rows
-    effective_tutor_fn = tutor_fn or _make_default_tutor_fn(chat_model_provider)
+    effective_tutor_fn = tutor_fn or _make_tutor_fn(tutor_mode, chat_model_provider)
+    effective_focus_registry = focus_registry
+    if effective_focus_registry is None and focus_registry_path is not None:
+        effective_focus_registry = load_focus_registry(focus_registry_path)
     result_rows = []
     total = len(selected)
     for index, row in enumerate(selected, 1):
@@ -230,6 +430,9 @@ def run_bridge_offline_eval_rows(
                 leakage_judge_fn=leakage_judge_fn,
                 repair_fn=repair_fn,
                 chat_model_provider=chat_model_provider,
+                focus_registry=effective_focus_registry,
+                guard_mode=guard_mode,
+                tutor_mode=tutor_mode,
             )
             _write_progress(progress_stream, "CASE_DONE", index=index, total=total, case_id=case_id)
         except Exception as exc:
@@ -237,13 +440,20 @@ def run_bridge_offline_eval_rows(
                 "case_id": case_id,
                 "problem_ref": row.get("problem_ref", ""),
                 "student_message": row.get("student_message", ""),
+                "tutor_mode": tutor_mode,
+                "guard_mode": guard_mode,
                 "models": {
                     "judge_model": _judge_model_name(),
                     "judge_provider": "deepseek",
                     "tutor_model_provider": chat_model_provider or "default",
+                    "tutor_mode": tutor_mode,
+                    "guard_mode": guard_mode,
                 },
                 "gold": _case_gold(row),
                 "error": f"{type(exc).__name__}: {exc}",
+                "latency_ms": {},
+                "stage_errors": {"case": f"{type(exc).__name__}: {exc}"},
+                "retry_count": 0,
             }
             _write_progress(
                 progress_stream,
@@ -274,6 +484,24 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         "--chat-model-provider",
         help="Optional provider id passed to current AIChat tutor, for model-controlled experiments.",
     )
+    parser.add_argument(
+        "--tutor-mode",
+        choices=["current_system", "bridge_contract"],
+        default="current_system",
+        help="Tutor generation mode for offline comparison.",
+    )
+    parser.add_argument(
+        "--guard-mode",
+        choices=["predicted", "oracle"],
+        default="predicted",
+        help="Whether Leakage Judge sees only predicted forbidden content or oracle gold forbidden content.",
+    )
+    parser.add_argument(
+        "--focus-registry",
+        type=Path,
+        default=DEFAULT_FOCUS_REGISTRY_PATH,
+        help="Focus registry JSON used when seed rows do not provide available_known_focus.",
+    )
     return parser.parse_args(argv)
 
 
@@ -283,6 +511,9 @@ def main(argv: list[str] | None = None) -> int:
         load_seed_rows(args.input_jsonl),
         limit=args.limit,
         chat_model_provider=args.chat_model_provider,
+        tutor_mode=args.tutor_mode,
+        guard_mode=args.guard_mode,
+        focus_registry_path=args.focus_registry,
         progress_stream=sys.stderr,
     )
     write_result_rows(args.output_jsonl, rows)

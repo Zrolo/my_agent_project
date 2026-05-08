@@ -197,6 +197,292 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
         self.assertEqual("deepseek-v4-flash", result_rows[0]["models"]["judge_model"])
         self.assertEqual("deepseek", result_rows[0]["tutor_response"]["tutor_model_provider"])
 
+    def test_default_focus_registry_is_passed_when_seed_has_no_available_focus(self):
+        rows = [
+            {
+                "id": "case_focus",
+                "problem_ref": "P3128",
+                "student_message": "我知道要 LCA，但不知道路径贡献在哪里加减。",
+                "problem_context": "树上多条路径统计经过次数。",
+            }
+        ]
+        focus_registry = [
+            {
+                "focus_id": "tree_path_difference",
+                "bridge_family": "aggregation_bridge",
+                "description": "树上路径贡献转成端点/LCA 差分标记并 DFS 汇总。",
+                "aliases": ["树上差分", "LCA 标记"],
+            }
+        ]
+        captured_focus = []
+
+        def fake_bridge_judge(**kwargs):
+            captured_focus.extend(kwargs["available_known_focus"])
+            return {
+                "problem_solving_state": "strategy_application_gap",
+                "missing_bridge": {
+                    "family": "aggregation_bridge",
+                    "subtype": "tree_path_difference",
+                    "description": "路径贡献映射缺失。",
+                    "evidence": ["学生说不知道路径贡献在哪里加减"],
+                    "known_focus": "tree_path_difference",
+                    "needs_new_focus": False,
+                },
+                "help_seeking_type": "instrumental_help",
+                "allowed_help_level": "L2",
+                "help_form": "micro_example",
+                "forbidden_content": ["不要直接给端点和 LCA 的完整加减式。"],
+                "leakage_risk": "medium",
+                "confidence": 0.9,
+                "reason": "unit test",
+            }
+
+        def fake_tutor(row, messages, bridge_result):
+            return {"response_text": "先看单条路径。", "level": "L2"}
+
+        def fake_leakage(**kwargs):
+            return {"leakage_level": 0, "safe_action": "pass"}
+
+        result_rows = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+            rows,
+            bridge_judge_fn=fake_bridge_judge,
+            tutor_fn=fake_tutor,
+            leakage_judge_fn=fake_leakage,
+            focus_registry=focus_registry,
+        )
+
+        self.assertEqual("tree_path_difference", captured_focus[0]["focus_id"])
+        self.assertEqual(1, result_rows[0]["focus_registry_size"])
+
+    def test_predicted_guard_does_not_pass_gold_forbidden_completion_to_leakage_judge(self):
+        rows = [
+            {
+                "id": "case_guard",
+                "student_message": "状态怎么设？",
+                "gold_forbidden_completion": "不能直接给完整 dp[j] 定义。",
+            }
+        ]
+        captured_forbidden = []
+
+        def fake_bridge_judge(**kwargs):
+            return {
+                "problem_solving_state": "problem_representation_unclear",
+                "missing_bridge": {
+                    "family": "representation_bridge",
+                    "subtype": "state_design",
+                    "description": "状态含义缺失。",
+                    "evidence": ["学生问状态"],
+                    "known_focus": "state_design",
+                    "needs_new_focus": False,
+                },
+                "help_seeking_type": "instrumental_help",
+                "allowed_help_level": "L2",
+                "help_form": "question",
+                "forbidden_content": ["不要直接给完整状态定义。"],
+                "leakage_risk": "high",
+                "confidence": 0.9,
+                "reason": "unit test",
+            }
+
+        def fake_tutor(row, messages, bridge_result):
+            return {"response_text": "你先说状态里要保留什么。", "level": "L2"}
+
+        def fake_leakage(**kwargs):
+            captured_forbidden.extend(kwargs["forbidden_content"])
+            return {"leakage_level": 0, "safe_action": "pass"}
+
+        result_rows = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+            rows,
+            bridge_judge_fn=fake_bridge_judge,
+            tutor_fn=fake_tutor,
+            leakage_judge_fn=fake_leakage,
+            guard_mode="predicted",
+        )
+
+        self.assertEqual(["不要直接给完整状态定义。"], captured_forbidden)
+        self.assertEqual("predicted", result_rows[0]["guard_mode"])
+
+    def test_oracle_guard_passes_gold_forbidden_completion_to_leakage_judge(self):
+        rows = [
+            {
+                "id": "case_oracle",
+                "student_message": "状态怎么设？",
+                "gold_forbidden_completion": "不能直接给完整 dp[j] 定义。",
+            }
+        ]
+        captured_forbidden = []
+
+        def fake_bridge_judge(**kwargs):
+            return {
+                "problem_solving_state": "problem_representation_unclear",
+                "missing_bridge": {
+                    "family": "representation_bridge",
+                    "subtype": "state_design",
+                    "description": "状态含义缺失。",
+                    "evidence": ["学生问状态"],
+                    "known_focus": "state_design",
+                    "needs_new_focus": False,
+                },
+                "help_seeking_type": "instrumental_help",
+                "allowed_help_level": "L2",
+                "help_form": "question",
+                "forbidden_content": ["不要直接给完整状态定义。"],
+                "leakage_risk": "high",
+                "confidence": 0.9,
+                "reason": "unit test",
+            }
+
+        def fake_tutor(row, messages, bridge_result):
+            return {"response_text": "你先说状态里要保留什么。", "level": "L2"}
+
+        def fake_leakage(**kwargs):
+            captured_forbidden.extend(kwargs["forbidden_content"])
+            return {"leakage_level": 0, "safe_action": "pass"}
+
+        result_rows = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+            rows,
+            bridge_judge_fn=fake_bridge_judge,
+            tutor_fn=fake_tutor,
+            leakage_judge_fn=fake_leakage,
+            guard_mode="oracle",
+        )
+
+        self.assertIn("不能直接给完整 dp[j] 定义。", captured_forbidden)
+        self.assertEqual("oracle", result_rows[0]["guard_mode"])
+
+    def test_current_system_tutor_does_not_inject_bridge_contract(self):
+        rows = [{"id": "case_current", "problem_ref": "P1001", "student_message": "我不会。"}]
+        captured_messages = []
+
+        def fake_bridge_judge(**kwargs):
+            return {
+                "problem_solving_state": "strategy_generation_blocked",
+                "missing_bridge": {
+                    "family": "selection_bridge",
+                    "subtype": "method_selection",
+                    "description": "方法选择缺失。",
+                    "evidence": ["学生说不会"],
+                    "known_focus": "method_selection",
+                    "needs_new_focus": False,
+                },
+                "help_seeking_type": "instrumental_help",
+                "allowed_help_level": "L1",
+                "help_form": "question",
+                "forbidden_content": ["不要直接给算法名。"],
+                "leakage_risk": "medium",
+                "confidence": 0.8,
+                "reason": "unit test",
+            }
+
+        def fake_chat(messages, student_id, problem_id, chat_model_provider=None):
+            captured_messages.extend(messages)
+            return "回复", "回复", "L1"
+
+        def fake_leakage(**kwargs):
+            return {"leakage_level": 0, "safe_action": "pass"}
+
+        with patch.object(run_bridge_offline_eval, "noi_agent_chat", side_effect=fake_chat):
+            result_rows = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+                rows,
+                bridge_judge_fn=fake_bridge_judge,
+                leakage_judge_fn=fake_leakage,
+                tutor_mode="current_system",
+            )
+
+        joined = "\n".join(message["content"] for message in captured_messages)
+        self.assertNotIn("Bridge Contract", joined)
+        self.assertEqual("current_system", result_rows[0]["tutor_mode"])
+
+    def test_bridge_contract_tutor_injects_bridge_result_before_student_turn(self):
+        rows = [{"id": "case_contract", "problem_ref": "P1001", "student_message": "我不会。"}]
+        captured_messages = []
+
+        def fake_bridge_judge(**kwargs):
+            return {
+                "problem_solving_state": "strategy_application_gap",
+                "missing_bridge": {
+                    "family": "predicate_bridge",
+                    "subtype": "check_condition",
+                    "description": "学生缺少 check 判断关系。",
+                    "evidence": ["学生说 check 不会写"],
+                    "known_focus": "check_condition",
+                    "needs_new_focus": False,
+                },
+                "help_seeking_type": "instrumental_help",
+                "allowed_help_level": "L2",
+                "help_form": "micro_example",
+                "forbidden_content": ["不要直接给完整 check 条件。"],
+                "leakage_risk": "high",
+                "confidence": 0.88,
+                "reason": "unit test",
+            }
+
+        def fake_chat(messages, student_id, problem_id, chat_model_provider=None):
+            captured_messages.extend(messages)
+            return "回复", "回复", "L2"
+
+        def fake_leakage(**kwargs):
+            return {"leakage_level": 0, "safe_action": "pass"}
+
+        with patch.object(run_bridge_offline_eval, "noi_agent_chat", side_effect=fake_chat):
+            result_rows = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+                rows,
+                bridge_judge_fn=fake_bridge_judge,
+                leakage_judge_fn=fake_leakage,
+                tutor_mode="bridge_contract",
+                chat_model_provider="deepseek",
+            )
+
+        joined = "\n".join(message["content"] for message in captured_messages)
+        self.assertIn("Bridge Contract", joined)
+        self.assertIn("predicate_bridge", joined)
+        self.assertIn("不要直接给完整 check 条件", joined)
+        self.assertEqual("bridge_contract", result_rows[0]["tutor_mode"])
+        self.assertEqual("bridge_contract", result_rows[0]["tutor_response"]["tutor_mode"])
+
+    def test_stage_latency_and_stage_errors_are_recorded(self):
+        rows = [{"id": "case_latency", "student_message": "我不会。"}]
+
+        def fake_bridge_judge(**kwargs):
+            return {
+                "problem_solving_state": "strategy_generation_blocked",
+                "missing_bridge": {
+                    "family": "unknown_bridge",
+                    "subtype": "unknown",
+                    "description": "信息不足。",
+                    "evidence": ["学生说不会"],
+                    "known_focus": "unknown",
+                    "needs_new_focus": True,
+                },
+                "help_seeking_type": "unclear",
+                "allowed_help_level": "L1",
+                "help_form": "question",
+                "forbidden_content": ["不要给完整题解。"],
+                "leakage_risk": "unknown",
+                "confidence": 0.6,
+                "reason": "unit test",
+            }
+
+        def fake_tutor(row, messages, bridge_result):
+            return {"response_text": "你先贴题面。", "level": "L1"}
+
+        def fake_leakage(**kwargs):
+            return {"_failed": True, "_error": "timeout", "safe_action": "pass"}
+
+        result_rows = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+            rows,
+            bridge_judge_fn=fake_bridge_judge,
+            tutor_fn=fake_tutor,
+            leakage_judge_fn=fake_leakage,
+        )
+
+        result = result_rows[0]
+        self.assertIn("bridge_judge_latency_ms", result["latency_ms"])
+        self.assertIn("tutor_latency_ms", result["latency_ms"])
+        self.assertIn("leakage_judge_latency_ms", result["latency_ms"])
+        self.assertEqual(0, result["retry_count"])
+        self.assertEqual("timeout", result["stage_errors"]["leakage_judge"])
+
     def test_write_result_rows_emits_jsonl(self):
         rows = [{"case_id": "case_1", "bridge_judge_result": {"confidence": 0.9}}]
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -248,11 +534,17 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
                         "1",
                         "--chat-model-provider",
                         "deepseek",
+                        "--tutor-mode",
+                        "bridge_contract",
+                        "--guard-mode",
+                        "oracle",
                     ]
                 )
 
             self.assertEqual(0, exit_code)
             self.assertEqual("deepseek", captured_kwargs["chat_model_provider"])
+            self.assertEqual("bridge_contract", captured_kwargs["tutor_mode"])
+            self.assertEqual("oracle", captured_kwargs["guard_mode"])
             self.assertIn('"case_count": 1', stdout.getvalue())
             written = [json.loads(line) for line in output_path.read_text(encoding="utf-8").splitlines()]
             self.assertEqual([{"case_id": "case_1", "error": ""}], written)

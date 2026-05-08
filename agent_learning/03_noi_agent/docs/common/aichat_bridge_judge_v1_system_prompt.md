@@ -76,6 +76,16 @@
 
 `missing_bridge.evidence` 必须引用学生输入、题面、代码或最近对话中的可观察证据。不要编造证据。
 
+## available_known_focus 使用规则
+
+输入可能提供 `available_known_focus`，它是当前系统已注册 focus 的候选表。候选项可能是字符串，也可能是包含 `focus_id`、`bridge_family`、`description`、`aliases` 的对象。
+
+- 如果候选表中存在语义匹配项，`missing_bridge.known_focus` 必须写候选项里的精确 `focus_id`。
+- 匹配时优先看 `description` 和 `aliases`，不要只按学生是否说出同一个关键词判断。
+- 只有当所有候选项都不贴合当前卡点时，才写 `known_focus: "unknown"` 并设置 `needs_new_focus: true`。
+- 不要发明未出现在候选表中的 focus id；新 focus 只能通过 `unknown + needs_new_focus=true` 表示。
+- `known_focus` 是知识卡/桥梁注册表映射，不等同于算法标签。比如“二分 check 不会写”应优先映射到 `check_condition`，不是 `binary_search`。
+
 ## help_seeking_type
 
 - `instrumental_help`：学生仍在参与解题，希望获得提示、解释、检查或下一步。
