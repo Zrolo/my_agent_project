@@ -483,6 +483,106 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
         self.assertEqual(0, result["retry_count"])
         self.assertEqual("timeout", result["stage_errors"]["leakage_judge"])
 
+    def test_bridge_judge_retries_transient_failed_result(self):
+        rows = [{"id": "case_retry", "student_message": "我不会。"}]
+        attempts = []
+
+        def fake_bridge_judge(**kwargs):
+            attempts.append(kwargs["student_message"])
+            if len(attempts) == 1:
+                return {"_failed": True, "_reason": "InternalServerError: 503 busy"}
+            return {
+                "problem_solving_state": "strategy_generation_blocked",
+                "missing_bridge": {
+                    "family": "unknown_bridge",
+                    "subtype": "unknown",
+                    "description": "信息不足。",
+                    "evidence": ["学生说不会"],
+                    "known_focus": "unknown",
+                    "needs_new_focus": True,
+                },
+                "help_seeking_type": "unclear",
+                "allowed_help_level": "L1",
+                "help_form": "question",
+                "forbidden_content": ["不要给完整题解。"],
+                "leakage_risk": "unknown",
+                "confidence": 0.6,
+                "reason": "unit test",
+            }
+
+        def fake_tutor(row, messages, bridge_result):
+            return {"response_text": "你先贴题面。", "level": "L1"}
+
+        def fake_leakage(**kwargs):
+            return {"leakage_level": 0, "safe_action": "pass"}
+
+        result_rows = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+            rows,
+            bridge_judge_fn=fake_bridge_judge,
+            tutor_fn=fake_tutor,
+            leakage_judge_fn=fake_leakage,
+            max_retries=1,
+        )
+
+        self.assertEqual(2, len(attempts))
+        self.assertFalse(result_rows[0].get("error"))
+        self.assertEqual(1, result_rows[0]["retry_count"])
+
+    def test_default_judge_provider_is_passed_to_offline_judges(self):
+        rows = [{"id": "case_provider", "student_message": "我不会。"}]
+        captured = {"bridge": [], "leakage": [], "repair": []}
+
+        def fake_bridge_judge(**kwargs):
+            captured["bridge"].append(kwargs["judge_provider"])
+            return {
+                "problem_solving_state": "strategy_generation_blocked",
+                "missing_bridge": {
+                    "family": "unknown_bridge",
+                    "subtype": "unknown",
+                    "description": "信息不足。",
+                    "evidence": ["学生说不会"],
+                    "known_focus": "unknown",
+                    "needs_new_focus": True,
+                },
+                "help_seeking_type": "unclear",
+                "allowed_help_level": "L1",
+                "help_form": "question",
+                "forbidden_content": ["不要给完整题解。"],
+                "leakage_risk": "high",
+                "confidence": 0.6,
+                "reason": "unit test",
+            }
+
+        def fake_tutor(row, messages, bridge_result):
+            return {"response_text": "完整答案是这样。", "level": "L3"}
+
+        def fake_leakage(**kwargs):
+            captured["leakage"].append(kwargs["judge_provider"])
+            return {"leakage_level": 3, "safe_action": "rewrite"}
+
+        def fake_repair(**kwargs):
+            captured["repair"].append(kwargs["judge_provider"])
+            return {
+                "repaired_response": "先说你的尝试。",
+                "repair_notes": "unit test",
+                "removed_elements": [],
+                "still_needs_leakage_check": True,
+            }
+
+        result_rows = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+            rows,
+            bridge_judge_fn=fake_bridge_judge,
+            tutor_fn=fake_tutor,
+            leakage_judge_fn=fake_leakage,
+            repair_fn=fake_repair,
+            judge_provider="kimi",
+        )
+
+        self.assertEqual(["kimi"], captured["bridge"])
+        self.assertEqual(["kimi"], captured["leakage"])
+        self.assertEqual(["kimi"], captured["repair"])
+        self.assertEqual("kimi", result_rows[0]["models"]["judge_provider"])
+
     def test_write_result_rows_emits_jsonl(self):
         rows = [{"case_id": "case_1", "bridge_judge_result": {"confidence": 0.9}}]
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -538,6 +638,10 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
                         "bridge_contract",
                         "--guard-mode",
                         "oracle",
+                        "--judge-provider",
+                        "kimi",
+                        "--max-retries",
+                        "2",
                     ]
                 )
 
@@ -545,6 +649,8 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
             self.assertEqual("deepseek", captured_kwargs["chat_model_provider"])
             self.assertEqual("bridge_contract", captured_kwargs["tutor_mode"])
             self.assertEqual("oracle", captured_kwargs["guard_mode"])
+            self.assertEqual("kimi", captured_kwargs["judge_provider"])
+            self.assertEqual(2, captured_kwargs["max_retries"])
             self.assertIn('"case_count": 1', stdout.getvalue())
             written = [json.loads(line) for line in output_path.read_text(encoding="utf-8").splitlines()]
             self.assertEqual([{"case_id": "case_1", "error": ""}], written)

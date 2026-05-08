@@ -169,6 +169,37 @@ class RepairResponseV1Tests(unittest.TestCase):
         self.assertNotIn("#include", result["repaired_response"])
         self.assertNotIn("int main", result["repaired_response"])
 
+    def test_repair_response_v1_accepts_explicit_judge_provider(self):
+        payload = _repair_payload("先不要写完整代码。你先贴出最小错误片段，我们定位第一处变量变化。\n\n[LEVEL:L2]")
+        captured_profile = {}
+
+        def fake_create(**kwargs):
+            return SimpleNamespace(
+                choices=[
+                    SimpleNamespace(message=SimpleNamespace(content=json.dumps(payload, ensure_ascii=False)))
+                ]
+            )
+
+        def fake_client_for_profile(profile):
+            captured_profile["provider_id"] = profile.provider_id
+            return SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=fake_create)))
+
+        with patch("noi_agent.get_chat_client_for_profile", side_effect=fake_client_for_profile):
+            result = repair_response_v1(
+                original_candidate_response="#include <bits/stdc++.h>\nint main(){return 0;}\n\n[LEVEL:L3]",
+                leakage_judge_result=_leakage_result(
+                    leaked_element="完整代码",
+                    repair_instruction="删除完整代码。",
+                ),
+                bridge_judge_result=_bridge_result(subtype="implementation_debug", help_forms=["code_diagnosis"]),
+                student_message="直接给我完整代码。",
+                messages=[],
+                judge_provider="kimi",
+            )
+
+        self.assertEqual("kimi", captured_profile["provider_id"])
+        self.assertIn("最小错误片段", result["repaired_response"])
+
 
 if __name__ == "__main__":
     unittest.main()

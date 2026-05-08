@@ -144,6 +144,38 @@ class LeakageJudgeV1Tests(unittest.TestCase):
         self.assertTrue(result["is_critical_bridge_leakage"])
         self.assertIn("dp[i][j]", captured["messages"][1]["content"])
 
+    def test_leakage_judge_v1_accepts_explicit_judge_provider(self):
+        payload = _valid_leakage_payload(level=0, safe_action="pass")
+        captured_profile = {}
+
+        def fake_create(**kwargs):
+            return SimpleNamespace(
+                choices=[
+                    SimpleNamespace(message=SimpleNamespace(content=json.dumps(payload, ensure_ascii=False)))
+                ]
+            )
+
+        def fake_client_for_profile(profile):
+            captured_profile["provider_id"] = profile.provider_id
+            return SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=fake_create)))
+
+        with patch("noi_agent.get_chat_client_for_profile", side_effect=fake_client_for_profile):
+            result = leakage_judge_v1(
+                student_message="我知道要 DP，但状态到底怎么设？",
+                messages=[],
+                problem_context={"problem_ref": "P1000"},
+                current_missing_bridge={"family": "representation_bridge", "description": "状态缺失"},
+                allowed_help_level="L2",
+                help_forms=["question"],
+                forbidden_content=["不能直接给完整状态定义。"],
+                candidate_response="你先想需要保留什么。\n\n[LEVEL:L2]",
+                student_already_stated_bridge=False,
+                judge_provider="kimi",
+            )
+
+        self.assertEqual("kimi", captured_profile["provider_id"])
+        self.assertEqual("pass", result["safe_action"])
+
 
 if __name__ == "__main__":
     unittest.main()

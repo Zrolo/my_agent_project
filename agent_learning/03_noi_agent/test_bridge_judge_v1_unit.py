@@ -97,6 +97,34 @@ class BridgeJudgeV1Tests(unittest.TestCase):
         self.assertEqual({"type": "json_object"}, captured["response_format"])
         self.assertFalse(result.get("_failed", False))
 
+    def test_bridge_judge_v1_accepts_explicit_judge_provider(self):
+        payload = _valid_bridge_payload()
+        captured_profile = {}
+
+        def fake_create(**kwargs):
+            return SimpleNamespace(
+                choices=[
+                    SimpleNamespace(message=SimpleNamespace(content=json.dumps(payload, ensure_ascii=False)))
+                ]
+            )
+
+        def fake_client_for_profile(profile):
+            captured_profile["provider_id"] = profile.provider_id
+            captured_profile["model"] = profile.model
+            return SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=fake_create)))
+
+        with patch("noi_agent.get_chat_client_for_profile", side_effect=fake_client_for_profile):
+            result = bridge_judge_v1(
+                student_message="我知道二分，但 check 不会写。",
+                messages=[],
+                problem_context={"problem_ref": "P2678"},
+                available_known_focus=["check_condition"],
+                judge_provider="kimi",
+            )
+
+        self.assertEqual("kimi", captured_profile["provider_id"])
+        self.assertFalse(result.get("_failed", False))
+
 
 if __name__ == "__main__":
     unittest.main()

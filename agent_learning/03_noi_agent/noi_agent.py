@@ -476,6 +476,39 @@ def _deepseek_v4_flash_judge_profile() -> ChatModelProfile:
     )
 
 
+def _offline_judge_profile(judge_provider: str | None = None) -> ChatModelProfile:
+    provider = (judge_provider or os.environ.get("NOI_OFFLINE_JUDGE_PROVIDER") or "deepseek").strip()
+    if provider in {"", "deepseek", "deepseek_flash", "deepseek-v4-flash"}:
+        return _deepseek_v4_flash_judge_profile()
+    return resolve_chat_model_profile(provider)
+
+
+def _offline_json_judge_request_kwargs(
+    *,
+    profile: ChatModelProfile,
+    messages: list[dict],
+    max_tokens_env: str,
+    default_max_tokens: str,
+    timeout_env: str,
+    default_timeout: str,
+) -> dict:
+    kwargs = {
+        "model": profile.model,
+        "messages": messages,
+        "response_format": {"type": "json_object"},
+        profile.token_param: int(os.environ.get(max_tokens_env) or default_max_tokens),
+        "stream": False,
+        "timeout": float(os.environ.get(timeout_env) or default_timeout),
+    }
+    if profile.provider_id.startswith("deepseek"):
+        kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
+    else:
+        kwargs["temperature"] = chat_temperature_for_model(profile.model)
+        if profile.extra_body:
+            kwargs["extra_body"] = profile.extra_body
+    return kwargs
+
+
 def _chat_completion_create(
     *,
     system_prompt: str,
@@ -1675,6 +1708,7 @@ def bridge_judge_v1(
     problem_context: dict | None = None,
     student_code: str | None = None,
     available_known_focus: list[str] | None = None,
+    judge_provider: str | None = None,
 ) -> dict:
     """Offline Bridge Judge v1. It diagnoses missing bridges but does not control chat()."""
     try:
@@ -1686,19 +1720,18 @@ def bridge_judge_v1(
             student_code=student_code,
             available_known_focus=available_known_focus,
         )
-        profile = _deepseek_v4_flash_judge_profile()
-        kwargs = {
-            "model": profile.model,
-            "messages": [
+        profile = _offline_judge_profile(judge_provider)
+        kwargs = _offline_json_judge_request_kwargs(
+            profile=profile,
+            messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message},
             ],
-            "response_format": {"type": "json_object"},
-            "max_tokens": int(os.environ.get("NOI_BRIDGE_JUDGE_MAX_TOKENS") or "1024"),
-            "stream": False,
-            "extra_body": {"thinking": {"type": "disabled"}},
-            "timeout": float(os.environ.get("NOI_BRIDGE_JUDGE_TIMEOUT_SECONDS") or "5.0"),
-        }
+            max_tokens_env="NOI_BRIDGE_JUDGE_MAX_TOKENS",
+            default_max_tokens="1024",
+            timeout_env="NOI_BRIDGE_JUDGE_TIMEOUT_SECONDS",
+            default_timeout="5.0",
+        )
         response = get_chat_client_for_profile(profile).chat.completions.create(**kwargs)
         raw = _choice_message_text(response, allow_reasoning_fallback=False)
         if not raw.strip():
@@ -1728,6 +1761,7 @@ def leakage_judge_v1(
     forbidden_content: list[str] | None,
     candidate_response: str,
     student_already_stated_bridge: bool,
+    judge_provider: str | None = None,
 ) -> dict:
     """Offline Leakage Judge v1. It detects candidate-response leakage but does not rewrite."""
     try:
@@ -1743,19 +1777,18 @@ def leakage_judge_v1(
             candidate_response=candidate_response,
             student_already_stated_bridge=student_already_stated_bridge,
         )
-        profile = _deepseek_v4_flash_judge_profile()
-        kwargs = {
-            "model": profile.model,
-            "messages": [
+        profile = _offline_judge_profile(judge_provider)
+        kwargs = _offline_json_judge_request_kwargs(
+            profile=profile,
+            messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message},
             ],
-            "response_format": {"type": "json_object"},
-            "max_tokens": int(os.environ.get("NOI_LEAKAGE_JUDGE_MAX_TOKENS") or "1024"),
-            "stream": False,
-            "extra_body": {"thinking": {"type": "disabled"}},
-            "timeout": float(os.environ.get("NOI_LEAKAGE_JUDGE_TIMEOUT_SECONDS") or "5.0"),
-        }
+            max_tokens_env="NOI_LEAKAGE_JUDGE_MAX_TOKENS",
+            default_max_tokens="1024",
+            timeout_env="NOI_LEAKAGE_JUDGE_TIMEOUT_SECONDS",
+            default_timeout="5.0",
+        )
         response = get_chat_client_for_profile(profile).chat.completions.create(**kwargs)
         raw = _choice_message_text(response, allow_reasoning_fallback=False)
         if not raw.strip():
@@ -1781,6 +1814,7 @@ def repair_response_v1(
     bridge_judge_result: dict,
     student_message: str,
     messages: list,
+    judge_provider: str | None = None,
 ) -> dict:
     """Offline repair step. It rewrites leaked candidates but is not wired into chat()."""
     try:
@@ -1792,19 +1826,18 @@ def repair_response_v1(
             student_message=student_message,
             messages=messages,
         )
-        profile = _deepseek_v4_flash_judge_profile()
-        kwargs = {
-            "model": profile.model,
-            "messages": [
+        profile = _offline_judge_profile(judge_provider)
+        kwargs = _offline_json_judge_request_kwargs(
+            profile=profile,
+            messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message},
             ],
-            "response_format": {"type": "json_object"},
-            "max_tokens": int(os.environ.get("NOI_REPAIR_RESPONSE_MAX_TOKENS") or "1200"),
-            "stream": False,
-            "extra_body": {"thinking": {"type": "disabled"}},
-            "timeout": float(os.environ.get("NOI_REPAIR_RESPONSE_TIMEOUT_SECONDS") or "6.0"),
-        }
+            max_tokens_env="NOI_REPAIR_RESPONSE_MAX_TOKENS",
+            default_max_tokens="1200",
+            timeout_env="NOI_REPAIR_RESPONSE_TIMEOUT_SECONDS",
+            default_timeout="6.0",
+        )
         response = get_chat_client_for_profile(profile).chat.completions.create(**kwargs)
         raw = _choice_message_text(response, allow_reasoning_fallback=False)
         if not raw.strip():

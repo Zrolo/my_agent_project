@@ -1,4 +1,5 @@
 import argparse
+import inspect
 import json
 import os
 import sys
@@ -19,8 +20,12 @@ LeakageJudgeFn = Callable[..., dict]
 RepairFn = Callable[..., dict]
 
 
-def _judge_model_name() -> str:
-    return os.environ.get("NOI_PEDAGOGICAL_JUDGE_MODEL", "deepseek-v4-flash")
+def _judge_model_name(judge_provider: str = "deepseek") -> str:
+    if judge_provider == "kimi":
+        return os.environ.get("KIMI_MODEL", "kimi-k2.6")
+    if judge_provider in {"deepseek", "deepseek_flash", "deepseek-v4-flash"}:
+        return os.environ.get("NOI_PEDAGOGICAL_JUDGE_MODEL", "deepseek-v4-flash")
+    return judge_provider
 
 
 def load_seed_rows(path: Path = DEFAULT_SEED_PATH) -> list[dict]:
@@ -214,6 +219,43 @@ def _make_tutor_fn(tutor_mode: str, chat_model_provider: str | None) -> TutorFn:
     return _make_default_tutor_fn(chat_model_provider)
 
 
+def _make_bridge_judge_fn(judge_provider: str) -> BridgeJudgeFn:
+    return bridge_judge_v1
+
+
+def _make_leakage_judge_fn(judge_provider: str) -> LeakageJudgeFn:
+    return leakage_judge_v1
+
+
+def _make_repair_fn(judge_provider: str) -> RepairFn:
+    return repair_response_v1
+
+
+def _call_with_optional_judge_provider(fn: Callable, kwargs: dict, judge_provider: str) -> dict:
+    signature = inspect.signature(fn)
+    accepts_provider = "judge_provider" in signature.parameters or any(
+        param.kind == inspect.Parameter.VAR_KEYWORD for param in signature.parameters.values()
+    )
+    if accepts_provider:
+        return fn(**kwargs, judge_provider=judge_provider)
+    return fn(**kwargs)
+
+
+def _call_stage_with_retries(
+    fn: Callable,
+    kwargs: dict,
+    *,
+    judge_provider: str,
+    max_retries: int,
+) -> tuple[dict, int]:
+    retry_count = 0
+    while True:
+        result = _call_with_optional_judge_provider(fn, kwargs, judge_provider)
+        if not result.get("_failed") or retry_count >= max_retries:
+            return result, retry_count
+        retry_count += 1
+
+
 def _bridge_help_forms(bridge_result: dict) -> list[str]:
     help_forms = bridge_result.get("help_forms")
     if isinstance(help_forms, list):
@@ -255,7 +297,7 @@ def _finish_case_result(
     latency_ms["total_latency_ms"] = round((time.perf_counter() - total_start) * 1000, 3)
     result["latency_ms"] = latency_ms
     result["stage_errors"] = stage_errors
-    result["retry_count"] = 0
+    result.setdefault("retry_count", 0)
     return result
 
 
@@ -274,6 +316,8 @@ def _run_one_bridge_offline_case(
     focus_registry: list | None,
     guard_mode: str,
     tutor_mode: str,
+    judge_provider: str,
+    max_retries: int,
 ) -> dict:
     total_start = time.perf_counter()
     latency_ms: dict[str, float] = {}
@@ -294,8 +338,8 @@ def _run_one_bridge_offline_case(
         "guard_mode": guard_mode,
         "focus_registry_size": len(_focus_registry_for_row(row, focus_registry)),
         "models": {
-            "judge_model": _judge_model_name(),
-            "judge_provider": "deepseek",
+            "judge_model": _judge_model_name(judge_provider),
+            "judge_provider": judge_provider,
             "tutor_model_provider": chat_model_provider or "default",
             "tutor_mode": tutor_mode,
             "guard_mode": guard_mode,
@@ -305,13 +349,19 @@ def _run_one_bridge_offline_case(
 
     stage_start = time.perf_counter()
     try:
-        bridge_result = bridge_judge_fn(
-            student_message=student_message,
-            messages=messages,
-            problem_context=problem_context,
-            student_code=row.get("student_code"),
-            available_known_focus=_focus_registry_for_row(row, focus_registry),
+        bridge_result, bridge_retries = _call_stage_with_retries(
+            bridge_judge_fn,
+            {
+                "student_message": student_message,
+                "messages": messages,
+                "problem_context": problem_context,
+                "student_code": row.get("student_code"),
+                "available_known_focus": _focus_registry_for_row(row, focus_registry),
+            },
+            judge_provider=judge_provider,
+            max_retries=max_retries,
         )
+        result["retry_count"] = bridge_retries
     except Exception as exc:
         _record_latency(latency_ms, "bridge_judge_latency_ms", stage_start)
         stage_errors["bridge_judge"] = f"{type(exc).__name__}: {exc}"
@@ -320,7 +370,7 @@ def _run_one_bridge_offline_case(
     _record_latency(latency_ms, "bridge_judge_latency_ms", stage_start)
     result["bridge_judge_result"] = bridge_result
     if bridge_result.get("_failed"):
-        stage_errors["bridge_judge"] = str(bridge_result.get("_error") or "_failed")
+        stage_errors["bridge_judge"] = str(bridge_result.get("_error") or bridge_result.get("_reason") or "_failed")
         result["error"] = "bridge_judge_failed"
         return _finish_case_result(result, latency_ms=latency_ms, stage_errors=stage_errors, total_start=total_start)
 
@@ -353,17 +403,23 @@ def _run_one_bridge_offline_case(
 
     stage_start = time.perf_counter()
     try:
-        leakage_result = leakage_judge_fn(
-            student_message=student_message,
-            messages=messages,
-            problem_context=problem_context,
-            current_missing_bridge=bridge_result.get("missing_bridge", {}),
-            allowed_help_level=bridge_result.get("allowed_help_level", ""),
-            help_forms=_bridge_help_forms(bridge_result),
-            forbidden_content=forbidden_content,
-            candidate_response=candidate_response,
-            student_already_stated_bridge=bool(row.get("student_already_stated_bridge", False)),
+        leakage_result, leakage_retries = _call_stage_with_retries(
+            leakage_judge_fn,
+            {
+                "student_message": student_message,
+                "messages": messages,
+                "problem_context": problem_context,
+                "current_missing_bridge": bridge_result.get("missing_bridge", {}),
+                "allowed_help_level": bridge_result.get("allowed_help_level", ""),
+                "help_forms": _bridge_help_forms(bridge_result),
+                "forbidden_content": forbidden_content,
+                "candidate_response": candidate_response,
+                "student_already_stated_bridge": bool(row.get("student_already_stated_bridge", False)),
+            },
+            judge_provider=judge_provider,
+            max_retries=max_retries,
         )
+        result["retry_count"] = result.get("retry_count", 0) + leakage_retries
     except Exception as exc:
         _record_latency(latency_ms, "leakage_judge_latency_ms", stage_start)
         stage_errors["leakage_judge"] = f"{type(exc).__name__}: {exc}"
@@ -372,18 +428,25 @@ def _run_one_bridge_offline_case(
     _record_latency(latency_ms, "leakage_judge_latency_ms", stage_start)
     result["leakage_judge_result"] = leakage_result
     if leakage_result.get("_failed"):
-        stage_errors["leakage_judge"] = str(leakage_result.get("_error") or "_failed")
+        stage_errors["leakage_judge"] = str(leakage_result.get("_error") or leakage_result.get("_reason") or "_failed")
 
     if leakage_result.get("safe_action") in {"rewrite", "block"} and not leakage_result.get("_failed"):
         stage_start = time.perf_counter()
         try:
-            result["repair_result"] = repair_fn(
-                original_candidate_response=candidate_response,
-                leakage_judge_result=leakage_result,
-                bridge_judge_result=bridge_result,
-                student_message=student_message,
-                messages=messages,
+            repair_result, repair_retries = _call_stage_with_retries(
+                repair_fn,
+                {
+                    "original_candidate_response": candidate_response,
+                    "leakage_judge_result": leakage_result,
+                    "bridge_judge_result": bridge_result,
+                    "student_message": student_message,
+                    "messages": messages,
+                },
+                judge_provider=judge_provider,
+                max_retries=max_retries,
             )
+            result["repair_result"] = repair_result
+            result["retry_count"] = result.get("retry_count", 0) + repair_retries
         except Exception as exc:
             stage_errors["repair"] = f"{type(exc).__name__}: {exc}"
             result["error"] = "repair_exception"
@@ -396,13 +459,15 @@ def _run_one_bridge_offline_case(
 def run_bridge_offline_eval_rows(
     rows: list[dict],
     *,
-    bridge_judge_fn: BridgeJudgeFn = bridge_judge_v1,
+    bridge_judge_fn: BridgeJudgeFn | None = None,
     tutor_fn: TutorFn | None = None,
-    leakage_judge_fn: LeakageJudgeFn = leakage_judge_v1,
-    repair_fn: RepairFn = repair_response_v1,
+    leakage_judge_fn: LeakageJudgeFn | None = None,
+    repair_fn: RepairFn | None = None,
     chat_model_provider: str | None = None,
     tutor_mode: str = "current_system",
     guard_mode: str = "predicted",
+    judge_provider: str = "deepseek",
+    max_retries: int = 0,
     focus_registry: list | None = None,
     focus_registry_path: Path | None = DEFAULT_FOCUS_REGISTRY_PATH,
     limit: int | None = None,
@@ -412,8 +477,13 @@ def run_bridge_offline_eval_rows(
         raise ValueError(f"Unsupported guard_mode: {guard_mode}")
     if tutor_mode not in {"current_system", "bridge_contract"}:
         raise ValueError(f"Unsupported tutor_mode: {tutor_mode}")
+    if max_retries < 0:
+        raise ValueError("max_retries must be >= 0")
     selected = rows[:limit] if limit is not None else rows
+    effective_bridge_judge_fn = bridge_judge_fn or _make_bridge_judge_fn(judge_provider)
     effective_tutor_fn = tutor_fn or _make_tutor_fn(tutor_mode, chat_model_provider)
+    effective_leakage_judge_fn = leakage_judge_fn or _make_leakage_judge_fn(judge_provider)
+    effective_repair_fn = repair_fn or _make_repair_fn(judge_provider)
     effective_focus_registry = focus_registry
     if effective_focus_registry is None and focus_registry_path is not None:
         effective_focus_registry = load_focus_registry(focus_registry_path)
@@ -425,14 +495,16 @@ def run_bridge_offline_eval_rows(
         try:
             result = _run_one_bridge_offline_case(
                 row,
-                bridge_judge_fn=bridge_judge_fn,
+                bridge_judge_fn=effective_bridge_judge_fn,
                 tutor_fn=effective_tutor_fn,
-                leakage_judge_fn=leakage_judge_fn,
-                repair_fn=repair_fn,
+                leakage_judge_fn=effective_leakage_judge_fn,
+                repair_fn=effective_repair_fn,
                 chat_model_provider=chat_model_provider,
                 focus_registry=effective_focus_registry,
                 guard_mode=guard_mode,
                 tutor_mode=tutor_mode,
+                judge_provider=judge_provider,
+                max_retries=max_retries,
             )
             _write_progress(progress_stream, "CASE_DONE", index=index, total=total, case_id=case_id)
         except Exception as exc:
@@ -443,8 +515,8 @@ def run_bridge_offline_eval_rows(
                 "tutor_mode": tutor_mode,
                 "guard_mode": guard_mode,
                 "models": {
-                    "judge_model": _judge_model_name(),
-                    "judge_provider": "deepseek",
+                    "judge_model": _judge_model_name(judge_provider),
+                    "judge_provider": judge_provider,
                     "tutor_model_provider": chat_model_provider or "default",
                     "tutor_mode": tutor_mode,
                     "guard_mode": guard_mode,
@@ -497,6 +569,17 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         help="Whether Leakage Judge sees only predicted forbidden content or oracle gold forbidden content.",
     )
     parser.add_argument(
+        "--judge-provider",
+        default="deepseek",
+        help="Provider for offline Bridge/Leakage/Repair judges. Use deepseek or kimi.",
+    )
+    parser.add_argument(
+        "--max-retries",
+        type=int,
+        default=0,
+        help="Retry count for failed offline judge stages.",
+    )
+    parser.add_argument(
         "--focus-registry",
         type=Path,
         default=DEFAULT_FOCUS_REGISTRY_PATH,
@@ -513,6 +596,8 @@ def main(argv: list[str] | None = None) -> int:
         chat_model_provider=args.chat_model_provider,
         tutor_mode=args.tutor_mode,
         guard_mode=args.guard_mode,
+        judge_provider=args.judge_provider,
+        max_retries=args.max_retries,
         focus_registry_path=args.focus_registry,
         progress_stream=sys.stderr,
     )
