@@ -95,6 +95,8 @@ class BridgeJudgeV1Tests(unittest.TestCase):
         self.assertEqual("predicate_bridge", result["missing_bridge"]["family"])
         self.assertEqual("L2", result["allowed_help_level"])
         self.assertEqual({"type": "json_object"}, captured["response_format"])
+        self.assertEqual(4096, captured["max_tokens"])
+        self.assertNotIn("max_completion_tokens", captured)
         self.assertFalse(result.get("_failed", False))
 
     def test_bridge_judge_v1_accepts_explicit_judge_provider(self):
@@ -102,6 +104,7 @@ class BridgeJudgeV1Tests(unittest.TestCase):
         captured_profile = {}
 
         def fake_create(**kwargs):
+            captured_profile["kwargs"] = kwargs
             return SimpleNamespace(
                 choices=[
                     SimpleNamespace(message=SimpleNamespace(content=json.dumps(payload, ensure_ascii=False)))
@@ -123,6 +126,8 @@ class BridgeJudgeV1Tests(unittest.TestCase):
             )
 
         self.assertEqual("kimi", captured_profile["provider_id"])
+        self.assertEqual(4096, captured_profile["kwargs"]["max_completion_tokens"])
+        self.assertNotIn("max_tokens", captured_profile["kwargs"])
         self.assertFalse(result.get("_failed", False))
 
     def test_bridge_judge_v1_disables_sdk_retries_by_default(self):
