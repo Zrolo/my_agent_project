@@ -435,6 +435,25 @@ def _apply_profile_max_tokens(kwargs: dict, profile: ChatModelProfile, env_name:
         kwargs[profile.token_param] = max_tokens
 
 
+def _chat_extra_body_for_profile(profile: ChatModelProfile) -> dict | None:
+    extra_body = dict(profile.extra_body or {})
+    explicit = (os.environ.get("NOI_CHAT_THINKING_MODE") or "").strip().lower()
+    mode_aliases = {
+        "on": "enabled",
+        "true": "enabled",
+        "1": "enabled",
+        "enabled": "enabled",
+        "off": "disabled",
+        "false": "disabled",
+        "0": "disabled",
+        "disabled": "disabled",
+    }
+    explicit_mode = mode_aliases.get(explicit)
+    if explicit_mode and profile.provider_id.startswith("deepseek"):
+        extra_body["thinking"] = {"type": explicit_mode}
+    return extra_body or None
+
+
 def pedagogical_judge_max_tokens_for_profile(profile: ChatModelProfile | None) -> int:
     explicit = (os.environ.get("NOI_PEDAGOGICAL_JUDGE_MAX_TOKENS") or "").strip()
     if explicit:
@@ -534,8 +553,9 @@ def _chat_completion_create(
             "messages": [{"role": "system", "content": system_prompt}] + messages,
             "temperature": chat_temperature_for_model(profile.model),
         }
-        if profile.extra_body:
-            kwargs["extra_body"] = profile.extra_body
+        extra_body = _chat_extra_body_for_profile(profile)
+        if extra_body:
+            kwargs["extra_body"] = extra_body
         timeout_seconds = os.environ.get("NOI_CHAT_TIMEOUT_SECONDS", "").strip()
         if timeout_seconds:
             kwargs["timeout"] = float(timeout_seconds)
@@ -551,8 +571,9 @@ def _chat_completion_create(
         "messages": [{"role": "system", "content": system_prompt}] + messages,
         "temperature": chat_temperature_for_model(profile.model),
     }
-    if profile.extra_body:
-        kwargs["extra_body"] = profile.extra_body
+    extra_body = _chat_extra_body_for_profile(profile)
+    if extra_body:
+        kwargs["extra_body"] = extra_body
     timeout_seconds = os.environ.get("NOI_CHAT_TIMEOUT_SECONDS", "").strip()
     if timeout_seconds:
         kwargs["timeout"] = float(timeout_seconds)

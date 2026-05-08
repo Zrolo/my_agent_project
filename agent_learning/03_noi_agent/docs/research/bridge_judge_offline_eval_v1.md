@@ -132,7 +132,8 @@ Use the offline runner to produce a JSONL result file without changing online AI
 python3 -m evals.aichat.run_bridge_offline_eval \
   --input-jsonl docs/research/bridgebench_cp_seed_v1.jsonl \
   --output-jsonl evals/aichat/bridge_offline_eval_results.jsonl \
-  --chat-model-provider deepseek \
+  --chat-model-provider deepseek_flash \
+  --chat-thinking-mode disabled \
   --judge-provider deepseek \
   --max-retries 1 \
   --tutor-mode current_system \
@@ -152,6 +153,8 @@ python3 -m evals.aichat.run_bridge_offline_eval \
 ```
 
 The output row records model metadata under `models`, including `judge_model` and `tutor_model_provider`.
+
+Use explicit tutor provider ids for model-controlled runs. The legacy provider id `deepseek` resolves to `deepseek_pro`; use `deepseek_flash` when testing the fast student-facing route. `--chat-thinking-mode disabled` temporarily sets `NOI_CHAT_THINKING_MODE=disabled` only around the tutor generation stage and records `models.chat_thinking_mode` in the output row. Keep this variable explicit in latency experiments because DeepSeek thinking mode can dominate `current_system` tutor latency.
 
 Use `--judge-provider deepseek` for the default DeepSeek V4 Flash judge stack. Use `--judge-provider kimi` when DeepSeek is unavailable or when running model-family ablations. `--max-retries` retries failed offline judge stages that return `_failed=true`; retry counts are written to each output row.
 

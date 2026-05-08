@@ -135,7 +135,11 @@ def _experimental_group_key(row: dict) -> str:
     tutor_model_provider = (
         models.get("tutor_model_provider") or tutor_response.get("tutor_model_provider") or "unknown"
     )
-    return f"tutor_mode={tutor_mode}|guard_mode={guard_mode}|tutor_model_provider={tutor_model_provider}"
+    chat_thinking_mode = models.get("chat_thinking_mode") or "profile_default"
+    return (
+        f"tutor_mode={tutor_mode}|guard_mode={guard_mode}|"
+        f"tutor_model_provider={tutor_model_provider}|chat_thinking_mode={chat_thinking_mode}"
+    )
 
 
 def _group_summaries(rows: list[dict]) -> dict:

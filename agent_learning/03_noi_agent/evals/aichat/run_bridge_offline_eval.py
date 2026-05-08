@@ -1,4 +1,5 @@
 import argparse
+from contextlib import contextmanager
 import inspect
 import json
 import os
@@ -305,6 +306,26 @@ def _record_latency(latency_ms: dict[str, float], key: str, start: float) -> Non
     latency_ms[key] = round((time.perf_counter() - start) * 1000, 3)
 
 
+def _effective_chat_thinking_mode(chat_thinking_mode: str | None) -> str:
+    return (chat_thinking_mode or os.environ.get("NOI_CHAT_THINKING_MODE") or "profile_default").strip()
+
+
+@contextmanager
+def _temporary_chat_thinking_mode(chat_thinking_mode: str | None):
+    if not chat_thinking_mode:
+        yield
+        return
+    previous = os.environ.get("NOI_CHAT_THINKING_MODE")
+    os.environ["NOI_CHAT_THINKING_MODE"] = chat_thinking_mode
+    try:
+        yield
+    finally:
+        if previous is None:
+            os.environ.pop("NOI_CHAT_THINKING_MODE", None)
+        else:
+            os.environ["NOI_CHAT_THINKING_MODE"] = previous
+
+
 def _run_one_bridge_offline_case(
     row: dict,
     *,
@@ -318,6 +339,7 @@ def _run_one_bridge_offline_case(
     tutor_mode: str,
     judge_provider: str,
     max_retries: int,
+    chat_thinking_mode: str | None,
 ) -> dict:
     total_start = time.perf_counter()
     latency_ms: dict[str, float] = {}
@@ -341,6 +363,7 @@ def _run_one_bridge_offline_case(
             "judge_model": _judge_model_name(judge_provider),
             "judge_provider": judge_provider,
             "tutor_model_provider": chat_model_provider or "default",
+            "chat_thinking_mode": _effective_chat_thinking_mode(chat_thinking_mode),
             "tutor_mode": tutor_mode,
             "guard_mode": guard_mode,
         },
@@ -376,7 +399,8 @@ def _run_one_bridge_offline_case(
 
     stage_start = time.perf_counter()
     try:
-        tutor_result = tutor_fn(row, messages, bridge_result)
+        with _temporary_chat_thinking_mode(chat_thinking_mode):
+            tutor_result = tutor_fn(row, messages, bridge_result)
     except Exception as exc:
         _record_latency(latency_ms, "tutor_latency_ms", stage_start)
         stage_errors["tutor"] = f"{type(exc).__name__}: {exc}"
@@ -468,6 +492,7 @@ def run_bridge_offline_eval_rows(
     guard_mode: str = "predicted",
     judge_provider: str = "deepseek",
     max_retries: int = 0,
+    chat_thinking_mode: str | None = None,
     focus_registry: list | None = None,
     focus_registry_path: Path | None = DEFAULT_FOCUS_REGISTRY_PATH,
     limit: int | None = None,
@@ -479,6 +504,8 @@ def run_bridge_offline_eval_rows(
         raise ValueError(f"Unsupported tutor_mode: {tutor_mode}")
     if max_retries < 0:
         raise ValueError("max_retries must be >= 0")
+    if chat_thinking_mode not in {None, "enabled", "disabled"}:
+        raise ValueError(f"Unsupported chat_thinking_mode: {chat_thinking_mode}")
     selected = rows[:limit] if limit is not None else rows
     effective_bridge_judge_fn = bridge_judge_fn or _make_bridge_judge_fn(judge_provider)
     effective_tutor_fn = tutor_fn or _make_tutor_fn(tutor_mode, chat_model_provider)
@@ -505,6 +532,7 @@ def run_bridge_offline_eval_rows(
                 tutor_mode=tutor_mode,
                 judge_provider=judge_provider,
                 max_retries=max_retries,
+                chat_thinking_mode=chat_thinking_mode,
             )
             _write_progress(progress_stream, "CASE_DONE", index=index, total=total, case_id=case_id)
         except Exception as exc:
@@ -518,6 +546,7 @@ def run_bridge_offline_eval_rows(
                     "judge_model": _judge_model_name(judge_provider),
                     "judge_provider": judge_provider,
                     "tutor_model_provider": chat_model_provider or "default",
+                    "chat_thinking_mode": _effective_chat_thinking_mode(chat_thinking_mode),
                     "tutor_mode": tutor_mode,
                     "guard_mode": guard_mode,
                 },
@@ -580,6 +609,11 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         help="Retry count for failed offline judge stages.",
     )
     parser.add_argument(
+        "--chat-thinking-mode",
+        choices=["enabled", "disabled"],
+        help="Optional thinking mode override for current AIChat tutor calls.",
+    )
+    parser.add_argument(
         "--focus-registry",
         type=Path,
         default=DEFAULT_FOCUS_REGISTRY_PATH,
@@ -598,6 +632,7 @@ def main(argv: list[str] | None = None) -> int:
         guard_mode=args.guard_mode,
         judge_provider=args.judge_provider,
         max_retries=args.max_retries,
+        chat_thinking_mode=args.chat_thinking_mode,
         focus_registry_path=args.focus_registry,
         progress_stream=sys.stderr,
     )

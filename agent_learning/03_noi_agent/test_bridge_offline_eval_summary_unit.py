@@ -22,6 +22,7 @@ def _result_row(
     tutor_mode: str = "current_system",
     guard_mode: str = "predicted",
     tutor_model_provider: str = "deepseek",
+    chat_thinking_mode: str = "profile_default",
     total_latency_ms: float = 100.0,
     stage_errors: dict | None = None,
 ):
@@ -31,6 +32,7 @@ def _result_row(
         "guard_mode": guard_mode,
         "models": {
             "tutor_model_provider": tutor_model_provider,
+            "chat_thinking_mode": chat_thinking_mode,
             "tutor_mode": tutor_mode,
             "guard_mode": guard_mode,
         },
@@ -134,6 +136,7 @@ class BridgeOfflineEvalSummaryTests(unittest.TestCase):
                 tutor_mode="current_system",
                 guard_mode="predicted",
                 tutor_model_provider="deepseek",
+                chat_thinking_mode="disabled",
                 total_latency_ms=100.0,
             ),
             _result_row(
@@ -145,6 +148,7 @@ class BridgeOfflineEvalSummaryTests(unittest.TestCase):
                 tutor_mode="bridge_contract",
                 guard_mode="oracle",
                 tutor_model_provider="kimi",
+                chat_thinking_mode="enabled",
                 total_latency_ms=300.0,
                 stage_errors={"repair": "timeout"},
             ),
@@ -152,8 +156,8 @@ class BridgeOfflineEvalSummaryTests(unittest.TestCase):
 
         summary = summarize_bridge_offline_eval.summarize_bridge_offline_results(rows)
 
-        current_key = "tutor_mode=current_system|guard_mode=predicted|tutor_model_provider=deepseek"
-        contract_key = "tutor_mode=bridge_contract|guard_mode=oracle|tutor_model_provider=kimi"
+        current_key = "tutor_mode=current_system|guard_mode=predicted|tutor_model_provider=deepseek|chat_thinking_mode=disabled"
+        contract_key = "tutor_mode=bridge_contract|guard_mode=oracle|tutor_model_provider=kimi|chat_thinking_mode=enabled"
         self.assertEqual(1, summary["groups"][current_key]["case_count"])
         self.assertEqual(1, summary["groups"][contract_key]["case_count"])
         self.assertEqual(1.0, summary["unknown_focus_recall"])

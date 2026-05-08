@@ -1,6 +1,7 @@
 import contextlib
 import io
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -483,6 +484,49 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
         self.assertEqual(0, result["retry_count"])
         self.assertEqual("timeout", result["stage_errors"]["leakage_judge"])
 
+    def test_chat_thinking_mode_is_available_during_tutor_stage(self):
+        rows = [{"id": "case_thinking", "student_message": "我不会。"}]
+        captured_modes = []
+
+        def fake_bridge_judge(**kwargs):
+            return {
+                "problem_solving_state": "strategy_generation_blocked",
+                "missing_bridge": {
+                    "family": "unknown_bridge",
+                    "subtype": "unknown",
+                    "description": "信息不足。",
+                    "evidence": ["学生说不会"],
+                    "known_focus": "unknown",
+                    "needs_new_focus": True,
+                },
+                "help_seeking_type": "unclear",
+                "allowed_help_level": "L1",
+                "help_form": "question",
+                "forbidden_content": ["不要给完整题解。"],
+                "leakage_risk": "unknown",
+                "confidence": 0.6,
+                "reason": "unit test",
+            }
+
+        def fake_tutor(row, messages, bridge_result):
+            captured_modes.append(os.environ.get("NOI_CHAT_THINKING_MODE"))
+            return {"response_text": "你先贴题面。", "level": "L1"}
+
+        def fake_leakage(**kwargs):
+            return {"leakage_level": 0, "safe_action": "pass"}
+
+        with patch.dict(os.environ, {"NOI_CHAT_THINKING_MODE": ""}, clear=False):
+            result_rows = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+                rows,
+                bridge_judge_fn=fake_bridge_judge,
+                tutor_fn=fake_tutor,
+                leakage_judge_fn=fake_leakage,
+                chat_thinking_mode="disabled",
+            )
+
+        self.assertEqual(["disabled"], captured_modes)
+        self.assertEqual("disabled", result_rows[0]["models"]["chat_thinking_mode"])
+
     def test_bridge_judge_retries_transient_failed_result(self):
         rows = [{"id": "case_retry", "student_message": "我不会。"}]
         attempts = []
@@ -642,6 +686,8 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
                         "kimi",
                         "--max-retries",
                         "2",
+                        "--chat-thinking-mode",
+                        "disabled",
                     ]
                 )
 
@@ -651,6 +697,7 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
             self.assertEqual("oracle", captured_kwargs["guard_mode"])
             self.assertEqual("kimi", captured_kwargs["judge_provider"])
             self.assertEqual(2, captured_kwargs["max_retries"])
+            self.assertEqual("disabled", captured_kwargs["chat_thinking_mode"])
             self.assertIn('"case_count": 1', stdout.getvalue())
             written = [json.loads(line) for line in output_path.read_text(encoding="utf-8").splitlines()]
             self.assertEqual([{"case_id": "case_1", "error": ""}], written)

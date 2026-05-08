@@ -142,6 +142,39 @@ class AIChatModelSwitchUnitTests(unittest.TestCase):
 
             self.assertEqual(4096, noi_agent.chat_max_completion_tokens_for_profile(kimi))
 
+    def test_chat_request_can_disable_deepseek_thinking_for_main_reply(self):
+        captured = {}
+
+        class FakeCompletions:
+            def create(self, **kwargs):
+                captured.update(kwargs)
+                return object()
+
+        class FakeChat:
+            completions = FakeCompletions()
+
+        class FakeClient:
+            chat = FakeChat()
+
+        with patch.dict(
+            os.environ,
+            {
+                "NOI_CHAT_THINKING_MODE": "disabled",
+                "NOI_CHAT_MAX_COMPLETION_TOKENS": "1200",
+            },
+            clear=False,
+        ):
+            with patch.object(noi_agent, "get_chat_client_for_profile", return_value=FakeClient()):
+                noi_agent._chat_completion_create(
+                    system_prompt="系统提示",
+                    messages=[{"role": "user", "content": "学生问题"}],
+                    provider_id="deepseek_flash",
+                )
+
+        self.assertEqual("deepseek-v4-flash", captured["model"])
+        self.assertEqual({"thinking": {"type": "disabled"}}, captured["extra_body"])
+        self.assertEqual(1200, captured["max_tokens"])
+
     def test_deepseek_pedagogical_judge_uses_light_json_request(self):
         deepseek = noi_agent._profile_by_provider("deepseek_pro")
 
