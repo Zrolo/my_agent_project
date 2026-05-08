@@ -18,6 +18,7 @@ test('parseTeacherRoute understands canonical teacher routes', () => {
   assert.deepEqual(routes.parseTeacherRoute('/app/teacher/flags'), { kind: 'students' });
   assert.deepEqual(routes.parseTeacherRoute('/app/teacher/students'), { kind: 'students' });
   assert.deepEqual(routes.parseTeacherRoute('/app/teacher/aichat-history'), { kind: 'aichat-history' });
+  assert.deepEqual(routes.parseTeacherRoute('/app/teacher/research-annotation'), { kind: 'research-annotation' });
   assert.deepEqual(routes.parseTeacherRoute('/app/teacher/advanced'), { kind: 'advanced' });
 });
 
@@ -37,6 +38,7 @@ test('buildTeacherRoute emits canonical teacher routes', () => {
   assert.equal(routes.buildTeacherRoute({ kind: 'manual-review' }), '/app/teacher/reflection');
   assert.equal(routes.buildTeacherRoute({ kind: 'flags' }), '/app/teacher/students');
   assert.equal(routes.buildTeacherRoute({ kind: 'aichat-history' }), '/app/teacher/aichat-history');
+  assert.equal(routes.buildTeacherRoute({ kind: 'research-annotation' }), '/app/teacher/research-annotation');
   assert.equal(routes.buildTeacherRoute({ kind: 'accounts' }), '/app/teacher/class-management');
   assert.equal(routes.buildTeacherRoute({ kind: 'class-management' }), '/app/teacher/class-management');
   assert.equal(routes.buildTeacherRoute({ kind: 'advanced' }), '/app/teacher/advanced');

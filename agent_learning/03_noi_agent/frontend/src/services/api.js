@@ -300,6 +300,23 @@ export function getTeacherAIChatSessionAnalysisHealth(token, params = {}) {
   return request(`/api/teacher/aichat_session_analysis/health${suffix}`, { token });
 }
 
+export function getTeacherResearchAIChatSamples(token, params = {}) {
+  const query = new URLSearchParams();
+  if (params.limit) query.set('limit', String(params.limit));
+  if (params.annotated) query.set('annotated', params.annotated);
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return request(`/api/teacher/research/aichat-samples${suffix}`, { token });
+}
+
+export function saveTeacherBridgeAnnotation(token, payload) {
+  return request('/api/teacher/research/bridge-annotations', { method: 'POST', token, body: payload });
+}
+
+export function exportTeacherBridgeAnnotations(token, format = 'jsonl') {
+  const query = new URLSearchParams({ format });
+  return requestText(`/api/teacher/research/bridge-annotations/export?${query.toString()}`, { token });
+}
+
 export function createTeacherStudent(token, payload) {
   return request('/api/teacher/students', { method: 'POST', token, body: payload });
 }

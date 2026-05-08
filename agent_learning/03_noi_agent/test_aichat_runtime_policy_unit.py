@@ -18,6 +18,7 @@ from noi_agent import (
     enforce_level_gate,
     evaluate_understanding_evidence,
     evaluate_learning_phase,
+    _judge_allowed_help_text,
 )
 
 
@@ -582,6 +583,28 @@ class AIChatRuntimePolicyTests(unittest.TestCase):
         self.assertIn("初中生信息学竞赛学习者", prompt)
         self.assertIn("那一个最小卡点", prompt)
         self.assertIn("最影响他下一步推进", prompt)
+
+    def test_system_prompt_should_define_turn_level_adaptive_scaffolding(self):
+        messages = self._messages("我知道要二分，但是 check 不会写。")
+
+        control = analyze_student_turn(messages[-1]["content"], messages)
+        prompt = build_system_prompt(control, remaining=999, student_id="s1", problem_id="P1")
+
+        self.assertIn("帮助等级只针对当前这一轮学生消息", prompt)
+        self.assertIn("下一轮如果学生理解提升", prompt)
+        self.assertIn("学生直接索要答案、题型或代码", prompt)
+        self.assertIn("L1 轻提示", prompt)
+        self.assertIn("L2 半步支架", prompt)
+        self.assertIn("L3 强支架", prompt)
+        self.assertIn("输出形式参考", prompt)
+        self.assertIn("help_form", prompt)
+        self.assertIn("local_pseudocode", prompt)
+        self.assertIn("code_diagnosis", prompt)
+
+    def test_judge_allowed_help_text_should_use_refined_help_level_language(self):
+        self.assertIn("L1 轻提示", _judge_allowed_help_text("questioning", "ask_grounding_question", "L1"))
+        self.assertIn("L2 半步支架", _judge_allowed_help_text("scaffolding", "build_application_bridge", "L2"))
+        self.assertIn("L3 强支架", _judge_allowed_help_text("diagnosis", "diagnose_code_locally", "L3"))
 
     def test_system_prompt_should_not_invent_examples_without_problem_context(self):
         messages = self._messages("我还是说不清。", [
@@ -1538,6 +1561,52 @@ class AIChatRuntimePolicyTests(unittest.TestCase):
         self.assertNotIn("int main", reply)
         self.assertIn("不能把大半份答案代码挖空", reply)
         self.assertIn("局部伪代码片段", reply)
+
+    def test_system_prompt_should_not_invite_code_fill_blank_skeletons(self):
+        control = {
+            "level_control": {"max_level": "L3", "bridge_redline": False},
+            "risk_control": {"risk_tags": []},
+            "tutor_control": {
+                "tutor_action": "give_micro_scaffold",
+                "forbidden": ["完整题解", "完整代码", "可直接补空的代码框架"],
+                "learning_phase": {
+                    "recommended_action": "give_pseudocode_skeleton",
+                    "question_budget": 0,
+                },
+            },
+        }
+
+        prompt = build_system_prompt(control, remaining=999, student_id="s1", problem_id="P1")
+
+        self.assertIn("不要给可直接补空的代码框架", prompt)
+        self.assertIn("不要出现 ___", prompt)
+        self.assertIn("不要给半步代码骨架", prompt)
+        self.assertNotIn("让学生补关键行", prompt)
+
+    def test_ascii_diagram_output_should_be_replaced_with_stable_visual_format(self):
+        reply, guard = enforce_output_guards(
+            "\n".join(
+                [
+                    "```diagram-ascii",
+                    "┌─────┐",
+                    "│ 根  │",
+                    "└──┬──┘",
+                    "   │",
+                    "f──┴──a",
+                    "```",
+                    "这张图要看见的是 trie 的分支。",
+                ]
+            ),
+            {"bridge_redline": False},
+            {"risk_tags": []},
+            messages=self._messages("这个 trie 的图我看不懂。"),
+        )
+
+        self.assertEqual("unstable_ascii_diagram", guard)
+        self.assertNotIn("diagram-ascii", reply)
+        self.assertNotIn("┌", reply)
+        self.assertIn("不要用 ASCII 字符画树", reply)
+        self.assertIn("Markdown 表格", reply)
 
 
 if __name__ == "__main__":

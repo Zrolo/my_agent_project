@@ -32,6 +32,8 @@ test-results/
 .worktrees/
 .tmp_*.spec.js
 agent_learning/03_noi_agent/evals/aichat/reports/
+agent_learning/03_noi_agent/data/server_exports/
+agent_learning/03_noi_agent/data/local_backups/
 
 # Local paper PDFs used for reading/research; keep derived notes in docs/
 agent_learning/03_noi_agent/paper*.pdf

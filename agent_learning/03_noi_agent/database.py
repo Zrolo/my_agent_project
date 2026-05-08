@@ -471,6 +471,34 @@ def _ensure_problem_bottleneck_events_table(cursor):
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_problem_bottleneck_type ON problem_bottleneck_events(bottleneck_type, created_at DESC)")
 
 
+def _ensure_bridge_research_annotations_table(cursor):
+    cursor.execute(
+        '''
+        CREATE TABLE IF NOT EXISTS bridge_research_annotations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sample_id TEXT NOT NULL UNIQUE,
+            student_message_id INTEGER NOT NULL,
+            annotator_id TEXT NOT NULL DEFAULT '',
+            student_state TEXT NOT NULL DEFAULT '',
+            bridge_family TEXT NOT NULL DEFAULT '',
+            known_focus TEXT NOT NULL DEFAULT '',
+            help_seeking_type TEXT NOT NULL DEFAULT '',
+            missing_link TEXT NOT NULL DEFAULT '',
+            allowed_help_level TEXT NOT NULL DEFAULT '',
+            forbidden_completion TEXT NOT NULL DEFAULT '',
+            needs_new_focus INTEGER NOT NULL DEFAULT 0,
+            confidence INTEGER NOT NULL DEFAULT 0,
+            notes TEXT NOT NULL DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        '''
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_bridge_research_annotations_message ON bridge_research_annotations(student_message_id)"
+    )
+
+
 def _ensure_teacher_student_notes_table(cursor):
     cursor.execute(
         '''
@@ -894,6 +922,7 @@ def init_db():
     _ensure_aichat_problem_memory_table(cursor)
     _ensure_aichat_teaching_evidence_tables(cursor)
     _ensure_student_problem_completions_table(cursor)
+    _ensure_bridge_research_annotations_table(cursor)
     _ensure_teacher_student_notes_table(cursor)
     
     conn.commit()
@@ -4693,6 +4722,306 @@ def list_aichat_messages(
     rows = cursor.fetchall()
     conn.close()
     return [dict(row) for row in rows]
+
+
+def _bridge_research_context_messages(
+    cursor,
+    *,
+    student_id: str,
+    problem_id: str,
+    session_id: str,
+    student_message_id: int,
+    assistant_message_id: int | None = None,
+    before_limit: int = 6,
+    after_limit: int = 3,
+) -> list[dict]:
+    """Return a small same-session context window around one student turn."""
+    base_params = (student_id, problem_id, session_id)
+    cursor.execute(
+        """
+        SELECT id, role, content, created_at
+        FROM (
+            SELECT id, role, content, created_at
+            FROM aichat_messages
+            WHERE student_id = ?
+              AND problem_id = ?
+              AND session_id = ?
+              AND id < ?
+            ORDER BY id DESC
+            LIMIT ?
+        )
+        ORDER BY id ASC
+        """,
+        (*base_params, int(student_message_id), max(0, int(before_limit))),
+    )
+    rows = [dict(row) for row in cursor.fetchall()]
+    cursor.execute(
+        """
+        SELECT id, role, content, created_at
+        FROM aichat_messages
+        WHERE id = ?
+        """,
+        (int(student_message_id),),
+    )
+    current = cursor.fetchone()
+    if current:
+        rows.append(dict(current))
+    cursor.execute(
+        """
+        SELECT id, role, content, created_at
+        FROM aichat_messages
+        WHERE student_id = ?
+          AND problem_id = ?
+          AND session_id = ?
+          AND id > ?
+        ORDER BY id ASC
+        LIMIT ?
+        """,
+        (*base_params, int(student_message_id), max(0, int(after_limit))),
+    )
+    rows.extend(dict(row) for row in cursor.fetchall())
+
+    seen = set()
+    context = []
+    for row in rows:
+        message_id = int(row.get("id") or 0)
+        if message_id in seen:
+            continue
+        seen.add(message_id)
+        context.append(
+            {
+                "id": message_id,
+                "role": row.get("role") or "",
+                "content": row.get("content") or "",
+                "created_at": row.get("created_at") or "",
+                "is_current_student": message_id == int(student_message_id),
+                "is_target_assistant": bool(assistant_message_id and message_id == int(assistant_message_id)),
+            }
+        )
+    return context
+
+
+def list_bridge_research_samples(limit: int = 100, annotated: str = "all") -> list[dict]:
+    """Return student AIChat turns paired with the next assistant reply for coach annotation."""
+    conn = get_db()
+    cursor = conn.cursor()
+    _ensure_bridge_research_annotations_table(cursor)
+    normalized_annotated = (annotated or "all").strip().lower()
+    annotation_filter = ""
+    if normalized_annotated == "annotated":
+        annotation_filter = "AND ann.id IS NOT NULL"
+    elif normalized_annotated == "unannotated":
+        annotation_filter = "AND ann.id IS NULL"
+    cursor.execute(
+        f'''
+        SELECT
+            ('aichat_message_' || m.id) AS sample_id,
+            m.id AS student_message_id,
+            next_ai.id AS assistant_message_id,
+            m.student_id,
+            m.problem_id AS problem_ref,
+            m.session_id,
+            m.content AS student_message,
+            COALESCE(next_ai.content, '') AS assistant_reply,
+            m.problem_title,
+            m.problem_url,
+            m.has_problem_context,
+            m.has_student_code,
+            m.created_at,
+            ann.id AS annotation_id,
+            ann.student_state,
+            ann.bridge_family,
+            ann.known_focus,
+            ann.help_seeking_type,
+            ann.missing_link,
+            ann.allowed_help_level,
+            ann.forbidden_completion,
+            ann.needs_new_focus,
+            ann.confidence,
+            ann.notes,
+            ann.updated_at AS annotation_updated_at
+        FROM aichat_messages m
+        LEFT JOIN aichat_messages next_ai
+            ON next_ai.id = (
+                SELECT a.id
+                FROM aichat_messages a
+                WHERE a.student_id = m.student_id
+                  AND a.problem_id = m.problem_id
+                  AND a.session_id = m.session_id
+                  AND a.role = 'assistant'
+                  AND a.id > m.id
+                ORDER BY a.id ASC
+                LIMIT 1
+            )
+        LEFT JOIN bridge_research_annotations ann
+            ON ann.student_message_id = m.id
+        WHERE m.role = 'user'
+          AND TRIM(m.content) != ''
+          {annotation_filter}
+        ORDER BY m.created_at ASC, m.id ASC
+        LIMIT ?
+        ''',
+        (max(1, min(int(limit or 100), 500)),),
+    )
+    rows = [dict(row) for row in cursor.fetchall()]
+    for row in rows:
+        row["annotated"] = bool(row.pop("annotation_id", None))
+        row["has_problem_context"] = bool(row.get("has_problem_context"))
+        row["has_student_code"] = bool(row.get("has_student_code"))
+        row["needs_new_focus"] = bool(row.get("needs_new_focus")) if row.get("needs_new_focus") is not None else False
+        row["context_messages"] = _bridge_research_context_messages(
+            cursor,
+            student_id=row.get("student_id") or "",
+            problem_id=row.get("problem_ref") or "",
+            session_id=row.get("session_id") or "",
+            student_message_id=int(row.get("student_message_id") or 0),
+            assistant_message_id=row.get("assistant_message_id"),
+        )
+    conn.close()
+    return rows
+
+
+def upsert_bridge_research_annotation(
+    *,
+    sample_id: str,
+    student_message_id: int,
+    annotator_id: str = "",
+    student_state: str,
+    bridge_family: str,
+    known_focus: str,
+    help_seeking_type: str,
+    missing_link: str,
+    allowed_help_level: str,
+    forbidden_completion: str,
+    needs_new_focus: bool = False,
+    confidence: int = 0,
+    notes: str = "",
+) -> dict:
+    conn = get_db()
+    cursor = conn.cursor()
+    _ensure_bridge_research_annotations_table(cursor)
+    cursor.execute(
+        '''
+        INSERT INTO bridge_research_annotations (
+            sample_id,
+            student_message_id,
+            annotator_id,
+            student_state,
+            bridge_family,
+            known_focus,
+            help_seeking_type,
+            missing_link,
+            allowed_help_level,
+            forbidden_completion,
+            needs_new_focus,
+            confidence,
+            notes,
+            updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(sample_id) DO UPDATE SET
+            student_message_id = excluded.student_message_id,
+            annotator_id = excluded.annotator_id,
+            student_state = excluded.student_state,
+            bridge_family = excluded.bridge_family,
+            known_focus = excluded.known_focus,
+            help_seeking_type = excluded.help_seeking_type,
+            missing_link = excluded.missing_link,
+            allowed_help_level = excluded.allowed_help_level,
+            forbidden_completion = excluded.forbidden_completion,
+            needs_new_focus = excluded.needs_new_focus,
+            confidence = excluded.confidence,
+            notes = excluded.notes,
+            updated_at = CURRENT_TIMESTAMP
+        ''',
+        (
+            sample_id or f"aichat_message_{student_message_id}",
+            int(student_message_id),
+            annotator_id or "",
+            student_state or "",
+            bridge_family or "",
+            known_focus or "",
+            help_seeking_type or "",
+            missing_link or "",
+            allowed_help_level or "",
+            forbidden_completion or "",
+            1 if needs_new_focus else 0,
+            max(0, min(int(confidence or 0), 5)),
+            notes or "",
+        ),
+    )
+    conn.commit()
+    cursor.execute(
+        '''
+        SELECT *
+        FROM bridge_research_annotations
+        WHERE sample_id = ?
+        ''',
+        (sample_id or f"aichat_message_{student_message_id}",),
+    )
+    row = dict(cursor.fetchone())
+    conn.close()
+    row["needs_new_focus"] = bool(row.get("needs_new_focus"))
+    row["saved"] = True
+    return row
+
+
+def list_bridge_research_annotation_exports() -> list[dict]:
+    conn = get_db()
+    cursor = conn.cursor()
+    _ensure_bridge_research_annotations_table(cursor)
+    cursor.execute(
+        '''
+        SELECT
+            ann.sample_id,
+            ann.annotator_id,
+            ann.student_state AS gold_student_state,
+            ann.bridge_family AS gold_bridge_family,
+            ann.known_focus AS gold_known_focus,
+            ann.help_seeking_type AS gold_help_seeking_type,
+            ann.missing_link AS gold_missing_link,
+            ann.allowed_help_level AS gold_allowed_help_level,
+            ann.forbidden_completion AS gold_forbidden_completion,
+            ann.needs_new_focus,
+            ann.confidence,
+            ann.notes,
+            ann.updated_at AS annotated_at,
+            m.id AS student_message_id,
+            next_ai.id AS assistant_message_id,
+            m.student_id,
+            m.problem_id AS problem_ref,
+            m.session_id,
+            m.content AS student_message,
+            COALESCE(next_ai.content, '') AS assistant_reply,
+            m.problem_title,
+            m.problem_url,
+            m.has_problem_context,
+            m.has_student_code,
+            m.created_at AS student_message_created_at
+        FROM bridge_research_annotations ann
+        JOIN aichat_messages m ON m.id = ann.student_message_id
+        LEFT JOIN aichat_messages next_ai
+            ON next_ai.id = (
+                SELECT a.id
+                FROM aichat_messages a
+                WHERE a.student_id = m.student_id
+                  AND a.problem_id = m.problem_id
+                  AND a.session_id = m.session_id
+                  AND a.role = 'assistant'
+                  AND a.id > m.id
+                ORDER BY a.id ASC
+                LIMIT 1
+            )
+        ORDER BY ann.updated_at ASC, ann.id ASC
+        '''
+    )
+    rows = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    for row in rows:
+        row["needs_new_focus"] = bool(row.get("needs_new_focus"))
+        row["has_problem_context"] = bool(row.get("has_problem_context"))
+        row["has_student_code"] = bool(row.get("has_student_code"))
+    return rows
 
 
 def record_aichat_conversation_message(

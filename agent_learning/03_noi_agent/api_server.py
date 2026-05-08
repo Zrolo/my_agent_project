@@ -10,6 +10,9 @@ import os
 import re
 import threading
 import time
+import csv
+import hashlib
+import io
 from datetime import datetime, timedelta, timezone
 from html import unescape
 from functools import lru_cache
@@ -137,7 +140,10 @@ from database import (
     list_teacher_aichat_observations,
     list_teacher_aichat_evidence_students,
     list_teacher_aichat_evidence_sessions,
+    list_bridge_research_samples,
+    list_bridge_research_annotation_exports,
     get_teacher_aichat_evidence_session_detail,
+    upsert_bridge_research_annotation,
     upsert_aichat_session_analysis,
     create_teacher_student_note,
     get_class_learning_diagnosis,
@@ -821,6 +827,21 @@ class ChatResponse(BaseModel):
     understanding_evidence: List[str] = Field(default_factory=list)
     chat_model_provider: str = ""
     chat_model_label: str = ""
+
+
+class BridgeResearchAnnotationRequest(BaseModel):
+    sample_id: str = Field(..., min_length=1)
+    student_message_id: int
+    student_state: str = Field(..., min_length=1)
+    bridge_family: str = Field(..., min_length=1)
+    known_focus: str = Field(default="unknown")
+    help_seeking_type: str = Field(..., min_length=1)
+    missing_link: str = Field(..., min_length=1)
+    allowed_help_level: Literal["L1", "L2", "L3"]
+    forbidden_completion: str = Field(..., min_length=1)
+    needs_new_focus: bool = False
+    confidence: int = Field(default=0, ge=0, le=5)
+    notes: str = ""
 
 
 class UnderstandingCheckGenerateRequest(BaseModel):
@@ -4126,6 +4147,122 @@ def get_teacher_aichat_observations(
     del user
     observations = list_teacher_aichat_observations(limit=limit, days=days)
     return {"observations": observations}
+
+
+def _research_hash(value: str, prefix: str) -> str:
+    digest = hashlib.sha256(f"bridge-research-v1|{value or ''}".encode("utf-8")).hexdigest()[:16]
+    return f"{prefix}_{digest}"
+
+
+def _public_bridge_export_row(row: dict) -> dict:
+    return {
+        "sample_id": row.get("sample_id", ""),
+        "student_hash": _research_hash(row.get("student_id", ""), "student"),
+        "session_hash": _research_hash(row.get("session_id", ""), "session"),
+        "problem_ref": row.get("problem_ref", ""),
+        "problem_title": row.get("problem_title", ""),
+        "problem_url": row.get("problem_url", ""),
+        "student_message": row.get("student_message", ""),
+        "assistant_reply": row.get("assistant_reply", ""),
+        "gold_student_state": row.get("gold_student_state", ""),
+        "gold_bridge_family": row.get("gold_bridge_family", ""),
+        "gold_known_focus": row.get("gold_known_focus", ""),
+        "gold_help_seeking_type": row.get("gold_help_seeking_type", ""),
+        "gold_missing_link": row.get("gold_missing_link", ""),
+        "gold_allowed_help_level": row.get("gold_allowed_help_level", ""),
+        "gold_forbidden_completion": row.get("gold_forbidden_completion", ""),
+        "needs_new_focus": bool(row.get("needs_new_focus")),
+        "confidence": int(row.get("confidence") or 0),
+        "annotator_id": row.get("annotator_id", ""),
+        "notes": row.get("notes", ""),
+        "has_problem_context": bool(row.get("has_problem_context")),
+        "has_student_code": bool(row.get("has_student_code")),
+        "annotated_at": row.get("annotated_at", ""),
+    }
+
+
+@app.get("/api/teacher/research/aichat-samples")
+def get_teacher_research_aichat_samples(
+    limit: int = 100,
+    annotated: str = "all",
+    user: dict = Depends(require_teacher),
+):
+    """Teacher lists AIChat student turns that can be annotated as BridgeBench samples."""
+    del user
+    return {"samples": list_bridge_research_samples(limit=limit, annotated=annotated)}
+
+
+@app.post("/api/teacher/research/bridge-annotations")
+def save_teacher_research_bridge_annotation(
+    request: BridgeResearchAnnotationRequest,
+    user: dict = Depends(require_teacher),
+):
+    annotation = upsert_bridge_research_annotation(
+        sample_id=request.sample_id,
+        student_message_id=request.student_message_id,
+        annotator_id=user.get("user_id", ""),
+        student_state=request.student_state,
+        bridge_family=request.bridge_family,
+        known_focus=request.known_focus,
+        help_seeking_type=request.help_seeking_type,
+        missing_link=request.missing_link,
+        allowed_help_level=request.allowed_help_level,
+        forbidden_completion=request.forbidden_completion,
+        needs_new_focus=request.needs_new_focus,
+        confidence=request.confidence,
+        notes=request.notes,
+    )
+    return {"annotation": annotation}
+
+
+@app.get("/api/teacher/research/bridge-annotations/export")
+def export_teacher_research_bridge_annotations(
+    format: Literal["jsonl", "csv"] = "jsonl",
+    user: dict = Depends(require_teacher),
+):
+    """Export expert annotations as anonymized research data."""
+    del user
+    rows = [_public_bridge_export_row(row) for row in list_bridge_research_annotation_exports()]
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    if format == "csv":
+        output = io.StringIO()
+        fieldnames = [
+            "sample_id",
+            "gold_student_state",
+            "gold_bridge_family",
+            "gold_known_focus",
+            "gold_help_seeking_type",
+            "gold_missing_link",
+            "gold_allowed_help_level",
+            "gold_forbidden_completion",
+            "needs_new_focus",
+            "confidence",
+            "student_hash",
+            "session_hash",
+            "problem_ref",
+            "problem_title",
+            "student_message",
+            "assistant_reply",
+            "annotator_id",
+            "notes",
+            "annotated_at",
+        ]
+        writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+        return PlainTextResponse(
+            output.getvalue(),
+            media_type="text/csv; charset=utf-8",
+            headers={"Content-Disposition": f'attachment; filename="bridge_annotations_{timestamp}.csv"'},
+        )
+    content = "\n".join(json.dumps(row, ensure_ascii=False) for row in rows)
+    if content:
+        content += "\n"
+    return PlainTextResponse(
+        content,
+        media_type="application/x-ndjson; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="bridge_annotations_{timestamp}.jsonl"'},
+    )
 
 
 @app.get("/api/teacher/student-dossier")
