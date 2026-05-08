@@ -168,6 +168,36 @@ class AIChatModelSwitchUnitTests(unittest.TestCase):
 
         self.assertEqual(4096, kwargs["max_tokens"])
 
+    def test_offline_deepseek_judge_uses_official_max_tokens_field(self):
+        deepseek = noi_agent._offline_judge_profile("deepseek")
+
+        kwargs = noi_agent._offline_json_judge_request_kwargs(
+            profile=deepseek,
+            messages=[{"role": "user", "content": "只输出 JSON"}],
+            max_tokens_env="NOI_BRIDGE_JUDGE_MAX_TOKENS",
+            default_max_tokens="1024",
+            timeout_env="NOI_BRIDGE_JUDGE_TIMEOUT_SECONDS",
+            default_timeout="5.0",
+        )
+
+        self.assertEqual(1024, kwargs["max_tokens"])
+        self.assertNotIn("max_completion_tokens", kwargs)
+
+    def test_offline_kimi_judge_uses_official_max_completion_tokens_field(self):
+        kimi = noi_agent._offline_judge_profile("kimi")
+
+        kwargs = noi_agent._offline_json_judge_request_kwargs(
+            profile=kimi,
+            messages=[{"role": "user", "content": "只输出 JSON"}],
+            max_tokens_env="NOI_BRIDGE_JUDGE_MAX_TOKENS",
+            default_max_tokens="1024",
+            timeout_env="NOI_BRIDGE_JUDGE_TIMEOUT_SECONDS",
+            default_timeout="5.0",
+        )
+
+        self.assertEqual(1024, kwargs["max_completion_tokens"])
+        self.assertNotIn("max_tokens", kwargs)
+
 
 if __name__ == "__main__":
     unittest.main()
