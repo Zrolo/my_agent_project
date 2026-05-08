@@ -164,7 +164,7 @@ The offline judge stack follows the current provider docs:
 - DeepSeek Chat Completion uses `max_tokens` for the maximum generated output length.
 - Kimi Chat Completion marks `max_tokens` as deprecated and uses `max_completion_tokens`.
 
-The default offline judge output budget is `9000` generated tokens for Bridge Judge, Leakage Judge, and Repair Response. This is deliberately larger than the previous 1024-token smoke setting because schema JSON plus natural-language evidence can otherwise be truncated. Override with `NOI_BRIDGE_JUDGE_MAX_TOKENS`, `NOI_LEAKAGE_JUDGE_MAX_TOKENS`, or `NOI_REPAIR_RESPONSE_MAX_TOKENS` when running cost-sensitive smoke tests.
+The default offline judge output budget is `98304` generated tokens for Bridge Judge, Leakage Judge, and Repair Response, matching the existing Kimi long-form review benchmark convention (`NOI_REVIEW_MAX_TOKENS=98304`). DeepSeek's current model page lists a maximum output of 384K tokens for `deepseek-v4-flash` / `deepseek-v4-pro`, so `98304` is within the documented DeepSeek range. Override with `NOI_BRIDGE_JUDGE_MAX_TOKENS`, `NOI_LEAKAGE_JUDGE_MAX_TOKENS`, or `NOI_REPAIR_RESPONSE_MAX_TOKENS` when running cost-sensitive smoke tests.
 
 Do not switch Kimi judge calls back to `max_tokens`. If Kimi returns truncated content, raise the corresponding `NOI_*_MAX_TOKENS`; if it returns `empty_content`, treat it as provider-output instability and inspect the raw stage error before changing schema logic.
 
