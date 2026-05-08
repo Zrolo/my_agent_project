@@ -32,6 +32,8 @@ The coach should label the current student turn, not the whole session. The help
 
 Each row follows [turn_annotation_schema_v1.json](turn_annotation_schema_v1.json).
 
+Human coach annotation should follow [coach_seed_labeling_guide_v1.md](coach_seed_labeling_guide_v1.md). The JSON schema defines the machine-readable row shape; the coach guide defines how a human should interpret and assign the labels.
+
 Top-level fields:
 
 | Field | Meaning | Paper use |
