@@ -125,8 +125,21 @@ Use the offline runner to produce a JSONL result file without changing online AI
 python3 -m evals.aichat.run_bridge_offline_eval \
   --input-jsonl docs/research/bridgebench_cp_seed_v1.jsonl \
   --output-jsonl evals/aichat/bridge_offline_eval_results.jsonl \
+  --chat-model-provider deepseek \
   --limit 5
 ```
+
+For model-controlled comparisons, rerun the same seed set with a different tutor provider while keeping the Judge stack on DeepSeek V4 Flash:
+
+```bash
+python3 -m evals.aichat.run_bridge_offline_eval \
+  --input-jsonl docs/research/bridgebench_cp_seed_v1.jsonl \
+  --output-jsonl evals/aichat/bridge_offline_eval_results.kimi.jsonl \
+  --chat-model-provider kimi \
+  --limit 5
+```
+
+The output row records model metadata under `models`, including `judge_model` and `tutor_model_provider`.
 
 Then summarize the JSONL results into a JSON metrics file and a Markdown report:
 

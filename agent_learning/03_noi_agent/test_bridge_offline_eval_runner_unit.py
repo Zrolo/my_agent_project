@@ -1,4 +1,3 @@
-import io
 import contextlib
 import io
 import json
@@ -135,6 +134,69 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
         self.assertIn("repaired_response", result["repair_result"])
         self.assertIn("CASE_DONE index=1 total=1 case_id=case_1", progress.getvalue())
 
+    def test_default_tutor_uses_requested_chat_model_provider_and_records_models(self):
+        rows = [
+            {
+                "id": "case_1",
+                "problem_ref": "P1001",
+                "student_message": "我不会。",
+                "problem_context": "简单题。",
+                "gold_bridge_family": "representation_bridge",
+            }
+        ]
+        calls = []
+
+        def fake_bridge_judge(**kwargs):
+            return {
+                "problem_solving_state": "problem_representation_unclear",
+                "missing_bridge": {
+                    "family": "representation_bridge",
+                    "subtype": "state_design",
+                    "description": "缺状态语义。",
+                    "evidence": ["学生说不会"],
+                    "known_focus": "state_design",
+                    "needs_new_focus": False,
+                },
+                "help_seeking_type": "instrumental_help",
+                "allowed_help_level": "L2",
+                "help_form": "question",
+                "forbidden_content": ["不要给完整答案。"],
+                "leakage_risk": "low",
+                "confidence": 0.9,
+                "reason": "unit test",
+            }
+
+        def fake_chat(messages, student_id, problem_id, chat_model_provider=None):
+            calls.append((student_id, problem_id, chat_model_provider))
+            return "回复", "回复", "L2"
+
+        def fake_leakage(**kwargs):
+            return {
+                "leakage_level": 0,
+                "leakage_types": [],
+                "leaked_elements": [],
+                "violated_forbidden_content": [],
+                "is_critical_bridge_leakage": False,
+                "is_answer_or_code_leakage": False,
+                "safe_action": "pass",
+                "repair_instruction": "",
+                "confidence": 0.9,
+                "reason": "unit test",
+            }
+
+        with patch.object(run_bridge_offline_eval, "noi_agent_chat", side_effect=fake_chat):
+            result_rows = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+                rows,
+                bridge_judge_fn=fake_bridge_judge,
+                leakage_judge_fn=fake_leakage,
+                chat_model_provider="deepseek",
+            )
+
+        self.assertEqual("deepseek", calls[0][2])
+        self.assertEqual("deepseek", result_rows[0]["models"]["tutor_model_provider"])
+        self.assertEqual("deepseek-v4-flash", result_rows[0]["models"]["judge_model"])
+        self.assertEqual("deepseek", result_rows[0]["tutor_response"]["tutor_model_provider"])
+
     def test_write_result_rows_emits_jsonl(self):
         rows = [{"case_id": "case_1", "bridge_judge_result": {"confidence": 0.9}}]
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -164,7 +226,10 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
+            captured_kwargs = {}
+
             def fake_rows(rows, **kwargs):
+                captured_kwargs.update(kwargs)
                 return [{"case_id": rows[0]["id"], "error": ""}]
 
             stdout = io.StringIO()
@@ -181,10 +246,13 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
                         str(output_path),
                         "--limit",
                         "1",
+                        "--chat-model-provider",
+                        "deepseek",
                     ]
                 )
 
             self.assertEqual(0, exit_code)
+            self.assertEqual("deepseek", captured_kwargs["chat_model_provider"])
             self.assertIn('"case_count": 1', stdout.getvalue())
             written = [json.loads(line) for line in output_path.read_text(encoding="utf-8").splitlines()]
             self.assertEqual([{"case_id": "case_1", "error": ""}], written)

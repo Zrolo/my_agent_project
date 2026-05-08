@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Callable
@@ -14,6 +15,10 @@ BridgeJudgeFn = Callable[..., dict]
 TutorFn = Callable[[dict, list[dict], dict], dict]
 LeakageJudgeFn = Callable[..., dict]
 RepairFn = Callable[..., dict]
+
+
+def _judge_model_name() -> str:
+    return os.environ.get("NOI_PEDAGOGICAL_JUDGE_MODEL", "deepseek-v4-flash")
 
 
 def load_seed_rows(path: Path = DEFAULT_SEED_PATH) -> list[dict]:
@@ -64,20 +69,34 @@ def build_messages_from_seed_row(row: dict) -> list[dict]:
     return messages
 
 
-def _default_tutor_fn(row: dict, messages: list[dict], bridge_result: dict) -> dict:
+def _call_current_system_tutor(row: dict, messages: list[dict], chat_model_provider: str | None = None) -> dict:
     problem_ref = (row.get("problem_ref") or row.get("id") or "unknown_problem").strip()
     case_id = row.get("id") or problem_ref
     response_text, history_text, level = noi_agent_chat(
         messages,
         "bridge_offline_eval_student",
         f"{problem_ref}::{case_id}",
+        chat_model_provider=chat_model_provider,
     )
     return {
         "baseline_group": "current_system",
+        "tutor_model_provider": chat_model_provider or "default",
         "response_text": response_text,
         "history_text": history_text,
         "level": level,
     }
+
+
+def _default_tutor_fn(row: dict, messages: list[dict], bridge_result: dict) -> dict:
+    return _call_current_system_tutor(row, messages)
+
+
+def _make_default_tutor_fn(chat_model_provider: str | None) -> TutorFn:
+    return lambda row, messages, bridge_result: _call_current_system_tutor(
+        row,
+        messages,
+        chat_model_provider=chat_model_provider,
+    )
 
 
 def _bridge_help_forms(bridge_result: dict) -> list[str]:
@@ -118,6 +137,7 @@ def _run_one_bridge_offline_case(
     tutor_fn: TutorFn,
     leakage_judge_fn: LeakageJudgeFn,
     repair_fn: RepairFn,
+    chat_model_provider: str | None,
 ) -> dict:
     messages = build_messages_from_seed_row(row)
     student_message = row.get("student_message", "")
@@ -131,6 +151,11 @@ def _run_one_bridge_offline_case(
         "problem_ref": row.get("problem_ref", ""),
         "topic": row.get("topic", ""),
         "student_message": student_message,
+        "models": {
+            "judge_model": _judge_model_name(),
+            "judge_provider": "deepseek",
+            "tutor_model_provider": chat_model_provider or "default",
+        },
         "gold": _case_gold(row),
     }
 
@@ -183,13 +208,15 @@ def run_bridge_offline_eval_rows(
     rows: list[dict],
     *,
     bridge_judge_fn: BridgeJudgeFn = bridge_judge_v1,
-    tutor_fn: TutorFn = _default_tutor_fn,
+    tutor_fn: TutorFn | None = None,
     leakage_judge_fn: LeakageJudgeFn = leakage_judge_v1,
     repair_fn: RepairFn = repair_response_v1,
+    chat_model_provider: str | None = None,
     limit: int | None = None,
     progress_stream=None,
 ) -> list[dict]:
     selected = rows[:limit] if limit is not None else rows
+    effective_tutor_fn = tutor_fn or _make_default_tutor_fn(chat_model_provider)
     result_rows = []
     total = len(selected)
     for index, row in enumerate(selected, 1):
@@ -199,9 +226,10 @@ def run_bridge_offline_eval_rows(
             result = _run_one_bridge_offline_case(
                 row,
                 bridge_judge_fn=bridge_judge_fn,
-                tutor_fn=tutor_fn,
+                tutor_fn=effective_tutor_fn,
                 leakage_judge_fn=leakage_judge_fn,
                 repair_fn=repair_fn,
+                chat_model_provider=chat_model_provider,
             )
             _write_progress(progress_stream, "CASE_DONE", index=index, total=total, case_id=case_id)
         except Exception as exc:
@@ -209,6 +237,11 @@ def run_bridge_offline_eval_rows(
                 "case_id": case_id,
                 "problem_ref": row.get("problem_ref", ""),
                 "student_message": row.get("student_message", ""),
+                "models": {
+                    "judge_model": _judge_model_name(),
+                    "judge_provider": "deepseek",
+                    "tutor_model_provider": chat_model_provider or "default",
+                },
                 "gold": _case_gold(row),
                 "error": f"{type(exc).__name__}: {exc}",
             }
@@ -237,6 +270,10 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--input-jsonl", type=Path, default=DEFAULT_SEED_PATH, help="Seed turn JSONL file.")
     parser.add_argument("--output-jsonl", type=Path, default=DEFAULT_OUTPUT_PATH, help="Where to write result JSONL.")
     parser.add_argument("--limit", type=int, help="Optional case limit for smoke tests.")
+    parser.add_argument(
+        "--chat-model-provider",
+        help="Optional provider id passed to current AIChat tutor, for model-controlled experiments.",
+    )
     return parser.parse_args(argv)
 
 
@@ -245,6 +282,7 @@ def main(argv: list[str] | None = None) -> int:
     rows = run_bridge_offline_eval_rows(
         load_seed_rows(args.input_jsonl),
         limit=args.limit,
+        chat_model_provider=args.chat_model_provider,
         progress_stream=sys.stderr,
     )
     write_result_rows(args.output_jsonl, rows)
