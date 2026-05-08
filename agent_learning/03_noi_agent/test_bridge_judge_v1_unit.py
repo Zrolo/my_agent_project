@@ -125,6 +125,40 @@ class BridgeJudgeV1Tests(unittest.TestCase):
         self.assertEqual("kimi", captured_profile["provider_id"])
         self.assertFalse(result.get("_failed", False))
 
+    def test_bridge_judge_v1_disables_sdk_retries_by_default(self):
+        payload = _valid_bridge_payload()
+        captured = {}
+
+        class FakeRootClient:
+            def with_options(self, **kwargs):
+                captured["with_options"] = kwargs
+                return SimpleNamespace(
+                    chat=SimpleNamespace(
+                        completions=SimpleNamespace(
+                            create=lambda **create_kwargs: SimpleNamespace(
+                                choices=[
+                                    SimpleNamespace(
+                                        message=SimpleNamespace(
+                                            content=json.dumps(payload, ensure_ascii=False)
+                                        )
+                                    )
+                                ]
+                            )
+                        )
+                    )
+                )
+
+        with patch("noi_agent.get_chat_client_for_profile", return_value=FakeRootClient()):
+            result = bridge_judge_v1(
+                student_message="我知道二分，但 check 不会写。",
+                messages=[],
+                problem_context={"problem_ref": "P2678"},
+                available_known_focus=["check_condition"],
+            )
+
+        self.assertEqual({"max_retries": 0}, captured["with_options"])
+        self.assertFalse(result.get("_failed", False))
+
 
 if __name__ == "__main__":
     unittest.main()

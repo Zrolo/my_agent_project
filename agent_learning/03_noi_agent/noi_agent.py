@@ -509,6 +509,18 @@ def _offline_json_judge_request_kwargs(
     return kwargs
 
 
+def _offline_judge_sdk_max_retries() -> int:
+    return int(os.environ.get("NOI_OFFLINE_JUDGE_SDK_MAX_RETRIES") or "0")
+
+
+def _offline_judge_completion_create(profile: ChatModelProfile, kwargs: dict):
+    client_for_call = get_chat_client_for_profile(profile)
+    with_options = getattr(client_for_call, "with_options", None)
+    if callable(with_options):
+        client_for_call = with_options(max_retries=_offline_judge_sdk_max_retries())
+    return client_for_call.chat.completions.create(**kwargs)
+
+
 def _chat_completion_create(
     *,
     system_prompt: str,
@@ -1683,7 +1695,7 @@ def pedagogical_judge_v2(
             # selective triggering in M2 will reduce average judge invocation rate.
             "timeout": float(os.environ.get("NOI_PEDAGOGICAL_JUDGE_TIMEOUT_SECONDS") or "5.0"),
         }
-        response = get_chat_client_for_profile(profile).chat.completions.create(**kwargs)
+        response = _offline_judge_completion_create(profile, kwargs)
         raw = _choice_message_text(response, allow_reasoning_fallback=False)
         if not raw.strip():
             return {"_failed": True, "_reason": "empty_content"}
@@ -1732,7 +1744,7 @@ def bridge_judge_v1(
             timeout_env="NOI_BRIDGE_JUDGE_TIMEOUT_SECONDS",
             default_timeout="5.0",
         )
-        response = get_chat_client_for_profile(profile).chat.completions.create(**kwargs)
+        response = _offline_judge_completion_create(profile, kwargs)
         raw = _choice_message_text(response, allow_reasoning_fallback=False)
         if not raw.strip():
             return {"_failed": True, "_reason": "empty_content"}
@@ -1789,7 +1801,7 @@ def leakage_judge_v1(
             timeout_env="NOI_LEAKAGE_JUDGE_TIMEOUT_SECONDS",
             default_timeout="5.0",
         )
-        response = get_chat_client_for_profile(profile).chat.completions.create(**kwargs)
+        response = _offline_judge_completion_create(profile, kwargs)
         raw = _choice_message_text(response, allow_reasoning_fallback=False)
         if not raw.strip():
             return {"_failed": True, "_reason": "empty_content"}
