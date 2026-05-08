@@ -1,0 +1,21 @@
+﻿case_id,problem_ref,topic,student_message,problem_context,recent_dialogue,student_code_excerpt,coach_problem_solving_state,coach_bridge_family,coach_known_focus,coach_missing_bridge_description,coach_help_seeking_type,coach_allowed_help_level,coach_forbidden_content,coach_needs_new_focus,coach_confidence,coach_notes,review_status
+cp_bridge_001,P3128,tree_path_difference,我知道要 LCA，但不知道每条路径到底在哪里加减标记。,树上多条路径统计每个点经过次数。,,,,,,,,,,,,,unlabeled
+cp_bridge_002,P2678,check_condition,我知道要二分答案，但是 check(mid) 到底返回 true 还是 false 我总写反。,最大化最小跳跃距离，check(mid) 判断能否让所有跳跃距离至少为 mid。,,,,,,,,,,,,,unlabeled
+cp_bridge_003,P1048,state_design,我不知道 dp 数组每一格到底应该表示什么，只知道像背包。,给定每株药草的时间和价值，在总时间限制内最大化价值。,,,,,,,,,,,,,unlabeled
+cp_bridge_004,P1048,transition_design,我知道 dp[j] 可能和时间有关，但我不知道当前这株药到底从哪些情况转过来。,0/1 背包，每株药草只能采一次。,,,,,,,,,,,,,unlabeled
+cp_bridge_005,P3372,lazy_semantics,线段树区间加我会写一点，但 lazy 到底表示还没做什么，我说不清。,区间加和区间求和，需要线段树懒标记。,,,,,,,,,,,,,unlabeled
+cp_bridge_006,P2922,shared_prefix_merging,为什么用 trie 查询时不用把所有消息重新看一遍？,很多 01 消息串和拦截串，查询与前缀关系有关。,,,,,,,,,,,,,unlabeled
+cp_bridge_007,P2922,method_selection,这题是不是 trie？我感觉很多 01 串像 trie，但不确定。,输入多条 01 消息串，并反复处理前缀包含关系。,,,,,,,,,,,,,unlabeled
+cp_bridge_008,P2249,left_bound_update,二分里 a[mid] == x 的时候我为什么还要 r = mid，不是已经找到了吗？,在有序数组中找某个数第一次出现的位置。,,,,,,,,,,,,,unlabeled
+cp_bridge_009,generic,greedy_basis,我知道要先选结束早的活动，但为什么这样不会影响后面的选择？,活动选择类问题，目标是在不冲突条件下选尽量多的活动。,,,,,,,,,,,,,unlabeled
+cp_bridge_010,generic,enumeration_order,01 背包为什么容量要倒着枚举？正着枚举不是也能更新吗？,每个物品只能选一次。,,,,,,,,,,,,,unlabeled
+cp_bridge_011,generic,constraint_modeling,这些限制都是大小关系，我不知道怎么把它们变成图里的边。,多个变量之间有不等式约束，需要判断是否能同时满足。,,,,,,,,,,,,,unlabeled
+cp_bridge_012,generic,general_modeling,题目里一堆学校和道路，我不知道什么当点什么当边。,图建模问题，需要从题面对象和关系中抽象结构。,,,,,,,,,,,,,unlabeled
+cp_bridge_013,generic,recursion_structure,递归函数我不知道每一层到底表示什么，也不知道什么时候停。,递归或分治题，需要定义函数含义和 base case。,,,,,,,,,,,,,unlabeled
+cp_bridge_014,generic,complexity_fit,我写了两层循环，但 n 到 1e5，会不会过我判断不出来。,需要根据数据范围估算复杂度是否可行。,,,,,,,,,,,,,unlabeled
+cp_bridge_015,generic,data_type,样例能过，但大数据总是错，我怀疑是不是 int 不够。,数据范围可能导致整数溢出。,,,,,,,,,,,,,unlabeled
+cp_bridge_016,generic,loop_boundary,我这里循环到底该从 0 开始还是 1 开始，总是少算一个。,数组下标和循环边界相关错误。,,,,,,,,,,,,,unlabeled
+cp_bridge_017,generic,mapping_bridge,题目说合并两个集合，我知道可能是并查集，但不知道这个操作在代码里对应哪一步。,动态维护若干集合的合并与查询。,,,,,,,,,,,,,unlabeled
+cp_bridge_018,generic,heap_mapping,每次取当前最小的两个合并，我知道要用堆，但不明白题目动作怎么落到 push 和 pop。,反复取最小元素并合并，类似哈夫曼合并过程。,,,,,,,,,,,,,unlabeled
+cp_bridge_019,generic,prefix_sum_aggregation,很多次问区间和，我不知道为什么可以先处理一个数组之后 O(1) 查。,静态数组，多次查询区间和。,,,,,,,,,,,,,unlabeled
+cp_bridge_020,generic,topological_ordering,有些任务必须先做，我不知道为什么要按入度为 0 的点开始处理。,有先后依赖关系，需要判断或生成合法顺序。,,,,,,,,,,,,,unlabeled
