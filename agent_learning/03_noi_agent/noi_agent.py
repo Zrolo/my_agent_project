@@ -20,6 +20,12 @@ PEDAGOGICAL_JUDGE_V2_PROMPT_FILE = os.path.join(
     "common",
     "aichat_pedagogical_judge_v2_system_prompt.md",
 )
+BRIDGE_JUDGE_V1_PROMPT_FILE = os.path.join(
+    BASE_DIR,
+    "docs",
+    "common",
+    "aichat_bridge_judge_v1_system_prompt.md",
+)
 AICHAT_TURN_TAGGER_PROMPT_FILE = os.path.join(
     BASE_DIR,
     "docs",
@@ -973,6 +979,11 @@ def _read_pedagogical_judge_v2_system_prompt() -> str:
         return f.read()
 
 
+def _read_bridge_judge_v1_system_prompt() -> str:
+    with open(BRIDGE_JUDGE_V1_PROMPT_FILE, "r", encoding="utf-8") as f:
+        return f.read()
+
+
 def _read_aichat_turn_tagger_system_prompt() -> str:
     with open(AICHAT_TURN_TAGGER_PROMPT_FILE, "r", encoding="utf-8") as f:
         return f.read()
@@ -1049,6 +1060,31 @@ def _build_pedagogical_judge_v2_user_message(
         _wrap_untrusted("problem_statement_untrusted", problem_text, 2600),
         _wrap_untrusted("student_code_untrusted", student_code or "", 2200),
         _wrap_untrusted("student_message_untrusted", user_input or "", 1200),
+    ]
+    return "\n\n".join(sections)
+
+
+def _build_bridge_judge_v1_user_message(
+    *,
+    student_message: str,
+    messages: list,
+    problem_context: dict | None = None,
+    student_code: str | None = None,
+    available_known_focus: list[str] | None = None,
+) -> str:
+    context_flags = [
+        "已有题目" if problem_context else "缺少题目",
+        "学生带了代码" if student_code else "没有学生代码",
+    ]
+    problem_text = _compact_problem_context_for_judge(problem_context)
+    sections = [
+        "请根据下面材料输出 Bridge Judge v1 JSON。你只做离线诊断，不生成学生可见回复。",
+        f"context_flags: {';'.join(context_flags)}",
+        "available_known_focus: " + json.dumps(available_known_focus or [], ensure_ascii=False),
+        _wrap_untrusted("recent_dialogue_untrusted", _format_recent_dialogue_for_judge(messages), 3600),
+        _wrap_untrusted("problem_statement_untrusted", problem_text, 2600),
+        _wrap_untrusted("student_code_untrusted", student_code or "", 2200),
+        _wrap_untrusted("student_message_untrusted", student_message or "", 1200),
     ]
     return "\n\n".join(sections)
 
@@ -1382,6 +1418,55 @@ def pedagogical_judge_v2(
         return {"_failed": True, "_reason": f"{type(exc).__name__}: {exc}"}
 
 
+def bridge_judge_v1(
+    *,
+    student_message: str,
+    messages: list,
+    problem_context: dict | None = None,
+    student_code: str | None = None,
+    available_known_focus: list[str] | None = None,
+) -> dict:
+    """Offline Bridge Judge v1. It diagnoses missing bridges but does not control chat()."""
+    try:
+        system_prompt = _read_bridge_judge_v1_system_prompt()
+        user_message = _build_bridge_judge_v1_user_message(
+            student_message=student_message,
+            messages=messages,
+            problem_context=problem_context,
+            student_code=student_code,
+            available_known_focus=available_known_focus,
+        )
+        profile = _deepseek_v4_flash_judge_profile()
+        kwargs = {
+            "model": profile.model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            "response_format": {"type": "json_object"},
+            "max_tokens": int(os.environ.get("NOI_BRIDGE_JUDGE_MAX_TOKENS") or "1024"),
+            "stream": False,
+            "extra_body": {"thinking": {"type": "disabled"}},
+            "timeout": float(os.environ.get("NOI_BRIDGE_JUDGE_TIMEOUT_SECONDS") or "5.0"),
+        }
+        response = get_chat_client_for_profile(profile).chat.completions.create(**kwargs)
+        raw = _choice_message_text(response, allow_reasoning_fallback=False)
+        if not raw.strip():
+            return {"_failed": True, "_reason": "empty_content"}
+        try:
+            parsed = _extract_json_from_response(raw)
+        except json.JSONDecodeError as exc:
+            return {"_failed": True, "_reason": f"json_parse_failed: {exc}"}
+        except ValueError as exc:
+            return {"_failed": True, "_reason": f"extract_failed: {exc}"}
+        try:
+            return _validate_bridge_judge_v1_schema(parsed)
+        except ValueError as exc:
+            return {"_failed": True, "_reason": f"schema_invalid: {exc}"}
+    except Exception as exc:
+        return {"_failed": True, "_reason": f"{type(exc).__name__}: {exc}"}
+
+
 def _extract_json_object(text: str) -> dict:
     raw = (text or "").strip()
     if not raw:
@@ -1447,6 +1532,44 @@ _JUDGE_ACTION_SUBTYPES_BY_CATEGORY = {
 }
 _JUDGE_HELP_LEVELS = {"L1", "L2", "L3"}
 _JUDGE_INJECTION_SOURCES = {"none", "problem", "student_message", "code"}
+_BRIDGE_PROBLEM_STATES = {
+    "text_comprehension_blocked",
+    "problem_representation_unclear",
+    "strategy_generation_blocked",
+    "strategy_misconception",
+    "strategy_application_gap",
+    "implementation_execution_gap",
+    "debugging_verification_gap",
+    "reflection_transfer_gap",
+}
+_BRIDGE_FAMILIES = {
+    "representation_bridge",
+    "transition_bridge",
+    "predicate_bridge",
+    "modeling_bridge",
+    "selection_bridge",
+    "aggregation_bridge",
+    "ordering_bridge",
+    "mapping_bridge",
+    "boundary_bridge",
+    "complexity_bridge",
+    "unknown_bridge",
+}
+_BRIDGE_HELP_SEEKING_TYPES = {"instrumental_help", "executive_help", "help_avoidance", "unclear"}
+_BRIDGE_HELP_FORMS = {
+    "question",
+    "hint",
+    "micro_example",
+    "counterexample",
+    "diagram",
+    "checklist",
+    "local_pseudocode",
+    "code_diagnosis",
+    "summary",
+    "mixed",
+    "unknown",
+}
+_BRIDGE_LEAKAGE_RISKS = {"low", "medium", "high", "unknown"}
 
 
 def _extract_json_from_response(text: str) -> dict:
@@ -1458,6 +1581,77 @@ def _extract_json_from_response(text: str) -> dict:
     if fence:
         raw = fence.group(1).strip()
     return _extract_json_object(raw)
+
+
+def _require_non_empty_string(payload: dict, key: str) -> None:
+    if not isinstance(payload.get(key), str) or not payload.get(key, "").strip():
+        raise ValueError(f"{key} must be a non-empty string")
+
+
+def _validate_bridge_judge_v1_schema(payload: dict) -> dict:
+    """Validate offline Bridge Judge v1 JSON without mutating or normalizing it."""
+    if not isinstance(payload, dict):
+        raise ValueError("payload must be an object")
+
+    required = {
+        "problem_solving_state",
+        "missing_bridge",
+        "help_seeking_type",
+        "allowed_help_level",
+        "help_form",
+        "forbidden_content",
+        "leakage_risk",
+        "confidence",
+        "reason",
+    }
+    missing = sorted(required - set(payload.keys()))
+    if missing:
+        raise ValueError(f"missing required fields: {', '.join(missing)}")
+
+    if payload["problem_solving_state"] not in _BRIDGE_PROBLEM_STATES:
+        raise ValueError(f"problem_solving_state has invalid enum: {payload['problem_solving_state']}")
+    if payload["help_seeking_type"] not in _BRIDGE_HELP_SEEKING_TYPES:
+        raise ValueError(f"help_seeking_type has invalid enum: {payload['help_seeking_type']}")
+    if payload["allowed_help_level"] not in _JUDGE_HELP_LEVELS:
+        raise ValueError(f"allowed_help_level has invalid enum: {payload['allowed_help_level']}")
+    if payload["help_form"] not in _BRIDGE_HELP_FORMS:
+        raise ValueError(f"help_form has invalid enum: {payload['help_form']}")
+    if payload["leakage_risk"] not in _BRIDGE_LEAKAGE_RISKS:
+        raise ValueError(f"leakage_risk has invalid enum: {payload['leakage_risk']}")
+
+    confidence = payload["confidence"]
+    if not isinstance(confidence, (int, float)) or isinstance(confidence, bool) or not 0 <= confidence <= 1:
+        raise ValueError("confidence must be a number between 0 and 1")
+    _require_non_empty_string(payload, "reason")
+
+    bridge = payload["missing_bridge"]
+    if not isinstance(bridge, dict):
+        raise ValueError("missing_bridge must be an object")
+    bridge_required = {"family", "subtype", "description", "evidence", "known_focus", "needs_new_focus"}
+    bridge_missing = sorted(bridge_required - set(bridge.keys()))
+    if bridge_missing:
+        raise ValueError(f"missing_bridge missing required fields: {', '.join(bridge_missing)}")
+    if bridge["family"] not in _BRIDGE_FAMILIES:
+        raise ValueError(f"missing_bridge.family has invalid enum: {bridge['family']}")
+    for key in ("subtype", "description", "known_focus"):
+        _require_non_empty_string(bridge, key)
+    evidence = bridge["evidence"]
+    if not isinstance(evidence, list) or not evidence:
+        raise ValueError("missing_bridge.evidence must contain at least one item")
+    for item in evidence:
+        if not isinstance(item, str) or not item.strip():
+            raise ValueError("missing_bridge.evidence items must be non-empty strings")
+    if not isinstance(bridge["needs_new_focus"], bool):
+        raise ValueError("missing_bridge.needs_new_focus must be boolean")
+
+    forbidden = payload["forbidden_content"]
+    if not isinstance(forbidden, list) or not forbidden:
+        raise ValueError("forbidden_content must contain at least one item")
+    for item in forbidden:
+        if not isinstance(item, str) or not item.strip():
+            raise ValueError("forbidden_content items must be non-empty strings")
+
+    return payload
 
 
 def _validate_judge_schema(payload: dict) -> dict:
