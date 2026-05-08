@@ -95,7 +95,7 @@ class BridgeJudgeV1Tests(unittest.TestCase):
         self.assertEqual("predicate_bridge", result["missing_bridge"]["family"])
         self.assertEqual("L2", result["allowed_help_level"])
         self.assertEqual({"type": "json_object"}, captured["response_format"])
-        self.assertEqual(4096, captured["max_tokens"])
+        self.assertEqual(9000, captured["max_tokens"])
         self.assertNotIn("max_completion_tokens", captured)
         self.assertFalse(result.get("_failed", False))
 
@@ -126,7 +126,7 @@ class BridgeJudgeV1Tests(unittest.TestCase):
             )
 
         self.assertEqual("kimi", captured_profile["provider_id"])
-        self.assertEqual(4096, captured_profile["kwargs"]["max_completion_tokens"])
+        self.assertEqual(9000, captured_profile["kwargs"]["max_completion_tokens"])
         self.assertNotIn("max_tokens", captured_profile["kwargs"])
         self.assertFalse(result.get("_failed", False))
 

@@ -1740,7 +1740,7 @@ def bridge_judge_v1(
                 {"role": "user", "content": user_message},
             ],
             max_tokens_env="NOI_BRIDGE_JUDGE_MAX_TOKENS",
-            default_max_tokens="4096",
+            default_max_tokens="9000",
             timeout_env="NOI_BRIDGE_JUDGE_TIMEOUT_SECONDS",
             default_timeout="5.0",
         )
@@ -1797,7 +1797,7 @@ def leakage_judge_v1(
                 {"role": "user", "content": user_message},
             ],
             max_tokens_env="NOI_LEAKAGE_JUDGE_MAX_TOKENS",
-            default_max_tokens="4096",
+            default_max_tokens="9000",
             timeout_env="NOI_LEAKAGE_JUDGE_TIMEOUT_SECONDS",
             default_timeout="5.0",
         )
@@ -1846,7 +1846,7 @@ def repair_response_v1(
                 {"role": "user", "content": user_message},
             ],
             max_tokens_env="NOI_REPAIR_RESPONSE_MAX_TOKENS",
-            default_max_tokens="4096",
+            default_max_tokens="9000",
             timeout_env="NOI_REPAIR_RESPONSE_TIMEOUT_SECONDS",
             default_timeout="6.0",
         )
