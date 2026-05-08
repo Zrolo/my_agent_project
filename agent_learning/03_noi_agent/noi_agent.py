@@ -4,10 +4,12 @@ NOI 竞赛教练 Agent - 限级改造版本
 技术栈：Kimi API + JSON 文件
 """
 
+import hashlib
 import json
 import os
 import re
 import time
+import uuid
 from dataclasses import dataclass
 from openai import OpenAI
 from model_config import get_model_candidates, is_model_unavailable_error
@@ -25,6 +27,18 @@ BRIDGE_JUDGE_V1_PROMPT_FILE = os.path.join(
     "docs",
     "common",
     "aichat_bridge_judge_v1_system_prompt.md",
+)
+LEAKAGE_JUDGE_V1_PROMPT_FILE = os.path.join(
+    BASE_DIR,
+    "docs",
+    "common",
+    "aichat_leakage_judge_v1_system_prompt.md",
+)
+REPAIR_RESPONSE_V1_PROMPT_FILE = os.path.join(
+    BASE_DIR,
+    "docs",
+    "common",
+    "aichat_repair_response_v1_system_prompt.md",
 )
 AICHAT_TURN_TAGGER_PROMPT_FILE = os.path.join(
     BASE_DIR,
@@ -564,6 +578,165 @@ TUTOR_ACTION_BY_RISK = {
     "emotion_pressure": "ask_baseline_attempt",
 }
 
+ROUTE_RISK_SCORE = {
+    "direct_request": 3,
+    "classifier_direct": 3,
+    "bridge_attempt": 2,
+    "classifier_bridge": 2,
+    "type_confirm": 2,
+    "multi_question": 1,
+    "missing_context": 1,
+    "debug_no_code": 1,
+    "code_no_target": 1,
+    "emotion_pressure": 1,
+    "checkin_handoff": 1,
+}
+
+
+def _route_risk_from_score(score: int) -> str:
+    if score <= 0:
+        return "low"
+    if score <= 2:
+        return "medium"
+    return "high"
+
+
+def compute_pre_generation_route_risk(
+    *,
+    rule_risk_tags: list[str] | None,
+    has_problem_context: bool,
+    has_code: bool,
+    has_debug_target: bool,
+    has_substantive_attempt: bool,
+    student_already_stated_bridge: bool,
+    latest_user_message: str,
+) -> dict:
+    """Return a proposed pre-generation routing decision without changing chat behavior.
+
+    This is a pure research-policy helper. It treats rule tags as cheap routing
+    signals, not as gold semantic labels.
+    """
+    tags = set(rule_risk_tags or [])
+    text = latest_user_message or ""
+    reasons: list[str] = []
+    score = sum(ROUTE_RISK_SCORE.get(tag, 0) for tag in tags)
+
+    if has_substantive_attempt:
+        score -= 1
+        reasons.append("student_evidence_present")
+    if student_already_stated_bridge:
+        score -= 1
+        reasons.append("student_already_stated_bridge")
+    score = max(score, 0)
+
+    if not has_problem_context or "missing_context" in tags:
+        if "missing_context" not in reasons:
+            reasons.append("missing_context")
+        return {
+            "input_route_risk": "medium",
+            "diagnosis_uncertainty": "high",
+            "recommended_route": "request_context",
+            "reasons": _dedupe_keep_order(reasons),
+            "route_score": score,
+        }
+
+    if "debug_no_code" in tags:
+        reasons.append("debug_no_code")
+        return {
+            "input_route_risk": "medium",
+            "diagnosis_uncertainty": "high",
+            "recommended_route": "request_debug_evidence",
+            "reasons": _dedupe_keep_order(reasons),
+            "route_score": score,
+        }
+
+    if "code_no_target" in tags or (has_code and not has_debug_target and not has_substantive_attempt):
+        reasons.append("code_no_target")
+        return {
+            "input_route_risk": "medium",
+            "diagnosis_uncertainty": "medium",
+            "recommended_route": "request_debug_evidence",
+            "reasons": _dedupe_keep_order(reasons),
+            "route_score": max(score, 1),
+        }
+
+    direct_markers = ("完整代码", "完整答案", "直接给", "直接告诉", "给我代码", "给我答案")
+    if "direct_request" in tags or "classifier_direct" in tags or any(marker in text for marker in direct_markers):
+        reasons.append("direct_request")
+        return {
+            "input_route_risk": "high",
+            "diagnosis_uncertainty": "medium" if not has_substantive_attempt else "low",
+            "recommended_route": "deterministic_safe",
+            "reasons": _dedupe_keep_order(reasons),
+            "route_score": max(score, 3),
+        }
+
+    if "type_confirm" in tags:
+        if has_substantive_attempt or student_already_stated_bridge:
+            reasons.append("type_confirm_with_evidence")
+            return {
+                "input_route_risk": "medium",
+                "diagnosis_uncertainty": "low",
+                "recommended_route": "main_with_caution",
+                "reasons": _dedupe_keep_order(reasons),
+                "route_score": max(score, 1),
+            }
+        reasons.append("type_confirm_without_evidence")
+        return {
+            "input_route_risk": "high",
+            "diagnosis_uncertainty": "medium",
+            "recommended_route": "bridge_judge",
+            "reasons": _dedupe_keep_order(reasons),
+            "route_score": max(score, 3),
+        }
+
+    if "bridge_attempt" in tags or "classifier_bridge" in tags:
+        reasons.append("bridge_attempt")
+        if student_already_stated_bridge:
+            return {
+                "input_route_risk": "medium",
+                "diagnosis_uncertainty": "low",
+                "recommended_route": "main_with_caution",
+                "reasons": _dedupe_keep_order(reasons),
+                "route_score": max(score, 1),
+            }
+        return {
+            "input_route_risk": "medium",
+            "diagnosis_uncertainty": "medium",
+            "recommended_route": "bridge_judge",
+            "reasons": _dedupe_keep_order(reasons),
+            "route_score": max(score, 2),
+        }
+
+    if "multi_question" in tags:
+        reasons.append("multi_question")
+        return {
+            "input_route_risk": "medium",
+            "diagnosis_uncertainty": "medium",
+            "recommended_route": "main_with_caution",
+            "reasons": _dedupe_keep_order(reasons),
+            "route_score": max(score, 1),
+        }
+
+    if "emotion_pressure" in tags:
+        reasons.append("emotion_pressure")
+        return {
+            "input_route_risk": "medium",
+            "diagnosis_uncertainty": "medium",
+            "recommended_route": "main_with_caution",
+            "reasons": _dedupe_keep_order(reasons),
+            "route_score": max(score, 1),
+        }
+
+    reasons.append("low_risk")
+    return {
+        "input_route_risk": _route_risk_from_score(score),
+        "diagnosis_uncertainty": "low" if has_substantive_attempt else "medium",
+        "recommended_route": "main_only" if score == 0 else "main_with_caution",
+        "reasons": _dedupe_keep_order(reasons),
+        "route_score": score,
+    }
+
 
 def _has_chat_context_state(messages: list | None, state: str) -> bool:
     return f"上下文状态：{state}" in _combined_message_text(messages)
@@ -984,6 +1157,16 @@ def _read_bridge_judge_v1_system_prompt() -> str:
         return f.read()
 
 
+def _read_leakage_judge_v1_system_prompt() -> str:
+    with open(LEAKAGE_JUDGE_V1_PROMPT_FILE, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+def _read_repair_response_v1_system_prompt() -> str:
+    with open(REPAIR_RESPONSE_V1_PROMPT_FILE, "r", encoding="utf-8") as f:
+        return f.read()
+
+
 def _read_aichat_turn_tagger_system_prompt() -> str:
     with open(AICHAT_TURN_TAGGER_PROMPT_FILE, "r", encoding="utf-8") as f:
         return f.read()
@@ -1001,6 +1184,11 @@ def _escape_untrusted_boundary_text(text: str) -> str:
         "problem_statement_untrusted",
         "student_code_untrusted",
         "recent_dialogue_untrusted",
+        "bridge_contract_untrusted",
+        "candidate_response_untrusted",
+        "original_candidate_response_untrusted",
+        "leakage_report_untrusted",
+        "bridge_judge_result_untrusted",
     ):
         escaped = escaped.replace(f"</{tag}>", "[escaped]")
     return escaped
@@ -1085,6 +1273,68 @@ def _build_bridge_judge_v1_user_message(
         _wrap_untrusted("problem_statement_untrusted", problem_text, 2600),
         _wrap_untrusted("student_code_untrusted", student_code or "", 2200),
         _wrap_untrusted("student_message_untrusted", student_message or "", 1200),
+    ]
+    return "\n\n".join(sections)
+
+
+def _build_leakage_judge_v1_user_message(
+    *,
+    student_message: str,
+    messages: list,
+    problem_context: dict | None,
+    current_missing_bridge: dict,
+    allowed_help_level: str,
+    help_forms: list[str] | None,
+    forbidden_content: list[str] | None,
+    candidate_response: str,
+    student_already_stated_bridge: bool,
+) -> str:
+    problem_text = _compact_problem_context_for_judge(problem_context)
+    bridge_contract = {
+        "current_missing_bridge": current_missing_bridge or {},
+        "allowed_help_level": allowed_help_level,
+        "help_forms": help_forms or [],
+        "forbidden_content": forbidden_content or [],
+    }
+    sections = [
+        "请根据下面材料输出 Leakage Judge v1 JSON。你只做离线检测，不生成学生可见回复。",
+        f"student_already_stated_bridge: {str(bool(student_already_stated_bridge)).lower()}",
+        _wrap_untrusted("recent_dialogue_untrusted", _format_recent_dialogue_for_judge(messages), 3600),
+        _wrap_untrusted("problem_statement_untrusted", problem_text, 2600),
+        _wrap_untrusted(
+            "bridge_contract_untrusted",
+            json.dumps(bridge_contract, ensure_ascii=False, indent=2),
+            2600,
+        ),
+        _wrap_untrusted("student_message_untrusted", student_message or "", 1200),
+        _wrap_untrusted("candidate_response_untrusted", candidate_response or "", 3000),
+    ]
+    return "\n\n".join(sections)
+
+
+def _build_repair_response_v1_user_message(
+    *,
+    original_candidate_response: str,
+    leakage_judge_result: dict,
+    bridge_judge_result: dict,
+    student_message: str,
+    messages: list,
+) -> str:
+    sections = [
+        "请根据下面材料输出 repair_response_v1 JSON。你只修复候选回复，不改变线上行为。",
+        _wrap_untrusted("recent_dialogue_untrusted", _format_recent_dialogue_for_judge(messages), 3600),
+        _wrap_untrusted("student_message_untrusted", student_message or "", 1200),
+        _wrap_untrusted("original_candidate_response_untrusted", original_candidate_response or "", 3200),
+        _wrap_untrusted(
+            "leakage_report_untrusted",
+            json.dumps(leakage_judge_result or {}, ensure_ascii=False, indent=2),
+            2600,
+        ),
+        _wrap_untrusted(
+            "bridge_judge_result_untrusted",
+            json.dumps(bridge_judge_result or {}, ensure_ascii=False, indent=2),
+            2600,
+        ),
     ]
     return "\n\n".join(sections)
 
@@ -1467,6 +1717,112 @@ def bridge_judge_v1(
         return {"_failed": True, "_reason": f"{type(exc).__name__}: {exc}"}
 
 
+def leakage_judge_v1(
+    *,
+    student_message: str,
+    messages: list,
+    problem_context: dict | None,
+    current_missing_bridge: dict,
+    allowed_help_level: str,
+    help_forms: list[str] | None,
+    forbidden_content: list[str] | None,
+    candidate_response: str,
+    student_already_stated_bridge: bool,
+) -> dict:
+    """Offline Leakage Judge v1. It detects candidate-response leakage but does not rewrite."""
+    try:
+        system_prompt = _read_leakage_judge_v1_system_prompt()
+        user_message = _build_leakage_judge_v1_user_message(
+            student_message=student_message,
+            messages=messages,
+            problem_context=problem_context,
+            current_missing_bridge=current_missing_bridge,
+            allowed_help_level=allowed_help_level,
+            help_forms=help_forms,
+            forbidden_content=forbidden_content,
+            candidate_response=candidate_response,
+            student_already_stated_bridge=student_already_stated_bridge,
+        )
+        profile = _deepseek_v4_flash_judge_profile()
+        kwargs = {
+            "model": profile.model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            "response_format": {"type": "json_object"},
+            "max_tokens": int(os.environ.get("NOI_LEAKAGE_JUDGE_MAX_TOKENS") or "1024"),
+            "stream": False,
+            "extra_body": {"thinking": {"type": "disabled"}},
+            "timeout": float(os.environ.get("NOI_LEAKAGE_JUDGE_TIMEOUT_SECONDS") or "5.0"),
+        }
+        response = get_chat_client_for_profile(profile).chat.completions.create(**kwargs)
+        raw = _choice_message_text(response, allow_reasoning_fallback=False)
+        if not raw.strip():
+            return {"_failed": True, "_reason": "empty_content"}
+        try:
+            parsed = _extract_json_from_response(raw)
+        except json.JSONDecodeError as exc:
+            return {"_failed": True, "_reason": f"json_parse_failed: {exc}"}
+        except ValueError as exc:
+            return {"_failed": True, "_reason": f"extract_failed: {exc}"}
+        try:
+            return _validate_leakage_judge_v1_schema(parsed)
+        except ValueError as exc:
+            return {"_failed": True, "_reason": f"schema_invalid: {exc}"}
+    except Exception as exc:
+        return {"_failed": True, "_reason": f"{type(exc).__name__}: {exc}"}
+
+
+def repair_response_v1(
+    *,
+    original_candidate_response: str,
+    leakage_judge_result: dict,
+    bridge_judge_result: dict,
+    student_message: str,
+    messages: list,
+) -> dict:
+    """Offline repair step. It rewrites leaked candidates but is not wired into chat()."""
+    try:
+        system_prompt = _read_repair_response_v1_system_prompt()
+        user_message = _build_repair_response_v1_user_message(
+            original_candidate_response=original_candidate_response,
+            leakage_judge_result=leakage_judge_result,
+            bridge_judge_result=bridge_judge_result,
+            student_message=student_message,
+            messages=messages,
+        )
+        profile = _deepseek_v4_flash_judge_profile()
+        kwargs = {
+            "model": profile.model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            "response_format": {"type": "json_object"},
+            "max_tokens": int(os.environ.get("NOI_REPAIR_RESPONSE_MAX_TOKENS") or "1200"),
+            "stream": False,
+            "extra_body": {"thinking": {"type": "disabled"}},
+            "timeout": float(os.environ.get("NOI_REPAIR_RESPONSE_TIMEOUT_SECONDS") or "6.0"),
+        }
+        response = get_chat_client_for_profile(profile).chat.completions.create(**kwargs)
+        raw = _choice_message_text(response, allow_reasoning_fallback=False)
+        if not raw.strip():
+            return {"_failed": True, "_reason": "empty_content"}
+        try:
+            parsed = _extract_json_from_response(raw)
+        except json.JSONDecodeError as exc:
+            return {"_failed": True, "_reason": f"json_parse_failed: {exc}"}
+        except ValueError as exc:
+            return {"_failed": True, "_reason": f"extract_failed: {exc}"}
+        try:
+            return _validate_repair_response_v1_schema(parsed)
+        except ValueError as exc:
+            return {"_failed": True, "_reason": f"schema_invalid: {exc}"}
+    except Exception as exc:
+        return {"_failed": True, "_reason": f"{type(exc).__name__}: {exc}"}
+
+
 def _extract_json_object(text: str) -> dict:
     raw = (text or "").strip()
     if not raw:
@@ -1570,6 +1926,18 @@ _BRIDGE_HELP_FORMS = {
     "unknown",
 }
 _BRIDGE_LEAKAGE_RISKS = {"low", "medium", "high", "unknown"}
+_LEAKAGE_TYPES = {
+    "critical_bridge",
+    "answer",
+    "code",
+    "algorithm_name",
+    "full_proof",
+    "full_formula",
+    "full_check_condition",
+    "full_transition",
+    "over_specific_hint",
+}
+_LEAKAGE_SAFE_ACTIONS = {"pass", "rewrite", "block"}
 
 
 def _extract_json_from_response(text: str) -> dict:
@@ -1650,6 +2018,101 @@ def _validate_bridge_judge_v1_schema(payload: dict) -> dict:
     for item in forbidden:
         if not isinstance(item, str) or not item.strip():
             raise ValueError("forbidden_content items must be non-empty strings")
+
+    return payload
+
+
+def _validate_string_list(payload: dict, key: str, *, enum_values: set[str] | None = None) -> None:
+    value = payload.get(key)
+    if not isinstance(value, list):
+        raise ValueError(f"{key} must be a list")
+    for item in value:
+        if not isinstance(item, str) or not item.strip():
+            raise ValueError(f"{key} items must be non-empty strings")
+        if enum_values is not None and item not in enum_values:
+            raise ValueError(f"{key} has invalid enum: {item}")
+
+
+def _validate_leakage_judge_v1_schema(payload: dict) -> dict:
+    """Validate offline Leakage Judge v1 JSON without mutating or normalizing it."""
+    if not isinstance(payload, dict):
+        raise ValueError("payload must be an object")
+
+    required = {
+        "leakage_level",
+        "leakage_types",
+        "leaked_elements",
+        "violated_forbidden_content",
+        "is_critical_bridge_leakage",
+        "is_answer_or_code_leakage",
+        "safe_action",
+        "repair_instruction",
+        "confidence",
+        "reason",
+    }
+    missing = sorted(required - set(payload.keys()))
+    if missing:
+        raise ValueError(f"missing required fields: {', '.join(missing)}")
+
+    level = payload["leakage_level"]
+    if not isinstance(level, int) or isinstance(level, bool) or not 0 <= level <= 5:
+        raise ValueError("leakage_level must be an integer between 0 and 5")
+    _validate_string_list(payload, "leakage_types", enum_values=_LEAKAGE_TYPES)
+    _validate_string_list(payload, "leaked_elements")
+    _validate_string_list(payload, "violated_forbidden_content")
+    if not isinstance(payload["is_critical_bridge_leakage"], bool):
+        raise ValueError("is_critical_bridge_leakage must be boolean")
+    if not isinstance(payload["is_answer_or_code_leakage"], bool):
+        raise ValueError("is_answer_or_code_leakage must be boolean")
+    if payload["safe_action"] not in _LEAKAGE_SAFE_ACTIONS:
+        raise ValueError(f"safe_action has invalid enum: {payload['safe_action']}")
+    if not isinstance(payload["repair_instruction"], str):
+        raise ValueError("repair_instruction must be a string")
+    confidence = payload["confidence"]
+    if not isinstance(confidence, (int, float)) or isinstance(confidence, bool) or not 0 <= confidence <= 1:
+        raise ValueError("confidence must be a number between 0 and 1")
+    _require_non_empty_string(payload, "reason")
+    if level > 0 and not payload["leaked_elements"]:
+        raise ValueError("leaked_elements must be non-empty when leakage_level > 0")
+    if payload["safe_action"] != "pass" and not payload["repair_instruction"].strip():
+        raise ValueError("repair_instruction must be non-empty when safe_action is not pass")
+
+    return payload
+
+
+_REPAIR_INTERNAL_FAILURE_PATTERNS = (
+    "泄露检测",
+    "检测失败",
+    "审核不通过",
+    "系统错误",
+    "Leakage Judge",
+    "leakage judge",
+    "leakage",
+    "violation",
+)
+
+
+def _validate_repair_response_v1_schema(payload: dict) -> dict:
+    """Validate offline repair_response_v1 JSON without mutating or normalizing it."""
+    if not isinstance(payload, dict):
+        raise ValueError("payload must be an object")
+
+    required = {"repaired_response", "repair_notes", "removed_elements", "still_needs_leakage_check"}
+    missing = sorted(required - set(payload.keys()))
+    if missing:
+        raise ValueError(f"missing required fields: {', '.join(missing)}")
+
+    _require_non_empty_string(payload, "repaired_response")
+    if not isinstance(payload["repair_notes"], str):
+        raise ValueError("repair_notes must be a string")
+    _validate_string_list(payload, "removed_elements")
+    if not isinstance(payload["still_needs_leakage_check"], bool):
+        raise ValueError("still_needs_leakage_check must be boolean")
+
+    repaired = payload["repaired_response"]
+    for pattern in _REPAIR_INTERNAL_FAILURE_PATTERNS:
+        if pattern in repaired:
+            raise ValueError("repaired_response must not mention internal repair or leakage checks")
 
     return payload
 
@@ -3281,12 +3744,12 @@ def enforce_output_guards(reply: str, level_control: dict, risk_control: dict, m
     if _contains_unstable_ascii_diagram(text):
         return (
             "这一步不要用 ASCII 字符画树或图，页面里很容易对不齐。\n\n"
-            "更稳的表达方式是用 Markdown 表格：\n\n"
-            "| 分支 | 当前看到的字符 | 节点含义 | cnt 表示什么 |\n"
-            "| --- | --- | --- | --- |\n"
-            "| 例：f 分支 | f -> u -> s | 沿着字符串逐层往下走 | 经过这个前缀的字符串数量 |\n"
-            "| 例：a 分支 | a -> n -> g | 另一条前缀路径 | 经过这个前缀的字符串数量 |\n\n"
-            "这张表要看见的是：trie 里一条边对应一个字符，一个节点对应一个前缀；`cnt` 不是节点编号，而是有多少字符串经过这个前缀。\n\n[LEVEL:L2]",
+            "更稳的表达方式是用 Markdown 表格，把图里想表达的关系拆成几行：\n\n"
+            "| 对象或位置 | 它和谁有关 | 这一格要验证什么 |\n"
+            "| --- | --- | --- |\n"
+            "| 例：当前节点/状态/位置 | 它的父节点、来源状态或相邻对象 | 贡献、转移、边界或计数是否对应上 |\n"
+            "| 你来补一行 | 写出它关联的对象 | 写出你想确认的关系 |\n\n"
+            "先不用重画整张图。你把最关键的两行填出来，我再帮你检查关系有没有对齐。\n\n[LEVEL:L2]",
             "unstable_ascii_diagram",
         )
     if _contains_fill_blank_answer_code(text):
@@ -3339,6 +3802,57 @@ def _finalize_chat_reply(clean_reply: str, final_level: str) -> tuple[str, str, 
     return clean_reply, clean_reply, final_level
 
 
+def _aichat_trace_enabled() -> bool:
+    return (os.environ.get("NOI_AICHAT_TRACE") or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _stable_trace_hash(value: str) -> str:
+    return hashlib.sha256((value or "").encode("utf-8")).hexdigest()[:16]
+
+
+def _new_aichat_trace(student_id: str, problem_id: str) -> dict:
+    return {
+        "trace_id": uuid.uuid4().hex,
+        "student_id_hash": _stable_trace_hash(student_id),
+        "problem_id": problem_id,
+        "route_name": "unresolved",
+        "legacy_judge_latency_ms": 0,
+        "rules_latency_ms": 0,
+        "pedagogical_judge_v2_latency_ms": 0,
+        "classifier_latency_ms": 0,
+        "main_llm_latency_ms": 0,
+        "hard_gate_latency_ms": 0,
+        "output_guard_latency_ms": 0,
+        "total_latency_ms": 0,
+        "llm_call_count": 0,
+        "model_names": {},
+        "prompt_hashes": {},
+        "final_level": None,
+        "final_route_decision": None,
+    }
+
+
+def _finish_aichat_trace(trace: dict | None, started_at: float, *, final_level: str, final_route_decision: str) -> None:
+    if trace is None:
+        return
+    trace["total_latency_ms"] = int((time.perf_counter() - started_at) * 1000)
+    trace["final_level"] = final_level
+    trace["final_route_decision"] = final_route_decision
+    _record_aichat_trace(trace)
+
+
+def _record_aichat_trace(trace: dict) -> None:
+    if not _aichat_trace_enabled():
+        return
+    path = os.environ.get("NOI_AICHAT_TRACE_FILE") or os.path.join(BASE_DIR, "aichat_trace.jsonl")
+    try:
+        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(trace, ensure_ascii=False, sort_keys=True) + "\n")
+    except Exception as exc:
+        print(f"[aichat_trace] write_failed reason={type(exc).__name__}: {exc}")
+
+
 # ============ 7. 主对话逻辑 ============
 
 def chat(messages: list, student_id: str, problem_id: str, chat_model_provider: str | None = None) -> tuple[str, str, str]:
@@ -3353,6 +3867,9 @@ def chat(messages: list, student_id: str, problem_id: str, chat_model_provider: 
     
     返回: (reply_for_display, reply_for_history, final_level)
     """
+    trace_started_at = time.perf_counter()
+    trace = _new_aichat_trace(student_id, problem_id) if _aichat_trace_enabled() else None
+
     # 获取最后一条用户输入
     last_user_msg = ""
     for msg in reversed(messages):
@@ -3362,33 +3879,59 @@ def chat(messages: list, student_id: str, problem_id: str, chat_model_provider: 
     
     has_problem_context = _has_chat_context_state(messages, "有题目")
     has_student_code = _has_chat_context_state(messages, "有代码")
+    stage_started_at = time.perf_counter()
     pedagogical_judgement = judge_learning_phase_with_llm(
         messages,
         has_problem_context=has_problem_context,
         has_student_code=has_student_code,
         provider_id=chat_model_provider,
     )
+    if trace is not None:
+        trace["legacy_judge_latency_ms"] = int((time.perf_counter() - stage_started_at) * 1000)
+        trace["llm_call_count"] += 1
+        trace["model_names"]["legacy_judge"] = chat_model_provider or "default"
 
     # 代码层只保留安全红线和流程红线；教学动作优先使用 LLM rubric 判断
+    stage_started_at = time.perf_counter()
     dual_control = analyze_student_turn(last_user_msg, messages, pedagogical_judgement=pedagogical_judgement)
+    if trace is not None:
+        trace["rules_latency_ms"] = int((time.perf_counter() - stage_started_at) * 1000)
+        trace["pedagogical_judge_v2_latency_ms"] = int(
+            dual_control.get("pedagogical_judge_v2_latency_ms", 0) or 0
+        )
     level_control = dual_control["level_control"]
     risk_control = dual_control["risk_control"]
 
     policy_override_reply = build_policy_override_reply(dual_control, messages)
     if policy_override_reply:
+        if trace is not None:
+            trace["route_name"] = "policy_override"
         final_level, clean_reply = parse_level_tag(policy_override_reply)
         risk_control["learning_phase"] = dual_control.get("tutor_control", {}).get("learning_phase") or {}
+        stage_started_at = time.perf_counter()
         clean_reply, guard_triggered = enforce_output_guards(clean_reply, level_control, risk_control, messages=messages)
+        if trace is not None:
+            trace["output_guard_latency_ms"] = int((time.perf_counter() - stage_started_at) * 1000)
         if guard_triggered:
             final_level = "L2"
+        _finish_aichat_trace(
+            trace,
+            trace_started_at,
+            final_level=final_level,
+            final_route_decision="policy_override_return",
+        )
         return _finalize_chat_reply(clean_reply, final_level)
     
     # 分类器增强（如果需要）
     should_classify, classifier_reason = should_call_classifier(dual_control, last_user_msg)
     if should_classify:
+        stage_started_at = time.perf_counter()
         try:
             from classifier import classify_intent
             intent_tag = classify_intent(last_user_msg, timeout=CLASSIFIER_TIMEOUT_SECONDS)
+            if trace is not None:
+                trace["llm_call_count"] += 1
+                trace["model_names"]["classifier"] = "classifier"
             # 合并分类器结果到风险轨
             if intent_tag in ["direct", "type_confirm", "bridge"]:
                 if intent_tag not in risk_control["risk_tags"]:
@@ -3399,6 +3942,9 @@ def chat(messages: list, student_id: str, problem_id: str, chat_model_provider: 
                         risk_control["highest_risk"] = intent_tag
         except Exception as e:
             print(f"[classifier] fail reason=unexpected_exception input_len={len(last_user_msg.strip())} detail={e}")
+        finally:
+            if trace is not None:
+                trace["classifier_latency_ms"] = int((time.perf_counter() - stage_started_at) * 1000)
     else:
         print(f"[classifier] skipped reason={classifier_reason} input_len={len(last_user_msg.strip())}")
     
@@ -3406,13 +3952,21 @@ def chat(messages: list, student_id: str, problem_id: str, chat_model_provider: 
     
     # 构建带双轨控制块的System Prompt
     system_prompt = build_system_prompt(dual_control, 0, student_id, problem_id)
+    if trace is not None:
+        trace["route_name"] = "standard_llm"
+        trace["prompt_hashes"]["system_prompt"] = _stable_trace_hash(system_prompt)
     
     # 调用LLM
+    stage_started_at = time.perf_counter()
     response = _chat_completion_create(
         system_prompt=system_prompt,
         messages=messages,
         provider_id=chat_model_provider,
     )
+    if trace is not None:
+        trace["main_llm_latency_ms"] = int((time.perf_counter() - stage_started_at) * 1000)
+        trace["llm_call_count"] += 1
+        trace["model_names"]["main_llm"] = chat_model_provider or "default"
     
     raw_reply = _choice_message_text(response)
     if not raw_reply.strip():
@@ -3422,7 +3976,10 @@ def chat(messages: list, student_id: str, problem_id: str, chat_model_provider: 
     model_level, clean_reply = parse_level_tag(raw_reply)
     
     # ===== 硬闸门：强制限制不超过max_level =====
+    stage_started_at = time.perf_counter()
     enforced_level, enforced_reply = enforce_level_gate(model_level, max_level, raw_reply)
+    if trace is not None:
+        trace["hard_gate_latency_ms"] = int((time.perf_counter() - stage_started_at) * 1000)
     
     # 重新解析（如果硬闸门生效，reply会被替换）
     if enforced_reply != raw_reply:
@@ -3433,9 +3990,18 @@ def chat(messages: list, student_id: str, problem_id: str, chat_model_provider: 
     # ===== 输出后处理 =====
     # 当前不做关键词改写，避免误伤正常教学对话。
     risk_control["learning_phase"] = dual_control.get("tutor_control", {}).get("learning_phase") or {}
+    stage_started_at = time.perf_counter()
     clean_reply, guard_triggered = enforce_output_guards(clean_reply, level_control, risk_control, messages=messages)
+    if trace is not None:
+        trace["output_guard_latency_ms"] = int((time.perf_counter() - stage_started_at) * 1000)
     if guard_triggered:
         final_level = "L2"  # 保险丝触发时强制降为L2
+    _finish_aichat_trace(
+        trace,
+        trace_started_at,
+        final_level=final_level,
+        final_route_decision="main_llm_return",
+    )
     
     return _finalize_chat_reply(clean_reply, final_level)
 

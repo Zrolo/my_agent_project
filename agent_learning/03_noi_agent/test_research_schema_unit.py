@@ -5,6 +5,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
 SCHEMA_PATH = BASE_DIR / "docs" / "research" / "turn_annotation_schema_v1.json"
+TRACE_SCHEMA_PATH = BASE_DIR / "docs" / "research" / "aichat_trace_schema_v1.json"
 DOC_PATH = BASE_DIR / "docs" / "research" / "research_schema_v1.md"
 
 
@@ -56,6 +57,36 @@ class ResearchSchemaTests(unittest.TestCase):
             "baseline_group",
         ):
             self.assertIn(phrase, text)
+
+    def test_aichat_trace_schema_covers_latency_and_routing_fields(self):
+        schema = json.loads(TRACE_SCHEMA_PATH.read_text(encoding="utf-8"))
+
+        self.assertEqual("AIChatTraceV1", schema["title"])
+        required = set(schema["required"])
+        self.assertTrue(
+            {
+                "trace_id",
+                "student_id_hash",
+                "problem_id",
+                "route_name",
+                "llm_call_count",
+                "model_names",
+                "prompt_hashes",
+                "total_latency_ms",
+                "final_level",
+                "final_route_decision",
+            }.issubset(required)
+        )
+        for latency_field in (
+            "legacy_judge_latency_ms",
+            "rules_latency_ms",
+            "pedagogical_judge_v2_latency_ms",
+            "classifier_latency_ms",
+            "main_llm_latency_ms",
+            "hard_gate_latency_ms",
+            "output_guard_latency_ms",
+        ):
+            self.assertIn(latency_field, required)
 
 
 if __name__ == "__main__":

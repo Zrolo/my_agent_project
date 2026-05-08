@@ -117,6 +117,44 @@ Use `BridgeTutor Rubric v1`:
    - leakage label;
    - response quality band.
 
+## Offline Runner
+
+Use the offline runner to produce a JSONL result file without changing online AIChat behavior:
+
+```bash
+python3 -m evals.aichat.run_bridge_offline_eval \
+  --input-jsonl docs/research/bridgebench_cp_seed_v1.jsonl \
+  --output-jsonl evals/aichat/bridge_offline_eval_results.jsonl \
+  --limit 5
+```
+
+Then summarize the JSONL results into a JSON metrics file and a Markdown report:
+
+```bash
+python3 -m evals.aichat.summarize_bridge_offline_eval \
+  --input-jsonl evals/aichat/bridge_offline_eval_results.jsonl \
+  --output-json evals/aichat/bridge_offline_eval_summary.json \
+  --output-md evals/aichat/bridge_offline_eval_summary.md
+```
+
+Each output row keeps the seed gold labels and appends:
+
+- `bridge_judge_result`
+- `tutor_response`
+- `leakage_judge_result`
+- `repair_result` when the Leakage Judge requests `rewrite` or `block`
+- `error` when a stage fails
+
+The summary report includes:
+
+- bridge family / known focus / student state accuracy;
+- allowed help level and help-seeking type accuracy;
+- leakage rate, critical bridge leakage rate, answer/code leakage rate;
+- rewrite / block / repair rates;
+- error cases for manual inspection.
+
+This runner is for offline research only. It should be used to build baseline tables and manual review packs before any Bridge Judge or Leakage Judge logic is promoted to shadow or active runtime.
+
 ## Shadow Mode Plan
 
 Only after offline results are promising:

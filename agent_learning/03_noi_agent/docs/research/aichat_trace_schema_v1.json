@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AIChatTraceV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "trace_id",
+    "student_id_hash",
+    "problem_id",
+    "route_name",
+    "legacy_judge_latency_ms",
+    "rules_latency_ms",
+    "pedagogical_judge_v2_latency_ms",
+    "classifier_latency_ms",
+    "main_llm_latency_ms",
+    "hard_gate_latency_ms",
+    "output_guard_latency_ms",
+    "total_latency_ms",
+    "llm_call_count",
+    "model_names",
+    "prompt_hashes",
+    "final_level",
+    "final_route_decision"
+  ],
+  "properties": {
+    "trace_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Per-turn trace identifier."
+    },
+    "student_id_hash": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Hashed student identifier. Raw student ids should not be logged."
+    },
+    "problem_id": {
+      "type": "string",
+      "description": "Problem id or problem reference available to AIChat."
+    },
+    "route_name": {
+      "type": "string",
+      "enum": [
+        "unresolved",
+        "policy_override",
+        "standard_llm"
+      ]
+    },
+    "legacy_judge_latency_ms": {
+      "$ref": "#/$defs/non_negative_integer"
+    },
+    "rules_latency_ms": {
+      "$ref": "#/$defs/non_negative_integer"
+    },
+    "pedagogical_judge_v2_latency_ms": {
+      "$ref": "#/$defs/non_negative_integer"
+    },
+    "classifier_latency_ms": {
+      "$ref": "#/$defs/non_negative_integer"
+    },
+    "main_llm_latency_ms": {
+      "$ref": "#/$defs/non_negative_integer"
+    },
+    "hard_gate_latency_ms": {
+      "$ref": "#/$defs/non_negative_integer"
+    },
+    "output_guard_latency_ms": {
+      "$ref": "#/$defs/non_negative_integer"
+    },
+    "total_latency_ms": {
+      "$ref": "#/$defs/non_negative_integer"
+    },
+    "llm_call_count": {
+      "$ref": "#/$defs/non_negative_integer"
+    },
+    "model_names": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Module-to-model mapping such as legacy_judge, classifier, and main_llm."
+    },
+    "prompt_hashes": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Hashes of prompts used in this turn, without storing the full prompt."
+    },
+    "final_level": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "L1",
+        "L2",
+        "L3",
+        "L4",
+        null
+      ]
+    },
+    "final_route_decision": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "policy_override_return",
+        "main_llm_return",
+        null
+      ]
+    }
+  },
+  "$defs": {
+    "non_negative_integer": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

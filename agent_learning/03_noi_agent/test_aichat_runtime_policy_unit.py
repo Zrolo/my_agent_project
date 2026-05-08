@@ -1608,6 +1608,29 @@ class AIChatRuntimePolicyTests(unittest.TestCase):
         self.assertIn("不要用 ASCII 字符画树", reply)
         self.assertIn("Markdown 表格", reply)
 
+    def test_ascii_diagram_guard_should_not_inject_trie_content_for_tree_path_context(self):
+        reply, guard = enforce_output_guards(
+            "\n".join(
+                [
+                    "```diagram-ascii",
+                    "u────lca────v",
+                    "     │",
+                    "     parent",
+                    "```",
+                    "这张图要看见的是路径贡献。",
+                ]
+            ),
+            {"bridge_redline": False},
+            {"risk_tags": []},
+            messages=self._messages("我知道要 LCA，但不知道每条路径在哪里加减标记。"),
+        )
+
+        self.assertEqual("unstable_ascii_diagram", guard)
+        self.assertIn("不要用 ASCII 字符画树", reply)
+        self.assertNotIn("trie", reply.lower())
+        self.assertNotIn("cnt", reply)
+        self.assertNotIn("f -> u -> s", reply)
+
 
 if __name__ == "__main__":
     unittest.main()
