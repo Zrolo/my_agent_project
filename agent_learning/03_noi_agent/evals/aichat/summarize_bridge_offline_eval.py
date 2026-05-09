@@ -9,6 +9,58 @@ DEFAULT_INPUT_PATH = Path("evals/aichat/bridge_offline_eval_results.jsonl")
 DEFAULT_SUMMARY_JSON_PATH = Path("evals/aichat/bridge_offline_eval_summary.json")
 DEFAULT_SUMMARY_MD_PATH = Path("evals/aichat/bridge_offline_eval_summary.md")
 DEFAULT_SUMMARY_MD_ZH_PATH = Path("evals/aichat/bridge_offline_eval_summary.zh.md")
+_CONTRACT_ENUMS = {
+    "turn_type": {
+        "diagnosable_learning_turn",
+        "insufficient_context",
+        "complete_solution_request",
+        "complete_code_request",
+        "critical_bridge_request",
+        "algorithm_confirmation_request",
+        "local_completion_request",
+        "code_debugging_without_evidence",
+        "code_debugging_with_evidence",
+        "step_validation_request",
+        "reflection_or_transfer_turn",
+        "emotional_or_time_pressure",
+        "unknown",
+    },
+    "diagnosis_uncertainty": {"low", "medium", "high", "unknown"},
+    "algorithm_topic_l1": {
+        "dp",
+        "binary_search",
+        "graph",
+        "tree",
+        "data_structure",
+        "string",
+        "greedy",
+        "search",
+        "math",
+        "implementation",
+        "debugging",
+        "unknown",
+    },
+    "primary_bridge_family": {
+        "goal_constraint_bridge",
+        "modeling_bridge",
+        "method_selection_bridge",
+        "representation_state_bridge",
+        "transition_recurrence_bridge",
+        "predicate_condition_bridge",
+        "ordering_dependency_bridge",
+        "aggregation_contribution_bridge",
+        "data_structure_operation_bridge",
+        "correctness_invariant_bridge",
+        "complexity_optimization_bridge",
+        "implementation_boundary_bridge",
+        "debugging_evidence_bridge",
+        "reflection_transfer_bridge",
+        "unknown_or_not_applicable",
+        "unknown_bridge",
+    },
+    "max_scaffold_level": {"L0", "L1", "L2", "L3"},
+    "leakage_risk": {"low", "medium", "high", "unknown"},
+}
 
 
 def load_result_rows(path: Path = DEFAULT_INPUT_PATH) -> list[dict]:
@@ -32,12 +84,15 @@ def _round_ratio(numerator: int, denominator: int) -> float | None:
 
 def _prediction(row: dict, key: str) -> str:
     bridge = row.get("bridge_judge_result") or {}
+    contract = row.get("runtime_bridge_contract") or {}
     if key == "bridge_family":
-        return str((bridge.get("missing_bridge") or {}).get("family") or "")
+        return str((bridge.get("missing_bridge") or {}).get("family") or contract.get("primary_bridge_family") or "")
     if key == "known_focus":
-        return str((bridge.get("missing_bridge") or {}).get("known_focus") or "")
+        return str((bridge.get("missing_bridge") or {}).get("known_focus") or contract.get("selected_focus_id") or "")
     if key == "student_state":
         return str(bridge.get("problem_solving_state") or "")
+    if key == "allowed_help_level":
+        return str(bridge.get("allowed_help_level") or contract.get("max_scaffold_level") or "")
     return str(bridge.get(key) or "")
 
 
@@ -79,7 +134,12 @@ def _unknown_focus_recall(rows: list[dict]) -> float | None:
     for row in unknown_rows:
         bridge = row.get("bridge_judge_result") or {}
         missing_bridge = bridge.get("missing_bridge") or {}
-        if missing_bridge.get("known_focus") == "unknown" or bool(missing_bridge.get("needs_new_focus")):
+        contract = row.get("runtime_bridge_contract") or {}
+        if (
+            missing_bridge.get("known_focus") == "unknown"
+            or bool(missing_bridge.get("needs_new_focus"))
+            or contract.get("selected_focus_id") in {"unknown", "not_applicable"}
+        ):
             correct += 1
     return _round_ratio(correct, len(unknown_rows))
 
@@ -148,6 +208,9 @@ def _is_valid_runtime_contract(contract: dict) -> bool:
         "leakage_risk",
     ]:
         if not contract.get(key):
+            return False
+    for key, allowed_values in _CONTRACT_ENUMS.items():
+        if contract.get(key) not in allowed_values:
             return False
     for key in ["selected_focus_confidence", "confidence"]:
         value = contract.get(key)

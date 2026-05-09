@@ -238,6 +238,82 @@ class BridgeOfflineEvalSummaryTests(unittest.TestCase):
         self.assertEqual(0.5, summary["self_contradiction_rate"])
         self.assertEqual(500.0, summary["average_prompt_tokens"])
 
+    def test_summarize_single_llm_structured_uses_runtime_contract_for_agreement(self):
+        rows = [
+            {
+                "case_id": "case_single",
+                "tutor_mode": "single_llm_structured",
+                "guard_mode": "predicted",
+                "pipeline_mode": "tutor_only",
+                "models": {
+                    "tutor_model_provider": "deepseek_flash",
+                    "chat_thinking_mode": "disabled",
+                    "tutor_mode": "single_llm_structured",
+                    "guard_mode": "predicted",
+                    "pipeline_mode": "tutor_only",
+                },
+                "gold": {
+                    "bridge_family": "representation_state_bridge",
+                    "known_focus": "state_design",
+                    "allowed_help_level": "L2",
+                },
+                "bridge_judge_result": {},
+                "runtime_bridge_contract": {
+                    "turn_type": "diagnosable_learning_turn",
+                    "diagnosis_uncertainty": "low",
+                    "algorithm_topic_l1": "dp",
+                    "algorithm_topic_l2": "knapsack",
+                    "primary_bridge_family": "representation_state_bridge",
+                    "selected_focus_id": "state_design",
+                    "selected_focus_confidence": 0.86,
+                    "max_scaffold_level": "L2",
+                    "help_forms": ["micro_example", "guiding_question"],
+                    "forbidden_content": ["不要直接给完整状态定义。"],
+                    "leakage_risk": "high",
+                    "confidence": 0.86,
+                },
+                "latency_ms": {"total_latency_ms": 100.0},
+                "llm_call_count": 1,
+                "stage_errors": {},
+            }
+        ]
+
+        summary = summarize_bridge_offline_eval.summarize_bridge_offline_results(rows)
+
+        self.assertEqual(1.0, summary["bridge_family_accuracy"])
+        self.assertEqual(1.0, summary["known_focus_accuracy"])
+        self.assertEqual(1.0, summary["known_focus_accuracy_on_registered"])
+        self.assertEqual(1.0, summary["allowed_help_level_accuracy"])
+
+    def test_runtime_contract_with_out_of_schema_enum_counts_as_invalid(self):
+        rows = [
+            {
+                **_result_row(
+                    case_id="case_bad_enum",
+                    gold_family="aggregation_contribution_bridge",
+                    pred_family="aggregation_contribution_bridge",
+                ),
+                "runtime_bridge_contract": {
+                    "turn_type": "diagnosable_learning_turn",
+                    "diagnosis_uncertainty": "low",
+                    "algorithm_topic_l1": "tree",
+                    "algorithm_topic_l2": "tree_path_difference",
+                    "primary_bridge_family": "树上差分标记位置",
+                    "selected_focus_id": "tree_path_difference",
+                    "selected_focus_confidence": 0.8,
+                    "max_scaffold_level": "L2",
+                    "help_forms": ["引导性提问"],
+                    "forbidden_content": ["不要直接给公式。"],
+                    "leakage_risk": "high",
+                    "confidence": 0.8,
+                },
+            }
+        ]
+
+        summary = summarize_bridge_offline_eval.summarize_bridge_offline_results(rows)
+
+        self.assertEqual(1.0, summary["invalid_label_rate"])
+
     def test_render_markdown_report_includes_core_metrics(self):
         summary = {
             "case_count": 3,
