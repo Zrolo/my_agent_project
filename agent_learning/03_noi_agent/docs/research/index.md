@@ -73,6 +73,8 @@ Research v1 不包含：
 - [single_llm_structured_smoke_report_20260510.md](single_llm_structured_smoke_report_20260510.md): single-LLM structured baseline English smoke report.
 - [single_llm_structured_strict_schema_smoke_report_20260510.zh.md](single_llm_structured_strict_schema_smoke_report_20260510.zh.md): single-LLM strict schema 中文 smoke 报告。
 - [single_llm_structured_strict_schema_smoke_report_20260510.md](single_llm_structured_strict_schema_smoke_report_20260510.md): single-LLM strict schema English smoke report.
+- [single_llm_structured_calibrated_smoke_report_20260510.zh.md](single_llm_structured_calibrated_smoke_report_20260510.zh.md): single-LLM scaffold calibration 中文 smoke 报告。
+- [single_llm_structured_calibrated_smoke_report_20260510.md](single_llm_structured_calibrated_smoke_report_20260510.md): single-LLM scaffold calibration English smoke report.
 
 ### Response Blind Review
 

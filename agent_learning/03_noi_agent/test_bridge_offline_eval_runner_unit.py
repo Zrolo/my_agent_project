@@ -835,6 +835,25 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
         self.assertIn("tree_path_difference", joined_messages)
         self.assertEqual(["tree_path_difference"], result_rows[0]["candidate_retrieval"]["focus_candidate_ids"][:1])
 
+    def test_single_llm_structured_prompt_contains_scaffold_level_calibration(self):
+        system_prompt = run_bridge_offline_eval._single_llm_structured_system_prompt()
+
+        self.assertIn("帮助强度校准", system_prompt)
+        self.assertIn("L0", system_prompt)
+        self.assertIn("只澄清或索取证据", system_prompt)
+        self.assertIn("L2", system_prompt)
+        self.assertIn("学生已经暴露明确卡点", system_prompt)
+        self.assertIn("微型例子", system_prompt)
+        self.assertIn("不要因为保守而把所有可诊断学习轮次都选成 L1", system_prompt)
+
+    def test_single_llm_structured_prompt_warns_against_hypothetical_bridge_leakage(self):
+        system_prompt = run_bridge_offline_eval._single_llm_structured_system_prompt()
+
+        self.assertIn("禁止内容不能包装成假设句", system_prompt)
+        self.assertIn("如果 dp 数组的格子代表", system_prompt)
+        self.assertIn("让学生自己说出状态格子应该记什么", system_prompt)
+        self.assertIn("self_check 必须标为 medium 或 high", system_prompt)
+
     def test_stage_latency_and_stage_errors_are_recorded(self):
         rows = [{"id": "case_latency", "student_message": "我不会。"}]
 
