@@ -683,6 +683,77 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
         self.assertEqual("bridge_contract", result_rows[0]["tutor_mode"])
         self.assertEqual("bridge_contract", result_rows[0]["tutor_response"]["tutor_mode"])
 
+    def test_single_llm_structured_skips_bridge_judge_and_outputs_contract_response_self_check(self):
+        rows = [
+            {
+                "id": "case_single_llm",
+                "problem_ref": "P1048",
+                "student_message": "我知道像背包，但状态怎么设？",
+                "problem_context": "采药，时间限制内最大化价值。",
+            }
+        ]
+
+        def fake_bridge_judge(**kwargs):
+            raise AssertionError("single_llm_structured should not call Bridge Judge")
+
+        class FakeMessage:
+            content = json.dumps(
+                {
+                    "runtime_bridge_contract": {
+                        "turn_type": "diagnosable_learning_turn",
+                        "diagnosis_uncertainty": "low",
+                        "algorithm_topic_l1": "dp",
+                        "algorithm_topic_l2": "knapsack",
+                        "primary_bridge_family": "representation_state_bridge",
+                        "selected_focus_id": "state_design",
+                        "selected_focus_confidence": 0.86,
+                        "max_scaffold_level": "L2",
+                        "help_forms": ["micro_example", "guiding_question"],
+                        "forbidden_content": ["不要直接给完整 dp[j] 状态定义。"],
+                        "leakage_risk": "high",
+                        "confidence": 0.86,
+                    },
+                    "student_response": "我们先不把状态写死。你先说说：数组一格至少要记录什么信息？",
+                    "self_check": {
+                        "predicted_leakage_risk": "low",
+                        "violated_forbidden_content": [],
+                        "notes": "没有直接给完整状态。",
+                    },
+                },
+                ensure_ascii=False,
+            )
+
+        class FakeChoice:
+            message = FakeMessage()
+
+        class FakeResponse:
+            choices = [FakeChoice()]
+
+        with patch.object(
+            run_bridge_offline_eval,
+            "_chat_completion_create",
+            return_value=FakeResponse(),
+            create=True,
+        ):
+            result_rows = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+                rows,
+                bridge_judge_fn=fake_bridge_judge,
+                tutor_mode="single_llm_structured",
+                pipeline_mode="tutor_only",
+                chat_model_provider="deepseek_flash",
+            )
+
+        result = result_rows[0]
+        self.assertEqual("single_llm_structured", result["tutor_mode"])
+        self.assertEqual("single_llm_structured", result["tutor_response"]["tutor_mode"])
+        self.assertEqual("single_llm_structured", result["tutor_response"]["baseline_group"])
+        self.assertEqual("representation_state_bridge", result["runtime_bridge_contract"]["primary_bridge_family"])
+        self.assertEqual("state_design", result["runtime_bridge_contract"]["selected_focus_id"])
+        self.assertEqual("low", result["single_llm_structured_result"]["self_check"]["predicted_leakage_risk"])
+        self.assertEqual("我们先不把状态写死。你先说说：数组一格至少要记录什么信息？", result["candidate_response_text"])
+        self.assertEqual("candidate", result["final_response_source"])
+        self.assertEqual(1, result["llm_call_count"])
+
     def test_stage_latency_and_stage_errors_are_recorded(self):
         rows = [{"id": "case_latency", "student_message": "我不会。"}]
 
@@ -949,6 +1020,19 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
             self.assertIn('"case_count": 1', stdout.getvalue())
             written = [json.loads(line) for line in output_path.read_text(encoding="utf-8").splitlines()]
             self.assertEqual([{"case_id": "case_1", "error": ""}], written)
+
+    def test_cli_accepts_single_llm_structured_tutor_mode(self):
+        args = run_bridge_offline_eval._parse_args(
+            [
+                "--tutor-mode",
+                "single_llm_structured",
+                "--pipeline-mode",
+                "tutor_only",
+            ]
+        )
+
+        self.assertEqual("single_llm_structured", args.tutor_mode)
+        self.assertEqual("tutor_only", args.pipeline_mode)
 
 
 if __name__ == "__main__":

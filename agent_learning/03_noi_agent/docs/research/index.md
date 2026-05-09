@@ -142,7 +142,7 @@ Do not patch prompts from one anecdotal case. A patch requires:
 Immediate next steps:
 
 1. Finish Research v1 cleanup and path hygiene.
-2. Add `single_llm_structured` baseline if missing.
+2. Run a smoke check for the newly added `single_llm_structured` baseline.
 3. Run a 20-case mini-study across current_system / single_llm_structured / bridge_contract / guard / repair.
 4. Export Chinese and English reports for the mini-study.
 5. Expand to 50 coach-labeled seed cases only after the 20-case pipeline is stable.

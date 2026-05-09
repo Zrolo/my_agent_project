@@ -12,7 +12,14 @@ from evals.aichat.bridge_candidate_retriever import (
     retrieve_algorithm_topic_candidates,
     retrieve_focus_candidates,
 )
-from noi_agent import bridge_judge_v1, chat as noi_agent_chat, leakage_judge_v1, repair_response_v1
+from noi_agent import (
+    _chat_completion_create,
+    _extract_json_object,
+    bridge_judge_v1,
+    chat as noi_agent_chat,
+    leakage_judge_v1,
+    repair_response_v1,
+)
 
 
 DEFAULT_SEED_PATH = Path("docs/research/bridgebench_cp_seed_v1.jsonl")
@@ -251,9 +258,105 @@ def _call_bridge_contract_tutor(
     }
 
 
+def _single_llm_structured_system_prompt() -> str:
+    return "\n".join(
+        [
+            "你是算法竞赛 AI 辅导研究中的 single-LLM structured baseline。",
+            "你必须一次性完成三件事：诊断本轮 compact bridge contract、生成学生可见回复、自检是否泄露关键桥。",
+            "只输出 JSON，不要输出 Markdown 代码块，不要输出额外解释。",
+            "",
+            "输出 schema：",
+            "{",
+            '  "runtime_bridge_contract": {',
+            '    "turn_type": "diagnosable_learning_turn|insufficient_context|complete_solution_request|complete_code_request|critical_bridge_request|algorithm_confirmation_request|local_completion_request|code_debugging_without_evidence|code_debugging_with_evidence|step_validation_request|reflection_or_transfer_turn|emotional_or_time_pressure|unknown",',
+            '    "diagnosis_uncertainty": "low|medium|high|unknown",',
+            '    "algorithm_topic_l1": "dp|binary_search|graph|tree|data_structure|string|greedy|search|math|implementation|debugging|policy|aggregation|complexity|unknown",',
+            '    "algorithm_topic_l2": "short topic or unknown",',
+            '    "primary_bridge_family": "bridge family or unknown_or_not_applicable",',
+            '    "selected_focus_id": "registered focus candidate or unknown",',
+            '    "selected_focus_confidence": 0.0,',
+            '    "max_scaffold_level": "L0|L1|L2|L3",',
+            '    "help_forms": ["最多两个帮助形式"],',
+            '    "forbidden_content": ["最多三条本轮不能直接补完的内容"],',
+            '    "leakage_risk": "low|medium|high|unknown",',
+            '    "confidence": 0.0',
+            "  },",
+            '  "student_response": "自然的学生可见回复，不要包含内部标签或 JSON",',
+            '  "self_check": {',
+            '    "predicted_leakage_risk": "low|medium|high|unknown",',
+            '    "violated_forbidden_content": [],',
+            '    "notes": "一句话说明"',
+            "  }",
+            "}",
+            "",
+            "教学约束：",
+            "- 不要直接给完整题解或完整代码。",
+            "- 不要直接补完学生当前缺失的关键桥。",
+            "- 如果给微型例子，必须先说明要观察的桥梁问题，再让学生抽象出可迁移规则。",
+            "- 只问一个清晰、可回答的问题。",
+            "- `student_response` 中不要出现 [LEVEL:] 或内部评测字段。",
+        ]
+    )
+
+
+def _validate_single_llm_structured_payload(payload: dict) -> dict:
+    if not isinstance(payload, dict):
+        raise ValueError("single_llm_structured payload must be an object")
+    contract = payload.get("runtime_bridge_contract")
+    if not isinstance(contract, dict):
+        raise ValueError("runtime_bridge_contract must be an object")
+    student_response = payload.get("student_response")
+    if not isinstance(student_response, str) or not student_response.strip():
+        raise ValueError("student_response must be a non-empty string")
+    self_check = payload.get("self_check")
+    if not isinstance(self_check, dict):
+        raise ValueError("self_check must be an object")
+    contract["help_forms"] = [item for item in contract.get("help_forms") or [] if isinstance(item, str)][:2]
+    contract["forbidden_content"] = [
+        item for item in contract.get("forbidden_content") or [] if isinstance(item, str)
+    ][:3]
+    payload["runtime_bridge_contract"] = contract
+    payload["student_response"] = student_response.strip()
+    payload["self_check"] = self_check
+    return payload
+
+
+def _call_single_llm_structured_tutor(
+    row: dict,
+    messages: list[dict],
+    bridge_result: dict,
+    chat_model_provider: str | None = None,
+) -> dict:
+    response = _chat_completion_create(
+        system_prompt=_single_llm_structured_system_prompt(),
+        messages=messages,
+        provider_id=chat_model_provider,
+    )
+    payload = _validate_single_llm_structured_payload(
+        _extract_json_object(response.choices[0].message.content)
+    )
+    return {
+        "baseline_group": "single_llm_structured",
+        "tutor_mode": "single_llm_structured",
+        "tutor_model_provider": chat_model_provider or "default",
+        "response_text": payload["student_response"],
+        "history_text": payload["student_response"],
+        "level": payload["runtime_bridge_contract"].get("max_scaffold_level", ""),
+        "runtime_bridge_contract": payload["runtime_bridge_contract"],
+        "self_check": payload["self_check"],
+    }
+
+
 def _make_tutor_fn(tutor_mode: str, chat_model_provider: str | None) -> TutorFn:
     if tutor_mode == "bridge_contract":
         return lambda row, messages, bridge_result: _call_bridge_contract_tutor(
+            row,
+            messages,
+            bridge_result,
+            chat_model_provider=chat_model_provider,
+        )
+    if tutor_mode == "single_llm_structured":
+        return lambda row, messages, bridge_result: _call_single_llm_structured_tutor(
             row,
             messages,
             bridge_result,
@@ -374,6 +477,27 @@ def _runtime_bridge_contract_from_result(
     contract["help_forms"] = list(contract.get("help_forms") or [])[:2]
     contract["forbidden_content"] = list(contract.get("forbidden_content") or [])[:3]
     return contract
+
+
+def _bridge_result_from_runtime_contract(contract: dict) -> dict:
+    return {
+        "turn_type": contract.get("turn_type") or "unknown",
+        "diagnosis_uncertainty": contract.get("diagnosis_uncertainty") or "unknown",
+        "missing_bridge": {
+            "family": contract.get("primary_bridge_family") or "unknown_or_not_applicable",
+            "subtype": "",
+            "description": contract.get("missing_bridge_summary", ""),
+            "evidence": [],
+            "known_focus": contract.get("selected_focus_id") or "unknown",
+            "needs_new_focus": contract.get("selected_focus_id") in {None, "", "unknown"},
+        },
+        "allowed_help_level": contract.get("max_scaffold_level") or "L1",
+        "help_forms": list(contract.get("help_forms") or [])[:2],
+        "forbidden_content": list(contract.get("forbidden_content") or [])[:3],
+        "leakage_risk": contract.get("leakage_risk") or "unknown",
+        "confidence": contract.get("confidence") if isinstance(contract.get("confidence"), (int, float)) else 0,
+        "runtime_bridge_contract": contract,
+    }
 
 
 def _estimate_tokens_from_payload(payload: object) -> int:
@@ -519,52 +643,61 @@ def _run_one_bridge_offline_case(
         "llm_call_count": 0,
     }
 
+    single_llm_structured = tutor_mode == "single_llm_structured"
     available_focus = _focus_registry_for_row(row, focus_registry)
     candidate_retrieval = None
-    if judge_schema_mode == "retrieval_augmented_compact_judge":
+    bridge_result: dict = {}
+    if not single_llm_structured and judge_schema_mode == "retrieval_augmented_compact_judge":
         stage_start = time.perf_counter()
         candidate_retrieval = _build_candidate_retrieval(row, focus_registry=available_focus)
         _record_latency(latency_ms, "candidate_retrieval_latency_ms", stage_start)
         result["candidate_retrieval"] = candidate_retrieval
 
-    stage_start = time.perf_counter()
-    try:
-        bridge_kwargs = {
-            "student_message": student_message,
-            "messages": messages,
-            "problem_context": problem_context,
-            "student_code": row.get("student_code"),
-            "available_known_focus": (candidate_retrieval or {}).get("focus_candidates") or available_focus,
-        }
-        if candidate_retrieval:
-            bridge_kwargs.update(
-                {
-                    "top_k_algorithm_topics": candidate_retrieval["algorithm_topic_candidates"],
-                    "top_k_registered_focus": candidate_retrieval["focus_candidates"],
-                }
+    if not single_llm_structured:
+        stage_start = time.perf_counter()
+        try:
+            bridge_kwargs = {
+                "student_message": student_message,
+                "messages": messages,
+                "problem_context": problem_context,
+                "student_code": row.get("student_code"),
+                "available_known_focus": (candidate_retrieval or {}).get("focus_candidates") or available_focus,
+            }
+            if candidate_retrieval:
+                bridge_kwargs.update(
+                    {
+                        "top_k_algorithm_topics": candidate_retrieval["algorithm_topic_candidates"],
+                        "top_k_registered_focus": candidate_retrieval["focus_candidates"],
+                    }
+                )
+            bridge_result, bridge_retries = _call_stage_with_retries(
+                bridge_judge_fn,
+                bridge_kwargs,
+                judge_provider=judge_provider,
+                max_retries=max_retries,
             )
-        bridge_result, bridge_retries = _call_stage_with_retries(
-            bridge_judge_fn,
-            bridge_kwargs,
-            judge_provider=judge_provider,
-            max_retries=max_retries,
-        )
-        _add_llm_calls(result, 1 + bridge_retries)
-        result["retry_count"] = bridge_retries
-    except Exception as exc:
-        _add_llm_calls(result)
+            _add_llm_calls(result, 1 + bridge_retries)
+            result["retry_count"] = bridge_retries
+        except Exception as exc:
+            _add_llm_calls(result)
+            _record_latency(latency_ms, "bridge_judge_latency_ms", stage_start)
+            stage_errors["bridge_judge"] = f"{type(exc).__name__}: {exc}"
+            result["error"] = "bridge_judge_exception"
+            return _finish_case_result(
+                result, latency_ms=latency_ms, stage_errors=stage_errors, total_start=total_start
+            )
         _record_latency(latency_ms, "bridge_judge_latency_ms", stage_start)
-        stage_errors["bridge_judge"] = f"{type(exc).__name__}: {exc}"
-        result["error"] = "bridge_judge_exception"
-        return _finish_case_result(result, latency_ms=latency_ms, stage_errors=stage_errors, total_start=total_start)
-    _record_latency(latency_ms, "bridge_judge_latency_ms", stage_start)
-    result["bridge_judge_result"] = bridge_result
-    if bridge_result.get("_failed"):
-        stage_errors["bridge_judge"] = str(bridge_result.get("_error") or bridge_result.get("_reason") or "_failed")
-        result["error"] = "bridge_judge_failed"
-        return _finish_case_result(result, latency_ms=latency_ms, stage_errors=stage_errors, total_start=total_start)
+        result["bridge_judge_result"] = bridge_result
+        if bridge_result.get("_failed"):
+            stage_errors["bridge_judge"] = str(
+                bridge_result.get("_error") or bridge_result.get("_reason") or "_failed"
+            )
+            result["error"] = "bridge_judge_failed"
+            return _finish_case_result(
+                result, latency_ms=latency_ms, stage_errors=stage_errors, total_start=total_start
+            )
 
-    if judge_schema_mode != "full_schema_judge":
+    if not single_llm_structured and judge_schema_mode != "full_schema_judge":
         result["runtime_bridge_contract"] = _runtime_bridge_contract_from_result(
             bridge_result,
             algorithm_topic_candidates=(candidate_retrieval or {}).get("algorithm_topic_candidates"),
@@ -600,6 +733,16 @@ def _run_one_bridge_offline_case(
     result["candidate_response_text"] = candidate_response
     result["final_response_text"] = candidate_response
     result["final_response_source"] = "candidate"
+    if single_llm_structured:
+        contract = tutor_result.get("runtime_bridge_contract") or {}
+        result["runtime_bridge_contract"] = contract
+        result["single_llm_structured_result"] = {
+            "runtime_bridge_contract": contract,
+            "student_response": candidate_response,
+            "self_check": tutor_result.get("self_check") or {},
+        }
+        bridge_result = _bridge_result_from_runtime_contract(contract)
+        result["bridge_judge_result"] = {}
 
     if pipeline_mode == "tutor_only":
         return _finish_case_result(result, latency_ms=latency_ms, stage_errors=stage_errors, total_start=total_start)
@@ -724,8 +867,10 @@ def run_bridge_offline_eval_rows(
 ) -> list[dict]:
     if guard_mode not in {"predicted", "oracle"}:
         raise ValueError(f"Unsupported guard_mode: {guard_mode}")
-    if tutor_mode not in {"current_system", "bridge_contract"}:
+    if tutor_mode not in {"current_system", "bridge_contract", "single_llm_structured"}:
         raise ValueError(f"Unsupported tutor_mode: {tutor_mode}")
+    if tutor_mode == "single_llm_structured" and pipeline_mode == "diagnosis_only":
+        raise ValueError("single_llm_structured requires a tutor pipeline, not diagnosis_only")
     if pipeline_mode not in PIPELINE_MODES:
         raise ValueError(f"Unsupported pipeline_mode: {pipeline_mode}")
     if judge_schema_mode not in JUDGE_SCHEMA_MODES:
@@ -830,7 +975,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     )
     parser.add_argument(
         "--tutor-mode",
-        choices=["current_system", "bridge_contract"],
+        choices=["current_system", "bridge_contract", "single_llm_structured"],
         default="current_system",
         help="Tutor generation mode for offline comparison.",
     )

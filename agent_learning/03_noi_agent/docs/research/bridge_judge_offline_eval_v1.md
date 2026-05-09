@@ -189,6 +189,26 @@ Use `--tutor-mode bridge_contract` for the first Bridge-conditioned tutor baseli
 
 This is still offline-only. It does not change production `chat()`.
 
+Use `--tutor-mode single_llm_structured` for the one-call structured baseline. In this mode the runner skips Bridge Judge and asks one tutor LLM call to output:
+
+- `runtime_bridge_contract`
+- `student_response`
+- `self_check`
+
+This baseline answers the reviewer question: "Why not let one LLM diagnose, respond, and self-check in a single call?" It should usually be run with `--pipeline-mode tutor_only` first. Guard and repair can be added later as separate ablations, but the headline single-LLM comparison should report that the bridge contract and response came from the same LLM call.
+
+Example:
+
+```bash
+python3 -m evals.aichat.run_bridge_offline_eval \
+  --input-jsonl docs/research/bridgebench_cp_seed_v2_gold_20.jsonl \
+  --output-jsonl evals/aichat/ad_hoc_runs/single_llm_structured_smoke.jsonl \
+  --tutor-mode single_llm_structured \
+  --pipeline-mode tutor_only \
+  --chat-model-provider deepseek_flash \
+  --limit 3
+```
+
 Use `--guard-mode predicted` for the fair default experiment. In this mode Leakage Judge receives only the forbidden content predicted by Bridge Judge. Use `--guard-mode oracle` only as an upper-bound experiment; oracle mode may add `gold_forbidden_completion` from the seed row to the guard input and is not comparable to runtime behavior.
 
 Use `--pipeline-mode` to isolate ablations:
@@ -199,6 +219,8 @@ Use `--pipeline-mode` to isolate ablations:
 | `tutor_only` | Bridge Judge + tutor | Tutor quality without output guard. |
 | `tutor_plus_guard` | Bridge Judge + tutor + Leakage Judge | Leakage detection without repair. |
 | `tutor_plus_guard_plus_repair` | Bridge Judge + tutor + Leakage Judge + Repair | Full offline safety pipeline. |
+
+For `single_llm_structured`, `tutor_only` means one LLM call only; Bridge Judge is not run. `diagnosis_only` is invalid for `single_llm_structured` because the baseline is defined by producing both a structured contract and a student-facing response in the same call.
 
 The default is `tutor_plus_guard_plus_repair` for backward compatibility with earlier smoke runs. Report `pipeline_mode` in every baseline table, because it changes both response quality and latency.
 
