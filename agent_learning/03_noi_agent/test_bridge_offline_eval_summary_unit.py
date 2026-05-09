@@ -21,20 +21,24 @@ def _result_row(
     confidence: float = 0.8,
     tutor_mode: str = "current_system",
     guard_mode: str = "predicted",
+    pipeline_mode: str = "tutor_plus_guard_plus_repair",
     tutor_model_provider: str = "deepseek",
     chat_thinking_mode: str = "profile_default",
     total_latency_ms: float = 100.0,
+    llm_call_count: int = 3,
     stage_errors: dict | None = None,
 ):
     row = {
         "case_id": case_id,
         "tutor_mode": tutor_mode,
         "guard_mode": guard_mode,
+        "pipeline_mode": pipeline_mode,
         "models": {
             "tutor_model_provider": tutor_model_provider,
             "chat_thinking_mode": chat_thinking_mode,
             "tutor_mode": tutor_mode,
             "guard_mode": guard_mode,
+            "pipeline_mode": pipeline_mode,
         },
         "gold": {
             "student_state": "strategy_application_gap",
@@ -73,6 +77,7 @@ def _result_row(
             "leakage_judge_latency_ms": 30.0,
             "total_latency_ms": total_latency_ms,
         },
+        "llm_call_count": llm_call_count,
         "stage_errors": stage_errors or {},
     }
     if repaired:
@@ -138,6 +143,7 @@ class BridgeOfflineEvalSummaryTests(unittest.TestCase):
                 tutor_model_provider="deepseek",
                 chat_thinking_mode="disabled",
                 total_latency_ms=100.0,
+                llm_call_count=2,
             ),
             _result_row(
                 case_id="case_2",
@@ -150,20 +156,87 @@ class BridgeOfflineEvalSummaryTests(unittest.TestCase):
                 tutor_model_provider="kimi",
                 chat_thinking_mode="enabled",
                 total_latency_ms=300.0,
+                llm_call_count=4,
                 stage_errors={"repair": "timeout"},
             ),
         ]
 
         summary = summarize_bridge_offline_eval.summarize_bridge_offline_results(rows)
 
-        current_key = "tutor_mode=current_system|guard_mode=predicted|tutor_model_provider=deepseek|chat_thinking_mode=disabled"
-        contract_key = "tutor_mode=bridge_contract|guard_mode=oracle|tutor_model_provider=kimi|chat_thinking_mode=enabled"
+        current_key = "tutor_mode=current_system|guard_mode=predicted|pipeline_mode=tutor_plus_guard_plus_repair|judge_schema_mode=unknown|tutor_model_provider=deepseek|chat_thinking_mode=disabled"
+        contract_key = "tutor_mode=bridge_contract|guard_mode=oracle|pipeline_mode=tutor_plus_guard_plus_repair|judge_schema_mode=unknown|tutor_model_provider=kimi|chat_thinking_mode=enabled"
         self.assertEqual(1, summary["groups"][current_key]["case_count"])
         self.assertEqual(1, summary["groups"][contract_key]["case_count"])
         self.assertEqual(1.0, summary["unknown_focus_recall"])
         self.assertEqual({"repair": 1}, summary["stage_error_counts"])
         self.assertEqual(200.0, summary["latency_ms"]["total_p50"])
         self.assertEqual(300.0, summary["latency_ms"]["total_p95"])
+        self.assertEqual(3.0, summary["average_llm_call_count"])
+
+    def test_summarize_bridge_offline_results_reports_runtime_contract_quality(self):
+        rows = [
+            {
+                **_result_row(
+                    case_id="case_contract_1",
+                    gold_family="predicate_condition_bridge",
+                    pred_family="predicate_condition_bridge",
+                    gold_focus="check_condition",
+                    pred_focus="check_condition",
+                ),
+                "candidate_retrieval": {
+                    "focus_candidate_ids": ["check_condition", "unknown"],
+                },
+                "runtime_bridge_contract": {
+                    "turn_type": "diagnosable_learning_turn",
+                    "diagnosis_uncertainty": "low",
+                    "algorithm_topic_l1": "binary_search",
+                    "algorithm_topic_l2": "binary_search_answer",
+                    "primary_bridge_family": "predicate_condition_bridge",
+                    "selected_focus_id": "check_condition",
+                    "selected_focus_confidence": 0.86,
+                    "max_scaffold_level": "L2",
+                    "help_forms": ["micro_example", "guiding_question"],
+                    "forbidden_content": ["不要给完整 check。"],
+                    "leakage_risk": "high",
+                    "confidence": 0.86,
+                },
+                "prompt_budget_estimate": {"total_prompt_tokens_estimate": 420},
+            },
+            {
+                **_result_row(
+                    case_id="case_contract_2",
+                    gold_family="representation_state_bridge",
+                    pred_family="representation_state_bridge",
+                    gold_focus="state_design",
+                    pred_focus="hallucinated_focus",
+                ),
+                "candidate_retrieval": {
+                    "focus_candidate_ids": ["state_design", "unknown"],
+                },
+                "runtime_bridge_contract": {
+                    "turn_type": "diagnosable_learning_turn",
+                    "diagnosis_uncertainty": "medium",
+                    "algorithm_topic_l1": "dp",
+                    "algorithm_topic_l2": "dp_state_transition",
+                    "primary_bridge_family": "wrong_family",
+                    "selected_focus_id": "hallucinated_focus",
+                    "selected_focus_confidence": 0.8,
+                    "max_scaffold_level": "L2",
+                    "help_forms": ["question", "micro_example", "checklist"],
+                    "forbidden_content": ["a", "b", "c", "d"],
+                    "leakage_risk": "medium",
+                    "confidence": 0.8,
+                },
+                "prompt_budget_estimate": {"total_prompt_tokens_estimate": 580},
+            },
+        ]
+
+        summary = summarize_bridge_offline_eval.summarize_bridge_offline_results(rows)
+
+        self.assertEqual(0.5, summary["invalid_label_rate"])
+        self.assertEqual(0.5, summary["focus_out_of_registry_rate"])
+        self.assertEqual(0.5, summary["self_contradiction_rate"])
+        self.assertEqual(500.0, summary["average_prompt_tokens"])
 
     def test_render_markdown_report_includes_core_metrics(self):
         summary = {
@@ -183,6 +256,11 @@ class BridgeOfflineEvalSummaryTests(unittest.TestCase):
             "rewrite_rate": 0.5,
             "block_rate": 0.0,
             "repair_rate": 0.5,
+            "invalid_label_rate": 0.0,
+            "focus_out_of_registry_rate": 0.0,
+            "self_contradiction_rate": 0.0,
+            "average_prompt_tokens": 400.0,
+            "average_llm_call_count": 3.0,
             "avg_bridge_judge_confidence": 0.8,
             "safe_action_counts": {"pass": 1, "rewrite": 1},
             "leakage_level_counts": {"0": 1, "3": 1},
@@ -198,6 +276,49 @@ class BridgeOfflineEvalSummaryTests(unittest.TestCase):
         self.assertIn("| Bridge Family Accuracy | 0.500 |", report)
         self.assertIn("| Known Focus Accuracy On Registered | 0.500 |", report)
         self.assertIn("| Critical Bridge Leakage Rate | 0.500 |", report)
+        self.assertIn("| Invalid Label Rate | 0.000 |", report)
+        self.assertIn("| Average Prompt Tokens | 400.000 |", report)
+        self.assertIn("| Average LLM Call Count | 3.000 |", report)
+        self.assertIn("case_3", report)
+
+    def test_render_markdown_report_zh_includes_core_metrics(self):
+        summary = {
+            "case_count": 3,
+            "completed_count": 2,
+            "error_count": 1,
+            "bridge_family_accuracy": 0.5,
+            "known_focus_accuracy": 0.5,
+            "known_focus_accuracy_on_registered": 0.5,
+            "unknown_focus_recall": None,
+            "student_state_accuracy": 1.0,
+            "help_seeking_type_accuracy": 1.0,
+            "allowed_help_level_accuracy": 1.0,
+            "leakage_rate": 0.5,
+            "critical_bridge_leakage_rate": 0.5,
+            "answer_or_code_leakage_rate": 0.0,
+            "rewrite_rate": 0.5,
+            "block_rate": 0.0,
+            "repair_rate": 0.5,
+            "invalid_label_rate": 0.0,
+            "focus_out_of_registry_rate": 0.0,
+            "self_contradiction_rate": 0.0,
+            "average_prompt_tokens": 400.0,
+            "average_llm_call_count": 3.0,
+            "avg_bridge_judge_confidence": 0.8,
+            "safe_action_counts": {"pass": 1, "rewrite": 1},
+            "leakage_level_counts": {"0": 1, "3": 1},
+            "latency_ms": {"total_p50": 100.0, "total_p95": 100.0},
+            "stage_error_counts": {},
+            "groups": {},
+            "error_cases": ["case_3"],
+        }
+
+        report = summarize_bridge_offline_eval.render_markdown_report_zh(summary)
+
+        self.assertIn("# Bridge 离线评测摘要", report)
+        self.assertIn("| 桥梁大类准确率 | 0.500 |", report)
+        self.assertIn("| 关键桥梁泄露率 | 0.500 |", report)
+        self.assertIn("| 平均 LLM 调用次数 | 3.000 |", report)
         self.assertIn("case_3", report)
 
     def test_load_and_write_summary_files(self):
@@ -230,6 +351,7 @@ class BridgeOfflineEvalSummaryTests(unittest.TestCase):
             input_path = Path(tmpdir) / "results.jsonl"
             json_path = Path(tmpdir) / "summary.json"
             md_path = Path(tmpdir) / "summary.md"
+            md_zh_path = Path(tmpdir) / "summary.zh.md"
             input_path.write_text(
                 json.dumps(
                     _result_row(
@@ -253,12 +375,15 @@ class BridgeOfflineEvalSummaryTests(unittest.TestCase):
                         str(json_path),
                         "--output-md",
                         str(md_path),
+                        "--output-md-zh",
+                        str(md_zh_path),
                     ]
                 )
 
             self.assertEqual(0, exit_code)
             self.assertTrue(json_path.exists())
             self.assertTrue(md_path.exists())
+            self.assertTrue(md_zh_path.exists())
             self.assertIn('"case_count": 1', stdout.getvalue())
 
 

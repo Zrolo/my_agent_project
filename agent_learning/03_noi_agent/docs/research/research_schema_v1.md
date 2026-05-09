@@ -52,7 +52,7 @@ Top-level fields:
 
 ### `coach_label`
 
-`coach_label` is the reference annotation. It should be produced by a competition coach, not by the same LLM being evaluated.
+`coach_label` is an expert reference annotation. It should be produced by a competition coach, not by the same LLM being evaluated. A single coach label is not treated as absolute truth; it is a `single_coach_reference` until a subset is double annotated and disagreements are adjudicated.
 
 Required fields:
 
@@ -61,10 +61,14 @@ Required fields:
 - `missing_bridge.subtype`: domain-specific subtype, such as `dp_state_design`, `check_condition`, or `tree_path_difference`.
 - `missing_bridge.description`: one-sentence missing relation.
 - `missing_bridge.evidence`: one or more quotes or observations from the turn.
+- `secondary_bridge_family`: optional secondary family for mixed bridge cases.
 - `help_seeking_type`: instrumental, executive, help avoidance, or unclear.
 - `allowed_help_level_gold`: the maximum appropriate scaffold for this turn.
+- `help_forms`: one or more expected scaffold forms, such as `guiding_question`, `micro_example`, or `debug_evidence_request`.
 - `forbidden_content`: what the tutor must not directly complete.
 - `confidence`: 1-5 annotator confidence.
+
+For reliability, follow [annotation_reliability_protocol_v1.md](annotation_reliability_protocol_v1.md). Headline paper metrics should prefer `adjudicated_gold`; single-coach labels are mainly for smoke tests, prompt calibration, and early error analysis.
 
 ### `system_prediction`
 
@@ -132,8 +136,11 @@ Use `baseline_group` to record which system produced the response:
 | `socratic_prompt_tutor` | A prompt-only tutor that asks guiding questions and avoids direct answers. |
 | `current_system` | Current AIChat rules, legacy pedagogical phase judge, prompt control, and hard gate. |
 | `pedagogical_judge_v2` | Current system with Pedagogical Judge v2 enabled. |
-| `bridge_judge` | Future system with explicit missing-bridge diagnosis. |
-| `bridge_judge_with_leakage_judge` | Future full system with Bridge Judge plus independent leakage judge. |
+| `bridge_judge_only` | Bridge Judge diagnosis only; no tutor response comparison. |
+| `bridge_contract_tutor` | Bridge Judge contract injected into the tutor prompt, without output guard. |
+| `bridge_contract_tutor_with_leakage_judge` | Bridge Contract Tutor plus predicted Leakage Judge. |
+| `bridge_contract_tutor_with_leakage_judge_and_repair` | Full offline pipeline with repair response when the guard requests rewrite or block. |
+| `bridge_contract_tutor_with_oracle_guard` | Upper-bound guard using coach forbidden content; not a runtime-comparable result. |
 | `human_coach` | Coach-written ideal response or upper-bound reference. |
 
 ## Relation To Current Implementation
@@ -180,3 +187,9 @@ This schema supports conservative, testable claims:
 5. Next-turn progress can be reported as a process signal.
 
 It does not by itself prove long-term learning gains or contest-score improvement.
+
+## Control Harness Boundary
+
+Research v1 follows [control_harness_policy_v1.md](control_harness_policy_v1.md): slow variables such as prompts, rubrics, schemas, registries, and routing policies are updated only offline after review and tests; per-turn bridge contracts are dynamic mid-timescale controls; repair operates only on the current candidate response.
+
+This prevents the project from treating every new idea as a new online module and keeps the paper focused on missing-bridge diagnosis, critical bridge leakage, coach reference labels, and risk-triggered routing trade-offs.

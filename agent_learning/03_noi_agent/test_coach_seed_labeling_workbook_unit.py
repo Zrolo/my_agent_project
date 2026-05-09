@@ -33,10 +33,14 @@ class CoachSeedLabelingWorkbookTests(unittest.TestCase):
         self.assertEqual(1, len(exported))
         row = exported[0]
         self.assertEqual("case_1", row["case_id"])
+        self.assertNotIn("topic", row)
         self.assertNotIn("seed_gold_known_focus", row)
         self.assertNotIn("seed_gold_bridge_family", row)
         self.assertEqual("", row["coach_bridge_family"])
+        self.assertEqual("", row["coach_bridge_subtype"])
         self.assertEqual("", row["coach_known_focus"])
+        self.assertEqual("", row["coach_bridge_evidence"])
+        self.assertEqual("", row["coach_help_forms"])
         self.assertEqual("", row["coach_forbidden_content"])
         self.assertEqual("unlabeled", row["review_status"])
 
@@ -44,6 +48,7 @@ class CoachSeedLabelingWorkbookTests(unittest.TestCase):
         rows = [
             {
                 "id": "case_1",
+                "topic": "lazy_semantics",
                 "student_message": "线段树 lazy 是什么？",
                 "gold_bridge_family": "representation_bridge",
                 "gold_known_focus": "lazy_semantics",
@@ -52,6 +57,7 @@ class CoachSeedLabelingWorkbookTests(unittest.TestCase):
 
         exported = workbook.build_workbook_rows(rows, include_seed_gold=True)
 
+        self.assertEqual("lazy_semantics", exported[0]["topic"])
         self.assertEqual("lazy_semantics", exported[0]["seed_gold_known_focus"])
         self.assertEqual("representation_bridge", exported[0]["seed_gold_bridge_family"])
         self.assertEqual("", exported[0]["coach_known_focus"])
@@ -102,6 +108,7 @@ class CoachSeedLabelingWorkbookTests(unittest.TestCase):
         loaded = list(reader)
         self.assertEqual(workbook.BLIND_WORKBOOK_COLUMNS, reader.fieldnames)
         self.assertEqual("线段树 lazy 是什么？", loaded[0]["student_message"])
+        self.assertNotIn("topic", loaded[0])
         self.assertNotIn("seed_gold_known_focus", loaded[0])
 
     def test_write_csv_can_emit_review_header_with_seed_gold(self):

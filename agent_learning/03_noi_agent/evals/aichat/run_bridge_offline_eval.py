@@ -8,12 +8,27 @@ import time
 from pathlib import Path
 from typing import Callable
 
+from evals.aichat.bridge_candidate_retriever import (
+    retrieve_algorithm_topic_candidates,
+    retrieve_focus_candidates,
+)
 from noi_agent import bridge_judge_v1, chat as noi_agent_chat, leakage_judge_v1, repair_response_v1
 
 
 DEFAULT_SEED_PATH = Path("docs/research/bridgebench_cp_seed_v1.jsonl")
 DEFAULT_OUTPUT_PATH = Path("evals/aichat/bridge_offline_eval_results.jsonl")
 DEFAULT_FOCUS_REGISTRY_PATH = Path("docs/research/focus_registry_v1.json")
+PIPELINE_MODES = {
+    "diagnosis_only",
+    "tutor_only",
+    "tutor_plus_guard",
+    "tutor_plus_guard_plus_repair",
+}
+JUDGE_SCHEMA_MODES = {
+    "full_schema_judge",
+    "compact_contract_judge",
+    "retrieval_augmented_compact_judge",
+}
 
 BridgeJudgeFn = Callable[..., dict]
 TutorFn = Callable[[dict, list[dict], dict], dict]
@@ -71,10 +86,12 @@ def _compact_focus_registry(focus_registry: list | None) -> list:
         if not focus_id:
             continue
         aliases = item.get("aliases") or []
+        bridge_family = item.get("bridge_family_v2") or item.get("bridge_family", "")
         compact.append(
             {
                 "focus_id": focus_id,
-                "bridge_family": item.get("bridge_family", ""),
+                "bridge_family": bridge_family,
+                "legacy_bridge_family": item.get("bridge_family", ""),
                 "description": item.get("description", ""),
                 "aliases": aliases[:8] if isinstance(aliases, list) else [],
             }
@@ -95,6 +112,18 @@ def _compact_context_line(label: str, value: str, max_chars: int = 1800) -> str 
     if len(text) > max_chars:
         text = text[:max_chars].rstrip() + "..."
     return f"{label}: {text}"
+
+
+def _dialogue_to_text(messages: list | None) -> str:
+    parts = []
+    for item in messages or []:
+        if not isinstance(item, dict):
+            continue
+        role = item.get("role") or "unknown"
+        content = (item.get("content") or "").strip()
+        if content:
+            parts.append(f"{role}: {content}")
+    return "\n".join(parts)
 
 
 def build_messages_from_seed_row(row: dict) -> list[dict]:
@@ -169,6 +198,17 @@ def _bridge_contract_message(bridge_result: dict) -> dict:
         "forbidden_content": bridge_result.get("forbidden_content") or [],
         "leakage_risk": bridge_result.get("leakage_risk", ""),
     }
+    micro_example_policy = "\n".join(
+        [
+            "桥梁导向微型例子规则：",
+            "如果 help_form/help_forms 包含 micro_example，微型例子不能只是让学生完成临时填空、选择题或计算任务。",
+            "必须按四步组织：",
+            "1. 先说明这个例子要观察的桥梁问题。",
+            "2. 给一个足够小、但仍贴近原题的小例子。",
+            "3. 只问一个局部、可回答的问题。",
+            "4. 要求学生把观察抽象成一句可迁移规则。",
+        ]
+    )
     return {
         "role": "assistant",
         "content": "\n".join(
@@ -176,6 +216,8 @@ def _bridge_contract_message(bridge_result: dict) -> dict:
                 "[Offline Bridge Contract - research control, not student text]",
                 json.dumps(contract, ensure_ascii=False, indent=2),
                 "请下一轮回复严格遵守 allowed_help_level 和 help_form，只补半步，不要出现 forbidden_content。",
+                micro_example_policy,
+                "如果学生问的是“为什么/含义/原理”，可以先给一句简短概念解释，再用一个问题引导迁移；不要一次连续抛出多个问题。",
             ]
         ),
     }
@@ -234,9 +276,12 @@ def _make_repair_fn(judge_provider: str) -> RepairFn:
 
 def _call_with_optional_judge_provider(fn: Callable, kwargs: dict, judge_provider: str) -> dict:
     signature = inspect.signature(fn)
-    accepts_provider = "judge_provider" in signature.parameters or any(
+    accepts_var_kwargs = any(
         param.kind == inspect.Parameter.VAR_KEYWORD for param in signature.parameters.values()
     )
+    accepts_provider = "judge_provider" in signature.parameters or accepts_var_kwargs
+    if not accepts_var_kwargs:
+        kwargs = {key: value for key, value in kwargs.items() if key in signature.parameters}
     if accepts_provider:
         return fn(**kwargs, judge_provider=judge_provider)
     return fn(**kwargs)
@@ -278,6 +323,90 @@ def _case_gold(row: dict) -> dict:
     }
 
 
+def _confidence_to_uncertainty(confidence: float | int | None) -> str:
+    if not isinstance(confidence, (int, float)) or isinstance(confidence, bool):
+        return "unknown"
+    if confidence >= 0.8:
+        return "low"
+    if confidence >= 0.6:
+        return "medium"
+    return "high"
+
+
+def _first_topic(candidates: list[dict] | None) -> dict:
+    if candidates:
+        return candidates[0]
+    return {"topic_l1": "unknown", "topic_l2": "unknown"}
+
+
+def _runtime_bridge_contract_from_result(
+    bridge_result: dict,
+    *,
+    algorithm_topic_candidates: list[dict] | None = None,
+) -> dict:
+    existing = bridge_result.get("runtime_bridge_contract")
+    if isinstance(existing, dict):
+        contract = dict(existing)
+    else:
+        missing_bridge = bridge_result.get("missing_bridge") or {}
+        topic = _first_topic(algorithm_topic_candidates)
+        focus_id = missing_bridge.get("known_focus") or bridge_result.get("selected_focus_id") or "unknown"
+        confidence = bridge_result.get("confidence")
+        contract = {
+            "turn_type": bridge_result.get("turn_type") or "diagnosable_learning_turn",
+            "diagnosis_uncertainty": bridge_result.get("diagnosis_uncertainty")
+            or _confidence_to_uncertainty(confidence),
+            "algorithm_topic_l1": topic.get("topic_l1") or "unknown",
+            "algorithm_topic_l2": topic.get("topic_l2") or "unknown",
+            "primary_bridge_family": missing_bridge.get("family")
+            or bridge_result.get("primary_bridge_family")
+            or "unknown_or_not_applicable",
+            "selected_focus_id": focus_id,
+            "selected_focus_confidence": confidence if isinstance(confidence, (int, float)) else 0,
+            "max_scaffold_level": bridge_result.get("allowed_help_level")
+            or bridge_result.get("max_scaffold_level")
+            or "L1",
+            "help_forms": _bridge_help_forms(bridge_result)[:2],
+            "forbidden_content": list(bridge_result.get("forbidden_content") or [])[:3],
+            "leakage_risk": bridge_result.get("leakage_risk") or "unknown",
+            "confidence": confidence if isinstance(confidence, (int, float)) else 0,
+        }
+    contract["help_forms"] = list(contract.get("help_forms") or [])[:2]
+    contract["forbidden_content"] = list(contract.get("forbidden_content") or [])[:3]
+    return contract
+
+
+def _estimate_tokens_from_payload(payload: object) -> int:
+    text = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    return max(1, round(len(text) / 4))
+
+
+def _build_candidate_retrieval(
+    row: dict,
+    *,
+    focus_registry: list | None,
+) -> dict:
+    student_message = row.get("student_message", "")
+    problem_context = row.get("problem_context", "")
+    topic_candidates = retrieve_algorithm_topic_candidates(
+        student_message=student_message,
+        problem_context=problem_context,
+        limit=5,
+    )
+    focus_candidates = retrieve_focus_candidates(
+        student_message=student_message,
+        problem_context=problem_context,
+        algorithm_topic_candidates=topic_candidates,
+        focus_registry=focus_registry,
+        limit=5,
+    )
+    return {
+        "algorithm_topic_candidates": topic_candidates,
+        "focus_candidates": focus_candidates,
+        "focus_candidate_ids": [candidate.get("focus_id", "") for candidate in focus_candidates],
+    }
+
+
 def _write_progress(progress_stream, event: str, **fields) -> None:
     if progress_stream is None:
         return
@@ -299,11 +428,21 @@ def _finish_case_result(
     result["latency_ms"] = latency_ms
     result["stage_errors"] = stage_errors
     result.setdefault("retry_count", 0)
+    result.setdefault("candidate_response_text", "")
+    result.setdefault("final_response_text", "")
+    result.setdefault("final_response_source", "none")
+    result.setdefault("repair_applied", False)
+    result.setdefault("blocked", False)
+    result.setdefault("llm_call_count", 0)
     return result
 
 
 def _record_latency(latency_ms: dict[str, float], key: str, start: float) -> None:
     latency_ms[key] = round((time.perf_counter() - start) * 1000, 3)
+
+
+def _add_llm_calls(result: dict, count: int = 1) -> None:
+    result["llm_call_count"] = int(result.get("llm_call_count") or 0) + count
 
 
 def _effective_chat_thinking_mode(chat_thinking_mode: str | None) -> str:
@@ -337,6 +476,8 @@ def _run_one_bridge_offline_case(
     focus_registry: list | None,
     guard_mode: str,
     tutor_mode: str,
+    pipeline_mode: str,
+    judge_schema_mode: str,
     judge_provider: str,
     max_retries: int,
     chat_thinking_mode: str | None,
@@ -356,8 +497,13 @@ def _run_one_bridge_offline_case(
         "problem_ref": row.get("problem_ref", ""),
         "topic": row.get("topic", ""),
         "student_message": student_message,
+        "problem_context": row.get("problem_context", ""),
+        "recent_dialogue": _dialogue_to_text(row.get("prior_messages") or row.get("recent_dialogue")),
+        "student_code_excerpt": row.get("student_code") or row.get("student_code_excerpt") or "",
         "tutor_mode": tutor_mode,
         "guard_mode": guard_mode,
+        "pipeline_mode": pipeline_mode,
+        "judge_schema_mode": judge_schema_mode,
         "focus_registry_size": len(_focus_registry_for_row(row, focus_registry)),
         "models": {
             "judge_model": _judge_model_name(judge_provider),
@@ -366,26 +512,47 @@ def _run_one_bridge_offline_case(
             "chat_thinking_mode": _effective_chat_thinking_mode(chat_thinking_mode),
             "tutor_mode": tutor_mode,
             "guard_mode": guard_mode,
+            "pipeline_mode": pipeline_mode,
+            "judge_schema_mode": judge_schema_mode,
         },
         "gold": _case_gold(row),
+        "llm_call_count": 0,
     }
+
+    available_focus = _focus_registry_for_row(row, focus_registry)
+    candidate_retrieval = None
+    if judge_schema_mode == "retrieval_augmented_compact_judge":
+        stage_start = time.perf_counter()
+        candidate_retrieval = _build_candidate_retrieval(row, focus_registry=available_focus)
+        _record_latency(latency_ms, "candidate_retrieval_latency_ms", stage_start)
+        result["candidate_retrieval"] = candidate_retrieval
 
     stage_start = time.perf_counter()
     try:
+        bridge_kwargs = {
+            "student_message": student_message,
+            "messages": messages,
+            "problem_context": problem_context,
+            "student_code": row.get("student_code"),
+            "available_known_focus": (candidate_retrieval or {}).get("focus_candidates") or available_focus,
+        }
+        if candidate_retrieval:
+            bridge_kwargs.update(
+                {
+                    "top_k_algorithm_topics": candidate_retrieval["algorithm_topic_candidates"],
+                    "top_k_registered_focus": candidate_retrieval["focus_candidates"],
+                }
+            )
         bridge_result, bridge_retries = _call_stage_with_retries(
             bridge_judge_fn,
-            {
-                "student_message": student_message,
-                "messages": messages,
-                "problem_context": problem_context,
-                "student_code": row.get("student_code"),
-                "available_known_focus": _focus_registry_for_row(row, focus_registry),
-            },
+            bridge_kwargs,
             judge_provider=judge_provider,
             max_retries=max_retries,
         )
+        _add_llm_calls(result, 1 + bridge_retries)
         result["retry_count"] = bridge_retries
     except Exception as exc:
+        _add_llm_calls(result)
         _record_latency(latency_ms, "bridge_judge_latency_ms", stage_start)
         stage_errors["bridge_judge"] = f"{type(exc).__name__}: {exc}"
         result["error"] = "bridge_judge_exception"
@@ -397,11 +564,32 @@ def _run_one_bridge_offline_case(
         result["error"] = "bridge_judge_failed"
         return _finish_case_result(result, latency_ms=latency_ms, stage_errors=stage_errors, total_start=total_start)
 
+    if judge_schema_mode != "full_schema_judge":
+        result["runtime_bridge_contract"] = _runtime_bridge_contract_from_result(
+            bridge_result,
+            algorithm_topic_candidates=(candidate_retrieval or {}).get("algorithm_topic_candidates"),
+        )
+    result["prompt_budget_estimate"] = {
+        "total_prompt_tokens_estimate": _estimate_tokens_from_payload(
+            {
+                "student_message": student_message,
+                "problem_context": problem_context,
+                "candidate_retrieval": candidate_retrieval or {},
+                "runtime_bridge_contract": result.get("runtime_bridge_contract", {}),
+            }
+        )
+    }
+
+    if pipeline_mode == "diagnosis_only":
+        return _finish_case_result(result, latency_ms=latency_ms, stage_errors=stage_errors, total_start=total_start)
+
     stage_start = time.perf_counter()
     try:
         with _temporary_chat_thinking_mode(chat_thinking_mode):
             tutor_result = tutor_fn(row, messages, bridge_result)
+        _add_llm_calls(result)
     except Exception as exc:
+        _add_llm_calls(result)
         _record_latency(latency_ms, "tutor_latency_ms", stage_start)
         stage_errors["tutor"] = f"{type(exc).__name__}: {exc}"
         result["error"] = "tutor_exception"
@@ -409,6 +597,12 @@ def _run_one_bridge_offline_case(
     _record_latency(latency_ms, "tutor_latency_ms", stage_start)
     result["tutor_response"] = tutor_result
     candidate_response = tutor_result.get("response_text", "")
+    result["candidate_response_text"] = candidate_response
+    result["final_response_text"] = candidate_response
+    result["final_response_source"] = "candidate"
+
+    if pipeline_mode == "tutor_only":
+        return _finish_case_result(result, latency_ms=latency_ms, stage_errors=stage_errors, total_start=total_start)
 
     forbidden_content = list(bridge_result.get("forbidden_content") or [])
     used_gold_forbidden = False
@@ -443,8 +637,10 @@ def _run_one_bridge_offline_case(
             judge_provider=judge_provider,
             max_retries=max_retries,
         )
+        _add_llm_calls(result, 1 + leakage_retries)
         result["retry_count"] = result.get("retry_count", 0) + leakage_retries
     except Exception as exc:
+        _add_llm_calls(result)
         _record_latency(latency_ms, "leakage_judge_latency_ms", stage_start)
         stage_errors["leakage_judge"] = f"{type(exc).__name__}: {exc}"
         result["error"] = "leakage_judge_exception"
@@ -454,7 +650,17 @@ def _run_one_bridge_offline_case(
     if leakage_result.get("_failed"):
         stage_errors["leakage_judge"] = str(leakage_result.get("_error") or leakage_result.get("_reason") or "_failed")
 
-    if leakage_result.get("safe_action") in {"rewrite", "block"} and not leakage_result.get("_failed"):
+    safe_action = leakage_result.get("safe_action")
+    if safe_action == "block" and pipeline_mode == "tutor_plus_guard":
+        result["final_response_text"] = ""
+        result["final_response_source"] = "blocked"
+        result["blocked"] = True
+
+    if (
+        pipeline_mode == "tutor_plus_guard_plus_repair"
+        and safe_action in {"rewrite", "block"}
+        and not leakage_result.get("_failed")
+    ):
         stage_start = time.perf_counter()
         try:
             repair_result, repair_retries = _call_stage_with_retries(
@@ -469,11 +675,27 @@ def _run_one_bridge_offline_case(
                 judge_provider=judge_provider,
                 max_retries=max_retries,
             )
+            _add_llm_calls(result, 1 + repair_retries)
             result["repair_result"] = repair_result
             result["retry_count"] = result.get("retry_count", 0) + repair_retries
+            repaired_response = repair_result.get("repaired_response")
+            if repaired_response:
+                result["final_response_text"] = repaired_response
+                result["final_response_source"] = "repair"
+                result["repair_applied"] = True
+                result["blocked"] = False
+            elif safe_action == "block":
+                result["final_response_text"] = ""
+                result["final_response_source"] = "blocked"
+                result["blocked"] = True
         except Exception as exc:
+            _add_llm_calls(result)
             stage_errors["repair"] = f"{type(exc).__name__}: {exc}"
             result["error"] = "repair_exception"
+            if safe_action == "block":
+                result["final_response_text"] = ""
+                result["final_response_source"] = "blocked"
+                result["blocked"] = True
         finally:
             _record_latency(latency_ms, "repair_latency_ms", stage_start)
 
@@ -490,6 +712,8 @@ def run_bridge_offline_eval_rows(
     chat_model_provider: str | None = None,
     tutor_mode: str = "current_system",
     guard_mode: str = "predicted",
+    pipeline_mode: str = "tutor_plus_guard_plus_repair",
+    judge_schema_mode: str = "full_schema_judge",
     judge_provider: str = "deepseek",
     max_retries: int = 0,
     chat_thinking_mode: str | None = None,
@@ -502,6 +726,10 @@ def run_bridge_offline_eval_rows(
         raise ValueError(f"Unsupported guard_mode: {guard_mode}")
     if tutor_mode not in {"current_system", "bridge_contract"}:
         raise ValueError(f"Unsupported tutor_mode: {tutor_mode}")
+    if pipeline_mode not in PIPELINE_MODES:
+        raise ValueError(f"Unsupported pipeline_mode: {pipeline_mode}")
+    if judge_schema_mode not in JUDGE_SCHEMA_MODES:
+        raise ValueError(f"Unsupported judge_schema_mode: {judge_schema_mode}")
     if max_retries < 0:
         raise ValueError("max_retries must be >= 0")
     if chat_thinking_mode not in {None, "enabled", "disabled"}:
@@ -530,6 +758,8 @@ def run_bridge_offline_eval_rows(
                 focus_registry=effective_focus_registry,
                 guard_mode=guard_mode,
                 tutor_mode=tutor_mode,
+                pipeline_mode=pipeline_mode,
+                judge_schema_mode=judge_schema_mode,
                 judge_provider=judge_provider,
                 max_retries=max_retries,
                 chat_thinking_mode=chat_thinking_mode,
@@ -540,8 +770,13 @@ def run_bridge_offline_eval_rows(
                 "case_id": case_id,
                 "problem_ref": row.get("problem_ref", ""),
                 "student_message": row.get("student_message", ""),
+                "problem_context": row.get("problem_context", ""),
+                "recent_dialogue": _dialogue_to_text(row.get("prior_messages") or row.get("recent_dialogue")),
+                "student_code_excerpt": row.get("student_code") or row.get("student_code_excerpt") or "",
                 "tutor_mode": tutor_mode,
                 "guard_mode": guard_mode,
+                "pipeline_mode": pipeline_mode,
+                "judge_schema_mode": judge_schema_mode,
                 "models": {
                     "judge_model": _judge_model_name(judge_provider),
                     "judge_provider": judge_provider,
@@ -549,12 +784,20 @@ def run_bridge_offline_eval_rows(
                     "chat_thinking_mode": _effective_chat_thinking_mode(chat_thinking_mode),
                     "tutor_mode": tutor_mode,
                     "guard_mode": guard_mode,
+                    "pipeline_mode": pipeline_mode,
+                    "judge_schema_mode": judge_schema_mode,
                 },
                 "gold": _case_gold(row),
                 "error": f"{type(exc).__name__}: {exc}",
                 "latency_ms": {},
                 "stage_errors": {"case": f"{type(exc).__name__}: {exc}"},
                 "retry_count": 0,
+                "candidate_response_text": "",
+                "final_response_text": "",
+                "final_response_source": "none",
+                "repair_applied": False,
+                "blocked": False,
+                "llm_call_count": 0,
             }
             _write_progress(
                 progress_stream,
@@ -598,6 +841,18 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         help="Whether Leakage Judge sees only predicted forbidden content or oracle gold forbidden content.",
     )
     parser.add_argument(
+        "--pipeline-mode",
+        choices=sorted(PIPELINE_MODES),
+        default="tutor_plus_guard_plus_repair",
+        help="Offline ablation pipeline: diagnosis only, tutor only, tutor plus guard, or full guard plus repair.",
+    )
+    parser.add_argument(
+        "--judge-schema-mode",
+        choices=sorted(JUDGE_SCHEMA_MODES),
+        default="full_schema_judge",
+        help="Bridge Judge schema mode: full human-like schema, compact contract, or retrieval-augmented compact contract.",
+    )
+    parser.add_argument(
         "--judge-provider",
         default="deepseek",
         help="Provider for offline Bridge/Leakage/Repair judges. Use deepseek or kimi.",
@@ -630,6 +885,8 @@ def main(argv: list[str] | None = None) -> int:
         chat_model_provider=args.chat_model_provider,
         tutor_mode=args.tutor_mode,
         guard_mode=args.guard_mode,
+        pipeline_mode=args.pipeline_mode,
+        judge_schema_mode=args.judge_schema_mode,
         judge_provider=args.judge_provider,
         max_retries=args.max_retries,
         chat_thinking_mode=args.chat_thinking_mode,

@@ -9,7 +9,16 @@ from typing import TextIO
 DEFAULT_INPUT_PATH = Path("docs/research/bridgebench_cp_seed_v1.jsonl")
 DEFAULT_OUTPUT_PATH = Path("docs/research/coach_seed_labeling_workbook_v1.csv")
 
-CONTEXT_COLUMNS = [
+BLIND_CONTEXT_COLUMNS = [
+    "case_id",
+    "problem_ref",
+    "student_message",
+    "problem_context",
+    "recent_dialogue",
+    "student_code_excerpt",
+]
+
+REVIEW_CONTEXT_COLUMNS = [
     "case_id",
     "problem_ref",
     "topic",
@@ -22,6 +31,7 @@ CONTEXT_COLUMNS = [
 SEED_GOLD_COLUMNS = [
     "seed_gold_student_state",
     "seed_gold_bridge_family",
+    "seed_gold_bridge_subtype",
     "seed_gold_known_focus",
     "seed_gold_help_seeking_type",
     "seed_gold_missing_link",
@@ -33,10 +43,14 @@ SEED_GOLD_COLUMNS = [
 COACH_COLUMNS = [
     "coach_problem_solving_state",
     "coach_bridge_family",
+    "coach_secondary_bridge_family",
+    "coach_bridge_subtype",
     "coach_known_focus",
+    "coach_bridge_evidence",
     "coach_missing_bridge_description",
     "coach_help_seeking_type",
     "coach_allowed_help_level",
+    "coach_help_forms",
     "coach_forbidden_content",
     "coach_needs_new_focus",
     "coach_confidence",
@@ -44,8 +58,8 @@ COACH_COLUMNS = [
     "review_status",
 ]
 
-BLIND_WORKBOOK_COLUMNS = [*CONTEXT_COLUMNS, *COACH_COLUMNS]
-REVIEW_WORKBOOK_COLUMNS = [*CONTEXT_COLUMNS, *SEED_GOLD_COLUMNS, *COACH_COLUMNS]
+BLIND_WORKBOOK_COLUMNS = [*BLIND_CONTEXT_COLUMNS, *COACH_COLUMNS]
+REVIEW_WORKBOOK_COLUMNS = [*REVIEW_CONTEXT_COLUMNS, *SEED_GOLD_COLUMNS, *COACH_COLUMNS]
 WORKBOOK_COLUMNS = BLIND_WORKBOOK_COLUMNS
 
 
@@ -78,10 +92,14 @@ def _blank_coach_fields() -> dict:
     return {
         "coach_problem_solving_state": "",
         "coach_bridge_family": "",
+        "coach_secondary_bridge_family": "",
+        "coach_bridge_subtype": "",
         "coach_known_focus": "",
+        "coach_bridge_evidence": "",
         "coach_missing_bridge_description": "",
         "coach_help_seeking_type": "",
         "coach_allowed_help_level": "",
+        "coach_help_forms": "",
         "coach_forbidden_content": "",
         "coach_needs_new_focus": "",
         "coach_confidence": "",
@@ -94,16 +112,26 @@ def _prefilled_coach_fields(row: dict) -> dict:
     return {
         "coach_problem_solving_state": row.get("gold_student_state", ""),
         "coach_bridge_family": row.get("gold_bridge_family", ""),
+        "coach_secondary_bridge_family": row.get("gold_secondary_bridge_family", ""),
+        "coach_bridge_subtype": row.get("gold_bridge_subtype", ""),
         "coach_known_focus": row.get("gold_known_focus", ""),
+        "coach_bridge_evidence": _list_to_cell(row.get("gold_bridge_evidence", "")),
         "coach_missing_bridge_description": row.get("gold_missing_link", ""),
         "coach_help_seeking_type": row.get("gold_help_seeking_type", ""),
         "coach_allowed_help_level": row.get("gold_allowed_help_level", ""),
+        "coach_help_forms": _list_to_cell(row.get("gold_help_forms") or row.get("gold_help_form", "")),
         "coach_forbidden_content": row.get("gold_forbidden_completion", ""),
         "coach_needs_new_focus": str(bool(row.get("needs_new_focus", False))).lower(),
         "coach_confidence": "",
         "coach_notes": "",
         "review_status": "review_seed_gold",
     }
+
+
+def _list_to_cell(value) -> str:
+    if isinstance(value, list):
+        return ";".join(str(item) for item in value if str(item).strip())
+    return str(value or "")
 
 
 def build_workbook_rows(
@@ -130,6 +158,7 @@ def build_workbook_rows(
                 {
                     "seed_gold_student_state": row.get("gold_student_state", ""),
                     "seed_gold_bridge_family": row.get("gold_bridge_family", ""),
+                    "seed_gold_bridge_subtype": row.get("gold_bridge_subtype", ""),
                     "seed_gold_known_focus": row.get("gold_known_focus", ""),
                     "seed_gold_help_seeking_type": row.get("gold_help_seeking_type", ""),
                     "seed_gold_missing_link": row.get("gold_missing_link", ""),

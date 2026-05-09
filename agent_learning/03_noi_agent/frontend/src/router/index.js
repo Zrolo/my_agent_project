@@ -22,6 +22,7 @@ const TeacherFeedbackPage = () => import('@/pages/teacher/TeacherFeedbackPage.vu
 const TeacherAnnouncementsPage = () => import('@/pages/teacher/TeacherAnnouncementsPage.vue');
 const TeacherAIChatHistoryPage = () => import('@/pages/teacher/TeacherAIChatHistoryPage.vue');
 const TeacherResearchAnnotationPage = () => import('@/pages/teacher/TeacherResearchAnnotationPage.vue');
+const TeacherResponseReviewPage = () => import('@/pages/teacher/TeacherResponseReviewPage.vue');
 const TeacherReflectionPage = () => import('@/pages/teacher/TeacherReflectionPage.vue');
 const TeacherClassManagementPage = () => import('@/pages/teacher/TeacherClassManagementPage.vue');
 
@@ -136,6 +137,12 @@ const routes = [
         name: 'teacher-research-annotation',
         component: TeacherResearchAnnotationPage,
         meta: { section: 'research-annotation' },
+      },
+      {
+        path: 'response-review',
+        name: 'teacher-response-review',
+        component: TeacherResponseReviewPage,
+        meta: { section: 'response-review' },
       },
       {
         path: 'class-management',

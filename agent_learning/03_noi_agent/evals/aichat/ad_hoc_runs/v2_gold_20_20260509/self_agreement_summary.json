@@ -1,0 +1,22 @@
+{
+  "annotator_a_jsonl": "docs/research/coach_seed_labeling_v2_gold_20.jsonl",
+  "annotator_b_jsonl": "docs/research/coach_seed_labeling_v2_gold_20.jsonl",
+  "annotator_a_count": 20,
+  "annotator_b_count": 20,
+  "paired_count": 20,
+  "unpaired_a_case_ids": [],
+  "unpaired_b_case_ids": [],
+  "exact_agreement": {
+    "student_problem_solving_state": 1.0,
+    "primary_bridge_family": 1.0,
+    "registered_focus_id": 1.0,
+    "max_scaffold_level": 1.0,
+    "leakage_risk": 1.0
+  },
+  "relaxed_agreement": {
+    "bridge_family_primary_or_secondary": 1.0,
+    "focus_primary_or_secondary": 1.0
+  },
+  "needs_adjudication_count": 0,
+  "needs_adjudication_case_ids": []
+}

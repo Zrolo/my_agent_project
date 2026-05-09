@@ -1,0 +1,324 @@
+{
+  "version": "bridge_subtype_registry_v2",
+  "description": "Family-constrained bridge subtype registry for CP coach labeling v2.",
+  "subtypes": [
+    {
+      "subtype_id": "unknown",
+      "family": "unknown_or_not_applicable",
+      "description": "不确定或信息不足。",
+      "examples": ["学生只说不会，无法判断具体桥梁。"]
+    },
+    {
+      "subtype_id": "goal.constraint_decomposition",
+      "family": "goal_constraint_bridge",
+      "description": "题意目标和限制拆解。",
+      "examples": ["学生看不出题目到底要求最大化什么。"]
+    },
+    {
+      "subtype_id": "modeling.objects_relations",
+      "family": "modeling_bridge",
+      "description": "题面对象和关系建模。",
+      "examples": ["学生不知道什么当点、什么当边。"]
+    },
+    {
+      "subtype_id": "modeling.events_constraints",
+      "family": "modeling_bridge",
+      "description": "事件、约束和合法性建模。",
+      "examples": ["学生不知道限制条件如何变成状态或边。"]
+    },
+    {
+      "subtype_id": "modeling.constraint_to_edge",
+      "family": "modeling_bridge",
+      "description": "把不等式、先后关系或限制转成图边/关系。",
+      "examples": ["学生不知道差分约束里为什么要连这条边。"]
+    },
+    {
+      "subtype_id": "modeling.graph_vertices_edges",
+      "family": "modeling_bridge",
+      "description": "图中点和边的建模。",
+      "examples": ["学生不知道学校、道路、状态分别对应点还是边。"]
+    },
+    {
+      "subtype_id": "modeling.interval_to_events",
+      "family": "modeling_bridge",
+      "description": "区间/端点转成扫描线事件。",
+      "examples": ["学生不知道区间覆盖为什么要拆成进入和离开事件。"]
+    },
+    {
+      "subtype_id": "method.selection_signal",
+      "family": "method_selection_bridge",
+      "description": "算法方向选择信号。",
+      "examples": ["学生不知道该往 DP、图、贪心还是二分想。"]
+    },
+    {
+      "subtype_id": "method.binary_search_answer_signal",
+      "family": "method_selection_bridge",
+      "description": "二分答案的可行性/单调性信号。",
+      "examples": ["学生不知道为什么可以二分答案。"]
+    },
+    {
+      "subtype_id": "method.dp_state_candidate_signal",
+      "family": "method_selection_bridge",
+      "description": "DP 状态候选信号。",
+      "examples": ["学生不知道哪些量可能要被放进状态。"]
+    },
+    {
+      "subtype_id": "method.greedy_candidate_signal",
+      "family": "method_selection_bridge",
+      "description": "贪心候选信号。",
+      "examples": ["学生不知道哪里体现出局部选择可能成立。"]
+    },
+    {
+      "subtype_id": "state.dp_state_semantics",
+      "family": "representation_state_bridge",
+      "description": "DP 状态语义。",
+      "examples": ["学生不知道 dp[j] 表示什么。"]
+    },
+    {
+      "subtype_id": "state.mask_semantics",
+      "family": "representation_state_bridge",
+      "description": "mask/压缩状态语义。",
+      "examples": ["学生不知道二进制位表示已选还是未选。"]
+    },
+    {
+      "subtype_id": "state.lazy_tag_semantics",
+      "family": "representation_state_bridge",
+      "description": "lazy 标记语义。",
+      "examples": ["学生不知道 lazy 表示还没做什么。"]
+    },
+    {
+      "subtype_id": "state.search_augmented_state",
+      "family": "representation_state_bridge",
+      "description": "搜索/BFS 扩展状态。",
+      "examples": ["学生不知道 BFS 队列里还要带钥匙状态。"]
+    },
+    {
+      "subtype_id": "state.kmp_prefix_function_semantics",
+      "family": "representation_state_bridge",
+      "description": "KMP next/prefix function 语义。",
+      "examples": ["学生不知道 next 数组里的数字代表什么。"]
+    },
+    {
+      "subtype_id": "transition.take_or_skip_cases",
+      "family": "transition_recurrence_bridge",
+      "description": "选或不选等转移分类。",
+      "examples": ["学生不知道当前物品取和不取分别从哪里来。"]
+    },
+    {
+      "subtype_id": "transition.child_to_parent_merge",
+      "family": "transition_recurrence_bridge",
+      "description": "子节点到父节点合并。",
+      "examples": ["学生不知道树形 DP 怎么合并儿子。"]
+    },
+    {
+      "subtype_id": "transition.combinatorial_recurrence",
+      "family": "transition_recurrence_bridge",
+      "description": "组合计数递推。",
+      "examples": ["学生不知道 C(n,k) 为什么来自两个上方状态。"]
+    },
+    {
+      "subtype_id": "predicate.check_truth_direction",
+      "family": "predicate_condition_bridge",
+      "description": "check true/false 方向。",
+      "examples": ["学生不知道 check(mid) 返回 true 还是 false。"]
+    },
+    {
+      "subtype_id": "predicate.binary_search_bound_update",
+      "family": "predicate_condition_bridge",
+      "description": "二分边界更新。",
+      "examples": ["学生找到可行答案后不知道收左边还是右边。"]
+    },
+    {
+      "subtype_id": "predicate.relax_condition",
+      "family": "predicate_condition_bridge",
+      "description": "最短路 relax 条件。",
+      "examples": ["学生不知道 dist[v] > dist[u] + w 在判断什么。"]
+    },
+    {
+      "subtype_id": "predicate.dijkstra_stale_entry_guard",
+      "family": "predicate_condition_bridge",
+      "description": "Dijkstra 旧距离跳过条件。",
+      "examples": ["学生不知道优先队列里的旧距离要不要跳过。"]
+    },
+    {
+      "subtype_id": "predicate.local_if_boundary_condition",
+      "family": "predicate_condition_bridge",
+      "description": "局部 if/边界条件。",
+      "examples": ["学生要求 AI 直接补 if 条件。"]
+    },
+    {
+      "subtype_id": "ordering.reverse_capacity_loop",
+      "family": "ordering_dependency_bridge",
+      "description": "背包容量倒序循环。",
+      "examples": ["学生不知道 0/1 背包为什么容量要倒序。"]
+    },
+    {
+      "subtype_id": "ordering.rolling_array_overwrite_order",
+      "family": "ordering_dependency_bridge",
+      "description": "滚动数组覆盖顺序。",
+      "examples": ["学生不知道压成一维后如何避免覆盖上一轮状态。"]
+    },
+    {
+      "subtype_id": "ordering.interval_dp_order",
+      "family": "ordering_dependency_bridge",
+      "description": "区间 DP 先长度后端点。",
+      "examples": ["学生不知道为什么区间 DP 外层先枚举长度。"]
+    },
+    {
+      "subtype_id": "ordering.topological_dependency",
+      "family": "ordering_dependency_bridge",
+      "description": "拓扑/依赖顺序。",
+      "examples": ["学生不知道 DAG DP 为什么要拓扑序。"]
+    },
+    {
+      "subtype_id": "aggregation.tree_path_difference_marking",
+      "family": "aggregation_contribution_bridge",
+      "description": "树上路径差分端点标记。",
+      "examples": ["学生不知道路径贡献在哪里加减标记。"]
+    },
+    {
+      "subtype_id": "aggregation.prefix_sum_1d",
+      "family": "aggregation_contribution_bridge",
+      "description": "一维前缀和汇总。",
+      "examples": ["学生不知道区间和为什么能用两个前缀相减。"]
+    },
+    {
+      "subtype_id": "aggregation.prefix_sum_2d",
+      "family": "aggregation_contribution_bridge",
+      "description": "二维前缀和四角关系。",
+      "examples": ["学生不知道二维前缀和为什么要四角加减。"]
+    },
+    {
+      "subtype_id": "aggregation.difference_array_range_update",
+      "family": "aggregation_contribution_bridge",
+      "description": "差分数组区间更新。",
+      "examples": ["学生不知道区间加为什么只改 l 和 r+1。"]
+    },
+    {
+      "subtype_id": "ds.heap_push_pop_mapping",
+      "family": "data_structure_operation_bridge",
+      "description": "堆 push/pop 映射。",
+      "examples": ["学生不知道题目中的取当前最小应该如何映射到堆。"]
+    },
+    {
+      "subtype_id": "ds.union_find_operation_mapping",
+      "family": "data_structure_operation_bridge",
+      "description": "并查集合并/查询映射。",
+      "examples": ["学生不知道题目里的连通关系什么时候 unite。"]
+    },
+    {
+      "subtype_id": "ds.monotonic_stack_mapping",
+      "family": "data_structure_operation_bridge",
+      "description": "单调栈入栈出栈映射。",
+      "examples": ["学生不知道什么时候弹栈。"]
+    },
+    {
+      "subtype_id": "implementation.loop_boundary",
+      "family": "implementation_boundary_bridge",
+      "description": "循环/下标边界。",
+      "examples": ["学生不知道 i < n 还是 i <= n。"]
+    },
+    {
+      "subtype_id": "implementation.integer_overflow",
+      "family": "implementation_boundary_bridge",
+      "description": "整数范围/溢出。",
+      "examples": ["学生不知道为什么 int 会爆。"]
+    },
+    {
+      "subtype_id": "implementation.modular_multiplication_overflow",
+      "family": "implementation_boundary_bridge",
+      "description": "取模乘法中间溢出。",
+      "examples": ["学生每次取模但乘法中间仍溢出。"]
+    },
+    {
+      "subtype_id": "implementation.dfs_parent_guard",
+      "family": "implementation_boundary_bridge",
+      "description": "DFS 父节点防回走。",
+      "examples": ["学生不知道树上 DFS 为什么要传 fa。"]
+    },
+    {
+      "subtype_id": "implementation.initialization_base_case",
+      "family": "implementation_boundary_bridge",
+      "description": "初始化/base case。",
+      "examples": ["学生不知道 dp[0] 或递归出口怎么设。"]
+    },
+    {
+      "subtype_id": "implementation.io_format_parsing",
+      "family": "implementation_boundary_bridge",
+      "description": "输入输出格式解析。",
+      "examples": ["学生读入格式理解错导致样例不对。"]
+    },
+    {
+      "subtype_id": "correctness.greedy_exchange_argument",
+      "family": "correctness_invariant_bridge",
+      "description": "贪心交换论证。",
+      "examples": ["学生不知道为什么按结束时间排序是对的。"]
+    },
+    {
+      "subtype_id": "correctness.shortest_path_invariant",
+      "family": "correctness_invariant_bridge",
+      "description": "最短路正确性不变量。",
+      "examples": ["学生不知道 Dijkstra 为什么弹出后就确定了。"]
+    },
+    {
+      "subtype_id": "correctness.monotonic_structure_dominance",
+      "family": "correctness_invariant_bridge",
+      "description": "单调结构支配/弹出正确性。",
+      "examples": ["学生不知道单调队列弹掉的元素为什么不会再有用。"]
+    },
+    {
+      "subtype_id": "complexity.bruteforce_bottleneck",
+      "family": "complexity_optimization_bridge",
+      "description": "暴力瓶颈定位。",
+      "examples": ["学生会暴力但不知道哪一层循环过不了。"]
+    },
+    {
+      "subtype_id": "complexity.replace_inner_loop_with_structure",
+      "family": "complexity_optimization_bridge",
+      "description": "用结构维护替代内层循环。",
+      "examples": ["学生不知道如何把内层查找改成数据结构维护。"]
+    },
+    {
+      "subtype_id": "debug.minimal_failing_case",
+      "family": "debugging_evidence_bridge",
+      "description": "最小错误样例/调试证据。",
+      "examples": ["学生只说 WA，但没有最小失败样例。"]
+    },
+    {
+      "subtype_id": "debug.wa_counterexample_construction",
+      "family": "debugging_evidence_bridge",
+      "description": "WA 反例构造。",
+      "examples": ["学生不知道如何构造能打破当前代码的小样例。"]
+    },
+    {
+      "subtype_id": "debug.tle_bottleneck_localization",
+      "family": "debugging_evidence_bridge",
+      "description": "TLE 瓶颈定位。",
+      "examples": ["学生不知道哪段代码导致超时。"]
+    },
+    {
+      "subtype_id": "reflection.problem_signature",
+      "family": "reflection_transfer_bridge",
+      "description": "题型识别和迁移总结。",
+      "examples": ["学生做完后不知道下次如何识别同类题。"]
+    },
+    {
+      "subtype_id": "policy.direct_answer_request",
+      "family": "unknown_or_not_applicable",
+      "description": "直接要答案/代码的安全策略。",
+      "examples": ["学生直接要求完整代码或题解。"]
+    },
+    {
+      "subtype_id": "policy.critical_bridge_request",
+      "family": "unknown_or_not_applicable",
+      "description": "直接索取关键桥的安全策略。",
+      "examples": ["学生直接问状态定义、转移式或 check 条件。"]
+    },
+    {
+      "subtype_id": "policy.local_completion_request",
+      "family": "unknown_or_not_applicable",
+      "description": "局部补全请求的安全策略。",
+      "examples": ["学生要求直接补一行 if 或边界条件。"]
+    }
+  ]
+}

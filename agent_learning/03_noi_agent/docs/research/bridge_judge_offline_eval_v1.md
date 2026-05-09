@@ -137,6 +137,7 @@ python3 -m evals.aichat.run_bridge_offline_eval \
   --max-retries 1 \
   --tutor-mode current_system \
   --guard-mode predicted \
+  --pipeline-mode tutor_plus_guard_plus_repair \
   --focus-registry docs/research/focus_registry_v1.json \
   --limit 5
 ```
@@ -190,14 +191,38 @@ This is still offline-only. It does not change production `chat()`.
 
 Use `--guard-mode predicted` for the fair default experiment. In this mode Leakage Judge receives only the forbidden content predicted by Bridge Judge. Use `--guard-mode oracle` only as an upper-bound experiment; oracle mode may add `gold_forbidden_completion` from the seed row to the guard input and is not comparable to runtime behavior.
 
+Use `--pipeline-mode` to isolate ablations:
+
+| Mode | Stages run | Primary use |
+| --- | --- | --- |
+| `diagnosis_only` | Bridge Judge only | Bridge diagnosis accuracy. |
+| `tutor_only` | Bridge Judge + tutor | Tutor quality without output guard. |
+| `tutor_plus_guard` | Bridge Judge + tutor + Leakage Judge | Leakage detection without repair. |
+| `tutor_plus_guard_plus_repair` | Bridge Judge + tutor + Leakage Judge + Repair | Full offline safety pipeline. |
+
+The default is `tutor_plus_guard_plus_repair` for backward compatibility with earlier smoke runs. Report `pipeline_mode` in every baseline table, because it changes both response quality and latency.
+
+Use `--judge-schema-mode` to isolate Judge label-load ablations:
+
+| Mode | Meaning | Primary use |
+| --- | --- | --- |
+| `full_schema_judge` | Bridge Judge behaves like the original richer diagnostic judge. | Baseline for observing label overload. |
+| `compact_contract_judge` | Runner records a compact runtime bridge contract from the Bridge Judge result. | Tests whether tutor control can rely on fewer fields. |
+| `retrieval_augmented_compact_judge` | Runner first retrieves top-k algorithm topics and registered focus candidates, passes only those focus candidates to Bridge Judge, and records a compact contract. | Tests whether top-k retrieval reduces focus drift and prompt load. |
+
+`full_schema_judge` remains the default so old smoke commands keep working. New research runs should include at least `compact_contract_judge` and `retrieval_augmented_compact_judge` when studying whether fine labels overload the Judge.
+
 Then summarize the JSONL results into a JSON metrics file and a Markdown report:
 
 ```bash
 python3 -m evals.aichat.summarize_bridge_offline_eval \
   --input-jsonl evals/aichat/bridge_offline_eval_results.jsonl \
   --output-json evals/aichat/bridge_offline_eval_summary.json \
-  --output-md evals/aichat/bridge_offline_eval_summary.md
+  --output-md evals/aichat/bridge_offline_eval_summary.md \
+  --output-md-zh evals/aichat/bridge_offline_eval_summary.zh.md
 ```
+
+All research reports should have both English and Chinese Markdown versions. The summary script writes the English Markdown report to `--output-md` and the Chinese Markdown report to `--output-md-zh`; when `--output-md-zh` is omitted, it defaults to `<output-md stem>.zh.md`.
 
 Each output row keeps the seed gold labels and appends:
 
@@ -205,8 +230,16 @@ Each output row keeps the seed gold labels and appends:
 - `tutor_response`
 - `leakage_judge_result`
 - `repair_result` when the Leakage Judge requests `rewrite` or `block`
+- `candidate_response_text`, the original tutor reply before guard or repair
+- `final_response_text`, the response that should be used for coach response review
+- `final_response_source`, one of `candidate`, `repair`, `blocked`, or `none`
+- `repair_applied` and `blocked`
 - `guard_contract`, including `guard_mode` and the actual forbidden content passed to Leakage Judge
+- `runtime_bridge_contract` when `judge_schema_mode` is compact or retrieval-augmented compact
+- `candidate_retrieval` when `judge_schema_mode=retrieval_augmented_compact_judge`
+- `prompt_budget_estimate`, a lightweight token estimate for comparing prompt load
 - `latency_ms`, including Bridge Judge / tutor / Leakage Judge / repair / total latency
+- `llm_call_count`, the number of attempted LLM stages for the case, including explicit runner retries
 - `stage_errors`, keyed by failed stage, with the provider `_reason` when available
 - `retry_count`, the total retries used across offline judge stages
 - `error` when a stage fails
@@ -219,9 +252,11 @@ The summary report includes:
 - allowed help level and help-seeking type accuracy;
 - leakage rate, critical bridge leakage rate, answer/code leakage rate;
 - rewrite / block / repair rates;
+- invalid label rate, focus out-of-registry rate, self-contradiction rate, and average prompt-token estimate for compact contract runs;
+- average LLM call count;
 - p50 / p95 total latency;
 - stage error counts;
-- groups by `tutor_mode`, `guard_mode`, and `tutor_model_provider`;
+- groups by `tutor_mode`, `guard_mode`, `pipeline_mode`, `judge_schema_mode`, and `tutor_model_provider`;
 - error cases for manual inspection.
 
 This runner is for offline research only. It should be used to build baseline tables and manual review packs before any Bridge Judge or Leakage Judge logic is promoted to shadow or active runtime.

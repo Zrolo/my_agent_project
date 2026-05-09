@@ -8,6 +8,7 @@ const STUDENTS_KIND = 'students';
 const REVIEW_KIND = 'reflection';
 const AICHAT_HISTORY_KIND = 'aichat-history';
 const RESEARCH_ANNOTATION_KIND = 'research-annotation';
+const RESPONSE_REVIEW_KIND = 'response-review';
 const REFLECTION_KIND = 'reflection';
 const CLASS_MANAGEMENT_KIND = 'class-management';
 const ADVANCED_KIND = 'advanced';
@@ -35,6 +36,7 @@ function parseTeacherRoute(pathname = '/app/teacher') {
   }
   if (normalized === '/app/teacher/aichat-history') return { kind: AICHAT_HISTORY_KIND };
   if (normalized === '/app/teacher/research-annotation') return { kind: RESEARCH_ANNOTATION_KIND };
+  if (normalized === '/app/teacher/response-review') return { kind: RESPONSE_REVIEW_KIND };
   if (normalized === '/app/teacher/advanced') return { kind: ADVANCED_KIND };
   return { kind: OVERVIEW_KIND };
 }
@@ -55,6 +57,9 @@ function buildTeacherRoute(route = { kind: OVERVIEW_KIND }) {
   }
   if (kind === RESEARCH_ANNOTATION_KIND || kind === 'research-annotation') {
     return '/app/teacher/research-annotation';
+  }
+  if (kind === RESPONSE_REVIEW_KIND || kind === 'response-review') {
+    return '/app/teacher/response-review';
   }
   if (kind === CLASS_MANAGEMENT_KIND || kind === QUOTA_KIND || kind === 'accounts' || kind === 'announcements' || kind === 'feedback' || kind === 'quota' || kind === 'class-management') {
     return '/app/teacher/class-management';
@@ -80,6 +85,7 @@ const api = {
   REVIEW_KIND,
   AICHAT_HISTORY_KIND,
   RESEARCH_ANNOTATION_KIND,
+  RESPONSE_REVIEW_KIND,
   REFLECTION_KIND,
   CLASS_MANAGEMENT_KIND,
   ADVANCED_KIND,

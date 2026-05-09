@@ -16,6 +16,7 @@ import io
 from datetime import datetime, timedelta, timezone
 from html import unescape
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal, List, Optional, Dict
 from urllib.parse import urlparse
 from uuid import uuid4
@@ -28,6 +29,25 @@ from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+RESPONSE_REVIEW_WORKBOOK_CSV_PATH = Path(BASE_DIR) / "docs/research/coach_response_review_workbook_deepseek_flash_thinking_n10.csv"
+RESPONSE_REVIEW_LABELS_JSONL_PATH = Path(BASE_DIR) / "docs/research/coach_response_review_labels_v1.jsonl"
+DEFAULT_RESPONSE_REVIEW_DATASET_ID = "micro_example_policy_n10"
+RESPONSE_REVIEW_DATASETS = [
+    {
+        "dataset_id": "deepseek_flash_thinking_n10",
+        "label": "DeepSeek Flash Thinking 对照 n10",
+        "description": "上一轮 thinking enabled/disabled 对照盲评批次。",
+        "workbook_csv_path": RESPONSE_REVIEW_WORKBOOK_CSV_PATH,
+        "labels_jsonl_path": RESPONSE_REVIEW_LABELS_JSONL_PATH,
+    },
+    {
+        "dataset_id": "micro_example_policy_n10",
+        "label": "桥梁导向微型例子 n10",
+        "description": "加入 bridge-oriented micro-example 规则后的 DeepSeek Flash thinking disabled 批次。",
+        "workbook_csv_path": Path(BASE_DIR) / "docs/research/coach_response_review_workbook_micro_example_policy_n10.csv",
+        "labels_jsonl_path": Path(BASE_DIR) / "docs/research/coach_response_review_labels_micro_example_policy_n10.jsonl",
+    },
+]
 
 from auth import (
     authenticate_user,
@@ -842,6 +862,17 @@ class BridgeResearchAnnotationRequest(BaseModel):
     needs_new_focus: bool = False
     confidence: int = Field(default=0, ge=0, le=5)
     notes: str = ""
+
+
+class ResponseReviewLabelRequest(BaseModel):
+    dataset_id: str = ""
+    anonymized_response_id: str = Field(..., min_length=1)
+    case_id: str = ""
+    overall_quality: str = Field(..., min_length=1)
+    leakage_label: str = Field(..., min_length=1)
+    preference_rank: str = ""
+    notes: str = ""
+    review_status: str = "labeled"
 
 
 class UnderstandingCheckGenerateRequest(BaseModel):
@@ -4181,6 +4212,118 @@ def _public_bridge_export_row(row: dict) -> dict:
     }
 
 
+RESPONSE_REVIEW_LABEL_COLUMNS = [
+    "dataset_id",
+    "anonymized_response_id",
+    "case_id",
+    "overall_quality",
+    "leakage_label",
+    "preference_rank",
+    "notes",
+    "review_status",
+    "annotator_id",
+    "updated_at",
+]
+
+
+def _legacy_response_review_dataset() -> dict:
+    return {
+        "dataset_id": "default",
+        "label": "默认回复盲评",
+        "description": "默认本地回复盲评 CSV。",
+        "workbook_csv_path": RESPONSE_REVIEW_WORKBOOK_CSV_PATH,
+        "labels_jsonl_path": RESPONSE_REVIEW_LABELS_JSONL_PATH,
+    }
+
+
+def _response_review_dataset_list() -> list[dict]:
+    datasets = list(globals().get("RESPONSE_REVIEW_DATASETS") or [])
+    return datasets or [_legacy_response_review_dataset()]
+
+
+def _resolve_response_review_dataset(dataset_id: str = "") -> dict:
+    datasets = _response_review_dataset_list()
+    requested_id = str(
+        dataset_id
+        or globals().get("DEFAULT_RESPONSE_REVIEW_DATASET_ID")
+        or datasets[0].get("dataset_id")
+        or "default"
+    )
+    for dataset in datasets:
+        if str(dataset.get("dataset_id") or "") == requested_id:
+            return dataset
+    raise HTTPException(status_code=404, detail=f"Unknown response review dataset: {requested_id}")
+
+
+def _response_review_dataset_public(dataset: dict, *, default_dataset_id: str) -> dict:
+    workbook_path = Path(dataset.get("workbook_csv_path") or RESPONSE_REVIEW_WORKBOOK_CSV_PATH)
+    return {
+        "dataset_id": str(dataset.get("dataset_id") or ""),
+        "label": str(dataset.get("label") or dataset.get("dataset_id") or ""),
+        "description": str(dataset.get("description") or ""),
+        "is_default": str(dataset.get("dataset_id") or "") == default_dataset_id,
+        "workbook_exists": workbook_path.exists(),
+    }
+
+
+def _read_response_review_rows(dataset: dict | None = None) -> list[dict]:
+    dataset = dataset or _resolve_response_review_dataset()
+    path = Path(dataset.get("workbook_csv_path") or RESPONSE_REVIEW_WORKBOOK_CSV_PATH)
+    if not path.exists():
+        return []
+    with path.open("r", encoding="utf-8-sig", newline="") as f:
+        return list(csv.DictReader(f))
+
+
+def _read_response_review_labels(dataset: dict | None = None) -> dict[str, dict]:
+    dataset = dataset or _resolve_response_review_dataset()
+    path = Path(dataset.get("labels_jsonl_path") or RESPONSE_REVIEW_LABELS_JSONL_PATH)
+    labels: dict[str, dict] = {}
+    if not path.exists():
+        return labels
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        response_id = str(row.get("anonymized_response_id") or "")
+        if response_id:
+            labels[response_id] = row
+    return labels
+
+
+def _public_response_review_item(row: dict, label: dict | None = None, *, dataset_id: str = "") -> dict:
+    label = label or {}
+    return {
+        "dataset_id": dataset_id,
+        "case_id": row.get("case_id", ""),
+        "anonymized_response_id": row.get("anonymized_response_id", ""),
+        "problem_ref": row.get("problem_ref", ""),
+        "student_message": row.get("student_message", ""),
+        "problem_context": row.get("problem_context", ""),
+        "recent_dialogue": row.get("recent_dialogue", ""),
+        "response_text": row.get("response_text", ""),
+        "overall_quality": label.get("overall_quality", ""),
+        "leakage_label": label.get("leakage_label", row.get("coach_leakage_label", "")),
+        "preference_rank": label.get("preference_rank", row.get("coach_preference_rank", "")),
+        "notes": label.get("notes", row.get("coach_notes", "")),
+        "review_status": label.get("review_status", row.get("review_status", "unlabeled") or "unlabeled"),
+        "updated_at": label.get("updated_at", ""),
+    }
+
+
+def _append_response_review_label(row: dict, dataset: dict | None = None) -> dict:
+    dataset = dataset or _resolve_response_review_dataset(str(row.get("dataset_id") or ""))
+    path = Path(dataset.get("labels_jsonl_path") or RESPONSE_REVIEW_LABELS_JSONL_PATH)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+    return row
+
+
 @app.get("/api/teacher/research/aichat-samples")
 def get_teacher_research_aichat_samples(
     limit: int = 100,
@@ -4190,6 +4333,98 @@ def get_teacher_research_aichat_samples(
     """Teacher lists AIChat student turns that can be annotated as BridgeBench samples."""
     del user
     return {"samples": list_bridge_research_samples(limit=limit, annotated=annotated)}
+
+
+@app.get("/api/teacher/research/response-review-items")
+def get_teacher_research_response_review_items(
+    limit: int = 200,
+    status: str = "all",
+    dataset_id: str = "",
+    user: dict = Depends(require_teacher),
+):
+    """List offline AIChat response-review rows for one-card coach blind review."""
+    del user
+    dataset = _resolve_response_review_dataset(dataset_id)
+    resolved_dataset_id = str(dataset.get("dataset_id") or "")
+    labels = _read_response_review_labels(dataset)
+    items = [
+        _public_response_review_item(
+            row,
+            labels.get(str(row.get("anonymized_response_id") or "")),
+            dataset_id=resolved_dataset_id,
+        )
+        for row in _read_response_review_rows(dataset)
+    ]
+    if status == "labeled":
+        items = [item for item in items if item.get("review_status") == "labeled"]
+    elif status == "unlabeled":
+        items = [item for item in items if item.get("review_status") != "labeled"]
+    return {"items": items[: max(0, limit)], "total": len(items), "dataset_id": resolved_dataset_id}
+
+
+@app.get("/api/teacher/research/response-review-datasets")
+def get_teacher_research_response_review_datasets(user: dict = Depends(require_teacher)):
+    """List available offline response-review batches."""
+    del user
+    datasets = _response_review_dataset_list()
+    default_dataset_id = str(
+        globals().get("DEFAULT_RESPONSE_REVIEW_DATASET_ID")
+        or (datasets[0].get("dataset_id") if datasets else "")
+        or ""
+    )
+    return {
+        "default_dataset_id": default_dataset_id,
+        "datasets": [
+            _response_review_dataset_public(dataset, default_dataset_id=default_dataset_id)
+            for dataset in datasets
+        ],
+    }
+
+
+@app.post("/api/teacher/research/response-review-labels")
+def save_teacher_research_response_review_label(
+    request: ResponseReviewLabelRequest,
+    user: dict = Depends(require_teacher),
+):
+    dataset = _resolve_response_review_dataset(request.dataset_id)
+    dataset_id = str(dataset.get("dataset_id") or "")
+    label = {
+        "dataset_id": dataset_id,
+        "anonymized_response_id": request.anonymized_response_id,
+        "case_id": request.case_id,
+        "overall_quality": request.overall_quality,
+        "leakage_label": request.leakage_label,
+        "preference_rank": request.preference_rank,
+        "notes": request.notes,
+        "review_status": request.review_status or "labeled",
+        "annotator_id": user.get("user_id", ""),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "saved": True,
+    }
+    _append_response_review_label(label, dataset)
+    return {"label": label}
+
+
+@app.get("/api/teacher/research/response-review-labels/export")
+def export_teacher_research_response_review_labels(
+    format: Literal["jsonl", "csv"] = "csv",
+    dataset_id: str = "",
+    user: dict = Depends(require_teacher),
+):
+    """Export one-card coach response review labels."""
+    del user
+    dataset = _resolve_response_review_dataset(dataset_id)
+    rows = list(_read_response_review_labels(dataset).values())
+    if format == "jsonl":
+        text = "\n".join(json.dumps(row, ensure_ascii=False, sort_keys=True) for row in rows)
+        if text:
+            text += "\n"
+        return PlainTextResponse(text, media_type="application/x-ndjson; charset=utf-8")
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=RESPONSE_REVIEW_LABEL_COLUMNS, extrasaction="ignore")
+    writer.writeheader()
+    writer.writerows(rows)
+    return PlainTextResponse(output.getvalue(), media_type="text/csv; charset=utf-8")
 
 
 @app.post("/api/teacher/research/bridge-annotations")

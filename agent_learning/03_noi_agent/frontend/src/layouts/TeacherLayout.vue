@@ -26,6 +26,7 @@ const navItems = [
   { label: '学生', to: '/app/teacher/students', section: 'students' },
   { label: '复盘', to: '/app/teacher/reflection', section: 'reflection' },
   { label: '研究标注', to: '/app/teacher/research-annotation', section: 'research-annotation' },
+  { label: '回复盲评', to: '/app/teacher/response-review', section: 'response-review' },
   { label: '班级管理', to: '/app/teacher/class-management', section: 'class-management' },
 ];
 
@@ -55,11 +56,11 @@ const heroConfig = computed(() => {
           : '学习记录',
     };
   }
-  if (section === 'research-annotation') {
+  if (section === 'research-annotation' || section === 'response-review') {
     return {
       accent: 'from-emerald-600 via-cyan-600 to-sky-600',
       eyebrow: 'BridgeBench',
-      title: '研究标注',
+      title: section === 'response-review' ? '回复盲评' : '研究标注',
     };
   }
   return {

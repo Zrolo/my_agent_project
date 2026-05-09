@@ -5,6 +5,7 @@
     {
       "focus_id": "state_design",
       "bridge_family": "representation_bridge",
+      "bridge_family_v2": "representation_state_bridge",
       "description": "学生知道大概方向，但不能定义 DP 状态、数组格子、维度或状态含义。",
       "aliases": ["状态定义", "状态设计", "维度选择", "dp 含义", "数组含义"],
       "example_student_utterances": ["我知道要 DP，但不知道 dp[i][j] 应该表示什么。"]
@@ -12,6 +13,7 @@
     {
       "focus_id": "transition_design",
       "bridge_family": "transition_bridge",
+      "bridge_family_v2": "transition_recurrence_bridge",
       "description": "学生已有状态或结构雏形，但不知道当前状态从哪些前置情况转移而来，或漏掉来源。",
       "aliases": ["转移设计", "转移方程", "来源关系", "漏情况", "状态转移"],
       "example_student_utterances": ["状态我大概会设，但不知道这一格能从哪里转移过来。"]
@@ -19,6 +21,7 @@
     {
       "focus_id": "check_condition",
       "bridge_family": "predicate_bridge",
+      "bridge_family_v2": "predicate_condition_bridge",
       "description": "二分、判定或循环中的 check/if 条件语义不清，不知道候选答案如何翻译成可行性判断。",
       "aliases": ["check", "判定函数", "可行性判断", "二分判断", "条件怎么写"],
       "example_student_utterances": ["我知道要二分，但 check 里面到底判断什么？"]
@@ -26,6 +29,7 @@
     {
       "focus_id": "enumeration_order",
       "bridge_family": "ordering_bridge",
+      "bridge_family_v2": "ordering_dependency_bridge",
       "description": "学生不理解循环、枚举、更新或 DP 遍历顺序为什么必须这样安排。",
       "aliases": ["枚举顺序", "循环顺序", "更新顺序", "倒序循环", "遍历顺序"],
       "example_student_utterances": ["为什么这里 j 要倒着循环，正着不行吗？"]
@@ -33,6 +37,7 @@
     {
       "focus_id": "greedy_basis",
       "bridge_family": "selection_bridge",
+      "bridge_family_v2": "correctness_invariant_bridge",
       "description": "学生能猜到贪心或局部选择，但不知道为什么这个选择安全，缺少交换、反例或不变式依据。",
       "aliases": ["贪心依据", "局部最优", "交换证明", "为什么选这个", "贪心正确性"],
       "example_student_utterances": ["为什么每次选最小的就一定不会亏？"]
@@ -40,6 +45,7 @@
     {
       "focus_id": "tree_path_difference",
       "bridge_family": "aggregation_bridge",
+      "bridge_family_v2": "aggregation_contribution_bridge",
       "description": "树上多条路径贡献如何转成端点/LCA 差分标记，并通过 DFS 汇总还原经过次数。",
       "aliases": ["树上差分", "路径贡献", "LCA 标记", "端点打标记", "DFS 汇总", "经过次数"],
       "example_student_utterances": ["我知道要 LCA，但不知道每条路径到底在哪里加减标记。"]
@@ -47,6 +53,7 @@
     {
       "focus_id": "general_modeling",
       "bridge_family": "modeling_bridge",
+      "bridge_family_v2": "modeling_bridge",
       "description": "学生读懂局部题意，但不知道把题面对象、关系或操作抽象成可计算结构。",
       "aliases": ["建模", "抽象对象", "对象关系", "结构化", "题意转模型"],
       "example_student_utterances": ["题目我看懂了，但不知道这些东西应该抽象成什么。"]
@@ -54,6 +61,7 @@
     {
       "focus_id": "constraint_modeling",
       "bridge_family": "modeling_bridge",
+      "bridge_family_v2": "modeling_bridge",
       "description": "学生不能把限制条件、范围、依赖或不等式转成算法中的结构关系。",
       "aliases": ["约束建模", "限制条件", "依赖关系", "不等式", "合法性"],
       "example_student_utterances": ["这些限制到底要怎么体现在状态或者边里？"]
@@ -61,6 +69,7 @@
     {
       "focus_id": "boundary_debug",
       "bridge_family": "boundary_bridge",
+      "bridge_family_v2": "implementation_boundary_bridge",
       "description": "边界、特判、初始化、下标或最小规模样例导致 WA/RE，但学生缺少定位方法。",
       "aliases": ["边界", "特判", "初始化", "最小情况", "边界调试"],
       "example_student_utterances": ["大样例好像能过，但小数据和边界总是 WA。"]
@@ -68,6 +77,7 @@
     {
       "focus_id": "method_selection",
       "bridge_family": "selection_bridge",
+      "bridge_family_v2": "method_selection_bridge",
       "description": "学生不知道题面特征如何支持选择某类算法或数据结构，容易只猜算法名。",
       "aliases": ["方法选择", "算法选择", "题型判断", "为什么用这个", "是不是某算法"],
       "example_student_utterances": ["这题是不是二分？我看不出从哪里判断。"]
@@ -75,6 +85,7 @@
     {
       "focus_id": "data_type",
       "bridge_family": "boundary_bridge",
+      "bridge_family_v2": "implementation_boundary_bridge",
       "description": "整数范围、溢出、精度或哨兵值选择不当导致错误。",
       "aliases": ["long long", "溢出", "精度", "1e18", "数据范围"],
       "example_student_utterances": ["我看不出这里为什么 int 会炸。"]
@@ -82,6 +93,7 @@
     {
       "focus_id": "loop_boundary",
       "bridge_family": "boundary_bridge",
+      "bridge_family_v2": "implementation_boundary_bridge",
       "description": "循环起止、0/1 下标、包含端点、数组越界或 off-by-one 边界不清。",
       "aliases": ["下标", "越界", "循环范围", "0-indexed", "1-indexed", "off by one"],
       "example_student_utterances": ["这里到底应该循环到 n 还是 n-1？"]
@@ -89,6 +101,7 @@
     {
       "focus_id": "recursion_structure",
       "bridge_family": "transition_bridge",
+      "bridge_family_v2": "transition_recurrence_bridge",
       "description": "递归、分治、DFS 或搜索中的 base case、拆分关系和返回值含义不清。",
       "aliases": ["递归", "base case", "什么时候停", "分治", "DFS 返回值"],
       "example_student_utterances": ["递归函数每次应该返回什么，什么时候停？"]
@@ -96,6 +109,7 @@
     {
       "focus_id": "complexity_fit",
       "bridge_family": "complexity_bridge",
+      "bridge_family_v2": "complexity_optimization_bridge",
       "description": "学生不知道如何用数据范围判断算法复杂度是否可行，或 TLE 后无法调整思路。",
       "aliases": ["复杂度", "TLE", "n <=", "O(n^2)", "能不能过"],
       "example_student_utterances": ["n 这么大，我这个双重循环到底能不能过？"]
@@ -103,6 +117,7 @@
     {
       "focus_id": "lazy_semantics",
       "bridge_family": "aggregation_bridge",
+      "bridge_family_v2": "representation_state_bridge",
       "description": "线段树懒标记的含义、下传时机、区间影响如何延迟保存与传播不清。",
       "aliases": ["lazy", "懒标记", "pushdown", "区间修改", "标记下传"],
       "example_student_utterances": ["我知道要 lazy，但不明白这个标记到底表示什么。"]
@@ -110,6 +125,7 @@
     {
       "focus_id": "shared_prefix_merging",
       "bridge_family": "aggregation_bridge",
+      "bridge_family_v2": "data_structure_operation_bridge",
       "description": "Trie/前缀结构中公共前缀如何合并存储、如何用节点计数或路径共享减少重复比较。",
       "aliases": ["Trie", "字典树", "公共前缀", "前缀合并", "节点计数"],
       "example_student_utterances": ["我不懂为什么建 trie 后就不用把所有字符串重看一遍。"]
@@ -117,9 +133,290 @@
     {
       "focus_id": "left_bound_update",
       "bridge_family": "boundary_bridge",
+      "bridge_family_v2": "predicate_condition_bridge",
       "description": "二分查找左边界、右边界或答案边界更新方向不清，容易写反或死循环。",
       "aliases": ["左边界", "右边界", "二分边界", "l r 更新", "lower_bound"],
       "example_student_utterances": ["找到相等以后为什么还要往左边收缩？"]
+    },
+    {
+      "focus_id": "prefix_sum_1d",
+      "bridge_family": "aggregation_bridge",
+      "bridge_family_v2": "aggregation_contribution_bridge",
+      "description": "一维多次区间和查询中，如何用前缀和把区间求和转成两个前缀值相减。",
+      "aliases": ["一维前缀和", "区间和", "sum[r]-sum[l-1]", "多次查询"],
+      "example_student_utterances": ["每次问一段区间和，我不知道为什么只看两个前缀就够了。"]
+    },
+    {
+      "focus_id": "prefix_sum_2d",
+      "bridge_family": "aggregation_bridge",
+      "bridge_family_v2": "aggregation_contribution_bridge",
+      "description": "二维子矩形和查询中，如何用四个角的前缀值做容斥还原矩形贡献。",
+      "aliases": ["二维前缀和", "子矩形和", "四角加减", "容斥"],
+      "example_student_utterances": ["二维前缀和为什么要加左上角那一块？"]
+    },
+    {
+      "focus_id": "difference_array_range_update",
+      "bridge_family": "aggregation_bridge",
+      "bridge_family_v2": "aggregation_contribution_bridge",
+      "description": "区间加、批量修改中，如何只改 l 和 r+1 的差分值，最后通过前缀还原。",
+      "aliases": ["差分数组", "区间加", "l 加 r+1 减", "批量修改"],
+      "example_student_utterances": ["为什么区间加只改两个位置，里面的点不用一个个改？"]
+    },
+    {
+      "focus_id": "monotonic_stack_mapping",
+      "bridge_family": "mapping_bridge",
+      "bridge_family_v2": "data_structure_operation_bridge",
+      "description": "下一个更大/更小元素、可见性等问题中，题面比较关系如何映射到单调栈的入栈出栈。",
+      "aliases": ["单调栈", "下一个更大", "入栈出栈", "维护单调性"],
+      "example_student_utterances": ["我不知道什么时候该把栈顶弹掉。"]
+    },
+    {
+      "focus_id": "dfs_parent_guard",
+      "bridge_family": "boundary_bridge",
+      "bridge_family_v2": "implementation_boundary_bridge",
+      "description": "树或无向图 DFS 中，如何传父节点或 visited 来避免沿父边走回去造成死循环。",
+      "aliases": ["DFS 父节点", "fa", "防止走回父亲", "visited"],
+      "example_student_utterances": ["树上 DFS 为什么还要传 fa？"]
+    },
+    {
+      "focus_id": "rolling_array_overwrite_order",
+      "bridge_family": "ordering_bridge",
+      "bridge_family_v2": "ordering_dependency_bridge",
+      "description": "DP 二维压一维时，如何判断循环方向，避免当前轮更新覆盖仍需使用的上一轮状态。",
+      "aliases": ["滚动数组", "一维优化", "倒序循环", "覆盖顺序"],
+      "example_student_utterances": ["二维 DP 压成一维以后，我不知道 j 为什么要倒着循环。"]
+    },
+    {
+      "focus_id": "interval_dp_order",
+      "bridge_family": "ordering_bridge",
+      "bridge_family_v2": "ordering_dependency_bridge",
+      "description": "区间 DP 中，如何按区间长度、左端点、断点顺序计算，保证依赖的小区间已被求出。",
+      "aliases": ["区间 DP", "先长度", "断点枚举", "小区间"],
+      "example_student_utterances": ["区间 DP 为什么外层要先枚举长度？"]
+    },
+    {
+      "focus_id": "relax_semantics",
+      "bridge_family": "predicate_bridge",
+      "bridge_family_v2": "predicate_condition_bridge",
+      "description": "最短路或图 DP 中，relax 条件的语义是什么，以及何时更新 dist/前驱。",
+      "aliases": ["relax", "松弛", "dist 更新", "更短路径"],
+      "example_student_utterances": ["dist[v] > dist[u] + w 这个条件到底在判断什么？"]
+    },
+    {
+      "focus_id": "shortest_path_method_choice",
+      "bridge_family": "selection_bridge",
+      "bridge_family_v2": "method_selection_bridge",
+      "description": "根据边权、图结构和目标判断应使用 BFS、Dijkstra、Bellman-Ford、SPFA 或 DAG DP。",
+      "aliases": ["最短路方法选择", "Dijkstra", "BFS", "负权", "边权"],
+      "example_student_utterances": ["这题为什么不能直接 DFS 贪最小边？"]
+    },
+    {
+      "focus_id": "dag_topological_dp_order",
+      "bridge_family": "ordering_bridge",
+      "bridge_family_v2": "ordering_dependency_bridge",
+      "description": "DAG 上 DP 或最短路中，为什么要按拓扑序处理以满足前驱依赖。",
+      "aliases": ["DAG DP", "拓扑序", "入度", "前驱依赖"],
+      "example_student_utterances": ["有向无环图上为什么要先拓扑排序再 DP？"]
+    },
+    {
+      "focus_id": "tree_dp_child_merge",
+      "bridge_family": "transition_bridge",
+      "bridge_family_v2": "transition_recurrence_bridge",
+      "description": "树形 DP 中，父节点状态如何从多个子节点贡献合并而来，以及合并顺序和含义。",
+      "aliases": ["树形 DP", "子节点合并", "父子转移", "子树贡献"],
+      "example_student_utterances": ["我不知道一个节点的 dp 要怎么把儿子的结果合起来。"]
+    },
+    {
+      "focus_id": "bfs_augmented_state",
+      "bridge_family": "representation_bridge",
+      "bridge_family_v2": "representation_state_bridge",
+      "description": "BFS 中除了坐标/节点外，还需要把钥匙、状态压缩、剩余资源等信息放入队列状态。",
+      "aliases": ["BFS 扩展状态", "带钥匙 BFS", "状态压缩 BFS", "队列状态"],
+      "example_student_utterances": ["BFS 队列里除了 x,y 还要放钥匙状态吗？"]
+    },
+    {
+      "focus_id": "sweepline_event_modeling",
+      "bridge_family": "modeling_bridge",
+      "bridge_family_v2": "modeling_bridge",
+      "description": "扫描线问题中，如何把区间端点、矩形边、进入/离开动作转成可排序事件。",
+      "aliases": ["扫描线", "事件建模", "端点事件", "进入离开"],
+      "example_student_utterances": ["区间覆盖这类题，为什么要把左右端点拆成事件？"]
+    },
+    {
+      "focus_id": "modular_multiplication_overflow",
+      "bridge_family": "boundary_bridge",
+      "bridge_family_v2": "implementation_boundary_bridge",
+      "description": "取模运算中，中间乘法结果可能先溢出，再取模已经来不及，需要扩大类型或使用安全乘法。",
+      "aliases": ["取模乘法", "中间溢出", "long long", "__int128"],
+      "example_student_utterances": ["我明明每次都取模了，为什么乘法还是会爆？"]
+    },
+    {
+      "focus_id": "kmp_prefix_function_semantics",
+      "bridge_family": "representation_bridge",
+      "bridge_family_v2": "representation_state_bridge",
+      "description": "KMP next/prefix function 表示最长相等真前后缀长度，以及失配时如何利用这个语义回退。",
+      "aliases": ["KMP", "next 数组", "prefix function", "前后缀"],
+      "example_student_utterances": ["next 数组里的数字到底代表什么？"]
+    },
+    {
+      "focus_id": "combinatorial_recurrence",
+      "bridge_family": "transition_bridge",
+      "bridge_family_v2": "transition_recurrence_bridge",
+      "description": "组合计数中，当前值如何由选/不选、上一行相邻位置或拆分情况递推而来。",
+      "aliases": ["组合递推", "C(n,k)", "计数 DP", "杨辉三角"],
+      "example_student_utterances": ["C(n,k) 为什么能从上面两个格子加出来？"]
+    },
+    {
+      "focus_id": "segment_tree_pushup",
+      "bridge_family": "aggregation_bridge",
+      "bridge_family_v2": "aggregation_contribution_bridge",
+      "description": "线段树单点修改或区间操作后，父节点信息如何由左右儿子 pushup 维护。",
+      "aliases": ["线段树 pushup", "父节点维护", "左右儿子合并", "sum 更新"],
+      "example_student_utterances": ["修改叶子以后为什么还要一路更新父节点？"]
+    },
+    {
+      "focus_id": "dijkstra_stale_entry",
+      "bridge_family": "predicate_bridge",
+      "bridge_family_v2": "predicate_condition_bridge",
+      "description": "Dijkstra 使用优先队列时，同一节点可能有旧距离入队，弹出后需要判断是否已经过期。",
+      "aliases": ["Dijkstra 旧距离", "过期队列项", "priority_queue", "dist 不一致"],
+      "example_student_utterances": ["优先队列里同一个点会出现多次，那旧的要不要跳过？"]
+    },
+    {
+      "focus_id": "local_condition_completion",
+      "bridge_family": "boundary_bridge",
+      "bridge_family_v2": "predicate_condition_bridge",
+      "description": "学生只差局部 if、边界或条件补全，但直接补完会泄露当前关键桥。",
+      "aliases": ["局部 if", "条件补全", "边界条件", "补一行"],
+      "example_student_utterances": ["你帮我把这个 if 条件补一下就行。"]
+    },
+    {
+      "focus_id": "direct_answer_request_policy",
+      "bridge_family": "unknown_bridge",
+      "bridge_family_v2": "unknown_or_not_applicable",
+      "description": "学生直接要求完整答案、完整代码或直接确认关键题型时，应进入安全策略而不是强行诊断 bridge。",
+      "aliases": ["直接要答案", "完整代码", "完整题解", "直接告诉我"],
+      "example_student_utterances": ["我赶时间，你直接给我这题完整代码吧。"]
+    },
+    {
+      "focus_id": "constraint_to_graph_edge",
+      "bridge_family": "modeling_bridge",
+      "bridge_family_v2": "modeling_bridge",
+      "description": "把约束、不等式、先后关系或可达条件转成图中的边、边权或方向。",
+      "aliases": ["约束转边", "不等式建边", "差分约束", "图边建模"],
+      "example_student_utterances": ["这个限制为什么要连成这条边？"]
+    },
+    {
+      "focus_id": "graph_vertices_edges_modeling",
+      "bridge_family": "modeling_bridge",
+      "bridge_family_v2": "modeling_bridge",
+      "description": "图论建模中判断题面里的对象、状态、关系分别对应点、边或边权。",
+      "aliases": ["点边建模", "图建模", "什么当点", "什么当边"],
+      "example_student_utterances": ["题目里的学校和道路到底什么当点什么当边？"]
+    },
+    {
+      "focus_id": "binary_search_answer_monotonicity",
+      "bridge_family": "selection_bridge",
+      "bridge_family_v2": "method_selection_bridge",
+      "description": "判断答案是否具有可二分的单调性，以及候选答案和可行性之间的方向关系。",
+      "aliases": ["二分答案", "单调性", "可行性方向", "答案单调"],
+      "example_student_utterances": ["我不知道为什么这个答案能二分。"]
+    },
+    {
+      "focus_id": "binary_search_bound_direction",
+      "bridge_family": "predicate_bridge",
+      "bridge_family_v2": "predicate_condition_bridge",
+      "description": "二分查找中根据 check 结果更新左右边界的方向和闭区间/开区间含义。",
+      "aliases": ["二分边界方向", "l r 更新", "收左还是收右", "二分死循环"],
+      "example_student_utterances": ["check 成立以后到底应该移动 l 还是 r？"]
+    },
+    {
+      "focus_id": "greedy_exchange_argument",
+      "bridge_family": "selection_bridge",
+      "bridge_family_v2": "correctness_invariant_bridge",
+      "description": "用交换论证、反例排除或不变量说明某个贪心选择为什么安全。",
+      "aliases": ["贪心交换", "交换证明", "贪心正确性", "为什么贪心"],
+      "example_student_utterances": ["为什么按结束时间排序就一定是对的？"]
+    },
+    {
+      "focus_id": "bruteforce_bottleneck_analysis",
+      "bridge_family": "complexity_bridge",
+      "bridge_family_v2": "complexity_optimization_bridge",
+      "description": "定位暴力算法的主要复杂度瓶颈，并判断需要优化哪一层循环或查询。",
+      "aliases": ["暴力瓶颈", "复杂度瓶颈", "哪层循环 TLE", "优化入口"],
+      "example_student_utterances": ["我会暴力，但不知道到底是哪一层过不了。"]
+    },
+    {
+      "focus_id": "wa_counterexample_construction",
+      "bridge_family": "boundary_bridge",
+      "bridge_family_v2": "debugging_evidence_bridge",
+      "description": "针对 WA 构造最小反例、手算期望输出，并用反例定位错误逻辑。",
+      "aliases": ["WA 反例", "最小反例", "构造样例", "调试证据"],
+      "example_student_utterances": ["我不知道怎么构造一个能看出错的样例。"]
+    },
+    {
+      "focus_id": "tle_bottleneck_analysis",
+      "bridge_family": "complexity_bridge",
+      "bridge_family_v2": "debugging_evidence_bridge",
+      "description": "TLE 后结合数据范围和代码结构定位耗时瓶颈，而不是盲目换算法。",
+      "aliases": ["TLE 定位", "耗时瓶颈", "性能调试", "复杂度定位"],
+      "example_student_utterances": ["我的代码 TLE 了，但不知道慢在哪里。"]
+    },
+    {
+      "focus_id": "initialization_base_case",
+      "bridge_family": "boundary_bridge",
+      "bridge_family_v2": "implementation_boundary_bridge",
+      "description": "DP、递归、图搜索或计数中的初始值、边界状态和 base case 设计。",
+      "aliases": ["初始化", "base case", "初始状态", "递归出口", "dp[0]"],
+      "example_student_utterances": ["这个 dp 一开始应该怎么初始化？"]
+    },
+    {
+      "focus_id": "io_format_parsing",
+      "bridge_family": "boundary_bridge",
+      "bridge_family_v2": "implementation_boundary_bridge",
+      "description": "输入输出格式、编号方式、多组数据和换行空格等解析细节。",
+      "aliases": ["输入格式", "输出格式", "多组数据", "读入", "编号"],
+      "example_student_utterances": ["我样例读出来不对，是不是输入格式理解错了？"]
+    },
+    {
+      "focus_id": "critical_bridge_request_policy",
+      "bridge_family": "unknown_bridge",
+      "bridge_family_v2": "unknown_or_not_applicable",
+      "description": "学生直接索取当前关键桥梁时的安全策略，例如状态定义、转移、check、完整公式。",
+      "aliases": ["索取关键桥", "状态怎么设", "转移怎么写", "check 怎么写"],
+      "example_student_utterances": ["你直接告诉我状态怎么设就行。"]
+    },
+    {
+      "focus_id": "local_completion_policy",
+      "bridge_family": "unknown_bridge",
+      "bridge_family_v2": "unknown_or_not_applicable",
+      "description": "学生要求直接补全局部 if、边界条件、循环条件或一行代码时的安全策略。",
+      "aliases": ["局部补全", "补一行", "补 if", "补边界"],
+      "example_student_utterances": ["你帮我把这个 if 条件补上可以吗？"]
+    },
+    {
+      "focus_id": "union_find_operation_mapping",
+      "bridge_family": "mapping_bridge",
+      "bridge_family_v2": "data_structure_operation_bridge",
+      "description": "并查集中，题面里的合并集合、连通查询或代表元维护如何映射到 find、union/unite 和 parent 更新。",
+      "aliases": ["并查集操作映射", "合并集合", "union", "unite", "find", "代表元", "连通查询"],
+      "example_student_utterances": ["题目说合并两个集合，我知道可能是并查集，但不知道这个操作在代码里对应哪一步。"]
+    },
+    {
+      "focus_id": "heap_push_pop_mapping",
+      "bridge_family": "mapping_bridge",
+      "bridge_family_v2": "data_structure_operation_bridge",
+      "description": "把反复取最小/最大、合并、放回候选集合等题面动作映射到堆或优先队列的 push、pop、top 操作。",
+      "aliases": ["堆操作映射", "优先队列", "push", "pop", "top", "哈夫曼合并", "取最小"],
+      "example_student_utterances": ["每次取当前最小的两个合并，我知道要用堆，但不明白题目动作怎么落到 push 和 pop。"]
+    },
+    {
+      "focus_id": "topological_zero_indegree_reason",
+      "bridge_family": "ordering_bridge",
+      "bridge_family_v2": "ordering_dependency_bridge",
+      "description": "拓扑排序中，入度为 0 表示当前没有未处理前置依赖，因此可以作为下一步处理对象，并在处理后释放后继。",
+      "aliases": ["拓扑排序", "入度为0", "零入度", "前置依赖", "拓扑起点", "释放后继"],
+      "example_student_utterances": ["有些任务必须先做，我不知道为什么要按入度为 0 的点开始处理。"]
     }
   ]
 }

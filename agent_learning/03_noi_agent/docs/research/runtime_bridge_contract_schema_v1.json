@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "runtime_bridge_contract_schema_v1",
+  "title": "Runtime Bridge Contract Schema v1",
+  "description": "Compact runtime schema for Bridge Judge routing and tutor control. This is intentionally smaller than the human coach annotation schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "turn_type",
+    "diagnosis_uncertainty",
+    "algorithm_topic_l1",
+    "algorithm_topic_l2",
+    "primary_bridge_family",
+    "selected_focus_id",
+    "selected_focus_confidence",
+    "max_scaffold_level",
+    "help_forms",
+    "forbidden_content",
+    "leakage_risk",
+    "confidence"
+  ],
+  "properties": {
+    "turn_type": {
+      "type": "string",
+      "enum": [
+        "diagnosable_learning_turn",
+        "insufficient_context",
+        "complete_solution_request",
+        "complete_code_request",
+        "critical_bridge_request",
+        "algorithm_confirmation_request",
+        "local_completion_request",
+        "code_debugging_without_evidence",
+        "code_debugging_with_evidence",
+        "step_validation_request",
+        "reflection_or_transfer_turn",
+        "emotional_or_time_pressure",
+        "unknown"
+      ]
+    },
+    "diagnosis_uncertainty": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "unknown"]
+    },
+    "algorithm_topic_l1": {
+      "type": "string",
+      "enum": [
+        "dp",
+        "binary_search",
+        "graph",
+        "tree",
+        "data_structure",
+        "string",
+        "greedy",
+        "search",
+        "math",
+        "implementation",
+        "debugging",
+        "unknown"
+      ]
+    },
+    "algorithm_topic_l2": {
+      "type": "string",
+      "minLength": 1
+    },
+    "primary_bridge_family": {
+      "type": "string",
+      "enum": [
+        "goal_constraint_bridge",
+        "modeling_bridge",
+        "method_selection_bridge",
+        "representation_state_bridge",
+        "transition_recurrence_bridge",
+        "predicate_condition_bridge",
+        "ordering_dependency_bridge",
+        "aggregation_contribution_bridge",
+        "data_structure_operation_bridge",
+        "correctness_invariant_bridge",
+        "complexity_optimization_bridge",
+        "implementation_boundary_bridge",
+        "debugging_evidence_bridge",
+        "reflection_transfer_bridge",
+        "unknown_or_not_applicable",
+        "unknown_bridge"
+      ]
+    },
+    "selected_focus_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "selected_focus_confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "max_scaffold_level": {
+      "type": "string",
+      "enum": ["L0", "L1", "L2", "L3"]
+    },
+    "help_forms": {
+      "type": "array",
+      "maxItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "forbidden_content": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "leakage_risk": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "unknown"]
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    }
+  }
+}

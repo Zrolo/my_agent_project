@@ -184,3 +184,8 @@ Key metrics:
 - LLM calls per turn;
 - false-positive rewrite rate;
 - next-turn progress.
+
+For the broader slow/mid/fast-timescale control boundary, see
+[control_harness_policy_v1.md](control_harness_policy_v1.md). In particular,
+online repair may rewrite the current `final_response`, but it must not rewrite
+system prompts, rubrics, registries, or routing policy during a student chat.

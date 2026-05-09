@@ -1,0 +1,21 @@
+﻿anonymized_response_id,case_id,tutor_mode,guard_mode,pipeline_mode,tutor_model_provider,chat_thinking_mode,final_response_source,repair_applied,blocked,total_score,bridge_identification,groundedness,scaffold_appropriateness,bridge_leakage_control,next_step_clarity,single_focus_coherence,leakage_label,preference_rank_within_case,ai_prelim_note
+resp_b5232d2974,cp_bridge_009,bridge_contract,predicted,tutor_only,deepseek_flash,enabled,candidate,false,false,12,2,2,2,2,2,2,no_leakage,1,AI 预评：用活动表让学生填结果，保留交换论证给学生发现，贴合正确性桥。
+resp_38df41d77e,cp_bridge_005,bridge_contract,predicted,tutor_only,deepseek_flash,disabled,candidate,false,false,12,2,2,2,2,2,2,no_leakage,1,"AI 预评：用 [1,2] 子节点是否已加 5 的选择题让学生判断，贴合 lazy 语义且较安全。"
+resp_4c5d99d895,cp_bridge_006,bridge_contract,predicted,tutor_only,deepseek_flash,disabled,candidate,false,false,9,2,2,1,0,2,2,major_bridge_leakage,1,AI 预评：也直接解释共享前缀和路径终点子树，仍是 major leakage；但例子更紧凑、学生下一步更明确。
+resp_463237f46b,cp_bridge_001,bridge_contract,predicted,tutor_only,deepseek_flash,disabled,candidate,false,false,10,1,2,1,2,2,2,no_leakage,1,AI 预评：用 1-2-3 小路径让学生直觉标记，安全且有下一步，但还没有引出向上汇总或 LCA 修正。
+resp_91bf24694b,cp_bridge_003,bridge_contract,predicted,tutor_only,deepseek_flash,enabled,candidate,false,false,9,2,2,1,0,2,2,major_bridge_leakage,2,AI 预评：直接列出“前 i 个物品容量 j 最大价值”等状态定义候选，给出了核心状态语义。
+resp_ef49079e9f,cp_bridge_003,bridge_contract,predicted,tutor_only,deepseek_flash,disabled,candidate,false,false,11,2,2,2,1,2,2,minor_bridge_leakage,1,AI 预评：用单株药草问 dp[3] 存什么，提示较强但仍要求学生构造格子含义。
+resp_a88ac90dd6,cp_bridge_008,bridge_contract,predicted,tutor_only,deepseek_flash,enabled,candidate,false,false,9,2,2,1,0,2,2,major_bridge_leakage,1,AI 预评：完整说明 a[mid]==x 时 r=mid 的原因，补完左边界桥；表达清楚但泄露重。
+resp_bfdf459179,cp_bridge_010,bridge_contract,predicted,tutor_only,deepseek_flash,enabled,candidate,false,false,2,0,0,0,2,0,0,no_leakage,1,AI 预评：没有利用已有题目上下文，只要求题号或卡住行；安全但基本无教学价值。与 disabled 同等差。
+resp_d720b44444,cp_bridge_002,bridge_contract,predicted,tutor_only,deepseek_flash,disabled,candidate,false,false,12,2,2,2,2,2,2,no_leakage,1,AI 预评：用 mid=5 让学生自己判断是否可行，没有直接给 true/false 映射，脚手架清楚。
+resp_eeca0c2b70,cp_bridge_002,bridge_contract,predicted,tutor_only,deepseek_flash,enabled,candidate,false,false,9,2,2,1,0,2,2,major_bridge_leakage,2,AI 预评：直接给出 check(4)=false、check(3)=true，并说明可行性方向，基本补完当前 check 语义桥。
+resp_9a2cedfadf,cp_bridge_010,bridge_contract,predicted,tutor_only,deepseek_flash,disabled,candidate,false,false,2,0,0,0,2,0,0,no_leakage,1,AI 预评：同样没有处理倒序枚举桥，只要求题号或卡住行；安全但基本无教学价值。与 enabled 同等差。
+resp_e1611a93c1,cp_bridge_001,bridge_contract,predicted,tutor_only,deepseek_flash,enabled,candidate,false,false,5,0,1,0,2,1,1,no_leakage,2,AI 预评：回复偏到“不要用 ASCII 画图/用表格表达”，没有真正处理端点/LCA 标记缺口。安全但不贴题。
+resp_8a8637a4dd,cp_bridge_005,bridge_contract,predicted,tutor_only,deepseek_flash,enabled,candidate,false,false,9,2,2,1,0,2,2,major_bridge_leakage,2,AI 预评：直接解释 lazy 是父节点已更新、子节点未同步并说出准确语义，完成了当前语义桥。
+resp_1927aa24d6,cp_bridge_009,bridge_contract,predicted,tutor_only,deepseek_flash,disabled,candidate,false,false,9,2,2,1,0,2,2,major_bridge_leakage,2,AI 预评：直接给出交换论证骨架“最优解没选 x 就换 y”，完成了正确性桥。
+resp_582abf7e54,cp_bridge_007,bridge_contract,predicted,tutor_only,deepseek_flash,enabled,candidate,false,false,12,2,2,2,2,2,2,no_leakage,2,AI 预评：没有直接确认 trie，要求学生找前缀证据；合格 L1，但问题稍泛。
+resp_9134f60f4a,cp_bridge_006,bridge_contract,predicted,tutor_only,deepseek_flash,enabled,candidate,false,false,9,2,2,1,0,2,2,major_bridge_leakage,2,AI 预评：完整解释 Trie 共享前缀、O(L) 查询和节点计数，基本直接回答了证明桥。
+resp_ed3ce95732,cp_bridge_004,bridge_contract,predicted,tutor_only,deepseek_flash,enabled,candidate,false,false,11,2,2,2,1,2,2,minor_bridge_leakage,2,AI 预评：直接指出当前药草只有采/不采两种情况，贴合转移桥但给了较强结构。
+resp_b1e9a80de2,cp_bridge_008,bridge_contract,predicted,tutor_only,deepseek_flash,disabled,candidate,false,false,8,2,2,1,0,1,2,major_bridge_leakage,2,AI 预评：同样直接说出 r=mid 和原因，泄露重；下一步偏“你明白了吗”，比 enabled 弱。
+resp_64ae0f15ab,cp_bridge_007,bridge_contract,predicted,tutor_only,deepseek_flash,disabled,candidate,false,false,12,2,2,2,2,2,2,no_leakage,1,AI 预评：同样不直接确认算法名，并明确要求找“前缀/互为前缀”的题面证据；稍更聚焦。
+resp_48644ce619,cp_bridge_004,bridge_contract,predicted,tutor_only,deepseek_flash,disabled,candidate,false,false,12,2,2,2,2,2,2,no_leakage,1,AI 预评：用“之前背包里有没有这株药”让学生分辨来源状态，更少直接补转移。

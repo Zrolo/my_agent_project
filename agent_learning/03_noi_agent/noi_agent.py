@@ -1952,7 +1952,7 @@ _JUDGE_ACTION_SUBTYPES_BY_CATEGORY = {
         "refuse_injection",
     },
 }
-_JUDGE_HELP_LEVELS = {"L1", "L2", "L3"}
+_JUDGE_HELP_LEVELS = {"L0", "L1", "L2", "L3"}
 _JUDGE_INJECTION_SOURCES = {"none", "problem", "student_message", "code"}
 _BRIDGE_PROBLEM_STATES = {
     "text_comprehension_blocked",
@@ -1963,6 +1963,17 @@ _BRIDGE_PROBLEM_STATES = {
     "implementation_execution_gap",
     "debugging_verification_gap",
     "reflection_transfer_gap",
+    "insufficient_evidence",
+    "goal_comprehension_gap",
+    "modeling_representation_gap",
+    "method_selection_gap",
+    "method_application_gap",
+    "misconception_or_wrong_strategy",
+    "correctness_reasoning_gap",
+    "complexity_optimization_gap",
+    "implementation_translation_gap",
+    "debugging_evidence_gap",
+    "debugging_localization_gap",
 }
 _BRIDGE_FAMILIES = {
     "representation_bridge",
@@ -1976,8 +1987,40 @@ _BRIDGE_FAMILIES = {
     "boundary_bridge",
     "complexity_bridge",
     "unknown_bridge",
+    "goal_constraint_bridge",
+    "method_selection_bridge",
+    "representation_state_bridge",
+    "transition_recurrence_bridge",
+    "predicate_condition_bridge",
+    "ordering_dependency_bridge",
+    "aggregation_contribution_bridge",
+    "data_structure_operation_bridge",
+    "correctness_invariant_bridge",
+    "complexity_optimization_bridge",
+    "implementation_boundary_bridge",
+    "debugging_evidence_bridge",
+    "reflection_transfer_bridge",
+    "unknown_or_not_applicable",
 }
-_BRIDGE_HELP_SEEKING_TYPES = {"instrumental_help", "executive_help", "help_avoidance", "unclear"}
+_BRIDGE_HELP_SEEKING_TYPES = {
+    "instrumental_help",
+    "executive_help",
+    "help_avoidance",
+    "unclear",
+    "vague_confusion",
+    "concept_explanation",
+    "strategy_hint_request",
+    "type_confirmation",
+    "step_validation",
+    "proof_why_request",
+    "complexity_check",
+    "implementation_help",
+    "debugging_request",
+    "local_code_completion_request",
+    "complete_answer_request",
+    "emotional_time_pressure",
+    "reflection_transfer_request",
+}
 _BRIDGE_HELP_FORMS = {
     "question",
     "hint",
@@ -1990,8 +2033,22 @@ _BRIDGE_HELP_FORMS = {
     "summary",
     "mixed",
     "unknown",
+    "guiding_question",
+    "constraint_probe",
+    "debug_evidence_request",
+    "local_code_hint",
+    "partial_trace",
+    "visual_table",
+    "ascii_diagram",
+    "pseudocode_skeleton",
+    "summary_and_next_step",
+    "understanding_check",
+    "reflection_prompt",
 }
 _BRIDGE_LEAKAGE_RISKS = {"low", "medium", "high", "unknown"}
+_BRIDGE_PROBLEM_STATE_ALIASES = {
+    "representation_state_gap": "modeling_representation_gap",
+}
 _LEAKAGE_TYPES = {
     "critical_bridge",
     "answer",
@@ -2042,6 +2099,9 @@ def _validate_bridge_judge_v1_schema(payload: dict) -> dict:
     if missing:
         raise ValueError(f"missing required fields: {', '.join(missing)}")
 
+    if payload["problem_solving_state"] in _BRIDGE_PROBLEM_STATE_ALIASES:
+        payload = dict(payload)
+        payload["problem_solving_state"] = _BRIDGE_PROBLEM_STATE_ALIASES[payload["problem_solving_state"]]
     if payload["problem_solving_state"] not in _BRIDGE_PROBLEM_STATES:
         raise ValueError(f"problem_solving_state has invalid enum: {payload['problem_solving_state']}")
     if payload["help_seeking_type"] not in _BRIDGE_HELP_SEEKING_TYPES:
@@ -3551,11 +3611,11 @@ def build_system_prompt(dual_control: dict, remaining: int, student_id: str, pro
 
 ## 画图协议
 - 先判定学生没想明白的类型，再决定是否画图；按学生的可视化缺口画，不按算法名画。
-- 对齐型：学生在比较“题目要求/条件 vs 实际结果”、两个约束是否冲突、为什么符合/不符合时，必须先画 Markdown 小表格。
-- 禁止使用 ASCII 字符画树、图、trie、流程或框图；不要使用 ```diagram-ascii，不要用 ┌ └ ─ │ 等字符拼图，这在页面里容易漂移。
-- 变化型：学生说不出一步操作前后变化、范围/边界移动、指针怎么动时，必须先画 Markdown 小表格前后对比。
+- 对齐型：学生在比较“题目要求/条件 vs 实际结果”、两个约束是否冲突、为什么符合/不符合时，可以用小表格辅助。
+- 不使用文本字符拼接的大图、树、trie、流程或框图；如果需要稳定可视化，用 Mermaid、小表格或缩进列表。学生可见回复只呈现关系本身，不解释格式策略。
+- 变化型：学生说不出一步操作前后变化、范围/边界移动、指针怎么动时，可以用小表格前后对比。
 - 结构型：学生看不出路径影响、依赖关系、状态/表格来源时，优先用 Mermaid 小图；若关系很简单，用 Markdown 表格或缩进列表表达。
-- 命中以上任一类型时，下一步必须先画 3-6 个对象的小图或小表，再继续提问；不画就继续纯文字提问，会让学生在迷雾里继续猜。
+- 命中以上任一类型且一句话讲不清时，再画 3-6 个对象的小图或小表；如果学生问的是概念/为什么，先给一句贴题解释，再决定是否用小例子。
 - 不画的情形：题型确认、泛泛说“没思路/不懂”、要答案、一句话能讲清、学生明确说先别画图或直接讲。
 - 图后必须接一句：“这张图要看见的是：……”；这句比图本身更重要；不画整题大图。
 
@@ -3807,17 +3867,10 @@ def enforce_output_guards(reply: str, level_control: dict, risk_control: dict, m
     返回: (处理后的回复, 是否被替换的标记)
     """
     text = reply or ""
+    if _contains_visual_policy_template_leakage(text):
+        return _build_stable_visual_fallback(messages), "visual_policy_template_leakage"
     if _contains_unstable_ascii_diagram(text):
-        return (
-            "这一步不要用 ASCII 字符画树或图，页面里很容易对不齐。\n\n"
-            "更稳的表达方式是用 Markdown 表格，把图里想表达的关系拆成几行：\n\n"
-            "| 对象或位置 | 它和谁有关 | 这一格要验证什么 |\n"
-            "| --- | --- | --- |\n"
-            "| 例：当前节点/状态/位置 | 它的父节点、来源状态或相邻对象 | 贡献、转移、边界或计数是否对应上 |\n"
-            "| 你来补一行 | 写出它关联的对象 | 写出你想确认的关系 |\n\n"
-            "先不用重画整张图。你把最关键的两行填出来，我再帮你检查关系有没有对齐。\n\n[LEVEL:L2]",
-            "unstable_ascii_diagram",
-        )
+        return _build_stable_visual_fallback(messages), "unstable_ascii_diagram"
     if _contains_fill_blank_answer_code(text):
         return (
             "这里不能把大半份答案代码挖空给你填，这样很容易变成抄框架。\n\n"
@@ -3825,10 +3878,55 @@ def enforce_output_guards(reply: str, level_control: dict, risk_control: dict, m
             "1. 先写出你要维护的两个量：当前累计值、当前答案数量。\n"
             "2. 每次看下一个对象前，先判断“加上它会不会超过限制”。\n"
             "3. 如果不会超过，就更新累计值和答案数量；如果会超过，就停下。\n\n"
-            "你先用自己的话写出第 2 步那个判断条件，不用写完整代码。\n\n[LEVEL:L2]",
+            "你先用自己的话写出第 2 步那个判断条件，不用写完整代码。",
             "fill_blank_answer_code",
         )
     return reply, None
+
+
+def _contains_visual_policy_template_leakage(text: str) -> bool:
+    raw = text or ""
+    leak_phrases = (
+        "不要用 ASCII",
+        "Markdown 表格",
+        "页面里很容易对不齐",
+        "对象或位置 | 它和谁有关",
+        "当前节点/状态/位置",
+        "图里想表达的关系",
+    )
+    return sum(1 for phrase in leak_phrases if phrase in raw) >= 2
+
+
+def _build_stable_visual_fallback(messages: list | None) -> str:
+    context = _combined_message_text(messages)
+    latest = _latest_student_text(messages)
+    combined = f"{latest}\n{context}".lower()
+
+    if any(keyword in combined for keyword in ("trie", "字典树", "前缀", "消息串", "拦截串")):
+        return (
+            "这一步先抓住 trie 里最小的一件事：相同前缀会走到同一段路径上，所以查询时不是把每条消息重新拿出来比较。\n\n"
+            "你先看两个消息串 `010` 和 `011`：它们前两位会不会经过同一个前缀节点？这个节点大概代表了哪一批消息？"
+        )
+
+    if any(keyword in combined for keyword in ("lca", "路径", "树上", "端点", "经过次数")):
+        return (
+            "这一步先只看一条路径，不急着写完整标记规则。\n\n"
+            "如果一条路径从 `u` 走到 `v`，并且你已经知道它们的 LCA，真正要想的是：这条路径的贡献最后要靠 DFS 汇总回来。"
+            "你先说说，路径贡献最自然会从哪两个端点进入这棵树？"
+        )
+
+    if any(keyword in combined for keyword in ("lazy", "懒标记", "线段树", "pushdown")):
+        return (
+            "这一步先只看一个很小的区间，不急着展开整棵线段树。\n\n"
+            "如果某个节点完整覆盖了 `[1, 2]`，我们已经把这个区间整体加过一次，但还没访问它的两个孩子。"
+            "你觉得这个节点上留下的标记，是在记录“孩子已经都改完了”，还是“孩子以后需要补上的变化”？"
+        )
+
+    return (
+        "这一步先不用展开大图，只抓一个局部关系。\n\n"
+        "你把当前最关键的对象写出来：它和哪一个对象直接相连、这一步要验证什么关系。"
+        "先写一行就够，我再帮你检查这行关系是否贴题。"
+    )
 
 
 def _contains_fill_blank_answer_code(text: str) -> bool:

@@ -317,6 +317,29 @@ export function exportTeacherBridgeAnnotations(token, format = 'jsonl') {
   return requestText(`/api/teacher/research/bridge-annotations/export?${query.toString()}`, { token });
 }
 
+export function getTeacherResponseReviewItems(token, params = {}) {
+  const query = new URLSearchParams();
+  if (params.limit) query.set('limit', String(params.limit));
+  if (params.status) query.set('status', params.status);
+  if (params.dataset_id) query.set('dataset_id', params.dataset_id);
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return request(`/api/teacher/research/response-review-items${suffix}`, { token });
+}
+
+export function getTeacherResponseReviewDatasets(token) {
+  return request('/api/teacher/research/response-review-datasets', { token });
+}
+
+export function saveTeacherResponseReviewLabel(token, payload) {
+  return request('/api/teacher/research/response-review-labels', { method: 'POST', token, body: payload });
+}
+
+export function exportTeacherResponseReviewLabels(token, format = 'csv', params = {}) {
+  const query = new URLSearchParams({ format });
+  if (params.dataset_id) query.set('dataset_id', params.dataset_id);
+  return requestText(`/api/teacher/research/response-review-labels/export?${query.toString()}`, { token });
+}
+
 export function createTeacherStudent(token, payload) {
   return request('/api/teacher/students', { method: 'POST', token, body: payload });
 }

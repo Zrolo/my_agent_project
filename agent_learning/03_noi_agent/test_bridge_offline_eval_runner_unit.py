@@ -133,7 +133,164 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
         self.assertEqual("representation_bridge", result["bridge_judge_result"]["missing_bridge"]["family"])
         self.assertEqual("rewrite", result["leakage_judge_result"]["safe_action"])
         self.assertIn("repaired_response", result["repair_result"])
+        self.assertEqual("状态设 dp[j] 表示时间 j 内的最大价值。\n\n[LEVEL:L2]", result["candidate_response_text"])
+        self.assertEqual("先别把状态写死。你想一想：时间变化后，至少要保留哪一个量？\n\n[LEVEL:L2]", result["final_response_text"])
+        self.assertEqual("repair", result["final_response_source"])
+        self.assertTrue(result["repair_applied"])
+        self.assertFalse(result["blocked"])
+        self.assertEqual(4, result["llm_call_count"])
         self.assertIn("CASE_DONE index=1 total=1 case_id=case_1", progress.getvalue())
+
+    def test_diagnosis_only_pipeline_skips_tutor_leakage_and_repair(self):
+        rows = [{"id": "case_diag", "student_message": "我不会。"}]
+        calls = []
+
+        def fake_bridge_judge(**kwargs):
+            calls.append("bridge")
+            return {
+                "problem_solving_state": "strategy_generation_blocked",
+                "missing_bridge": {
+                    "family": "unknown_bridge",
+                    "subtype": "unknown",
+                    "description": "信息不足。",
+                    "evidence": ["学生说不会"],
+                    "known_focus": "unknown",
+                    "needs_new_focus": True,
+                },
+                "help_seeking_type": "unclear",
+                "allowed_help_level": "L1",
+                "help_form": "question",
+                "forbidden_content": ["不要给完整题解。"],
+                "leakage_risk": "unknown",
+                "confidence": 0.6,
+                "reason": "unit test",
+            }
+
+        def fake_tutor(row, messages, bridge_result):
+            calls.append("tutor")
+            return {"response_text": "不应调用"}
+
+        def fake_leakage(**kwargs):
+            calls.append("leakage")
+            return {"leakage_level": 0, "safe_action": "pass"}
+
+        result_rows = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+            rows,
+            bridge_judge_fn=fake_bridge_judge,
+            tutor_fn=fake_tutor,
+            leakage_judge_fn=fake_leakage,
+            pipeline_mode="diagnosis_only",
+        )
+
+        self.assertEqual(["bridge"], calls)
+        result = result_rows[0]
+        self.assertNotIn("tutor_response", result)
+        self.assertNotIn("leakage_judge_result", result)
+        self.assertEqual("", result["candidate_response_text"])
+        self.assertEqual("", result["final_response_text"])
+        self.assertEqual("none", result["final_response_source"])
+        self.assertEqual(1, result["llm_call_count"])
+
+    def test_tutor_only_pipeline_skips_leakage_and_uses_candidate_as_final(self):
+        rows = [{"id": "case_tutor", "student_message": "我不会。"}]
+        calls = []
+
+        def fake_bridge_judge(**kwargs):
+            calls.append("bridge")
+            return {
+                "problem_solving_state": "strategy_generation_blocked",
+                "missing_bridge": {
+                    "family": "unknown_bridge",
+                    "subtype": "unknown",
+                    "description": "信息不足。",
+                    "evidence": ["学生说不会"],
+                    "known_focus": "unknown",
+                    "needs_new_focus": True,
+                },
+                "help_seeking_type": "unclear",
+                "allowed_help_level": "L1",
+                "help_form": "question",
+                "forbidden_content": ["不要给完整题解。"],
+                "leakage_risk": "unknown",
+                "confidence": 0.6,
+                "reason": "unit test",
+            }
+
+        def fake_tutor(row, messages, bridge_result):
+            calls.append("tutor")
+            return {"response_text": "你先贴题面。", "level": "L1"}
+
+        def fake_leakage(**kwargs):
+            calls.append("leakage")
+            return {"leakage_level": 0, "safe_action": "pass"}
+
+        result_rows = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+            rows,
+            bridge_judge_fn=fake_bridge_judge,
+            tutor_fn=fake_tutor,
+            leakage_judge_fn=fake_leakage,
+            pipeline_mode="tutor_only",
+        )
+
+        self.assertEqual(["bridge", "tutor"], calls)
+        result = result_rows[0]
+        self.assertNotIn("leakage_judge_result", result)
+        self.assertEqual("你先贴题面。", result["candidate_response_text"])
+        self.assertEqual("你先贴题面。", result["final_response_text"])
+        self.assertEqual("candidate", result["final_response_source"])
+
+    def test_tutor_plus_guard_pipeline_does_not_repair_rewrite_action(self):
+        rows = [{"id": "case_guard_only", "student_message": "状态怎么设？"}]
+        calls = []
+
+        def fake_bridge_judge(**kwargs):
+            calls.append("bridge")
+            return {
+                "problem_solving_state": "problem_representation_unclear",
+                "missing_bridge": {
+                    "family": "representation_bridge",
+                    "subtype": "state_design",
+                    "description": "状态含义缺失。",
+                    "evidence": ["学生问状态"],
+                    "known_focus": "state_design",
+                    "needs_new_focus": False,
+                },
+                "help_seeking_type": "instrumental_help",
+                "allowed_help_level": "L2",
+                "help_form": "question",
+                "forbidden_content": ["不要直接给完整状态定义。"],
+                "leakage_risk": "high",
+                "confidence": 0.9,
+                "reason": "unit test",
+            }
+
+        def fake_tutor(row, messages, bridge_result):
+            calls.append("tutor")
+            return {"response_text": "状态设 dp[j]。", "level": "L2"}
+
+        def fake_leakage(**kwargs):
+            calls.append("leakage")
+            return {"leakage_level": 3, "safe_action": "rewrite"}
+
+        def fake_repair(**kwargs):
+            calls.append("repair")
+            return {"repaired_response": "不应调用"}
+
+        result_rows = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+            rows,
+            bridge_judge_fn=fake_bridge_judge,
+            tutor_fn=fake_tutor,
+            leakage_judge_fn=fake_leakage,
+            repair_fn=fake_repair,
+            pipeline_mode="tutor_plus_guard",
+        )
+
+        self.assertEqual(["bridge", "tutor", "leakage"], calls)
+        result = result_rows[0]
+        self.assertNotIn("repair_result", result)
+        self.assertEqual("状态设 dp[j]。", result["final_response_text"])
+        self.assertEqual("candidate", result["final_response_source"])
+        self.assertFalse(result["repair_applied"])
 
     def test_default_tutor_uses_requested_chat_model_provider_and_records_models(self):
         rows = [
@@ -211,6 +368,7 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
             {
                 "focus_id": "tree_path_difference",
                 "bridge_family": "aggregation_bridge",
+                "bridge_family_v2": "aggregation_contribution_bridge",
                 "description": "树上路径贡献转成端点/LCA 差分标记并 DFS 汇总。",
                 "aliases": ["树上差分", "LCA 标记"],
             }
@@ -253,7 +411,88 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
         )
 
         self.assertEqual("tree_path_difference", captured_focus[0]["focus_id"])
+        self.assertEqual("aggregation_contribution_bridge", captured_focus[0]["bridge_family"])
+        self.assertEqual("aggregation_bridge", captured_focus[0]["legacy_bridge_family"])
         self.assertEqual(1, result_rows[0]["focus_registry_size"])
+
+    def test_retrieval_augmented_compact_judge_records_candidates_and_contract(self):
+        rows = [
+            {
+                "id": "case_compact",
+                "problem_ref": "P0001",
+                "student_message": "我知道要二分答案，但是 check(mid) 到底返回 true 还是 false 我总写反。",
+                "problem_context": "最大化最小距离，判断 mid 是否可行。",
+            }
+        ]
+        focus_registry = [
+            {
+                "focus_id": "check_condition",
+                "bridge_family": "predicate_condition_bridge",
+                "description": "二分、判定或循环中的 check/if 条件语义不清。",
+                "aliases": ["check", "判定函数", "可行性判断"],
+            },
+            {
+                "focus_id": "tree_path_difference",
+                "bridge_family": "aggregation_contribution_bridge",
+                "description": "树上路径贡献转成端点/LCA 差分标记。",
+                "aliases": ["树上差分", "LCA 标记"],
+            },
+        ]
+        captured_kwargs = {}
+
+        def fake_bridge_judge(**kwargs):
+            captured_kwargs.update(kwargs)
+            return {
+                "problem_solving_state": "method_application_gap",
+                "missing_bridge": {
+                    "family": "predicate_condition_bridge",
+                    "subtype": "predicate.check_truth_direction",
+                    "description": "学生无法判断 check(mid) 的真假语义。",
+                    "evidence": ["学生问 check(mid) 返回 true 还是 false"],
+                    "known_focus": "check_condition",
+                    "needs_new_focus": False,
+                },
+                "help_seeking_type": "strategy_hint_request",
+                "allowed_help_level": "L2",
+                "help_form": "micro_example",
+                "forbidden_content": [
+                    "不要直接给完整 check 条件。",
+                    "不要直接给完整边界更新方向。",
+                    "不要给完整代码。",
+                    "这条不应进入 compact contract。",
+                ],
+                "leakage_risk": "high",
+                "confidence": 0.86,
+                "reason": "unit test",
+            }
+
+        def fake_tutor(row, messages, bridge_result):
+            return {"response_text": "先用一个 mid 手算一下可行性。", "level": "L2"}
+
+        def fake_leakage(**kwargs):
+            return {"leakage_level": 0, "safe_action": "pass"}
+
+        result_rows = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+            rows,
+            bridge_judge_fn=fake_bridge_judge,
+            tutor_fn=fake_tutor,
+            leakage_judge_fn=fake_leakage,
+            focus_registry=focus_registry,
+            judge_schema_mode="retrieval_augmented_compact_judge",
+        )
+
+        result = result_rows[0]
+        self.assertEqual("retrieval_augmented_compact_judge", result["judge_schema_mode"])
+        self.assertIn("top_k_algorithm_topics", captured_kwargs)
+        self.assertEqual("binary_search", captured_kwargs["top_k_algorithm_topics"][0]["topic_l1"])
+        self.assertEqual("check_condition", captured_kwargs["top_k_registered_focus"][0]["focus_id"])
+        self.assertEqual("check_condition", result["candidate_retrieval"]["focus_candidate_ids"][0])
+        contract = result["runtime_bridge_contract"]
+        self.assertEqual("predicate_condition_bridge", contract["primary_bridge_family"])
+        self.assertEqual("check_condition", contract["selected_focus_id"])
+        self.assertLessEqual(len(contract["help_forms"]), 2)
+        self.assertEqual(3, len(contract["forbidden_content"]))
+        self.assertIn("prompt_budget_estimate", result)
 
     def test_predicted_guard_does_not_pass_gold_forbidden_completion_to_leakage_judge(self):
         rows = [
@@ -438,6 +677,9 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
         self.assertIn("Bridge Contract", joined)
         self.assertIn("predicate_bridge", joined)
         self.assertIn("不要直接给完整 check 条件", joined)
+        self.assertIn("桥梁导向微型例子", joined)
+        self.assertIn("先说明这个例子要观察的桥梁问题", joined)
+        self.assertIn("抽象成一句可迁移规则", joined)
         self.assertEqual("bridge_contract", result_rows[0]["tutor_mode"])
         self.assertEqual("bridge_contract", result_rows[0]["tutor_response"]["tutor_mode"])
 
@@ -682,6 +924,10 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
                         "bridge_contract",
                         "--guard-mode",
                         "oracle",
+                        "--pipeline-mode",
+                        "tutor_plus_guard",
+                        "--judge-schema-mode",
+                        "compact_contract_judge",
                         "--judge-provider",
                         "kimi",
                         "--max-retries",
@@ -695,6 +941,8 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
             self.assertEqual("deepseek", captured_kwargs["chat_model_provider"])
             self.assertEqual("bridge_contract", captured_kwargs["tutor_mode"])
             self.assertEqual("oracle", captured_kwargs["guard_mode"])
+            self.assertEqual("tutor_plus_guard", captured_kwargs["pipeline_mode"])
+            self.assertEqual("compact_contract_judge", captured_kwargs["judge_schema_mode"])
             self.assertEqual("kimi", captured_kwargs["judge_provider"])
             self.assertEqual(2, captured_kwargs["max_retries"])
             self.assertEqual("disabled", captured_kwargs["chat_thinking_mode"])

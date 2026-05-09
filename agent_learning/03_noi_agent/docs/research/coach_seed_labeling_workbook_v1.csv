@@ -1,21 +1,51 @@
-﻿case_id,problem_ref,topic,student_message,problem_context,recent_dialogue,student_code_excerpt,coach_problem_solving_state,coach_bridge_family,coach_known_focus,coach_missing_bridge_description,coach_help_seeking_type,coach_allowed_help_level,coach_forbidden_content,coach_needs_new_focus,coach_confidence,coach_notes,review_status
-cp_bridge_001,P3128,tree_path_difference,我知道要 LCA，但不知道每条路径到底在哪里加减标记。,树上多条路径统计每个点经过次数。,,,,,,,,,,,,,unlabeled
-cp_bridge_002,P2678,check_condition,我知道要二分答案，但是 check(mid) 到底返回 true 还是 false 我总写反。,最大化最小跳跃距离，check(mid) 判断能否让所有跳跃距离至少为 mid。,,,,,,,,,,,,,unlabeled
-cp_bridge_003,P1048,state_design,我不知道 dp 数组每一格到底应该表示什么，只知道像背包。,给定每株药草的时间和价值，在总时间限制内最大化价值。,,,,,,,,,,,,,unlabeled
-cp_bridge_004,P1048,transition_design,我知道 dp[j] 可能和时间有关，但我不知道当前这株药到底从哪些情况转过来。,0/1 背包，每株药草只能采一次。,,,,,,,,,,,,,unlabeled
-cp_bridge_005,P3372,lazy_semantics,线段树区间加我会写一点，但 lazy 到底表示还没做什么，我说不清。,区间加和区间求和，需要线段树懒标记。,,,,,,,,,,,,,unlabeled
-cp_bridge_006,P2922,shared_prefix_merging,为什么用 trie 查询时不用把所有消息重新看一遍？,很多 01 消息串和拦截串，查询与前缀关系有关。,,,,,,,,,,,,,unlabeled
-cp_bridge_007,P2922,method_selection,这题是不是 trie？我感觉很多 01 串像 trie，但不确定。,输入多条 01 消息串，并反复处理前缀包含关系。,,,,,,,,,,,,,unlabeled
-cp_bridge_008,P2249,left_bound_update,二分里 a[mid] == x 的时候我为什么还要 r = mid，不是已经找到了吗？,在有序数组中找某个数第一次出现的位置。,,,,,,,,,,,,,unlabeled
-cp_bridge_009,generic,greedy_basis,我知道要先选结束早的活动，但为什么这样不会影响后面的选择？,活动选择类问题，目标是在不冲突条件下选尽量多的活动。,,,,,,,,,,,,,unlabeled
-cp_bridge_010,generic,enumeration_order,01 背包为什么容量要倒着枚举？正着枚举不是也能更新吗？,每个物品只能选一次。,,,,,,,,,,,,,unlabeled
-cp_bridge_011,generic,constraint_modeling,这些限制都是大小关系，我不知道怎么把它们变成图里的边。,多个变量之间有不等式约束，需要判断是否能同时满足。,,,,,,,,,,,,,unlabeled
-cp_bridge_012,generic,general_modeling,题目里一堆学校和道路，我不知道什么当点什么当边。,图建模问题，需要从题面对象和关系中抽象结构。,,,,,,,,,,,,,unlabeled
-cp_bridge_013,generic,recursion_structure,递归函数我不知道每一层到底表示什么，也不知道什么时候停。,递归或分治题，需要定义函数含义和 base case。,,,,,,,,,,,,,unlabeled
-cp_bridge_014,generic,complexity_fit,我写了两层循环，但 n 到 1e5，会不会过我判断不出来。,需要根据数据范围估算复杂度是否可行。,,,,,,,,,,,,,unlabeled
-cp_bridge_015,generic,data_type,样例能过，但大数据总是错，我怀疑是不是 int 不够。,数据范围可能导致整数溢出。,,,,,,,,,,,,,unlabeled
-cp_bridge_016,generic,loop_boundary,我这里循环到底该从 0 开始还是 1 开始，总是少算一个。,数组下标和循环边界相关错误。,,,,,,,,,,,,,unlabeled
-cp_bridge_017,generic,mapping_bridge,题目说合并两个集合，我知道可能是并查集，但不知道这个操作在代码里对应哪一步。,动态维护若干集合的合并与查询。,,,,,,,,,,,,,unlabeled
-cp_bridge_018,generic,heap_mapping,每次取当前最小的两个合并，我知道要用堆，但不明白题目动作怎么落到 push 和 pop。,反复取最小元素并合并，类似哈夫曼合并过程。,,,,,,,,,,,,,unlabeled
-cp_bridge_019,generic,prefix_sum_aggregation,很多次问区间和，我不知道为什么可以先处理一个数组之后 O(1) 查。,静态数组，多次查询区间和。,,,,,,,,,,,,,unlabeled
-cp_bridge_020,generic,topological_ordering,有些任务必须先做，我不知道为什么要按入度为 0 的点开始处理。,有先后依赖关系，需要判断或生成合法顺序。,,,,,,,,,,,,,unlabeled
+﻿case_id,problem_ref,student_message,problem_context,recent_dialogue,student_code_excerpt,coach_problem_solving_state,coach_bridge_family,coach_secondary_bridge_family,coach_bridge_subtype,coach_known_focus,coach_bridge_evidence,coach_missing_bridge_description,coach_help_seeking_type,coach_allowed_help_level,coach_help_forms,coach_forbidden_content,coach_needs_new_focus,coach_confidence,coach_notes,review_status
+cp_bridge_001,P3128,我知道要 LCA，但不知道每条路径到底在哪里加减标记。,树上多条路径统计每个点经过次数。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_002,P2678,我知道要二分答案，但是 check(mid) 到底返回 true 还是 false 我总写反。,最大化最小跳跃距离，check(mid) 判断能否让所有跳跃距离至少为 mid。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_003,P1048,我不知道 dp 数组每一格到底应该表示什么，只知道像背包。,给定每株药草的时间和价值，在总时间限制内最大化价值。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_004,P1048,我知道 dp[j] 可能和时间有关，但我不知道当前这株药到底从哪些情况转过来。,0/1 背包，每株药草只能采一次。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_005,P3372,线段树区间加我会写一点，但 lazy 到底表示还没做什么，我说不清。,区间加和区间求和，需要线段树懒标记。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_006,P2922,为什么用 trie 查询时不用把所有消息重新看一遍？,很多 01 消息串和拦截串，查询与前缀关系有关。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_007,P2922,这题是不是 trie？我感觉很多 01 串像 trie，但不确定。,输入多条 01 消息串，并反复处理前缀包含关系。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_008,P2249,二分里 a[mid] == x 的时候我为什么还要 r = mid，不是已经找到了吗？,在有序数组中找某个数第一次出现的位置。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_009,generic,我知道要先选结束早的活动，但为什么这样不会影响后面的选择？,活动选择类问题，目标是在不冲突条件下选尽量多的活动。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_010,generic,01 背包为什么容量要倒着枚举？正着枚举不是也能更新吗？,每个物品只能选一次。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_011,generic,这些限制都是大小关系，我不知道怎么把它们变成图里的边。,多个变量之间有不等式约束，需要判断是否能同时满足。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_012,generic,题目里一堆学校和道路，我不知道什么当点什么当边。,图建模问题，需要从题面对象和关系中抽象结构。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_013,generic,递归函数我不知道每一层到底表示什么，也不知道什么时候停。,递归或分治题，需要定义函数含义和 base case。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_014,generic,我写了两层循环，但 n 到 1e5，会不会过我判断不出来。,需要根据数据范围估算复杂度是否可行。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_015,generic,样例能过，但大数据总是错，我怀疑是不是 int 不够。,数据范围可能导致整数溢出。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_016,generic,我这里循环到底该从 0 开始还是 1 开始，总是少算一个。,数组下标和循环边界相关错误。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_017,generic,题目说合并两个集合，我知道可能是并查集，但不知道这个操作在代码里对应哪一步。,动态维护若干集合的合并与查询。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_018,generic,每次取当前最小的两个合并，我知道要用堆，但不明白题目动作怎么落到 push 和 pop。,反复取最小元素并合并，类似哈夫曼合并过程。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_019,generic,很多次问区间和，我不知道为什么可以先处理一个数组之后 O(1) 查。,静态数组，多次查询区间和。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_020,generic,有些任务必须先做，我不知道为什么要按入度为 0 的点开始处理。,有先后依赖关系，需要判断或生成合法顺序。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_021,generic,题目说连续子段的最大值最小，我连这句话是在让我求什么都没看懂。,把数组分成若干连续段，要求某个段内代价的最大值尽量小。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_022,generic,题面说每条边只能走一次又说可以回到起点，我不知道它到底限制了什么。,图上路径或欧拉回路类题面，学生卡在限制条件含义。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_023,generic,这题是不是单调队列优化 DP？你直接告诉我方向就行。,DP 转移中可能存在窗口最值优化，但学生没有给出状态或转移尝试。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_024,generic,我只会暴力枚举所有方案，但数据范围太大，我不知道还能往哪个方向想。,需要从暴力状态或枚举对象中发现可压缩结构。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_025,generic,我觉得每次选持续时间最短的活动也能选最多个，因为短的占用少。这个贪心对吗？,活动选择问题，正确贪心常和结束时间有关。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_026,generic,我觉得答案越大越容易满足，所以二分 check 里 true 的那边应该往右，但样例好像不对。,二分答案题，候选值和可行性方向容易写反。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_027,generic,我知道可能要维护一个栈，但题目里的下一个更大元素到底怎么对应到入栈出栈我做不出来。,单调栈处理最近更大或更小关系。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_028,generic,我写 DFS 的时候总把父节点又递归回去了，代码会死循环，我知道要传 fa 但不知道放在哪里。,树上 DFS 需要避免从儿子走回父亲。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_029,generic,我贴了代码，样例 1 少输出最后一个数，for 循环是 i<n 还是 i<=n 我一直改不对。,数组下标和输入规模存在 0/1 起点混用。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_030,generic,我代码能过小样例，但是大数据 TLE，核心是双重循环枚举 i 和 j，我不知道怎么判断瓶颈。,n 达到 2e5，双重循环不可行，需要定位复杂度瓶颈。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_031,generic,这道背包我照着做出来了，但下次遇到类似题我还是不知道怎么判断是不是背包。,学生已完成当前题，但缺少迁移总结。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_032,generic,我能背出按结束时间排序，但我讲不出为什么这个贪心是对的。,活动选择或区间调度题，学生已有算法但缺正确性解释。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_033,generic,二维 dp 我会写了，但老师说可以压成一维，我不知道压掉哪一维才不会覆盖错。,背包或序列 DP 中使用滚动数组降低空间。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_034,generic,区间 DP 的转移我大概懂，但为什么要先枚举长度，再枚举左端点？,区间 DP 需要先算小区间，再合并成大区间。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_035,generic,最短路里的 relax 我总觉得像玄学，dist[v] > dist[u] + w 这个动作在题目里是什么意思？,图上边权最短路径，学生卡在代码条件和路径含义映射。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_036,generic,边权都是非负数，为什么不能 DFS 找最短路？我感觉一直往小的边走就行。,非负边权图的单源最短路。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_037,generic,DAG 上 DP 我知道要按拓扑序，但为什么不能随便 DFS 到哪算哪？,有向无环图上的路径计数或最长路 DP。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_038,generic,树形 DP 里每个孩子的答案怎么合到父亲，我总是漏掉一类情况。,树上选择或覆盖问题，需要从子树贡献合并到父节点状态。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_039,generic,二维矩阵求子矩形和，我知道一维前缀和，但四个角为什么要加加减减我想不通。,静态二维矩阵，多次查询子矩形和。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_040,generic,很多次区间加，我不明白为什么只在 l 和 r+1 改两个位置就够了。,静态或离线区间加，最后恢复每个位置的值。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_041,generic,状压 DP 里的 mask 到底表示已经选了哪些东西，还是还剩哪些东西？我老混。,集合选择顺序或旅行类状态压缩 DP。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_042,generic,迷宫里还带钥匙状态，我不知道 BFS 的队列里除了坐标还要放什么。,网格搜索中状态不仅由位置决定，还由已获得钥匙集合决定。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_043,generic,扫描线我知道从左到右扫，但区间开始和结束怎么变成事件我不会建。,区间覆盖或重叠统计问题，需要把区间端点转成事件。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_044,generic,答案要取模，我中间乘法已经用了 long long，为什么还是可能错？,大数乘法或组合计数中需要持续取模，乘法可能超过类型上限。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_045,generic,KMP 的 next 数组我背不下来，关键是我不知道它记录的前后缀关系到底是什么。,字符串匹配中需要利用已匹配前缀避免回退主串。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_046,generic,"组合计数里我知道要递推，但 C(n,k) 为什么可以从上面两个格子加起来？",组合数递推或杨辉三角。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_047,P3372,我 update 完左右儿子以后，父节点的 sum 应该怎么维护？我代码里只改了孩子。,线段树区间修改后需要维护父节点聚合值。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_048,generic,Dijkstra 用优先队列时我会把一个点塞进去很多次，后来弹出来旧距离要不要管我不确定。,堆优化最短路中可能存在过期队列项。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_049,generic,我赶时间，你直接给我这题的完整代码吧，我回头自己看。,学生没有给出当前尝试，只请求完整答案。,,,,,,,,,,,,,,,,,unlabeled
+cp_bridge_050,generic,我已经写出 dp 数组和循环了，只差 if 里面这个边界条件，你帮我把这一行补上可以吗？,学生已有局部代码，但卡在边界条件和条件判断。,,,,,,,,,,,,,,,,,unlabeled

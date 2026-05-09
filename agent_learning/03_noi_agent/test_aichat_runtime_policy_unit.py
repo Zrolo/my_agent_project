@@ -1605,8 +1605,11 @@ class AIChatRuntimePolicyTests(unittest.TestCase):
         self.assertEqual("unstable_ascii_diagram", guard)
         self.assertNotIn("diagram-ascii", reply)
         self.assertNotIn("┌", reply)
-        self.assertIn("不要用 ASCII 字符画树", reply)
-        self.assertIn("Markdown 表格", reply)
+        self.assertNotIn("不要用 ASCII", reply)
+        self.assertNotIn("Markdown 表格", reply)
+        self.assertNotIn("[LEVEL:", reply)
+        self.assertIn("trie", reply.lower())
+        self.assertIn("前缀", reply)
 
     def test_ascii_diagram_guard_should_not_inject_trie_content_for_tree_path_context(self):
         reply, guard = enforce_output_guards(
@@ -1626,10 +1629,46 @@ class AIChatRuntimePolicyTests(unittest.TestCase):
         )
 
         self.assertEqual("unstable_ascii_diagram", guard)
-        self.assertIn("不要用 ASCII 字符画树", reply)
+        self.assertNotIn("不要用 ASCII", reply)
+        self.assertNotIn("Markdown 表格", reply)
+        self.assertNotIn("[LEVEL:", reply)
         self.assertNotIn("trie", reply.lower())
         self.assertNotIn("cnt", reply)
         self.assertNotIn("f -> u -> s", reply)
+        self.assertIn("LCA", reply)
+        self.assertIn("路径", reply)
+
+    def test_visual_policy_template_leakage_should_be_replaced_by_topic_grounded_reply(self):
+        reply, guard = enforce_output_guards(
+            "\n".join(
+                [
+                    "这一步不要用 ASCII 字符画树或图，页面里很容易对不齐。",
+                    "",
+                    "更稳的表达方式是用 Markdown 表格，把图里想表达的关系拆成几行：",
+                    "",
+                    "| 对象或位置 | 它和谁有关 | 这一格要验证什么 |",
+                    "| --- | --- | --- |",
+                    "| 例：当前节点/状态/位置 | 它的父节点、来源状态或相邻对象 | 贡献、转移、边界或计数是否对应上 |",
+                    "| 你来补一行 | 写出它关联的对象 | 写出你想确认的关系 |",
+                    "",
+                    "先不用重画整张图。你把最关键的两行填出来，我再帮你检查关系有没有对齐。",
+                ]
+            ),
+            {"bridge_redline": False},
+            {"risk_tags": []},
+            messages=self._messages(
+                "[学生原始问题]\n为什么用 trie 查询时不用把所有消息重新看一遍？\n\n"
+                "[当前题目上下文]\n很多 01 消息串和拦截串，查询与前缀关系有关。"
+            ),
+        )
+
+        self.assertEqual("visual_policy_template_leakage", guard)
+        self.assertNotIn("不要用 ASCII", reply)
+        self.assertNotIn("Markdown 表格", reply)
+        self.assertNotIn("对象或位置", reply)
+        self.assertNotIn("[LEVEL:", reply)
+        self.assertIn("trie", reply.lower())
+        self.assertIn("前缀", reply)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,73 @@
+{
+  "case_count": 20,
+  "completed_count": 19,
+  "error_count": 1,
+  "student_state_accuracy": 0.684,
+  "bridge_family_accuracy": 0.895,
+  "known_focus_accuracy": 0.684,
+  "known_focus_accuracy_on_registered": 0.684,
+  "unknown_focus_recall": null,
+  "help_seeking_type_accuracy": 0.474,
+  "allowed_help_level_accuracy": 0.895,
+  "leakage_rate": null,
+  "critical_bridge_leakage_rate": null,
+  "answer_or_code_leakage_rate": null,
+  "rewrite_rate": null,
+  "block_rate": null,
+  "repair_rate": 0.0,
+  "invalid_label_rate": 0.0,
+  "focus_out_of_registry_rate": 0.0,
+  "self_contradiction_rate": 0.0,
+  "average_prompt_tokens": 515.526,
+  "avg_bridge_judge_confidence": 0.894,
+  "latency_ms": {
+    "total_p50": 4092.779,
+    "total_p95": 6171.739
+  },
+  "stage_error_counts": {
+    "bridge_judge": 1
+  },
+  "groups": {
+    "tutor_mode=current_system|guard_mode=predicted|pipeline_mode=diagnosis_only|judge_schema_mode=retrieval_augmented_compact_judge|tutor_model_provider=default|chat_thinking_mode=profile_default": {
+      "case_count": 20,
+      "completed_count": 19,
+      "error_count": 1,
+      "student_state_accuracy": 0.684,
+      "bridge_family_accuracy": 0.895,
+      "known_focus_accuracy": 0.684,
+      "known_focus_accuracy_on_registered": 0.684,
+      "unknown_focus_recall": null,
+      "help_seeking_type_accuracy": 0.474,
+      "allowed_help_level_accuracy": 0.895,
+      "leakage_rate": null,
+      "critical_bridge_leakage_rate": null,
+      "answer_or_code_leakage_rate": null,
+      "rewrite_rate": null,
+      "block_rate": null,
+      "repair_rate": 0.0,
+      "invalid_label_rate": 0.0,
+      "focus_out_of_registry_rate": 0.0,
+      "self_contradiction_rate": 0.0,
+      "average_prompt_tokens": 515.526,
+      "avg_bridge_judge_confidence": 0.894,
+      "latency_ms": {
+        "total_p50": 4092.779,
+        "total_p95": 6171.739
+      },
+      "stage_error_counts": {
+        "bridge_judge": 1
+      },
+      "groups": {},
+      "safe_action_counts": {},
+      "leakage_level_counts": {},
+      "error_cases": [
+        "cp_bridge_003"
+      ]
+    }
+  },
+  "safe_action_counts": {},
+  "leakage_level_counts": {},
+  "error_cases": [
+    "cp_bridge_003"
+  ]
+}
