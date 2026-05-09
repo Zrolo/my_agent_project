@@ -3,7 +3,7 @@ from collections import defaultdict
 from pathlib import Path
 
 
-ROOT = Path("/Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/evals/review")
+ROOT = Path(__file__).resolve().parent
 SOURCE = ROOT / "promptfoo_tests.jsonl"
 TARGET = ROOT / "promptfoo_tests.sample.jsonl"
 PER_MODE = 1

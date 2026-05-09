@@ -1,0 +1,18 @@
+{
+  "teacher": {
+    "id": "teacher",
+    "role": "teacher",
+    "password_hash": "replace-with-local-password-hash",
+    "salt": "replace-with-local-salt"
+  },
+  "student_demo": {
+    "id": "student_demo",
+    "role": "student",
+    "display_name": "Demo Student",
+    "active": true,
+    "created_at": "2026-01-01T00:00:00",
+    "updated_at": "2026-01-01T00:00:00",
+    "password_hash": "replace-with-local-password-hash",
+    "salt": "replace-with-local-salt"
+  }
+}

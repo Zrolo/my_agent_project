@@ -4,7 +4,7 @@ from collections import defaultdict
 from pathlib import Path
 
 
-PROJECT_ROOT = Path("/Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DB_PATH = PROJECT_ROOT / "noi_agent.db"
 CASES_PATH = PROJECT_ROOT / "evals" / "review" / "cases.jsonl"
 PROMPTFOO_TESTS_PATH = PROJECT_ROOT / "evals" / "review" / "promptfoo_tests.jsonl"

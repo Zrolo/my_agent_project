@@ -6,7 +6,7 @@
 
 `coach_seed_labeling_workbook_v2` 面向论文数据建设。它需要支持教练复核、分歧讨论、错误分析和数据集扩展，所以保留 `secondary_bridge_family`、`secondary_bridge_subtype_id`、`evidence_quote`、`coach_free_notes`、`new_focus_candidate` 等细字段。
 
-注意：人类标注字段是 expert reference，不是天然唯一真值。单个教练导出的文件应称为 `single_coach_reference`；只有经过双标和分歧裁决的文件才应称为 `adjudicated_gold`。可靠性流程见 [annotation_reliability_protocol_v1.md](/Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/docs/research/annotation_reliability_protocol_v1.md)。
+注意：人类标注字段是 expert reference，不是天然唯一真值。单个教练导出的文件应称为 `single_coach_reference`；只有经过双标和分歧裁决的文件才应称为 `adjudicated_gold`。可靠性流程见 [annotation_reliability_protocol_v1.md](annotation_reliability_protocol_v1.md)。
 
 运行时 Bridge Judge 面向快速路由和 tutor 控制。它只需要输出一个紧凑的 bridge contract，告诉主 tutor：
 
@@ -40,7 +40,7 @@
 
 ## Runtime Contract Schema
 
-运行时 schema 以 [runtime_bridge_contract_schema_v1.json](/Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/docs/research/runtime_bridge_contract_schema_v1.json) 为准。核心字段是：
+运行时 schema 以 [runtime_bridge_contract_schema_v1.json](runtime_bridge_contract_schema_v1.json) 为准。核心字段是：
 
 ```json
 {

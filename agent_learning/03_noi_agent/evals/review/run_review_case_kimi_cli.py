@@ -2,8 +2,10 @@ import json
 import os
 import subprocess
 import sys
+from pathlib import Path
 
-sys.path.insert(0, "/Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(PROJECT_ROOT))
 
 import review_engine
 

@@ -6,9 +6,9 @@ prompts:
     raw: "{{case}}"
 
 providers:
-  - id: exec:/bin/zsh -lc 'REVIEW_EVAL_FORCE_MODE=independent_reflect python3 /Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/evals/review/run_review_case.py'
+  - id: exec:/bin/zsh -lc 'cd "$(git rev-parse --show-toplevel)/agent_learning/03_noi_agent" && REVIEW_EVAL_FORCE_MODE=independent_reflect python3 evals/review/run_review_case.py'
     label: baseline_current
-  - id: exec:python3 /Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/evals/review/run_review_case.py
+  - id: exec:/bin/zsh -lc 'cd "$(git rev-parse --show-toplevel)/agent_learning/03_noi_agent" && python3 evals/review/run_review_case.py'
     label: mode_route
 
-tests: file:///Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/evals/review/promptfoo_tests.jsonl
+tests: file://evals/review/promptfoo_tests.jsonl

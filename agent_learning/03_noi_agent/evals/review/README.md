@@ -13,6 +13,7 @@
 运行前请先导出环境变量：
 
 ```bash
+cd agent_learning/03_noi_agent
 export OPENAI_API_KEY="$MOONSHOT_API_KEY"
 export OPENAI_API_BASE_URL="https://api.moonshot.cn/v1"
 ```
@@ -20,34 +21,34 @@ export OPENAI_API_BASE_URL="https://api.moonshot.cn/v1"
 基线与对比命令：
 
 ```bash
-python3 /Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/evals/review/export_cases.py
-npx promptfoo@latest eval -c /Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/evals/review/promptfoo.yaml
+python3 evals/review/export_cases.py
+npx promptfoo@latest eval -c evals/review/promptfoo.yaml
 ```
 
 `kimi-cli` 版快速对比命令：
 
 ```bash
-python3 /Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/evals/review/export_cases.py
-/opt/homebrew/bin/promptfoo eval --max-concurrency 2 --filter-first-n 1 -c /Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/evals/review/promptfoo.kimi-cli.yaml
+python3 evals/review/export_cases.py
+/opt/homebrew/bin/promptfoo eval --max-concurrency 2 --filter-first-n 1 -c evals/review/promptfoo.kimi-cli.yaml
 ```
 
 sample 版命令：
 
 ```bash
-python3 /Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/evals/review/build_promptfoo_sample.py
-/opt/homebrew/bin/promptfoo eval --max-concurrency 1 -c /Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/evals/review/promptfoo.kimi-cli.sample.yaml
+python3 evals/review/build_promptfoo_sample.py
+/opt/homebrew/bin/promptfoo eval --max-concurrency 1 -c evals/review/promptfoo.kimi-cli.sample.yaml
 ```
 
 直接质量评测命令：
 
 ```bash
-python3 /Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/evals/review/run_review_quality_eval.py /tmp/promptfoo_tests.sample.no_editorial.no_rubric.jsonl
+python3 evals/review/run_review_quality_eval.py /tmp/promptfoo_tests.sample.no_editorial.no_rubric.jsonl
 ```
 
 重复跑聚合命令：
 
 ```bash
-python3 /Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/evals/review/run_review_quality_eval.py /tmp/promptfoo_tests.sample.no_editorial.no_rubric.jsonl 2
+python3 evals/review/run_review_quality_eval.py /tmp/promptfoo_tests.sample.no_editorial.no_rubric.jsonl 2
 ```
 
 这条脚本会直接输出：
@@ -65,28 +66,28 @@ python3 /Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/
 
 当前已验证：
 
-- `python3 /Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/evals/review/export_cases.py`
+- `python3 evals/review/export_cases.py`
   - 当前会导出 `20` 条真实 case
   - 当前分布：
     - `independent_reflect = 6`
     - `failed_verdict = 6`
     - `stuck_bridge = 6`
     - `editorial_transfer = 2`
-- `python3 /Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/evals/review/run_review_case.py`
+- `python3 evals/review/run_review_case.py`
   - 已能对单条真实 case 返回 review JSON
-- `python3 /Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/evals/review/run_review_case_kimi_cli.py`
+- `python3 evals/review/run_review_case_kimi_cli.py`
   - 已能对单条真实 case 返回 `kimi-cli -> kimi-k2.5` 的 review JSON
   - 当前 runner 会显式给 `kimi-cli` 注入 Moonshot 配置，避免默认 `kimi-code` provider 导致的 `LLM not set`
   - 当前 runner 会自动去掉 `kimi-cli` 返回里的 ```json fenced code block```，再做 JSON 解析
-- `python3 /Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/evals/review/build_promptfoo_sample.py`
+- `python3 evals/review/build_promptfoo_sample.py`
   - 已能生成 `4` 条 sample 测试集：
     - `editorial_transfer = 1`
     - `failed_verdict = 1`
     - `independent_reflect = 1`
     - `stuck_bridge = 1`
-- `/opt/homebrew/bin/promptfoo eval -c .../promptfoo.yaml`
+- `/opt/homebrew/bin/promptfoo eval -c evals/review/promptfoo.yaml`
   - 已确认能成功启动，不存在 config/exec provider 级错误
-- `/opt/homebrew/bin/promptfoo eval -c .../promptfoo.kimi-cli.yaml`
+- `/opt/homebrew/bin/promptfoo eval -c evals/review/promptfoo.kimi-cli.yaml`
   - 已确认能成功启动 baseline + mode-route 的 `kimi-cli` 双 provider，不存在 exec provider 级错误
 - `python3 .../run_review_quality_eval.py /tmp/promptfoo_tests.sample.no_editorial.no_rubric.jsonl`
   - 已确认能成功跑出 non-editorial sample 的三指标

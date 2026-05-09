@@ -5,12 +5,12 @@ import sys
 import time
 from pathlib import Path
 
-sys.path.insert(0, "/Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent")
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT))
 
 from evals.review import run_review_case_kimi_cli
 import review_engine
 
-REPO_ROOT = Path("/Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent")
 RUBRIC_FILE = REPO_ROOT / "evals/review/review_rubric_v2.json"
 
 PROVIDERS = [

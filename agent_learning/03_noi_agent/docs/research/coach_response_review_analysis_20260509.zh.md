@@ -2,7 +2,7 @@
 
 ## 数据来源
 
-- 教练标注文件：`/Users/kongyouli/Downloads/response_review_labels_20260509154713.csv`
+- 教练标注文件：外部导出的 `response_review_labels_20260509154713.csv`（不提交进仓库）；已导入的研究标签见 `docs/research/coach_response_review_labels_v1.jsonl`。
 - 匿名 key：`docs/research/coach_response_review_workbook_deepseek_flash_thinking_n10.key.csv`
 - 盲评样本：20 条回复，覆盖 10 个 case。
 - 系统条件：`bridge_contract` tutor，`predicted` guard，`tutor_only` pipeline，`deepseek_flash`。

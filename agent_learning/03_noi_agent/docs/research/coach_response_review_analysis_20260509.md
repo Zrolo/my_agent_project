@@ -2,7 +2,7 @@
 
 ## Data Source
 
-- Coach labels: `/Users/kongyouli/Downloads/response_review_labels_20260509154713.csv`
+- Coach labels: external coach export `response_review_labels_20260509154713.csv` (not committed); imported research labels are tracked in `docs/research/coach_response_review_labels_v1.jsonl`.
 - Anonymous key: `docs/research/coach_response_review_workbook_deepseek_flash_thinking_n10.key.csv`
 - Review set: 20 responses across 10 cases.
 - System condition: `bridge_contract` tutor, `predicted` guard, `tutor_only` pipeline, `deepseek_flash`.
