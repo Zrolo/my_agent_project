@@ -754,6 +754,87 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
         self.assertEqual("candidate", result["final_response_source"])
         self.assertEqual(1, result["llm_call_count"])
 
+    def test_single_llm_structured_receives_strict_enum_and_top_k_focus_candidates(self):
+        rows = [
+            {
+                "id": "case_single_llm_strict",
+                "problem_ref": "P3128",
+                "student_message": "我知道要 LCA，但不知道每条路径到底在哪里加减标记。",
+                "problem_context": "树上多条路径统计每个点经过次数。",
+            }
+        ]
+        captured = {}
+
+        class FakeMessage:
+            content = json.dumps(
+                {
+                    "runtime_bridge_contract": {
+                        "turn_type": "diagnosable_learning_turn",
+                        "diagnosis_uncertainty": "low",
+                        "algorithm_topic_l1": "tree",
+                        "algorithm_topic_l2": "tree_path_difference",
+                        "primary_bridge_family": "aggregation_contribution_bridge",
+                        "selected_focus_id": "tree_path_difference",
+                        "selected_focus_confidence": 0.9,
+                        "max_scaffold_level": "L2",
+                        "help_forms": ["micro_example", "guiding_question"],
+                        "forbidden_content": ["不要直接给完整树上差分标记公式。"],
+                        "leakage_risk": "high",
+                        "confidence": 0.9,
+                    },
+                    "student_response": "先用一条小路径观察：端点和最近公共祖先分别承担什么作用？",
+                    "self_check": {
+                        "predicted_leakage_risk": "low",
+                        "violated_forbidden_content": [],
+                        "notes": "未给完整公式。",
+                    },
+                },
+                ensure_ascii=False,
+            )
+
+        class FakeChoice:
+            message = FakeMessage()
+
+        class FakeResponse:
+            choices = [FakeChoice()]
+
+        def fake_chat_completion_create(**kwargs):
+            captured.update(kwargs)
+            return FakeResponse()
+
+        with patch.object(
+            run_bridge_offline_eval,
+            "_chat_completion_create",
+            side_effect=fake_chat_completion_create,
+        ):
+            result_rows = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+                rows,
+                bridge_judge_fn=lambda **kwargs: (_ for _ in ()).throw(
+                    AssertionError("single_llm_structured should not call Bridge Judge")
+                ),
+                tutor_mode="single_llm_structured",
+                pipeline_mode="tutor_only",
+                chat_model_provider="deepseek_flash",
+                judge_schema_mode="retrieval_augmented_compact_judge",
+                focus_registry=[
+                    {
+                        "focus_id": "tree_path_difference",
+                        "bridge_family_v2": "aggregation_contribution_bridge",
+                        "description": "树上路径贡献转端点/LCA 标记。",
+                        "aliases": ["树上差分", "LCA 标记"],
+                    }
+                ],
+            )
+
+        system_prompt = captured["system_prompt"]
+        joined_messages = "\n".join(message["content"] for message in captured["messages"])
+        self.assertIn("primary_bridge_family 只能使用以下枚举值", system_prompt)
+        self.assertIn("aggregation_contribution_bridge", system_prompt)
+        self.assertIn("不要输出中文自由标签", system_prompt)
+        self.assertIn("top_k_registered_focus", joined_messages)
+        self.assertIn("tree_path_difference", joined_messages)
+        self.assertEqual(["tree_path_difference"], result_rows[0]["candidate_retrieval"]["focus_candidate_ids"][:1])
+
     def test_stage_latency_and_stage_errors_are_recorded(self):
         rows = [{"id": "case_latency", "student_message": "我不会。"}]
 

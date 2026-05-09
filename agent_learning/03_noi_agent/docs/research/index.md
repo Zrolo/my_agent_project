@@ -71,6 +71,8 @@ Research v1 不包含：
 - [tutor_thinking_ablation_smoke_report_20260509.md](tutor_thinking_ablation_smoke_report_20260509.md): thinking mode smoke 结果。
 - [single_llm_structured_smoke_report_20260510.zh.md](single_llm_structured_smoke_report_20260510.zh.md): single-LLM structured baseline 中文 smoke 报告。
 - [single_llm_structured_smoke_report_20260510.md](single_llm_structured_smoke_report_20260510.md): single-LLM structured baseline English smoke report.
+- [single_llm_structured_strict_schema_smoke_report_20260510.zh.md](single_llm_structured_strict_schema_smoke_report_20260510.zh.md): single-LLM strict schema 中文 smoke 报告。
+- [single_llm_structured_strict_schema_smoke_report_20260510.md](single_llm_structured_strict_schema_smoke_report_20260510.md): single-LLM strict schema English smoke report.
 
 ### Response Blind Review
 

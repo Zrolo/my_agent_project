@@ -36,6 +36,70 @@ JUDGE_SCHEMA_MODES = {
     "compact_contract_judge",
     "retrieval_augmented_compact_judge",
 }
+CONTRACT_TURN_TYPES = [
+    "diagnosable_learning_turn",
+    "insufficient_context",
+    "complete_solution_request",
+    "complete_code_request",
+    "critical_bridge_request",
+    "algorithm_confirmation_request",
+    "local_completion_request",
+    "code_debugging_without_evidence",
+    "code_debugging_with_evidence",
+    "step_validation_request",
+    "reflection_or_transfer_turn",
+    "emotional_or_time_pressure",
+    "unknown",
+]
+CONTRACT_ALGORITHM_TOPICS_L1 = [
+    "dp",
+    "binary_search",
+    "graph",
+    "tree",
+    "data_structure",
+    "string",
+    "greedy",
+    "search",
+    "math",
+    "implementation",
+    "debugging",
+    "unknown",
+]
+CONTRACT_BRIDGE_FAMILIES = [
+    "goal_constraint_bridge",
+    "modeling_bridge",
+    "method_selection_bridge",
+    "representation_state_bridge",
+    "transition_recurrence_bridge",
+    "predicate_condition_bridge",
+    "ordering_dependency_bridge",
+    "aggregation_contribution_bridge",
+    "data_structure_operation_bridge",
+    "correctness_invariant_bridge",
+    "complexity_optimization_bridge",
+    "implementation_boundary_bridge",
+    "debugging_evidence_bridge",
+    "reflection_transfer_bridge",
+    "unknown_or_not_applicable",
+    "unknown_bridge",
+]
+CONTRACT_HELP_FORMS = [
+    "question",
+    "hint",
+    "micro_example",
+    "counterexample",
+    "diagram",
+    "checklist",
+    "code_diagnosis",
+    "guiding_question",
+    "constraint_probe",
+    "debug_evidence_request",
+    "local_code_hint",
+    "partial_trace",
+    "summary_and_next_step",
+    "understanding_check",
+    "reflection_prompt",
+]
 
 BridgeJudgeFn = Callable[..., dict]
 TutorFn = Callable[[dict, list[dict], dict], dict]
@@ -259,24 +323,30 @@ def _call_bridge_contract_tutor(
 
 
 def _single_llm_structured_system_prompt() -> str:
+    turn_types = ", ".join(CONTRACT_TURN_TYPES)
+    algorithm_topics_l1 = ", ".join(CONTRACT_ALGORITHM_TOPICS_L1)
+    bridge_families = ", ".join(CONTRACT_BRIDGE_FAMILIES)
+    help_forms = ", ".join(CONTRACT_HELP_FORMS)
     return "\n".join(
         [
             "你是算法竞赛 AI 辅导研究中的 single-LLM structured baseline。",
             "你必须一次性完成三件事：诊断本轮 compact bridge contract、生成学生可见回复、自检是否泄露关键桥。",
             "只输出 JSON，不要输出 Markdown 代码块，不要输出额外解释。",
+            "所有 schema 字段必须使用英文枚举 key，不要输出中文自由标签。",
+            "如果无法确定，输出 unknown，不要编造不存在的 focus 或 family。",
             "",
             "输出 schema：",
             "{",
             '  "runtime_bridge_contract": {',
-            '    "turn_type": "diagnosable_learning_turn|insufficient_context|complete_solution_request|complete_code_request|critical_bridge_request|algorithm_confirmation_request|local_completion_request|code_debugging_without_evidence|code_debugging_with_evidence|step_validation_request|reflection_or_transfer_turn|emotional_or_time_pressure|unknown",',
+            '    "turn_type": "one exact enum key",',
             '    "diagnosis_uncertainty": "low|medium|high|unknown",',
-            '    "algorithm_topic_l1": "dp|binary_search|graph|tree|data_structure|string|greedy|search|math|implementation|debugging|policy|aggregation|complexity|unknown",',
+            '    "algorithm_topic_l1": "one exact enum key",',
             '    "algorithm_topic_l2": "short topic or unknown",',
-            '    "primary_bridge_family": "bridge family or unknown_or_not_applicable",',
-            '    "selected_focus_id": "registered focus candidate or unknown",',
+            '    "primary_bridge_family": "one exact enum key",',
+            '    "selected_focus_id": "one focus_id from top_k_registered_focus or unknown",',
             '    "selected_focus_confidence": 0.0,',
             '    "max_scaffold_level": "L0|L1|L2|L3",',
-            '    "help_forms": ["最多两个帮助形式"],',
+            '    "help_forms": ["最多两个英文 help form key"],',
             '    "forbidden_content": ["最多三条本轮不能直接补完的内容"],',
             '    "leakage_risk": "low|medium|high|unknown",',
             '    "confidence": 0.0',
@@ -289,6 +359,15 @@ def _single_llm_structured_system_prompt() -> str:
             "  }",
             "}",
             "",
+            "严格枚举：",
+            f"- turn_type 只能使用以下枚举值：{turn_types}",
+            f"- algorithm_topic_l1 只能使用以下枚举值：{algorithm_topics_l1}",
+            f"- primary_bridge_family 只能使用以下枚举值：{bridge_families}",
+            f"- help_forms 每项只能使用以下英文 key，最多 2 个：{help_forms}",
+            "- selected_focus_id 只能从后续 top_k_registered_focus 的 focus_id 里选择；如果没有合适项，写 unknown。",
+            "- max_scaffold_level 只能是 L0、L1、L2、L3。",
+            "- leakage_risk 只能是 low、medium、high、unknown。",
+            "",
             "教学约束：",
             "- 不要直接给完整题解或完整代码。",
             "- 不要直接补完学生当前缺失的关键桥。",
@@ -297,6 +376,29 @@ def _single_llm_structured_system_prompt() -> str:
             "- `student_response` 中不要出现 [LEVEL:] 或内部评测字段。",
         ]
     )
+
+
+def _single_llm_candidate_message(candidate_retrieval: dict | None) -> dict | None:
+    if not candidate_retrieval:
+        return None
+    compact_payload = {
+        "top_k_algorithm_topics": candidate_retrieval.get("algorithm_topic_candidates") or [],
+        "top_k_registered_focus": candidate_retrieval.get("focus_candidates") or [],
+        "selection_rules": [
+            "selected_focus_id must be one focus_id from top_k_registered_focus, or unknown.",
+            "Do not invent focus ids.",
+            "Use English enum keys for schema fields.",
+        ],
+    }
+    return {
+        "role": "assistant",
+        "content": "\n".join(
+            [
+                "[Offline Single-LLM Candidate Set - research control, not student text]",
+                json.dumps(compact_payload, ensure_ascii=False, indent=2),
+            ]
+        ),
+    }
 
 
 def _validate_single_llm_structured_payload(payload: dict) -> dict:
@@ -327,6 +429,11 @@ def _call_single_llm_structured_tutor(
     bridge_result: dict,
     chat_model_provider: str | None = None,
 ) -> dict:
+    candidate_message = _single_llm_candidate_message(bridge_result.get("candidate_retrieval"))
+    if candidate_message and messages:
+        messages = [*messages[:-1], candidate_message, messages[-1]]
+    elif candidate_message:
+        messages = [candidate_message]
     response = _chat_completion_create(
         system_prompt=_single_llm_structured_system_prompt(),
         messages=messages,
@@ -647,11 +754,13 @@ def _run_one_bridge_offline_case(
     available_focus = _focus_registry_for_row(row, focus_registry)
     candidate_retrieval = None
     bridge_result: dict = {}
-    if not single_llm_structured and judge_schema_mode == "retrieval_augmented_compact_judge":
+    if judge_schema_mode == "retrieval_augmented_compact_judge":
         stage_start = time.perf_counter()
         candidate_retrieval = _build_candidate_retrieval(row, focus_registry=available_focus)
         _record_latency(latency_ms, "candidate_retrieval_latency_ms", stage_start)
         result["candidate_retrieval"] = candidate_retrieval
+        if single_llm_structured:
+            bridge_result["candidate_retrieval"] = candidate_retrieval
 
     if not single_llm_structured:
         stage_start = time.perf_counter()
