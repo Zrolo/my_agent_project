@@ -84,6 +84,8 @@ Research v1 不包含：
 - [coach_response_review_analysis_20260509.md](coach_response_review_analysis_20260509.md): English blind review mini-analysis.
 - [coach_response_review_micro_example_policy_n10_20260510.zh.md](coach_response_review_micro_example_policy_n10_20260510.zh.md): micro-example policy 中文分析。
 - [coach_response_review_micro_example_policy_n10_20260510.md](coach_response_review_micro_example_policy_n10_20260510.md): micro-example policy English analysis.
+- [coach_response_review_analysis_mini_study_20_20260510.zh.md](coach_response_review_analysis_mini_study_20_20260510.zh.md): 20-case mini-study 回复盲评中文分析。
+- [coach_response_review_analysis_mini_study_20_20260510.md](coach_response_review_analysis_mini_study_20_20260510.md): 20-case mini-study response blind-review English analysis.
 
 ## Research Workflow
 

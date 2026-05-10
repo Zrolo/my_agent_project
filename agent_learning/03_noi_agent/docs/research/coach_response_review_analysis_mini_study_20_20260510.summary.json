@@ -1,0 +1,311 @@
+{
+  "source_workbook": "/Users/kongyouli/Downloads/coach_response_review_workbook_mini_study_20_20260510_zh_filled.xlsx",
+  "key_csv": "docs/research/coach_response_review_workbook_mini_study_20_20260510.key.csv",
+  "n": 100,
+  "pipelines": {
+    "current_system": {
+      "n": 20,
+      "coach_bridge_identification_score": 1.7,
+      "coach_groundedness_score": 1.75,
+      "coach_scaffold_appropriateness_score": 0.55,
+      "coach_bridge_leakage_control_score": 0.75,
+      "coach_next_step_clarity_score": 1.85,
+      "coach_single_focus_coherence_score": 1.85,
+      "coach_bridge_oriented_micro_example_score": 1.125,
+      "core_avg": 1.408,
+      "with_micro_avg": 1.375,
+      "leakage_counts": {
+        "major_bridge_leakage": 11,
+        "minor_bridge_leakage": 3,
+        "no_leakage": 6
+      },
+      "any_leak_rate": 0.7,
+      "major_or_answer_rate": 0.55,
+      "rank_avg_numeric_only": 2.667,
+      "rank1_count": 0,
+      "repair_applied_count": 0,
+      "blocked_count": 0
+    },
+    "single_llm_structured": {
+      "n": 20,
+      "coach_bridge_identification_score": 1.85,
+      "coach_groundedness_score": 1.85,
+      "coach_scaffold_appropriateness_score": 1.55,
+      "coach_bridge_leakage_control_score": 1.7,
+      "coach_next_step_clarity_score": 1.85,
+      "coach_single_focus_coherence_score": 2.0,
+      "coach_bridge_oriented_micro_example_score": 1.667,
+      "core_avg": 1.8,
+      "with_micro_avg": 1.782,
+      "leakage_counts": {
+        "no_leakage": 15,
+        "major_bridge_leakage": 1,
+        "minor_bridge_leakage": 4
+      },
+      "any_leak_rate": 0.25,
+      "major_or_answer_rate": 0.05,
+      "rank_avg_numeric_only": 1.75,
+      "rank1_count": 8,
+      "repair_applied_count": 0,
+      "blocked_count": 0
+    },
+    "bridge_contract": {
+      "n": 20,
+      "coach_bridge_identification_score": 1.8,
+      "coach_groundedness_score": 1.75,
+      "coach_scaffold_appropriateness_score": 1.4,
+      "coach_bridge_leakage_control_score": 1.65,
+      "coach_next_step_clarity_score": 1.9,
+      "coach_single_focus_coherence_score": 1.9,
+      "coach_bridge_oriented_micro_example_score": 1.938,
+      "core_avg": 1.733,
+      "with_micro_avg": 1.745,
+      "leakage_counts": {
+        "minor_bridge_leakage": 5,
+        "no_leakage": 14,
+        "major_bridge_leakage": 1
+      },
+      "any_leak_rate": 0.3,
+      "major_or_answer_rate": 0.05,
+      "rank_avg_numeric_only": 2.4,
+      "rank1_count": 2,
+      "repair_applied_count": 0,
+      "blocked_count": 0
+    },
+    "bridge_contract + guard": {
+      "n": 20,
+      "coach_bridge_identification_score": 1.75,
+      "coach_groundedness_score": 1.65,
+      "coach_scaffold_appropriateness_score": 1.2,
+      "coach_bridge_leakage_control_score": 1.65,
+      "coach_next_step_clarity_score": 1.9,
+      "coach_single_focus_coherence_score": 1.9,
+      "coach_bridge_oriented_micro_example_score": 1.588,
+      "core_avg": 1.675,
+      "with_micro_avg": 1.651,
+      "leakage_counts": {
+        "minor_bridge_leakage": 3,
+        "no_leakage": 15,
+        "major_bridge_leakage": 2
+      },
+      "any_leak_rate": 0.25,
+      "major_or_answer_rate": 0.1,
+      "rank_avg_numeric_only": 2.0,
+      "rank1_count": 4,
+      "repair_applied_count": 0,
+      "blocked_count": 0
+    },
+    "bridge_contract + guard + repair": {
+      "n": 20,
+      "coach_bridge_identification_score": 1.65,
+      "coach_groundedness_score": 1.7,
+      "coach_scaffold_appropriateness_score": 1.45,
+      "coach_bridge_leakage_control_score": 1.85,
+      "coach_next_step_clarity_score": 1.85,
+      "coach_single_focus_coherence_score": 1.9,
+      "coach_bridge_oriented_micro_example_score": 1.706,
+      "core_avg": 1.733,
+      "with_micro_avg": 1.717,
+      "leakage_counts": {
+        "no_leakage": 17,
+        "minor_bridge_leakage": 3
+      },
+      "any_leak_rate": 0.15,
+      "major_or_answer_rate": 0.0,
+      "rank_avg_numeric_only": 1.5,
+      "rank1_count": 6,
+      "repair_applied_count": 0,
+      "blocked_count": 0
+    }
+  },
+  "rank1_counts": {
+    "bridge_contract + guard": 4,
+    "single_llm_structured": 8,
+    "bridge_contract + guard + repair": 6,
+    "bridge_contract": 2
+  },
+  "worst_examples": [
+    {
+      "case_id": "cp_bridge_010",
+      "anonymized_response_id": "resp_8f0f2b7d40",
+      "pipeline": "current_system",
+      "core_avg": 0.6666666666666666,
+      "coach_leakage_label": "no_leakage",
+      "coach_preference_rank_raw": "tie",
+      "coach_notes": "模板式要求再给题号或代码行，未回应“01 背包为什么倒序枚举”的核心疑问。"
+    },
+    {
+      "case_id": "cp_bridge_017",
+      "anonymized_response_id": "resp_c00b8e79c8",
+      "pipeline": "bridge_contract",
+      "core_avg": 0.6666666666666666,
+      "coach_leakage_label": "no_leakage",
+      "coach_preference_rank_raw": "tie",
+      "coach_notes": "泛泛要求学生再给题号或代码行，未利用学生已经明确表达的“并查集合并对应哪步代码”的卡点。"
+    },
+    {
+      "case_id": "cp_bridge_017",
+      "anonymized_response_id": "resp_472c2746df",
+      "pipeline": "bridge_contract + guard",
+      "core_avg": 0.6666666666666666,
+      "coach_leakage_label": "no_leakage",
+      "coach_preference_rank_raw": "tie",
+      "coach_notes": "泛泛要求学生再给题号或代码行，未利用学生已经明确表达的“并查集合并对应哪步代码”的卡点。"
+    },
+    {
+      "case_id": "cp_bridge_010",
+      "anonymized_response_id": "resp_e92d8e4fba",
+      "pipeline": "bridge_contract + guard",
+      "core_avg": 0.6666666666666666,
+      "coach_leakage_label": "no_leakage",
+      "coach_preference_rank_raw": "tie",
+      "coach_notes": "模板式要求再给题号或代码行，未回应“01 背包为什么倒序枚举”的核心疑问。"
+    },
+    {
+      "case_id": "cp_bridge_017",
+      "anonymized_response_id": "resp_4fda6f8675",
+      "pipeline": "bridge_contract + guard + repair",
+      "core_avg": 0.6666666666666666,
+      "coach_leakage_label": "no_leakage",
+      "coach_preference_rank_raw": "tie",
+      "coach_notes": "泛泛要求学生再给题号或代码行，未利用学生已经明确表达的“并查集合并对应哪步代码”的卡点。"
+    },
+    {
+      "case_id": "cp_bridge_010",
+      "anonymized_response_id": "resp_a8abdd7b8b",
+      "pipeline": "bridge_contract + guard + repair",
+      "core_avg": 0.6666666666666666,
+      "coach_leakage_label": "no_leakage",
+      "coach_preference_rank_raw": "tie",
+      "coach_notes": "模板式要求再给题号或代码行，未回应“01 背包为什么倒序枚举”的核心疑问。"
+    },
+    {
+      "case_id": "cp_bridge_010",
+      "anonymized_response_id": "resp_4574d30618",
+      "pipeline": "bridge_contract",
+      "core_avg": 0.6666666666666666,
+      "coach_leakage_label": "no_leakage",
+      "coach_preference_rank_raw": "tie",
+      "coach_notes": "模板式要求再给题号或代码行，未回应“01 背包为什么倒序枚举”的核心疑问。"
+    },
+    {
+      "case_id": "cp_bridge_013",
+      "anonymized_response_id": "resp_2db35092f3",
+      "pipeline": "bridge_contract + guard",
+      "core_avg": 1.1666666666666667,
+      "coach_leakage_label": "major_bridge_leakage",
+      "coach_preference_rank_raw": "tie",
+      "coach_notes": "完整给出函数含义、base case 和递推式，直接把递归两座关键桥都讲完。"
+    },
+    {
+      "case_id": "cp_bridge_003",
+      "anonymized_response_id": "resp_d47c9c65d1",
+      "pipeline": "current_system",
+      "core_avg": 1.1666666666666667,
+      "coach_leakage_label": "major_bridge_leakage",
+      "coach_preference_rank_raw": "tie",
+      "coach_notes": "直接给出 dp[t] 定义、0/1 背包转移和二选一，远超学生当前只需建立状态含义的阶段。"
+    },
+    {
+      "case_id": "cp_bridge_014",
+      "anonymized_response_id": "resp_f47349271d",
+      "pipeline": "current_system",
+      "core_avg": 1.1666666666666667,
+      "coach_leakage_label": "major_bridge_leakage",
+      "coach_preference_rank_raw": "tie",
+      "coach_notes": "直接给出 1e10、肯定超时和替代方向，虽专业但已经替学生完成可行性判断。"
+    }
+  ],
+  "best_examples": [
+    {
+      "case_id": "cp_bridge_004",
+      "anonymized_response_id": "resp_4b7340d4b2",
+      "pipeline": "single_llm_structured",
+      "core_avg": 2.0,
+      "coach_leakage_label": "no_leakage",
+      "coach_preference_rank_raw": "2",
+      "coach_notes": "很好地抓住“当前药草从哪些旧状态来”的卡点，用一株药草让学生列出选/不选来源，没有直接给公式。"
+    },
+    {
+      "case_id": "cp_bridge_002",
+      "anonymized_response_id": "resp_ad9dafc083",
+      "pipeline": "bridge_contract + guard + repair",
+      "core_avg": 2.0,
+      "coach_leakage_label": "no_leakage",
+      "coach_preference_rank_raw": "2",
+      "coach_notes": "用最小可行性例子钉住 check(mid) 的语义，让学生先判断 mid 是否可行，未直接规定 true/false。"
+    },
+    {
+      "case_id": "cp_bridge_007",
+      "anonymized_response_id": "resp_79b71d9fb9",
+      "pipeline": "bridge_contract + guard",
+      "core_avg": 2.0,
+      "coach_leakage_label": "no_leakage",
+      "coach_preference_rank_raw": "1",
+      "coach_notes": "从两个 01 串的单向前缀关系入手，能让学生自己判断是否适合 Trie，焦点很准。"
+    },
+    {
+      "case_id": "cp_bridge_016",
+      "anonymized_response_id": "resp_7577a01d99",
+      "pipeline": "bridge_contract",
+      "core_avg": 2.0,
+      "coach_leakage_label": "no_leakage",
+      "coach_preference_rank_raw": "3",
+      "coach_notes": "明确采用 1-based 数组并让学生比较两种循环，能够促成边界条件对齐。"
+    },
+    {
+      "case_id": "cp_bridge_015",
+      "anonymized_response_id": "resp_59015a94b2",
+      "pipeline": "single_llm_structured",
+      "core_avg": 2.0,
+      "coach_leakage_label": "no_leakage",
+      "coach_preference_rank_raw": "1",
+      "coach_notes": "非常适合溢出排查：先看数据范围，再算极端和/积，能引导学生自己定位变量。"
+    },
+    {
+      "case_id": "cp_bridge_012",
+      "anonymized_response_id": "resp_313edad4d2",
+      "pipeline": "bridge_contract",
+      "core_avg": 2.0,
+      "coach_leakage_label": "no_leakage",
+      "coach_preference_rank_raw": "2",
+      "coach_notes": "用村庄和道路的类比引导“对象当点、关系当边”，并要求抽象规则，教学性强。"
+    },
+    {
+      "case_id": "cp_bridge_006",
+      "anonymized_response_id": "resp_e7e106f3da",
+      "pipeline": "bridge_contract + guard + repair",
+      "core_avg": 2.0,
+      "coach_leakage_label": "no_leakage",
+      "coach_preference_rank_raw": "1",
+      "coach_notes": "把“逐条比较”与“沿 Trie 走几步”做数量对比，能让学生自己发现为什么不用重扫。"
+    },
+    {
+      "case_id": "cp_bridge_009",
+      "anonymized_response_id": "resp_c1b7694e95",
+      "pipeline": "bridge_contract",
+      "core_avg": 2.0,
+      "coach_leakage_label": "no_leakage",
+      "coach_preference_rank_raw": "2",
+      "coach_notes": "用先选早结束与晚结束的两个方案比较后续可选数，能帮助学生理解贪心不吃亏。"
+    },
+    {
+      "case_id": "cp_bridge_008",
+      "anonymized_response_id": "resp_e7ee76c8cb",
+      "pipeline": "bridge_contract",
+      "core_avg": 2.0,
+      "coach_leakage_label": "no_leakage",
+      "coach_preference_rank_raw": "1",
+      "coach_notes": "非常贴合第一次出现位置的卡点，通过重复元素例子让学生自己发现直接返回会漏左侧。"
+    },
+    {
+      "case_id": "cp_bridge_009",
+      "anonymized_response_id": "resp_504d666ef3",
+      "pipeline": "bridge_contract + guard + repair",
+      "core_avg": 2.0,
+      "coach_leakage_label": "no_leakage",
+      "coach_preference_rank_raw": "1",
+      "coach_notes": "把“剩余时间从什么时候开始”作为核心观察点，最贴近结束早给后面留空间的证明直觉。"
+    }
+  ]
+}
