@@ -49,6 +49,8 @@
 
 最差样本里多次出现“泛泛要求学生再给题号或代码行”的备注。例如 01 背包倒序枚举、并查集合并映射这些 case，学生已经明确说出卡点，系统却仍要求补题号或代码行，导致没有回应当前桥梁。
 
+后续自检显示，这不是主 system prompt 主动要求“必须给题号/代码行才能回答”，而是规则层误降级后触发了 `enforce_level_gate()` 的固定 L1 兜底语。具体表现为：同一概念内的对比追问被误判为 `multi_question`，以及“题目说...我知道...但不知道...”被误判为只复述题意。该问题已作为 hard-gate fallback artifact 进入回归测试。
+
 ### 3. Bridge Contract 对高质量 micro-example 有正向信号
 
 `bridge_contract` 的微型例子均分最高。优质样本通常有三个共同点：先说明要观察的关系，给一个贴近原题的小例子，再让学生抽象出可迁移规则。
@@ -92,4 +94,4 @@
 1. 扩大到 50 条 seed，并做至少 15 条双教练标注，避免单教练主观性过高。
 2. 单独做 Repair stress test：人为收集或生成高泄露 candidate，验证 Repair 是否能降低泄露且不损害教学质量。
 3. 保留 `single_llm_structured` 作为正式 baseline，不要把论文写成“多 Judge 必然更好”。
-4. 优先修 current_system 的关键桥泄露和“泛泛索取上下文”问题，但按 control harness 原则离线 patch，不直接在线改 system prompt。
+4. 优先修 current_system 的关键桥泄露和 hard-gate fallback 误降级问题，但按 control harness 原则离线 patch，不直接在线改 system prompt。

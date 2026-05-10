@@ -49,6 +49,8 @@ Coach notes repeatedly flag direct exposure of DP state, recurrence, feasibility
 
 Several weak responses simply asked the student for a problem ID or code line even when the student had already stated a clear learning bottleneck. This happened in cases such as reverse iteration in 0/1 knapsack and union-find operation mapping.
 
+Follow-up inspection showed that this was not an intentional system-prompt requirement to always request a problem ID or code line. It was a hard-gate fallback artifact: rule-level misclassification lowered the turn to L1, and `enforce_level_gate()` replaced the candidate response with a fixed generic L1 fallback. Two concrete triggers were identified: same-focus contrast questions being treated as `multi_question`, and “the problem says..., I know..., but I do not know...” turns being treated as mere problem restatement.
+
 ### 3. Bridge Contract improves micro-example orientation
 
 The `bridge_contract` condition received the strongest micro-example score. Good responses usually stated the relation to observe, gave a small near-domain example, and prompted a transferable rule.
@@ -70,4 +72,4 @@ This blind review supports three research claims:
 1. Expand to 50 seed cases and double-label at least 15 cases to reduce single-coach subjectivity.
 2. Run a dedicated Repair stress test with intentionally leaky candidates.
 3. Keep `single_llm_structured` as a formal baseline.
-4. Improve current-system leakage and generic-context-request failures through offline patching, not live prompt mutation.
+4. Improve current-system leakage and hard-gate fallback misclassification through offline patching, not live prompt mutation.

@@ -847,7 +847,7 @@ def _detect_risks(user_input: str, messages: list | None = None) -> list:
     # 4. multi_question: 多问题
     # 检测是否有多个问号，或明显的多个问题模式
     question_count = text_lower.count('?') + text_lower.count('？')
-    if question_count >= 2:
+    if question_count >= 2 and not _is_single_focus_contrast_question(user_input):
         risks.append("multi_question")
 
     if _contains_code(user_input) and not _has_doubt_point(user_input) and not _has_debug_evidence_in_messages(messages):
@@ -863,6 +863,33 @@ def _detect_risks(user_input: str, messages: list | None = None) -> list:
         risks.append("mixed_signal")
     
     return risks
+
+
+def _is_single_focus_contrast_question(text: str) -> bool:
+    """Return True when two question marks form one contrastive learning question."""
+    normalized = (text or "").strip()
+    if not normalized:
+        return False
+
+    contrast_markers = (
+        "不是也",
+        "不也是",
+        "不能也",
+        "为什么",
+        "正着",
+        "倒着",
+        "反过来",
+        "这样不行",
+        "这样可以",
+    )
+    if not any(marker in normalized for marker in contrast_markers):
+        return False
+
+    paired_patterns = [
+        r"为什么.+[？?].*(不是也|不也是|不能也|不行吗|可以吗|能不能)",
+        r".+[？?].*(正着|倒着|反过来).+[？?]?$",
+    ]
+    return any(re.search(pattern, normalized) for pattern in paired_patterns)
 
 
 def _is_ac_reflection_request(text: str) -> bool:
@@ -3222,12 +3249,17 @@ def _is_only_restating(text: str) -> bool:
         r'我觉得', r'我想', r'我尝试', r'我认为', r'我分析',
         r'我的思路', r'我的想法', r'我考虑', r'我怀疑'
     ]
+    learning_evidence_patterns = [
+        r'我知道', r'我不知', r'不知道', r'不明白', r'说不清',
+        r'卡在', r'对应哪一步', r'哪一步', r'为什么', r'怎么',
+    ]
     
     has_restating = any(re.search(p, text) for p in restating_patterns)
     has_thinking = any(re.search(p, text) for p in thinking_patterns)
+    has_learning_evidence = any(re.search(p, text) for p in learning_evidence_patterns)
     
     # 如果提到题意描述词汇，且长度较短，且没有思考痕迹
-    if has_restating and len(text) < 80 and not has_thinking:
+    if has_restating and len(text) < 80 and not has_thinking and not has_learning_evidence:
         return True
     return False
 
@@ -3765,7 +3797,7 @@ def enforce_level_gate(level: str, max_level: str, raw_reply: str) -> tuple[str,
     if model_level_num > max_level_num:
         # 强制使用max_level对应的兜底回复
         if max_level == "L1":
-            fallback = "我先不直接给做法。把题号或你当前卡住的那一行发我，我会从那个点开始拆。"
+            fallback = "我先不直接给做法。我们先只保留当前这一小步：你用一句话说说，现在最不确定的是哪个对象、条件或操作？"
         elif max_level == "L2":
             fallback = "这道题你最终要记录什么信息？"
         else:

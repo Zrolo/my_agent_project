@@ -1375,7 +1375,9 @@ class AIChatRuntimePolicyTests(unittest.TestCase):
         _level, reply = enforce_level_gate("L3", "L1", "直接给完整做法。\n\n[LEVEL:L3]")
 
         self.assertNoGenericTemplate(reply)
-        self.assertIn("题号", reply)
+        self.assertNotIn("题号", reply)
+        self.assertNotIn("代码行", reply)
+        self.assertIn("最不确定的是哪个对象、条件或操作", reply)
         self.assertIn("[LEVEL:L1]", reply)
 
     def test_single_why_question_should_not_be_treated_as_multi_question(self):
