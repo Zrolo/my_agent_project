@@ -1,0 +1,83 @@
+{
+  "case_count": 20,
+  "completed_count": 20,
+  "error_count": 0,
+  "student_state_accuracy": 0.6,
+  "bridge_family_accuracy": 0.9,
+  "known_focus_accuracy": 0.8,
+  "known_focus_accuracy_on_registered": 0.8,
+  "unknown_focus_recall": null,
+  "help_seeking_type_accuracy": 0.55,
+  "allowed_help_level_accuracy": 0.95,
+  "leakage_rate": 0.3,
+  "critical_bridge_leakage_rate": 0.05,
+  "answer_or_code_leakage_rate": 0.0,
+  "rewrite_rate": 0.2,
+  "block_rate": 0.0,
+  "repair_rate": 0.2,
+  "invalid_label_rate": 0.0,
+  "focus_out_of_registry_rate": 0.0,
+  "self_contradiction_rate": 0.0,
+  "average_prompt_tokens": 522.0,
+  "average_llm_call_count": 3.6,
+  "avg_bridge_judge_confidence": 0.894,
+  "latency_ms": {
+    "total_p50": 18169.894,
+    "total_p95": 29043.382
+  },
+  "stage_error_counts": {},
+  "groups": {
+    "tutor_mode=bridge_contract|guard_mode=predicted|pipeline_mode=tutor_plus_guard_plus_repair|judge_schema_mode=retrieval_augmented_compact_judge|tutor_model_provider=deepseek_flash|chat_thinking_mode=disabled": {
+      "case_count": 20,
+      "completed_count": 20,
+      "error_count": 0,
+      "student_state_accuracy": 0.6,
+      "bridge_family_accuracy": 0.9,
+      "known_focus_accuracy": 0.8,
+      "known_focus_accuracy_on_registered": 0.8,
+      "unknown_focus_recall": null,
+      "help_seeking_type_accuracy": 0.55,
+      "allowed_help_level_accuracy": 0.95,
+      "leakage_rate": 0.3,
+      "critical_bridge_leakage_rate": 0.05,
+      "answer_or_code_leakage_rate": 0.0,
+      "rewrite_rate": 0.2,
+      "block_rate": 0.0,
+      "repair_rate": 0.2,
+      "invalid_label_rate": 0.0,
+      "focus_out_of_registry_rate": 0.0,
+      "self_contradiction_rate": 0.0,
+      "average_prompt_tokens": 522.0,
+      "average_llm_call_count": 3.6,
+      "avg_bridge_judge_confidence": 0.894,
+      "latency_ms": {
+        "total_p50": 18169.894,
+        "total_p95": 29043.382
+      },
+      "stage_error_counts": {},
+      "groups": {},
+      "safe_action_counts": {
+        "pass": 16,
+        "rewrite": 4
+      },
+      "leakage_level_counts": {
+        "0": 14,
+        "1": 2,
+        "2": 3,
+        "3": 1
+      },
+      "error_cases": []
+    }
+  },
+  "safe_action_counts": {
+    "pass": 16,
+    "rewrite": 4
+  },
+  "leakage_level_counts": {
+    "0": 14,
+    "1": 2,
+    "2": 3,
+    "3": 1
+  },
+  "error_cases": []
+}

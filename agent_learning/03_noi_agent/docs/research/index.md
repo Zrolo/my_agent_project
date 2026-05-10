@@ -79,6 +79,8 @@ Research v1 不包含：
 - [mini_study_20_report_20260510.md](mini_study_20_report_20260510.md): 20-seed mini-study preliminary English report.
 - [hard_gate_overfallback_rerun_20260510.zh.md](hard_gate_overfallback_rerun_20260510.zh.md): hard gate 过度兜底修复后的中文定点复测报告。
 - [hard_gate_overfallback_rerun_20260510.md](hard_gate_overfallback_rerun_20260510.md): English targeted rerun report for the hard-gate overfallback fix.
+- [repair_prompt_fix_mini_study_20_20260510.zh.md](repair_prompt_fix_mini_study_20_20260510.zh.md): Repair prompt 修复后的 20 条中文复测报告。
+- [repair_prompt_fix_mini_study_20_20260510.md](repair_prompt_fix_mini_study_20_20260510.md): English 20-case rerun report after the repair prompt fix.
 
 ### Response Blind Review
 
