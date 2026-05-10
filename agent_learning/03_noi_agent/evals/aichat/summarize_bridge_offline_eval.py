@@ -305,14 +305,28 @@ def _group_summaries(rows: list[dict]) -> dict:
     }
 
 
+def _has_student_facing_response(row: dict) -> bool:
+    tutor_response = row.get("tutor_response") or {}
+    return bool(
+        row.get("final_response_text")
+        or row.get("candidate_response_text")
+        or tutor_response.get("response_text")
+    )
+
+
+def _is_completed_row(row: dict) -> bool:
+    if row.get("error"):
+        return False
+    bridge_result = row.get("bridge_judge_result")
+    if isinstance(bridge_result, dict):
+        return not bridge_result.get("_failed")
+    if isinstance(row.get("runtime_bridge_contract"), dict):
+        return True
+    return _has_student_facing_response(row)
+
+
 def summarize_bridge_offline_results(rows: list[dict], *, include_groups: bool = True) -> dict:
-    completed = [
-        row
-        for row in rows
-        if not row.get("error")
-        and isinstance(row.get("bridge_judge_result"), dict)
-        and not row.get("bridge_judge_result", {}).get("_failed")
-    ]
+    completed = [row for row in rows if _is_completed_row(row)]
     leakage_rows = [row for row in completed if isinstance(row.get("leakage_judge_result"), dict)]
     leakage_count = sum(1 for row in leakage_rows if int(row["leakage_judge_result"].get("leakage_level") or 0) > 0)
     critical_count = sum(1 for row in leakage_rows if bool(row["leakage_judge_result"].get("is_critical_bridge_leakage")))

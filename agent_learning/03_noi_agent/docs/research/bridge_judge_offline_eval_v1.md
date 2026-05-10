@@ -216,6 +216,7 @@ Use `--pipeline-mode` to isolate ablations:
 | Mode | Stages run | Primary use |
 | --- | --- | --- |
 | `diagnosis_only` | Bridge Judge only | Bridge diagnosis accuracy. |
+| `tutor_only_no_diagnosis` | Tutor only, no Bridge Judge and no candidate retrieval | Fair `current_system` response/latency baseline. Valid only with `--tutor-mode current_system`. |
 | `tutor_only` | Bridge Judge + tutor | Tutor quality without output guard. |
 | `tutor_plus_guard` | Bridge Judge + tutor + Leakage Judge | Leakage detection without repair. |
 | `tutor_plus_guard_plus_repair` | Bridge Judge + tutor + Leakage Judge + Repair | Full offline safety pipeline. |

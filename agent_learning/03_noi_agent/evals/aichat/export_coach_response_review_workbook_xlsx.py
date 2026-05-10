@@ -30,6 +30,7 @@ CHINESE_HEADERS = {
     "coach_bridge_leakage_control_score": "是否控制关键桥泄露 0-2",
     "coach_next_step_clarity_score": "下一步是否清楚 0-2",
     "coach_single_focus_coherence_score": "是否保持单一焦点 0-2",
+    "coach_bridge_oriented_micro_example_score": "桥梁导向微型例子 0-2",
     "coach_leakage_label": "泄露标签",
     "coach_preference_rank": "同题回复排序",
     "coach_notes": "备注",
@@ -43,6 +44,7 @@ FIELD_HELP = {
     "coach_bridge_leakage_control_score": "是否避免说穿当前关键桥。关键桥指学生这一轮本该自己构造的状态、转移、check、公式、局部条件等。",
     "coach_next_step_clarity_score": "学生看完是否知道下一步具体做什么，且这个下一步能实际回答或执行。",
     "coach_single_focus_coherence_score": "回复是否围绕一个主要卡点推进，避免同时讲多个方向让学生更乱。",
+    "coach_bridge_oriented_micro_example_score": "如果回复使用小例子，例子是否引导学生提炼可迁移的桥梁关系，而不是只完成一次临时任务。没有小例子但回复合理时可评 2。",
     "coach_leakage_label": "判断这条回复实际有没有泄露当前关键桥或完整答案/代码。",
     "coach_preference_rank": "同一个样本如果有多条匿名回复，可按质量排序。1 表示最好，可留空。",
     "review_status": "评完后选“已评完”；不确定就选“需要讨论”。",
@@ -84,6 +86,13 @@ SINGLE_FOCUS_OPTIONS = [
     "0｜差：多个目标混在一起，容易让学生更乱",
 ]
 
+BRIDGE_ORIENTED_MICRO_EXAMPLE_OPTIONS = [
+    "2｜好：例子能引导学生抽象可迁移的桥梁关系",
+    "1｜一般：例子相关，但更像一次临时小任务",
+    "0｜差：例子和卡点关系弱，或直接替学生补完关键桥",
+    "N/A｜没有使用微型例子，无法单独评价",
+]
+
 LEAKAGE_LABEL_OPTIONS = [
     "no_leakage｜无泄露：没有说穿当前关键桥",
     "minor_bridge_leakage｜轻微桥梁泄露：提示偏强但学生仍要推理",
@@ -112,6 +121,7 @@ OPTION_LISTS = {
     "leakage_control": LEAKAGE_CONTROL_OPTIONS,
     "next_step": NEXT_STEP_OPTIONS,
     "single_focus": SINGLE_FOCUS_OPTIONS,
+    "bridge_oriented_micro_example": BRIDGE_ORIENTED_MICRO_EXAMPLE_OPTIONS,
     "leakage_label": LEAKAGE_LABEL_OPTIONS,
     "preference_rank": PREFERENCE_RANK_OPTIONS,
     "review_status": REVIEW_STATUS_OPTIONS,
@@ -131,10 +141,11 @@ COLUMN_WIDTHS = {
     "K": 30,
     "L": 24,
     "M": 26,
-    "N": 34,
-    "O": 18,
-    "P": 34,
-    "Q": 18,
+    "N": 30,
+    "O": 34,
+    "P": 18,
+    "Q": 34,
+    "R": 18,
 }
 
 
@@ -232,6 +243,7 @@ def _add_guide_sheet(workbook: Workbook) -> None:
         ["是否控制关键桥泄露", "看 AI 是否避免说穿学生本轮应该自己构造的状态、转移、check、公式、局部条件等。"],
         ["下一步是否清楚", "看学生读完后是否知道接下来要回答/尝试哪一步。"],
         ["是否保持单一焦点", "看回复是否围绕一个核心卡点，不同时抛出多个无关任务。"],
+        ["桥梁导向微型例子", "如果用了例子，看它是否帮助学生提炼可迁移关系；只是让学生算一下/选一下但没有抽象方向，通常只能给 1。"],
         ["泄露标签", "no_leakage=无泄露；minor=偏强但仍需推理；major=补完关键桥；answer=完整题解/步骤/代码泄露。"],
         ["同题回复排序", "如果同一个 case 有多条回复，可填 1/2/3；只评单条时可留空。"],
     ]
@@ -278,6 +290,7 @@ def export_xlsx(
         "coach_bridge_leakage_control_score": ranges["leakage_control"],
         "coach_next_step_clarity_score": ranges["next_step"],
         "coach_single_focus_coherence_score": ranges["single_focus"],
+        "coach_bridge_oriented_micro_example_score": ranges["bridge_oriented_micro_example"],
         "coach_leakage_label": ranges["leakage_label"],
         "coach_preference_rank": ranges["preference_rank"],
         "review_status": ranges["review_status"],

@@ -80,6 +80,7 @@ class CoachResponseReviewWorkbookTests(unittest.TestCase):
         output.seek(0)
         reader = csv.DictReader(output)
         self.assertIn("coach_bridge_identification_score", reader.fieldnames)
+        self.assertIn("coach_bridge_oriented_micro_example_score", reader.fieldnames)
         self.assertIn("coach_leakage_label", reader.fieldnames)
         self.assertIn("coach_preference_rank", reader.fieldnames)
 

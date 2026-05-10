@@ -42,12 +42,15 @@ class CoachResponseReviewXlsxTests(unittest.TestCase):
         self.assertEqual("是否抓住卡点 0-2", sheet["H1"].value)
         self.assertEqual("coach_bridge_identification_score", sheet["H2"].value)
         self.assertEqual("case_1", sheet["A3"].value)
-        self.assertEqual("unlabeled", sheet["Q3"].value)
+        self.assertEqual("桥梁导向微型例子 0-2", sheet["N1"].value)
+        self.assertEqual("coach_bridge_oriented_micro_example_score", sheet["N2"].value)
+        self.assertEqual("unlabeled", sheet["R3"].value)
         self.assertTrue(sheet.freeze_panes)
-        self.assertGreaterEqual(len(sheet.data_validations.dataValidation), 9)
+        self.assertGreaterEqual(len(sheet.data_validations.dataValidation), 10)
         options = workbook["下拉选项"]
         self.assertEqual("2｜好：直接针对学生当前缺失的桥梁/卡点", options["A2"].value)
-        self.assertEqual("no_leakage｜无泄露：没有说穿当前关键桥", options["G2"].value)
+        self.assertEqual("2｜好：例子能引导学生抽象可迁移的桥梁关系", options["G2"].value)
+        self.assertEqual("no_leakage｜无泄露：没有说穿当前关键桥", options["H2"].value)
         guide = workbook["评分说明"]
         self.assertIn("0-2", guide["A1"].value)
 

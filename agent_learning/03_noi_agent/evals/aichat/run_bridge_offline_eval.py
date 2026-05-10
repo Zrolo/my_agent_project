@@ -28,6 +28,7 @@ DEFAULT_FOCUS_REGISTRY_PATH = Path("docs/research/focus_registry_v1.json")
 PIPELINE_MODES = {
     "diagnosis_only",
     "tutor_only",
+    "tutor_only_no_diagnosis",
     "tutor_plus_guard",
     "tutor_plus_guard_plus_repair",
 }
@@ -768,7 +769,8 @@ def _run_one_bridge_offline_case(
     available_focus = _focus_registry_for_row(row, focus_registry)
     candidate_retrieval = None
     bridge_result: dict = {}
-    if judge_schema_mode == "retrieval_augmented_compact_judge":
+    skip_bridge_diagnosis = pipeline_mode == "tutor_only_no_diagnosis"
+    if judge_schema_mode == "retrieval_augmented_compact_judge" and not skip_bridge_diagnosis:
         stage_start = time.perf_counter()
         candidate_retrieval = _build_candidate_retrieval(row, focus_registry=available_focus)
         _record_latency(latency_ms, "candidate_retrieval_latency_ms", stage_start)
@@ -776,7 +778,7 @@ def _run_one_bridge_offline_case(
         if single_llm_structured:
             bridge_result["candidate_retrieval"] = candidate_retrieval
 
-    if not single_llm_structured:
+    if not single_llm_structured and not skip_bridge_diagnosis:
         stage_start = time.perf_counter()
         try:
             bridge_kwargs = {
@@ -820,7 +822,7 @@ def _run_one_bridge_offline_case(
                 result, latency_ms=latency_ms, stage_errors=stage_errors, total_start=total_start
             )
 
-    if not single_llm_structured and judge_schema_mode != "full_schema_judge":
+    if not single_llm_structured and not skip_bridge_diagnosis and judge_schema_mode != "full_schema_judge":
         result["runtime_bridge_contract"] = _runtime_bridge_contract_from_result(
             bridge_result,
             algorithm_topic_candidates=(candidate_retrieval or {}).get("algorithm_topic_candidates"),
@@ -867,7 +869,7 @@ def _run_one_bridge_offline_case(
         bridge_result = _bridge_result_from_runtime_contract(contract)
         result["bridge_judge_result"] = {}
 
-    if pipeline_mode == "tutor_only":
+    if pipeline_mode in {"tutor_only", "tutor_only_no_diagnosis"}:
         return _finish_case_result(result, latency_ms=latency_ms, stage_errors=stage_errors, total_start=total_start)
 
     forbidden_content = list(bridge_result.get("forbidden_content") or [])
@@ -996,6 +998,8 @@ def run_bridge_offline_eval_rows(
         raise ValueError("single_llm_structured requires a tutor pipeline, not diagnosis_only")
     if pipeline_mode not in PIPELINE_MODES:
         raise ValueError(f"Unsupported pipeline_mode: {pipeline_mode}")
+    if pipeline_mode == "tutor_only_no_diagnosis" and tutor_mode != "current_system":
+        raise ValueError("tutor_only_no_diagnosis requires current_system tutor_mode")
     if judge_schema_mode not in JUDGE_SCHEMA_MODES:
         raise ValueError(f"Unsupported judge_schema_mode: {judge_schema_mode}")
     if max_retries < 0:

@@ -285,6 +285,51 @@ class BridgeOfflineEvalSummaryTests(unittest.TestCase):
         self.assertEqual(1.0, summary["known_focus_accuracy_on_registered"])
         self.assertEqual(1.0, summary["allowed_help_level_accuracy"])
 
+    def test_summarize_current_system_no_diagnosis_counts_completed_response_rows(self):
+        rows = [
+            {
+                "case_id": "case_current_only",
+                "tutor_mode": "current_system",
+                "guard_mode": "predicted",
+                "pipeline_mode": "tutor_only_no_diagnosis",
+                "judge_schema_mode": "retrieval_augmented_compact_judge",
+                "models": {
+                    "tutor_model_provider": "deepseek_flash",
+                    "chat_thinking_mode": "disabled",
+                    "tutor_mode": "current_system",
+                    "guard_mode": "predicted",
+                    "pipeline_mode": "tutor_only_no_diagnosis",
+                    "judge_schema_mode": "retrieval_augmented_compact_judge",
+                },
+                "gold": {
+                    "bridge_family": "representation_state_bridge",
+                    "known_focus": "state_design",
+                    "allowed_help_level": "L2",
+                },
+                "tutor_response": {
+                    "baseline_group": "current_system",
+                    "tutor_mode": "current_system",
+                    "response_text": "你先说说 dp 需要记录什么。",
+                    "level": "L2",
+                },
+                "candidate_response_text": "你先说说 dp 需要记录什么。",
+                "final_response_text": "你先说说 dp 需要记录什么。",
+                "final_response_source": "candidate",
+                "latency_ms": {"total_latency_ms": 100.0},
+                "llm_call_count": 1,
+                "stage_errors": {},
+            }
+        ]
+
+        summary = summarize_bridge_offline_eval.summarize_bridge_offline_results(rows)
+
+        self.assertEqual(1, summary["case_count"])
+        self.assertEqual(1, summary["completed_count"])
+        self.assertEqual(0, summary["error_count"])
+        self.assertIsNone(summary["bridge_family_accuracy"])
+        self.assertEqual(1.0, summary["average_llm_call_count"])
+        self.assertEqual(100.0, summary["latency_ms"]["total_p50"])
+
     def test_runtime_contract_with_out_of_schema_enum_counts_as_invalid(self):
         rows = [
             {

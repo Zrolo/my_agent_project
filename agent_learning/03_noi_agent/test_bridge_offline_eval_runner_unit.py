@@ -239,6 +239,43 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
         self.assertEqual("你先贴题面。", result["final_response_text"])
         self.assertEqual("candidate", result["final_response_source"])
 
+    def test_tutor_only_no_diagnosis_pipeline_skips_bridge_judge_for_current_system_baseline(self):
+        rows = [{"id": "case_current_only", "student_message": "我不会。"}]
+        calls = []
+
+        def fake_bridge_judge(**kwargs):
+            calls.append("bridge")
+            return {}
+
+        def fake_tutor(row, messages, bridge_result):
+            calls.append(("tutor", bridge_result))
+            return {"response_text": "你先贴题面。", "level": "L1"}
+
+        result_rows = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+            rows,
+            bridge_judge_fn=fake_bridge_judge,
+            tutor_fn=fake_tutor,
+            tutor_mode="current_system",
+            pipeline_mode="tutor_only_no_diagnosis",
+        )
+
+        self.assertEqual([("tutor", {})], calls)
+        result = result_rows[0]
+        self.assertNotIn("bridge_judge_result", result)
+        self.assertNotIn("candidate_retrieval", result)
+        self.assertEqual("你先贴题面。", result["candidate_response_text"])
+        self.assertEqual("你先贴题面。", result["final_response_text"])
+        self.assertEqual("candidate", result["final_response_source"])
+        self.assertEqual(1, result["llm_call_count"])
+
+    def test_tutor_only_no_diagnosis_is_invalid_for_bridge_contract(self):
+        with self.assertRaisesRegex(ValueError, "requires current_system"):
+            run_bridge_offline_eval.run_bridge_offline_eval_rows(
+                [{"id": "case_invalid", "student_message": "我不会。"}],
+                tutor_mode="bridge_contract",
+                pipeline_mode="tutor_only_no_diagnosis",
+            )
+
     def test_tutor_plus_guard_pipeline_does_not_repair_rewrite_action(self):
         rows = [{"id": "case_guard_only", "student_message": "状态怎么设？"}]
         calls = []
