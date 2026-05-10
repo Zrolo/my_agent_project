@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from noi_agent import (
     _build_repair_response_v1_user_message,
+    _read_repair_response_v1_system_prompt,
     _validate_repair_response_v1_schema,
     repair_response_v1,
 )
@@ -79,6 +80,24 @@ class RepairResponseV1Tests(unittest.TestCase):
         self.assertIn("<leakage_report_untrusted>", message)
         self.assertIn("<bridge_judge_result_untrusted>", message)
         self.assertIn("删除完整状态定义", message)
+
+    def test_repair_prompt_forbids_solving_replacement_micro_task(self):
+        system_prompt = _read_repair_response_v1_system_prompt()
+        message = _build_repair_response_v1_user_message(
+            original_candidate_response="正序枚举会重复用当前物品，dp[3] 会变成 15。",
+            leakage_judge_result=_leakage_result(
+                leaked_element="正序导致重复选物品的完整例子",
+                repair_instruction="删除完整示例，改为请学生自己构造一个小例子并计算。",
+            ),
+            bridge_judge_result=_bridge_result(subtype="enumeration_order"),
+            student_message="01 背包为什么容量要倒着枚举？正着枚举不是也能更新吗？",
+            messages=[],
+        )
+
+        combined = f"{system_prompt}\n{message}"
+        self.assertIn("不得替学生完成", combined)
+        self.assertIn("不要给出计算结果", combined)
+        self.assertIn("只给例子输入", combined)
 
     def test_repair_dp_state_leak_to_information_prompt(self):
         payload = _repair_payload("这一步先别急着把状态写死。你用样例想一想：走到第 i 个位置时，至少要保留哪两个信息，后面才不会算丢？\n\n[LEVEL:L2]")

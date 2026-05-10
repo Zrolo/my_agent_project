@@ -77,6 +77,8 @@ Research v1 不包含：
 - [single_llm_structured_calibrated_smoke_report_20260510.md](single_llm_structured_calibrated_smoke_report_20260510.md): single-LLM scaffold calibration English smoke report.
 - [mini_study_20_report_20260510.zh.md](mini_study_20_report_20260510.zh.md): 20 条 seed mini-study 中文初步报告。
 - [mini_study_20_report_20260510.md](mini_study_20_report_20260510.md): 20-seed mini-study preliminary English report.
+- [hard_gate_overfallback_rerun_20260510.zh.md](hard_gate_overfallback_rerun_20260510.zh.md): hard gate 过度兜底修复后的中文定点复测报告。
+- [hard_gate_overfallback_rerun_20260510.md](hard_gate_overfallback_rerun_20260510.md): English targeted rerun report for the hard-gate overfallback fix.
 
 ### Response Blind Review
 
@@ -86,6 +88,10 @@ Research v1 不包含：
 - [coach_response_review_micro_example_policy_n10_20260510.md](coach_response_review_micro_example_policy_n10_20260510.md): micro-example policy English analysis.
 - [coach_response_review_analysis_mini_study_20_20260510.zh.md](coach_response_review_analysis_mini_study_20_20260510.zh.md): 20-case mini-study 回复盲评中文分析。
 - [coach_response_review_analysis_mini_study_20_20260510.md](coach_response_review_analysis_mini_study_20_20260510.md): 20-case mini-study response blind-review English analysis.
+
+### Patch Governance
+
+- [prompt_patch_log.md](prompt_patch_log.md): slow-variable prompt/rubric/registry/router patch log.
 
 ## Research Workflow
 

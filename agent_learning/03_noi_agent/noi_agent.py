@@ -1415,6 +1415,9 @@ def _build_repair_response_v1_user_message(
 ) -> str:
     sections = [
         "请根据下面材料输出 repair_response_v1 JSON。你只修复候选回复，不改变线上行为。",
+        "硬性约束：如果 repair_instruction 要求让学生自己构造、计算、比较或观察一个替代小例子，"
+        "repaired_response 不得替学生完成该小任务，不要给出计算结果或观察结论；"
+        "只给例子输入、观察问题和学生需要填写的空位。",
         _wrap_untrusted("recent_dialogue_untrusted", _format_recent_dialogue_for_judge(messages), 3600),
         _wrap_untrusted("student_message_untrusted", student_message or "", 1200),
         _wrap_untrusted("original_candidate_response_untrusted", original_candidate_response or "", 3200),
