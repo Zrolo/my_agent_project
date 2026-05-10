@@ -90,6 +90,8 @@ Research v1 不包含：
 - [coach_response_review_micro_example_policy_n10_20260510.md](coach_response_review_micro_example_policy_n10_20260510.md): micro-example policy English analysis.
 - [coach_response_review_analysis_mini_study_20_20260510.zh.md](coach_response_review_analysis_mini_study_20_20260510.zh.md): 20-case mini-study 回复盲评中文分析。
 - [coach_response_review_analysis_mini_study_20_20260510.md](coach_response_review_analysis_mini_study_20_20260510.md): 20-case mini-study response blind-review English analysis.
+- [coach_response_review_workbook_repair_before_after_20260510.csv](coach_response_review_workbook_repair_before_after_20260510.csv): Repair 前后对照网页盲评 CSV，共 8 条。
+- [coach_response_review_workbook_repair_before_after_20260510.zh.xlsx](coach_response_review_workbook_repair_before_after_20260510.zh.xlsx): Repair 前后对照中文 Excel 备份表。
 
 ### Patch Governance
 

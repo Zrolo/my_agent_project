@@ -31,8 +31,15 @@ from pydantic import BaseModel, Field
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 RESPONSE_REVIEW_WORKBOOK_CSV_PATH = Path(BASE_DIR) / "docs/research/coach_response_review_workbook_deepseek_flash_thinking_n10.csv"
 RESPONSE_REVIEW_LABELS_JSONL_PATH = Path(BASE_DIR) / "docs/research/coach_response_review_labels_v1.jsonl"
-DEFAULT_RESPONSE_REVIEW_DATASET_ID = "micro_example_policy_n10"
+DEFAULT_RESPONSE_REVIEW_DATASET_ID = "repair_before_after_20260510"
 RESPONSE_REVIEW_DATASETS = [
+    {
+        "dataset_id": "repair_before_after_20260510",
+        "label": "Repair 前后对照 20260510",
+        "description": "只包含 4 条触发 repair 的样例，每题各有候选回复和修复后回复，用于判断 Repair 是否真的改善 bridge-oriented micro-example。",
+        "workbook_csv_path": Path(BASE_DIR) / "docs/research/coach_response_review_workbook_repair_before_after_20260510.csv",
+        "labels_jsonl_path": Path(BASE_DIR) / "docs/research/coach_response_review_labels_repair_before_after_20260510.jsonl",
+    },
     {
         "dataset_id": "deepseek_flash_thinking_n10",
         "label": "DeepSeek Flash Thinking 对照 n10",
