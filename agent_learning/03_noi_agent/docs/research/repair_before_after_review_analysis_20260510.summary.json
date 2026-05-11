@@ -1,0 +1,115 @@
+{
+  "workbook_csv": "docs/research/coach_response_review_workbook_repair_before_after_20260510.csv",
+  "key_csv": "docs/research/coach_response_review_workbook_repair_before_after_20260510.key.csv",
+  "labels_path": "docs/research/coach_response_review_labels_repair_before_after_20260510.jsonl",
+  "pair_count": 4,
+  "labeled_pair_count": 0,
+  "quality": {
+    "repaired_wins": 0,
+    "ties": 0,
+    "repaired_losses": 0,
+    "average_delta": 0.0
+  },
+  "leakage": {
+    "repaired_improves": 0,
+    "ties": 0,
+    "repaired_worse": 0,
+    "average_severity_delta": 0.0,
+    "candidate_major_or_answer_rate": 0.0,
+    "repaired_major_or_answer_rate": 0.0
+  },
+  "pairs": [
+    {
+      "case_id": "cp_bridge_003",
+      "candidate": {
+        "anonymized_response_id": "resp_97626f8055",
+        "overall_quality": "",
+        "leakage_label": "",
+        "preference_rank": "",
+        "notes": "",
+        "review_status": "unlabeled",
+        "response_excerpt": "你说得对，这确实是背包问题。但“像背包”还不够——我们需要把“每一格存什么”说清楚。\n\n先看一个极小的例子，只观察一件事：\n\n**例子**：总时间 = 5，只有 1 株药草：耗时 3，价值 8。\n\n假设我们开一个数组 `dp[0..5]`，`dp[t]` 表示“总时间恰好为 t 时能获得的最大价值”。\n\n请你回答：\n- `dp[0]` 是多少？\n- `dp[3]` 是多少？\n- `dp[5]` 是多少？\n\n回答完这三个数之后，请你用一句话说：**dp[t] 这个格子，到底在记"
+      },
+      "repaired": {
+        "anonymized_response_id": "resp_f7df504d31",
+        "overall_quality": "",
+        "leakage_label": "",
+        "preference_rank": "",
+        "notes": "",
+        "review_status": "unlabeled",
+        "response_excerpt": "你说得对，这确实是背包问题。但“像背包”还不够——我们需要把“每一格存什么”说清楚。\n\n先看一个极小的例子，只观察一件事：\n\n**例子**：总时间 = 5，只有 1 株药草：耗时 3，价值 8。\n\n假设我们开一个数组 `dp[0..5]`，`dp[t]` 表示某个含义。\n\n请你根据这个例子，回答：\n- `dp[0]` 是多少？\n- `dp[3]` 是多少？\n- `dp[5]` 是多少？\n\n回答完这三个数之后，请你用一句话说：**dp[t] 这个格子，到底在记录什么？**\n\n["
+      },
+      "quality_delta": null,
+      "leakage_severity_delta": null
+    },
+    {
+      "case_id": "cp_bridge_006",
+      "candidate": {
+        "anonymized_response_id": "resp_d76966b3ff",
+        "overall_quality": "",
+        "leakage_label": "",
+        "preference_rank": "",
+        "notes": "",
+        "review_status": "unlabeled",
+        "response_excerpt": "你问到了一个很关键的地方。我们先不看原题里那么多消息，只看一个极小的例子，看看 Trie 到底帮我们省了什么。\n\n**我们要观察的桥梁问题：** 如果不用 Trie，查询一条消息时，你需要拿它和所有其他消息逐位比较；用了 Trie 之后，为什么不需要这样做了？Trie 的结构到底替你完成了哪部分工作？\n\n**小例子：**\n假设我们只有 3 条消息（已经插入到 Trie 里了）：\n- 消息 A: `101`\n- 消息 B: `10`\n- 消息 C: `0`\n\n现在要查询一条新消"
+      },
+      "repaired": {
+        "anonymized_response_id": "resp_2ad289ce82",
+        "overall_quality": "",
+        "leakage_label": "",
+        "preference_rank": "",
+        "notes": "",
+        "review_status": "unlabeled",
+        "response_excerpt": "我们先不看原题里那么多消息，只看一个极小的例子，看看 Trie 到底帮我们省了什么。\n\n**小例子：**\n假设我们只有 3 条消息（已经插入到 Trie 里了）：\n- 消息 A: `101`\n- 消息 B: `10`\n- 消息 C: `0`\n\n现在要查询一条新消息 `101`。请你在纸上画出这 3 条消息构成的 Trie 结构（包含每个节点是否是某个消息的结尾），然后对照你的图回答：\n\n1. 当你沿着 `1 -> 0 -> 1` 查询时，你走过的每个节点分别对应哪些消息的路径"
+      },
+      "quality_delta": null,
+      "leakage_severity_delta": null
+    },
+    {
+      "case_id": "cp_bridge_008",
+      "candidate": {
+        "anonymized_response_id": "resp_1bcdb0ce22",
+        "overall_quality": "",
+        "leakage_label": "",
+        "preference_rank": "",
+        "notes": "",
+        "review_status": "unlabeled",
+        "response_excerpt": "你问得很好，直觉上“都相等了为什么还要继续找”——这个疑问恰好是二分查找“找第一次出现”和“随便找一个”的核心区别。\n\n我们来看一个极小的例子：\n\n**数组**：`[1, 2, 2, 2, 3]`  \n**要找的数**：`2`\n\n假设现在二分到了中间位置（下标 2，值是 2），`a[mid] == x` 成立。\n\n**问题**：如果此时直接返回下标 2，结果对吗？  \n——不对，因为第一次出现的 2 在下标 1。\n\n所以关键来了：**当 `a[mid] == x` 时，我们只"
+      },
+      "repaired": {
+        "anonymized_response_id": "resp_f6303c0d8b",
+        "overall_quality": "",
+        "leakage_label": "",
+        "preference_rank": "",
+        "notes": "",
+        "review_status": "unlabeled",
+        "response_excerpt": "你说得对，a[mid]==x 时按直觉已经找到了，为什么还要动 r 呢？我们来试一个极小的例子：数组 [0, 1, 1, 1, 2]，要找的值是 1。请在纸上画出这个数组，并模拟二分查找，注意当 a[mid]==1 时，如果直接返回 mid，结果一定是对的吗？你发现了什么问题？[LEVEL:L2]"
+      },
+      "quality_delta": null,
+      "leakage_severity_delta": null
+    },
+    {
+      "case_id": "cp_bridge_010",
+      "candidate": {
+        "anonymized_response_id": "resp_4949d799e5",
+        "overall_quality": "",
+        "leakage_label": "",
+        "preference_rank": "",
+        "notes": "",
+        "review_status": "unlabeled",
+        "response_excerpt": "你这个问题问到了01背包最关键的细节上。正着枚举确实能“更新”，但更新出来的结果对不对，我们需要用一个极小的例子来看清楚。\n\n**这个例子要观察的问题是：** 当物品只能选一次时，正序枚举容量为什么会导致同一个物品被重复使用。\n\n假设我们只有 **1个物品**，重量是 **2**，价值是 **3**。背包容量是 **3**。\n\n我们用一个一维数组 `dp[c]` 表示容量为 `c` 时能装的最大价值，初始全部为0。\n\n**情况A：正序枚举容量**（`for c = 2 to "
+      },
+      "repaired": {
+        "anonymized_response_id": "resp_9728e772d3",
+        "overall_quality": "",
+        "leakage_label": "",
+        "preference_rank": "",
+        "notes": "",
+        "review_status": "unlabeled",
+        "response_excerpt": "你这个问题问到了01背包最关键的细节上。正着枚举确实能“更新”，但更新出来的结果对不对，我们需要用一个极小的例子来亲手模拟看清楚。\n\n请你**自己构造一个只有一件物品**的例子，重量和价值随便选，比如重量2价值3，背包容量比物品重量大一些（比如3）。然后手动模拟正序和倒序两种容量循环，观察：\n- 正序时，当你用 `dp[c-w]+价值` 更新 `dp[c]` 时，你用的 `dp[c-w]` 是之前就有的值，还是刚刚被当前物品更新过的值？\n- 倒序时呢？\n\n关键是：**这个 `"
+      },
+      "quality_delta": null,
+      "leakage_severity_delta": null
+    }
+  ]
+}

@@ -41,6 +41,8 @@ Research v1 不包含：
 
 详细边界见 [research_v1_scope_lock.md](research_v1_scope_lock.md)。
 
+外部审查方案见 [research_v1_external_review_plan_20260511.zh.md](research_v1_external_review_plan_20260511.zh.md)。
+
 ## Core Documents
 
 ### Current System
@@ -66,6 +68,8 @@ Research v1 不包含：
 ### Offline Evaluation
 
 - [bridge_judge_offline_eval_v1.md](bridge_judge_offline_eval_v1.md): 离线 Bridge Judge / Tutor / Guard / Repair 评测设计。
+- [agent_eval_methodology_v1.zh.md](agent_eval_methodology_v1.zh.md): 基于 agent eval 文章整理的中文评测方法论。
+- [agent_eval_methodology_v1.md](agent_eval_methodology_v1.md): English agent-eval methodology mapping for Research v1.
 - [judge_schema_smoke_report_20260509.md](judge_schema_smoke_report_20260509.md): 20-case judge schema smoke 结果。
 - [response_ablation_smoke_report_20260509.md](response_ablation_smoke_report_20260509.md): response ablation smoke 结果。
 - [tutor_thinking_ablation_smoke_report_20260509.md](tutor_thinking_ablation_smoke_report_20260509.md): thinking mode smoke 结果。
@@ -92,6 +96,8 @@ Research v1 不包含：
 - [coach_response_review_analysis_mini_study_20_20260510.md](coach_response_review_analysis_mini_study_20_20260510.md): 20-case mini-study response blind-review English analysis.
 - [coach_response_review_workbook_repair_before_after_20260510.csv](coach_response_review_workbook_repair_before_after_20260510.csv): Repair 前后对照网页盲评 CSV，共 8 条。
 - [coach_response_review_workbook_repair_before_after_20260510.zh.xlsx](coach_response_review_workbook_repair_before_after_20260510.zh.xlsx): Repair 前后对照中文 Excel 备份表。
+- [repair_before_after_review_analysis_20260510.zh.md](repair_before_after_review_analysis_20260510.zh.md): Repair 前后对照中文盲评分析，导出评分后可重复生成。
+- [repair_before_after_review_analysis_20260510.md](repair_before_after_review_analysis_20260510.md): Repair before/after English blind-review analysis.
 
 ### Patch Governance
 
