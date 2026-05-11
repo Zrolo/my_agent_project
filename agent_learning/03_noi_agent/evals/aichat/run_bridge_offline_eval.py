@@ -37,6 +37,22 @@ JUDGE_SCHEMA_MODES = {
     "compact_contract_judge",
     "retrieval_augmented_compact_judge",
 }
+TUTOR_MODES = {
+    "current_system",
+    "bridge_contract",
+    "bridge_inspired_expert_decision_tutor",
+    "codehelp_codeaid_no_direct_solution_tutor",
+    "single_llm_structured",
+    "dbox_inspired_decomposition_tutor",
+    "socratic_no_answer_tutor",
+}
+STANDALONE_NO_DIAGNOSIS_TUTOR_MODES = {
+    "current_system",
+    "codehelp_codeaid_no_direct_solution_tutor",
+    "dbox_inspired_decomposition_tutor",
+    "bridge_inspired_expert_decision_tutor",
+    "socratic_no_answer_tutor",
+}
 CONTRACT_TURN_TYPES = [
     "diagnosable_learning_turn",
     "insufficient_context",
@@ -281,6 +297,14 @@ def _bridge_contract_message(bridge_result: dict) -> dict:
             "4. 要求学生把观察抽象成一句可迁移规则。",
         ]
     )
+    bridge_first_policy = "\n".join(
+        [
+            "bridge-first, topic-second 控制原则：",
+            "1. 按 missing_bridge.family 控制教学动作，而不是按具体算法名套模板。",
+            "2. 具体算法名只用于理解上下文和选择例子语言，不用于绕过 forbidden_content。",
+            "3. 如果你想使用具体算法例子，必须先确认它服务于当前 bridge family，且不能补完整关键桥。",
+        ]
+    )
     return {
         "role": "assistant",
         "content": "\n".join(
@@ -288,6 +312,7 @@ def _bridge_contract_message(bridge_result: dict) -> dict:
                 "[Offline Bridge Contract - research control, not student text]",
                 json.dumps(contract, ensure_ascii=False, indent=2),
                 "请下一轮回复严格遵守 allowed_help_level 和 help_form，只补半步，不要出现 forbidden_content。",
+                bridge_first_policy,
                 micro_example_policy,
                 "如果学生问的是“为什么/含义/原理”，可以先给一句简短概念解释，再用一个问题引导迁移；不要一次连续抛出多个问题。",
             ]
@@ -369,6 +394,13 @@ def _single_llm_structured_system_prompt() -> str:
             "- max_scaffold_level 只能是 L0、L1、L2、L3。",
             "- leakage_risk 只能是 low、medium、high、unknown。",
             "",
+            "Prompt control policy: bridge-first, topic-second, focus-top-k.",
+            "- 先用 primary_bridge_family 决定教学动作：问状态语义、转移来源、判定方向、依赖顺序、贡献汇总、数据结构操作、正确性不变量、复杂度瓶颈、实现边界或调试证据。",
+            "- algorithm_topic 只作为轻量上下文，帮助你选择例子语言；不要用算法名覆盖 primary_bridge_family 的控制规则。",
+            "- selected_focus_id 只能从 top_k_registered_focus 中选择，用来细化措辞；没有合适候选就写 unknown，不要编造具体算法 focus。",
+            "- 不要试图覆盖所有具体算法，也不要因为 prompt 里出现过 DP、check、LCA 等例子，就把这些例子当作完整算法清单。",
+            "- 具体算法例子只是 regression boundary，不是生成回复的主规则；遇到 KMP、Dijkstra、单调栈、区间 DP、lazy、滚动数组等未列举算法时，也先映射到抽象 bridge family。",
+            "",
             "帮助强度校准：",
             "- L0：只澄清或索取证据，不给实质解题提示。适用于信息不足、没有题面、代码调试但没有代码/错误现象、完整代码/完整题解请求。",
             "- L1：轻提示，只给观察方向、约束追问或让学生表达已有想法。适用于算法名确认、关键桥直接索取、没有实质尝试且泄露风险高的情况。",
@@ -378,6 +410,7 @@ def _single_llm_structured_system_prompt() -> str:
             "",
             "关键桥泄露校准：",
             "- 禁止内容不能包装成假设句或选择题答案。例如不要写“如果 dp 数组的格子代表……”，这等于直接给出状态语义。",
+            "- 不要在微型例子里预填关键操作的一半再让学生补另一半；这仍可能泄露关键桥。应先让学生列出观察对象、影响因素或可行性判断，再让他自己提出关系。",
             "- 状态/表示类卡点：让学生自己说出状态格子应该记什么，可以问“哪些信息会影响后面的选择？”，不要替他定义 dp 含义。",
             "- 判定/check 类卡点：可以给小数据让学生判断可行性，不要直接告诉 true/false 对应哪一侧边界。",
             "- 汇总/贡献类卡点：可以问单条路径上哪些位置会贡献，不要直接给端点/LCA 的完整加减公式。",
@@ -469,6 +502,365 @@ def _call_single_llm_structured_tutor(
     }
 
 
+def _dbox_inspired_decomposition_system_prompt() -> str:
+    return "\n".join(
+        [
+            "你是算法竞赛 AI 辅导研究中的 DBox-inspired decomposition baseline。",
+            "This is a DBox-inspired, single-turn, step-tree-style decomposition tutor, not a reproduction of DBox.",
+            "你的任务是把学生当前的大问题拆成一个更小的当前子步骤，只给 first-level 的分解式脚手架。",
+            "只输出 JSON，不要输出 Markdown 代码块，不要输出额外解释。",
+            "",
+            "输出 schema：",
+            "{",
+            '  "baseline_group": "literature_inspired_decomposition",',
+            '  "decomposition_view": [',
+            '    {"step_id": "s1", "step_name": "short step name", "status": "known_or_not_relevant"},',
+            '    {"step_id": "s2", "step_name": "short step name", "status": "current_stuck_step"},',
+            '    {"step_id": "s3", "step_name": "short step name", "status": "defer"}',
+            "  ],",
+            '  "current_substep": "one small substep the student should complete now",',
+            '  "hint_level": "general_question",',
+            '  "student_visible_response": "自然的学生可见回复，不要包含内部标签或 JSON"',
+            "}",
+            "",
+            "Hard constraints:",
+            "- step-tree-style decomposition: internally form a small step view with known/defer/current-stuck parts.",
+            "- DBox material anchor: original DBox prompts use node signals such as correct/incorrect/missing and can/cannot be further divided; adapt these only into the compact statuses above.",
+            "- DBox hint anchor: use only the spirit of `general_hint`, meaning a question-form general guide.",
+            "- Do not use DBox reveal-like fields in student-visible text: no `detailed_hint`, no `correctStep`, no `correct_code`, no pseudocode.",
+            "- only one current substep: exactly one decomposition_view item must have status current_stuck_step.",
+            "- first-level hint only: use a general hint, guiding question, or decomposition micro-task.",
+            "- no reveal substep: do not reveal the exact missing substep answer.",
+            "- no reveal code: do not provide code, pseudocode, or implementation templates.",
+            "- no full solution / full code.",
+            "- no direct critical bridge completion.",
+            "- no full state definition, full recurrence, full check condition, or full boundary update rule.",
+            "- do not display a complete step tree answer to the student.",
+            "",
+            "学生可见回复要求：",
+            "- 只围绕当前一个子步骤，不要同时问多个问题。",
+            "- 帮学生把当前大问题缩小为一个可回答的小问题。",
+            "- 可以给一个很小的 micro-task 或观察问题，但不要替学生完成关键桥。",
+            "- 要让学生自己补完当前 substep，并说出理由或观察。",
+            "- 如果学生直接要完整代码/完整题解，只做澄清或安全引导，不给实质解法。",
+            "- 不要说你复现了 DBox；这只是单轮 DBox-inspired baseline。",
+        ]
+    )
+
+
+def _validate_dbox_inspired_decomposition_payload(payload: dict) -> dict:
+    if not isinstance(payload, dict):
+        raise ValueError("dbox_inspired_decomposition payload must be an object")
+    if payload.get("baseline_group") != "literature_inspired_decomposition":
+        raise ValueError("baseline_group must be literature_inspired_decomposition")
+    decomposition_view = payload.get("decomposition_view")
+    if not isinstance(decomposition_view, list) or not decomposition_view:
+        raise ValueError("decomposition_view must be a non-empty list")
+    allowed_statuses = {"known_or_not_relevant", "current_stuck_step", "defer"}
+    normalized_view = []
+    current_count = 0
+    for index, item in enumerate(decomposition_view, 1):
+        if not isinstance(item, dict):
+            raise ValueError("each decomposition_view item must be an object")
+        step_id = item.get("step_id")
+        step_name = item.get("step_name")
+        status = item.get("status")
+        if not isinstance(step_id, str) or not step_id.strip():
+            raise ValueError("each decomposition_view item needs a step_id")
+        if not isinstance(step_name, str) or not step_name.strip():
+            raise ValueError("each decomposition_view item needs a step_name")
+        if status not in allowed_statuses:
+            raise ValueError(f"invalid decomposition status at item {index}: {status}")
+        if status == "current_stuck_step":
+            current_count += 1
+        normalized_view.append(
+            {
+                "step_id": step_id.strip(),
+                "step_name": step_name.strip(),
+                "status": status,
+            }
+        )
+    if current_count != 1:
+        raise ValueError("decomposition_view must contain exactly one current_stuck_step")
+    current_substep = payload.get("current_substep")
+    if not isinstance(current_substep, str) or not current_substep.strip():
+        raise ValueError("current_substep must be a non-empty string")
+    if payload.get("hint_level") != "general_question":
+        raise ValueError("hint_level must be general_question")
+    student_response = payload.get("student_visible_response")
+    if not isinstance(student_response, str) or not student_response.strip():
+        raise ValueError("student_visible_response must be a non-empty string")
+    return {
+        "baseline_group": "literature_inspired_decomposition",
+        "decomposition_view": normalized_view,
+        "current_substep": current_substep.strip(),
+        "hint_level": "general_question",
+        "student_visible_response": student_response.strip(),
+    }
+
+
+def _call_dbox_inspired_decomposition_tutor(
+    row: dict,
+    messages: list[dict],
+    bridge_result: dict,
+    chat_model_provider: str | None = None,
+) -> dict:
+    response = _chat_completion_create(
+        system_prompt=_dbox_inspired_decomposition_system_prompt(),
+        messages=messages,
+        provider_id=chat_model_provider,
+    )
+    payload = _validate_dbox_inspired_decomposition_payload(
+        _extract_json_object(response.choices[0].message.content)
+    )
+    student_response = payload["student_visible_response"]
+    return {
+        "baseline_group": "literature_inspired_decomposition",
+        "tutor_mode": "dbox_inspired_decomposition_tutor",
+        "tutor_model_provider": chat_model_provider or "default",
+        "response_text": student_response,
+        "history_text": student_response,
+        "level": "L1",
+        "decomposition_view": payload["decomposition_view"],
+        "current_substep": payload["current_substep"],
+        "hint_level": payload["hint_level"],
+        "dbox_inspired_decomposition_result": payload,
+    }
+
+
+def _codehelp_codeaid_no_direct_solution_system_prompt() -> str:
+    return "\n".join(
+        [
+            "你是算法竞赛 AI 辅导研究中的 CodeHelp / CodeAid inspired no-direct-solution baseline。",
+            "This is a literature-adapted no-direct-solution tutor, not a reproduction of CodeHelp or CodeAid.",
+            "目标：给有帮助、技术上可信、可执行的下一步，但不直接泄露完整解法、完整代码或当前关键中间推理。",
+            "只输出 JSON，不要输出 Markdown 代码块，不要输出额外解释。",
+            "",
+            "输出 schema：",
+            "{",
+            '  "baseline_group": "literature_inspired_guardrail",',
+            '  "student_visible_response": "自然的学生可见回复，不要包含内部标签或 JSON",',
+            '  "self_check": {',
+            '    "reveals_full_solution": false,',
+            '    "reveals_full_code": false,',
+            '    "reveals_critical_bridge": false',
+            "  }",
+            "}",
+            "",
+            "Hard constraints:",
+            "- no-direct-solution: do not provide a complete solution.",
+            "- no full solution.",
+            "- no full code.",
+            "- no direct algorithm confirmation when the student only asks for the algorithm name.",
+            "- do not reveal the critical intermediate reasoning that the student is currently missing.",
+            "- do not complete full state definitions, recurrences, check conditions, boundary update rules, or local code lines.",
+            "- do not ask for exact operations on u/v/LCA, true/false boundary directions, or other answer-bearing slots when that is the missing bridge; ask for an observation from a tiny example instead.",
+            "- provide at most one actionable next step.",
+            "- prefer conceptual guidance, debugging direction, evidence requests, or a small question.",
+            "- if context is insufficient, ask for the missing problem/code/error evidence instead of guessing.",
+        ]
+    )
+
+
+def _socratic_no_answer_system_prompt() -> str:
+    return "\n".join(
+        [
+            "你是算法竞赛 AI 辅导研究中的 Socratic/no-answer literature baseline。",
+            "This is a Socratic no-answer tutor baseline inspired by tutoring-dialogue scaffolding, not a reproduction of MathDial.",
+            "目标：只用一个问题或一个极轻的追问帮助学生继续思考，不直接给答案。",
+            "只输出 JSON，不要输出 Markdown 代码块，不要输出额外解释。",
+            "",
+            "输出 schema：",
+            "{",
+            '  "baseline_group": "literature_inspired_socratic",',
+            '  "question_intent": "what this question is trying to make the student reason about",',
+            '  "student_visible_response": "自然的学生可见回复，只包含一个清晰问题或极轻提示"',
+            "}",
+            "",
+            "Hard constraints:",
+            "- no-answer: do not provide the final answer, formula, algorithm confirmation, code, or complete reasoning step.",
+            "- one question: ask at most one clear, answerable question.",
+            "- do not state the missing bridge; make the student articulate it.",
+            "- no formula-like decomposition: do not state relations such as path = root-path combination, recurrence equations, check direction rules, or contribution formulas.",
+            "- do not mention parent/neighbor of LCA or any equivalent exact compensation node unless the student has already stated it.",
+            "- do not ask for exact operations on u/v/LCA, true/false boundary directions, or other answer-bearing slots when that is the missing bridge; ask for a neutral observation from a tiny example instead.",
+            "- for tree path marking/difference cases, do not pre-fill endpoint marks or ask where to subtract; ask the student to first shade one tiny path and compare which nodes should be counted.",
+            "- for tree path marking/difference cases, do not mention +1/-1, endpoint marks, subtract marks, or any mark location; only ask the student to identify the path nodes and what the final aggregate should count.",
+            "- keep question_intent generic; it must not contain the answer formula, exact forbidden completion, or answer-bearing slot list.",
+            "- do not include multiple-choice answers if one option reveals the critical bridge.",
+            "- if the student asks for full solution/code, ask for current attempt or evidence instead.",
+            "- keep the response short and student-facing; do not output internal labels.",
+        ]
+    )
+
+
+def _validate_socratic_no_answer_payload(payload: dict) -> dict:
+    if not isinstance(payload, dict):
+        raise ValueError("socratic_no_answer payload must be an object")
+    if payload.get("baseline_group") != "literature_inspired_socratic":
+        raise ValueError("baseline_group must be literature_inspired_socratic")
+    question_intent = payload.get("question_intent")
+    if not isinstance(question_intent, str) or not question_intent.strip():
+        raise ValueError("question_intent must be a non-empty string")
+    student_response = payload.get("student_visible_response")
+    if not isinstance(student_response, str) or not student_response.strip():
+        raise ValueError("student_visible_response must be a non-empty string")
+    return {
+        "baseline_group": "literature_inspired_socratic",
+        "question_intent": question_intent.strip(),
+        "student_visible_response": student_response.strip(),
+    }
+
+
+def _call_socratic_no_answer_tutor(
+    row: dict,
+    messages: list[dict],
+    bridge_result: dict,
+    chat_model_provider: str | None = None,
+) -> dict:
+    response = _chat_completion_create(
+        system_prompt=_socratic_no_answer_system_prompt(),
+        messages=messages,
+        provider_id=chat_model_provider,
+    )
+    payload = _validate_socratic_no_answer_payload(_extract_json_object(response.choices[0].message.content))
+    student_response = payload["student_visible_response"]
+    return {
+        "baseline_group": "literature_inspired_socratic",
+        "tutor_mode": "socratic_no_answer_tutor",
+        "tutor_model_provider": chat_model_provider or "default",
+        "response_text": student_response,
+        "history_text": student_response,
+        "level": "L1",
+        "socratic_no_answer_result": payload,
+    }
+
+
+def _validate_codehelp_codeaid_payload(payload: dict) -> dict:
+    if not isinstance(payload, dict):
+        raise ValueError("codehelp_codeaid payload must be an object")
+    if payload.get("baseline_group") != "literature_inspired_guardrail":
+        raise ValueError("baseline_group must be literature_inspired_guardrail")
+    student_response = payload.get("student_visible_response")
+    if not isinstance(student_response, str) or not student_response.strip():
+        raise ValueError("student_visible_response must be a non-empty string")
+    self_check = payload.get("self_check")
+    if not isinstance(self_check, dict):
+        raise ValueError("self_check must be an object")
+    normalized_check = {
+        "reveals_full_solution": bool(self_check.get("reveals_full_solution", False)),
+        "reveals_full_code": bool(self_check.get("reveals_full_code", False)),
+        "reveals_critical_bridge": bool(self_check.get("reveals_critical_bridge", False)),
+    }
+    return {
+        "baseline_group": "literature_inspired_guardrail",
+        "student_visible_response": student_response.strip(),
+        "self_check": normalized_check,
+    }
+
+
+def _call_codehelp_codeaid_no_direct_solution_tutor(
+    row: dict,
+    messages: list[dict],
+    bridge_result: dict,
+    chat_model_provider: str | None = None,
+) -> dict:
+    response = _chat_completion_create(
+        system_prompt=_codehelp_codeaid_no_direct_solution_system_prompt(),
+        messages=messages,
+        provider_id=chat_model_provider,
+    )
+    payload = _validate_codehelp_codeaid_payload(_extract_json_object(response.choices[0].message.content))
+    student_response = payload["student_visible_response"]
+    return {
+        "baseline_group": "literature_inspired_guardrail",
+        "tutor_mode": "codehelp_codeaid_no_direct_solution_tutor",
+        "tutor_model_provider": chat_model_provider or "default",
+        "response_text": student_response,
+        "history_text": student_response,
+        "level": "L1",
+        "self_check": payload["self_check"],
+        "codehelp_codeaid_result": payload,
+    }
+
+
+def _bridge_inspired_expert_decision_system_prompt() -> str:
+    return "\n".join(
+        [
+            "你是算法竞赛 AI 辅导研究中的 Bridge-inspired expert-decision baseline。",
+            "This is inspired by expert decision injection, not a CP-specific Bridge Contract and not a reproduction of the Bridge paper.",
+            "你需要先内部显式化三个通用教学决策，再生成学生可见回复。",
+            "只输出 JSON，不要输出 Markdown 代码块，不要输出额外解释。",
+            "",
+            "输出 schema：",
+            "{",
+            '  "baseline_group": "literature_inspired_expert_decision",',
+            '  "student_error_or_gap": "what the student appears to be missing or misunderstanding",',
+            '  "remediation_strategy": "generic tutoring strategy, not a CP bridge label",',
+            '  "teaching_intention": "what the next response is trying to accomplish",',
+            '  "student_visible_response": "自然的学生可见回复，不要包含内部标签或 JSON"',
+            "}",
+            "",
+            "Hard constraints:",
+            "- keep the decision fields generic: student_error_or_gap, remediation_strategy, teaching_intention.",
+            "- do not output missing_bridge, bridge_family, registered_focus_id, or forbidden_content as if this were our Bridge Contract.",
+            "- ask at most one focused question or give one next action.",
+            "- do not give a full solution or full code.",
+            "- do not directly complete the student's current critical reasoning step.",
+            "- no formula-like decomposition: do not state relations such as path = root-path combination, recurrence equations, check direction rules, or contribution formulas.",
+            "- do not mention parent/neighbor of LCA or any equivalent exact compensation node unless the student has already stated it.",
+            "- keep analogies at the observation level; do not turn an analogy into the missing formula.",
+            "- if the student asks for algorithm confirmation, avoid direct confirmation and ask for a constraint/attempt signal.",
+        ]
+    )
+
+
+def _validate_bridge_inspired_expert_decision_payload(payload: dict) -> dict:
+    if not isinstance(payload, dict):
+        raise ValueError("bridge_inspired_expert_decision payload must be an object")
+    if payload.get("baseline_group") != "literature_inspired_expert_decision":
+        raise ValueError("baseline_group must be literature_inspired_expert_decision")
+    required = [
+        "student_error_or_gap",
+        "remediation_strategy",
+        "teaching_intention",
+        "student_visible_response",
+    ]
+    normalized = {"baseline_group": "literature_inspired_expert_decision"}
+    for key in required:
+        value = payload.get(key)
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"{key} must be a non-empty string")
+        normalized[key] = value.strip()
+    return normalized
+
+
+def _call_bridge_inspired_expert_decision_tutor(
+    row: dict,
+    messages: list[dict],
+    bridge_result: dict,
+    chat_model_provider: str | None = None,
+) -> dict:
+    response = _chat_completion_create(
+        system_prompt=_bridge_inspired_expert_decision_system_prompt(),
+        messages=messages,
+        provider_id=chat_model_provider,
+    )
+    payload = _validate_bridge_inspired_expert_decision_payload(
+        _extract_json_object(response.choices[0].message.content)
+    )
+    student_response = payload["student_visible_response"]
+    return {
+        "baseline_group": "literature_inspired_expert_decision",
+        "tutor_mode": "bridge_inspired_expert_decision_tutor",
+        "tutor_model_provider": chat_model_provider or "default",
+        "response_text": student_response,
+        "history_text": student_response,
+        "level": "L1",
+        "expert_decision_result": payload,
+    }
+
+
 def _make_tutor_fn(tutor_mode: str, chat_model_provider: str | None) -> TutorFn:
     if tutor_mode == "bridge_contract":
         return lambda row, messages, bridge_result: _call_bridge_contract_tutor(
@@ -479,6 +871,34 @@ def _make_tutor_fn(tutor_mode: str, chat_model_provider: str | None) -> TutorFn:
         )
     if tutor_mode == "single_llm_structured":
         return lambda row, messages, bridge_result: _call_single_llm_structured_tutor(
+            row,
+            messages,
+            bridge_result,
+            chat_model_provider=chat_model_provider,
+        )
+    if tutor_mode == "dbox_inspired_decomposition_tutor":
+        return lambda row, messages, bridge_result: _call_dbox_inspired_decomposition_tutor(
+            row,
+            messages,
+            bridge_result,
+            chat_model_provider=chat_model_provider,
+        )
+    if tutor_mode == "codehelp_codeaid_no_direct_solution_tutor":
+        return lambda row, messages, bridge_result: _call_codehelp_codeaid_no_direct_solution_tutor(
+            row,
+            messages,
+            bridge_result,
+            chat_model_provider=chat_model_provider,
+        )
+    if tutor_mode == "socratic_no_answer_tutor":
+        return lambda row, messages, bridge_result: _call_socratic_no_answer_tutor(
+            row,
+            messages,
+            bridge_result,
+            chat_model_provider=chat_model_provider,
+        )
+    if tutor_mode == "bridge_inspired_expert_decision_tutor":
+        return lambda row, messages, bridge_result: _call_bridge_inspired_expert_decision_tutor(
             row,
             messages,
             bridge_result,
@@ -863,6 +1283,7 @@ def _run_one_bridge_offline_case(
             tutor_retries += 1
     _record_latency(latency_ms, "tutor_latency_ms", stage_start)
     result["tutor_response"] = tutor_result
+    result["baseline_group"] = tutor_result.get("baseline_group", tutor_mode)
     candidate_response = tutor_result.get("response_text", "")
     result["candidate_response_text"] = candidate_response
     result["final_response_text"] = candidate_response
@@ -877,6 +1298,19 @@ def _run_one_bridge_offline_case(
         }
         bridge_result = _bridge_result_from_runtime_contract(contract)
         result["bridge_judge_result"] = {}
+    if tutor_mode == "dbox_inspired_decomposition_tutor":
+        result["decomposition_view"] = tutor_result.get("decomposition_view") or []
+        result["current_substep"] = tutor_result.get("current_substep") or ""
+        result["hint_level"] = tutor_result.get("hint_level") or ""
+        result["dbox_inspired_decomposition_result"] = (
+            tutor_result.get("dbox_inspired_decomposition_result") or {}
+        )
+    if tutor_mode == "codehelp_codeaid_no_direct_solution_tutor":
+        result["codehelp_codeaid_result"] = tutor_result.get("codehelp_codeaid_result") or {}
+    if tutor_mode == "socratic_no_answer_tutor":
+        result["socratic_no_answer_result"] = tutor_result.get("socratic_no_answer_result") or {}
+    if tutor_mode == "bridge_inspired_expert_decision_tutor":
+        result["expert_decision_result"] = tutor_result.get("expert_decision_result") or {}
 
     if pipeline_mode in {"tutor_only", "tutor_only_no_diagnosis"}:
         return _finish_case_result(result, latency_ms=latency_ms, stage_errors=stage_errors, total_start=total_start)
@@ -1001,14 +1435,15 @@ def run_bridge_offline_eval_rows(
 ) -> list[dict]:
     if guard_mode not in {"predicted", "oracle"}:
         raise ValueError(f"Unsupported guard_mode: {guard_mode}")
-    if tutor_mode not in {"current_system", "bridge_contract", "single_llm_structured"}:
+    if tutor_mode not in TUTOR_MODES:
         raise ValueError(f"Unsupported tutor_mode: {tutor_mode}")
     if tutor_mode == "single_llm_structured" and pipeline_mode == "diagnosis_only":
         raise ValueError("single_llm_structured requires a tutor pipeline, not diagnosis_only")
     if pipeline_mode not in PIPELINE_MODES:
         raise ValueError(f"Unsupported pipeline_mode: {pipeline_mode}")
-    if pipeline_mode == "tutor_only_no_diagnosis" and tutor_mode != "current_system":
-        raise ValueError("tutor_only_no_diagnosis requires current_system tutor_mode")
+    if pipeline_mode == "tutor_only_no_diagnosis" and tutor_mode not in STANDALONE_NO_DIAGNOSIS_TUTOR_MODES:
+        allowed = ", ".join(sorted(STANDALONE_NO_DIAGNOSIS_TUTOR_MODES))
+        raise ValueError(f"tutor_only_no_diagnosis requires one of: {allowed}")
     if judge_schema_mode not in JUDGE_SCHEMA_MODES:
         raise ValueError(f"Unsupported judge_schema_mode: {judge_schema_mode}")
     if max_retries < 0:
@@ -1111,7 +1546,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     )
     parser.add_argument(
         "--tutor-mode",
-        choices=["current_system", "bridge_contract", "single_llm_structured"],
+        choices=sorted(TUTOR_MODES),
         default="current_system",
         help="Tutor generation mode for offline comparison.",
     )

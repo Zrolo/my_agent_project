@@ -19,16 +19,28 @@ The goal is to test whether a schema-based Bridge Judge can outperform the curre
 - Do not rely on student-facing logs as the only evidence.
 - Do not export full chat content by default.
 - Do not claim multi-LLM is better before comparing it to single-LLM structured prompting.
+- Do not treat `current_system` as the only research baseline. It is a deployment baseline; main experiments should include strong prompt-only and literature-inspired tutoring baselines.
 
 ## Systems to Compare
 
 | System | Description | Purpose |
 | --- | --- | --- |
-| `rule_matching_current` | Current keyword/rule route logic. | Measures current project baseline. |
+| `rule_matching_current` | Current keyword/rule route logic. | Measures current product/deployment baseline. |
+| `vanilla_llm_tutor` | Minimal competitive-programming tutor prompt. | Measures the simple prompt floor. |
 | `single_llm_structured` | One LLM outputs bridge schema and student reply in one call. | Tests whether one model is enough. |
+| `enhanced_prompt_only` | Strong tutoring prompt without concrete Bridge Contract. | Isolates prompt wording effect. |
+| `socratic_no_answer_tutor` | Literature-inspired Socratic/no-answer tutor. | Tests whether general pedagogical prompting is enough. |
+| `codehelp_codeaid_no_direct_solution_tutor` | Literature-inspired programming guardrail tutor. | Tests whether ordinary no-direct-solution prompting is enough. |
+| `dbox_inspired_decomposition_tutor` | DBox-inspired single-turn step-tree-style decomposition tutor. | Tests whether decomposition scaffolding is enough without claiming DBox reproduction. |
+| `dbox_inspired_decomposition_tutor + guard` | DBox-inspired generation plus the same Leakage Guard used by method variants. | Tests Guard fairly across generator families. |
+| `bridge_inspired_expert_decision_tutor` | Literature-inspired expert-decision tutor. | Tests an internal student issue / remediation / intention prompt. |
 | `bridge_judge_only` | Lightweight LLM outputs only bridge schema. | Tests bridge identification quality. |
 | `bridge_judge_plus_tutor` | Bridge Judge output conditions the tutor reply. | Tests controlled scaffolding. |
 | `bridge_judge_plus_tutor_plus_guard` | Adds pre-send leakage guard. | Tests leakage reduction. |
+
+Baseline definitions are governed by [baseline_protocol_v1.zh.md](baseline_protocol_v1.zh.md) and [baseline_protocol_v1.md](baseline_protocol_v1.md). Literature-inspired baselines do not claim direct reproduction of prior systems unless the public code, data, and experimental settings are actually matched.
+
+The DBox boundary is governed by [dbox_reproduction_gap_v1.zh.md](dbox_reproduction_gap_v1.zh.md) and [dbox_reproduction_gap_v1.md](dbox_reproduction_gap_v1.md): Research v1 implements a DBox-inspired decomposition baseline, not a DBox reproduction.
 
 ## Bridge Judge Input
 
@@ -209,6 +221,27 @@ python3 -m evals.aichat.run_bridge_offline_eval \
   --limit 3
 ```
 
+Use `--tutor-mode dbox_inspired_decomposition_tutor` for the DBox-inspired literature baseline. This mode asks the tutor LLM to internally emit a single-turn step-tree-style decomposition object and a student-visible response. It is not a DBox reproduction. The prompt allows only first-level decomposition guidance: one current substep, a general guiding question or micro-task, and no reveal substep/code. For a fair safety comparison, include both:
+
+```text
+dbox_inspired_decomposition_tutor
+dbox_inspired_decomposition_tutor + guard
+```
+
+Example:
+
+```bash
+python3 -m evals.aichat.run_bridge_offline_eval \
+  --input-jsonl docs/research/bridgebench_cp_seed_v2_gold_20.jsonl \
+  --output-jsonl evals/aichat/ad_hoc_runs/dbox_inspired_smoke.jsonl \
+  --tutor-mode dbox_inspired_decomposition_tutor \
+  --pipeline-mode tutor_only_no_diagnosis \
+  --chat-model-provider deepseek_flash \
+  --limit 3
+```
+
+Use `--tutor-mode socratic_no_answer_tutor` for the literature-inspired Socratic/no-answer baseline. Use `--tutor-mode codehelp_codeaid_no_direct_solution_tutor` for the literature-inspired programming guardrail baseline. It gives one helpful next step without full solution/code or direct critical-bridge completion. Use `--tutor-mode bridge_inspired_expert_decision_tutor` for the literature-inspired expert-decision baseline, which internally emits `student_error_or_gap`, `remediation_strategy`, and `teaching_intention` before the student-facing response. These are standalone literature-adapted baselines, so run their clean latency/quality condition with `--pipeline-mode tutor_only_no_diagnosis`; add `tutor_plus_guard` only when testing whether the same Guard helps non-Bridge generators.
+
 Use `--guard-mode predicted` for the fair default experiment. In this mode Leakage Judge receives only the forbidden content predicted by Bridge Judge. Use `--guard-mode oracle` only as an upper-bound experiment; oracle mode may add `gold_forbidden_completion` from the seed row to the guard input and is not comparable to runtime behavior.
 
 Use `--pipeline-mode` to isolate ablations:
@@ -216,7 +249,7 @@ Use `--pipeline-mode` to isolate ablations:
 | Mode | Stages run | Primary use |
 | --- | --- | --- |
 | `diagnosis_only` | Bridge Judge only | Bridge diagnosis accuracy. |
-| `tutor_only_no_diagnosis` | Tutor only, no Bridge Judge and no candidate retrieval | Fair `current_system` response/latency baseline. Valid only with `--tutor-mode current_system`. |
+| `tutor_only_no_diagnosis` | Tutor only, no Bridge Judge and no candidate retrieval | Fair standalone response/latency baseline. Valid with `current_system`, `socratic_no_answer_tutor`, `codehelp_codeaid_no_direct_solution_tutor`, `dbox_inspired_decomposition_tutor`, and `bridge_inspired_expert_decision_tutor`. |
 | `tutor_only` | Bridge Judge + tutor | Tutor quality without output guard. |
 | `tutor_plus_guard` | Bridge Judge + tutor + Leakage Judge | Leakage detection without repair. |
 | `tutor_plus_guard_plus_repair` | Bridge Judge + tutor + Leakage Judge + Repair | Full offline safety pipeline. |
@@ -251,6 +284,7 @@ Each output row keeps the seed gold labels and appends:
 
 - `bridge_judge_result`
 - `tutor_response`
+- `baseline_group`, the high-level baseline family for grouping response-review results
 - `leakage_judge_result`
 - `repair_result` when the Leakage Judge requests `rewrite` or `block`
 - `candidate_response_text`, the original tutor reply before guard or repair
@@ -259,6 +293,10 @@ Each output row keeps the seed gold labels and appends:
 - `repair_applied` and `blocked`
 - `guard_contract`, including `guard_mode` and the actual forbidden content passed to Leakage Judge
 - `runtime_bridge_contract` when `judge_schema_mode` is compact or retrieval-augmented compact
+- `decomposition_view`, `current_substep`, and `hint_level` when `tutor_mode=dbox_inspired_decomposition_tutor`
+- `socratic_no_answer_result` when `tutor_mode=socratic_no_answer_tutor`
+- `codehelp_codeaid_result` when `tutor_mode=codehelp_codeaid_no_direct_solution_tutor`
+- `expert_decision_result` when `tutor_mode=bridge_inspired_expert_decision_tutor`
 - `candidate_retrieval` when `judge_schema_mode=retrieval_augmented_compact_judge`
 - `prompt_budget_estimate`, a lightweight token estimate for comparing prompt load
 - `latency_ms`, including Bridge Judge / tutor / Leakage Judge / repair / total latency

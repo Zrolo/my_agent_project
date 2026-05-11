@@ -19,6 +19,27 @@ This log records slow-variable changes to prompts, rubrics, registries, routers,
 | Repair Generator prompt | `repair_prompt_v1.0-dev` | in dev after micro-task guard patch |
 | Deterministic fallback policy text | `fallback_policy_v1.0-dev` | pending freeze |
 
+## patch_20260511_bridge_first_topic_second
+
+- Date: 2026-05-11
+- Affected layer: offline tutor prompts / Bridge Contract control message
+- Failure/risk pattern:
+  - Recent DBox/Socratic/Bridge-inspired smoke tests showed that prompt examples around tree path difference, DP state, and binary-search check can become over-specific regression hints.
+  - The project owner raised the broader concern that algorithm-specific prompt coverage can never be exhaustive and may overfit to algorithms already listed in the prompt.
+- Change:
+  - `single_llm_structured` now explicitly follows `bridge-first, topic-second, focus-top-k`.
+  - The Bridge Contract control message now says to control teaching actions by `missing_bridge.family`, while concrete algorithm names only help choose context and example language.
+  - Concrete examples such as DP/check/LCA are documented as regression boundaries, not as an exhaustive algorithm prompt list.
+- Regression checks:
+  - `test_bridge_offline_eval_runner_unit.py::BridgeOfflineEvalRunnerTests.test_single_llm_structured_prompt_is_bridge_first_topic_second`
+  - `test_bridge_offline_eval_runner_unit.py::BridgeOfflineEvalRunnerTests.test_bridge_contract_message_is_bridge_first_not_algorithm_specific`
+- Verification:
+  - `test_bridge_offline_eval_runner_unit.py` passed after the prompt assertions were added.
+  - 3-case `single_llm_structured` smoke emitted valid rows with `stage_errors={}`.
+  - The smoke still showed over-complete micro-examples on `cp_bridge_001` and `cp_bridge_002`; therefore this patch is a design-principle cleanup, not evidence that prompt-only control is sufficient.
+- Human approval:
+  - Pending project-owner review before prompt freeze.
+
 ## patch_20260510_repair_micro_task_guard
 
 - Date: 2026-05-10

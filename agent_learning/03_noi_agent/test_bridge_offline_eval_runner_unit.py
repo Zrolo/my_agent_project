@@ -316,7 +316,7 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
         self.assertEqual(1, result["llm_call_count"])
 
     def test_tutor_only_no_diagnosis_is_invalid_for_bridge_contract(self):
-        with self.assertRaisesRegex(ValueError, "requires current_system"):
+        with self.assertRaisesRegex(ValueError, "requires one of"):
             run_bridge_offline_eval.run_bridge_offline_eval_rows(
                 [{"id": "case_invalid", "student_message": "我不会。"}],
                 tutor_mode="bridge_contract",
@@ -937,6 +937,37 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
         self.assertIn("如果 dp 数组的格子代表", system_prompt)
         self.assertIn("让学生自己说出状态格子应该记什么", system_prompt)
         self.assertIn("self_check 必须标为 medium 或 high", system_prompt)
+
+    def test_single_llm_structured_prompt_is_bridge_first_topic_second(self):
+        system_prompt = run_bridge_offline_eval._single_llm_structured_system_prompt()
+
+        self.assertIn("bridge-first, topic-second, focus-top-k", system_prompt)
+        self.assertIn("先用 primary_bridge_family 决定教学动作", system_prompt)
+        self.assertIn("algorithm_topic 只作为轻量上下文", system_prompt)
+        self.assertIn("不要试图覆盖所有具体算法", system_prompt)
+        self.assertIn("具体算法例子只是 regression boundary", system_prompt)
+        self.assertIn("不要在微型例子里预填关键操作的一半", system_prompt)
+        self.assertIn("先让学生列出观察对象、影响因素或可行性判断", system_prompt)
+
+    def test_bridge_contract_message_is_bridge_first_not_algorithm_specific(self):
+        message = run_bridge_offline_eval._bridge_contract_message(
+            {
+                "missing_bridge": {
+                    "family": "aggregation_contribution_bridge",
+                    "subtype": "aggregation.tree_path_difference_marking",
+                    "known_focus": "tree_path_difference",
+                    "description": "路径贡献如何汇总。",
+                },
+                "allowed_help_level": "L2",
+                "help_forms": ["micro_example"],
+                "forbidden_content": ["不要直接给完整端点/LCA 公式。"],
+                "leakage_risk": "high",
+            }
+        )
+
+        self.assertIn("bridge-first, topic-second", message["content"])
+        self.assertIn("按 missing_bridge.family 控制教学动作", message["content"])
+        self.assertIn("具体算法名只用于理解上下文", message["content"])
 
     def test_stage_latency_and_stage_errors_are_recorded(self):
         rows = [{"id": "case_latency", "student_message": "我不会。"}]

@@ -25,7 +25,7 @@ Research v1 包含：
 - critical bridge leakage 定义与评测；
 - 教练 turn-level 标注、双标与裁决流程；
 - compact runtime bridge contract；
-- current_system、single_llm_structured、bridge_contract、guard、repair 的离线消融；
+- current_system deployment baseline、strong prompt-only baseline、literature-inspired baseline、bridge_contract、guard、repair 的离线消融；
 - response blind review；
 - latency、LLM calls、stage errors 等产品可行性指标。
 
@@ -50,6 +50,14 @@ Research v1 不包含：
 - [paper_scope_v2.zh.md](paper_scope_v2.zh.md): 当前论文主线、研究问题、实验矩阵和不应声称的内容。
 - [claims_and_evidence_matrix_v1.zh.md](claims_and_evidence_matrix_v1.zh.md): 每个论文 claim 对应的当前证据、缺口和下一步实验。
 - [implementation_status_matrix_20260511.zh.md](implementation_status_matrix_20260511.zh.md): 当前线上、离线、shadow/proposed 和未实现模块的状态矩阵。
+- [baseline_protocol_v1.zh.md](baseline_protocol_v1.zh.md): 中文 baseline protocol，定义 deployment baseline、强 prompt baseline、文献启发 baseline、Bridge Contract 方法组和 shuffled/oracle 负控。
+- [baseline_protocol_v1.md](baseline_protocol_v1.md): English baseline protocol.
+- [baseline_strategy_v1.zh.md](baseline_strategy_v1.zh.md): 中文 baseline strategy，说明为什么 `current_system` 不能作为唯一科研 baseline，以及强 baseline 胜出时论文结论如何保持稳健。
+- [baseline_strategy_v1.md](baseline_strategy_v1.md): English baseline strategy.
+- [dbox_reproduction_gap_v1.zh.md](dbox_reproduction_gap_v1.zh.md): 中文 DBox-inspired baseline 边界说明，明确当前实现不是 DBox reproduction。
+- [dbox_reproduction_gap_v1.md](dbox_reproduction_gap_v1.md): English DBox-inspired baseline boundary note.
+- [dbox_official_materials_review_v1.zh.md](dbox_official_materials_review_v1.zh.md): 中文 DBox 官方材料包 review，记录 prompts/source 对 DBox-inspired baseline 的影响。
+- [dbox_official_materials_review_v1.md](dbox_official_materials_review_v1.md): English review of the official DBox supplementary package.
 
 ### Current System
 
@@ -98,6 +106,12 @@ Research v1 不包含：
 - [fair_mini_study_20_paired_analysis_20260511.md](fair_mini_study_20_paired_analysis_20260511.md): English paired analysis for the fair 20-case blind review.
 - [prompt_controlled_ablation_smoke_report_20260511.zh.md](prompt_controlled_ablation_smoke_report_20260511.zh.md): prompt-controlled ablation 中文 smoke 报告，用于区分 prompt effect、diagnosis effect 和 contract validity。
 - [prompt_controlled_ablation_smoke_report_20260511.md](prompt_controlled_ablation_smoke_report_20260511.md): English prompt-controlled ablation smoke report.
+- [prompt_controlled_ablation_blind_review_20260511.zh.md](prompt_controlled_ablation_blind_review_20260511.zh.md): prompt-controlled ablation 3-case 中文盲评分析。当前 pilot 显示强 prompt wording 本身贡献明显，同时 predicted contract 明显好于 shuffled contract。
+- [prompt_controlled_ablation_blind_review_20260511.md](prompt_controlled_ablation_blind_review_20260511.md): English blind-review analysis for the 3-case prompt-controlled ablation.
+- [bridge_first_prompt_sanity_check_20260511.zh.md](bridge_first_prompt_sanity_check_20260511.zh.md): bridge-first / topic-second / focus-top-k prompt 原则的 3-case dev sanity check。
+- [bridge_first_prompt_sanity_check_20260511.md](bridge_first_prompt_sanity_check_20260511.md): English bridge-first prompt sanity check.
+- [literature_baseline_smoke1_report_20260511.zh.md](literature_baseline_smoke1_report_20260511.zh.md): 1-case 中文 smoke，检查 DBox-inspired、CodeHelp/CodeAid-style 和 Bridge-inspired baseline 的真实输出 schema 与早期泄露风险。
+- [literature_baseline_smoke1_report_20260511.md](literature_baseline_smoke1_report_20260511.md): English 1-case smoke report for literature baselines.
 - [mini_study_20_report_20260510.zh.md](mini_study_20_report_20260510.zh.md): 20 条 seed mini-study 中文初步报告。
 - [mini_study_20_report_20260510.md](mini_study_20_report_20260510.md): 20-seed mini-study preliminary English report.
 - [hard_gate_overfallback_rerun_20260510.zh.md](hard_gate_overfallback_rerun_20260510.zh.md): hard gate 过度兜底修复后的中文定点复测报告。
@@ -127,6 +141,7 @@ Research v1 不包含：
 - [coach_response_review_workbook_repair_stress_v1_20260511.key.csv](coach_response_review_workbook_repair_stress_v1_20260511.key.csv): Repair stress v1 before/after 匿名 key。
 - [coach_response_review_workbook_prompt_controlled_ablation_smoke3_20260511.zh.xlsx](coach_response_review_workbook_prompt_controlled_ablation_smoke3_20260511.zh.xlsx): prompt-controlled ablation 3-case 中文盲评表，共 15 条匿名回复。
 - [coach_response_review_workbook_prompt_controlled_ablation_smoke3_20260511.key.csv](coach_response_review_workbook_prompt_controlled_ablation_smoke3_20260511.key.csv): prompt-controlled ablation 3-case 匿名 key。
+- [coach_response_review_labels_prompt_controlled_ablation_smoke3_20260511.jsonl](coach_response_review_labels_prompt_controlled_ablation_smoke3_20260511.jsonl): prompt-controlled ablation 3-case 盲评标签 JSONL，已映射到匿名系统条件。
 - [coach_response_review_workbook_fair_mini_study_20_20260511.zh.xlsx](coach_response_review_workbook_fair_mini_study_20_20260511.zh.xlsx): 7-system fair 20-case mini-study 的中文盲评表，共 140 条匿名回复。
 
 ### Patch Governance
@@ -151,6 +166,12 @@ Research v1 不包含：
 Run the same seed set across:
 
 - `current_system`
+- `enhanced_prompt_only`
+- `socratic_no_answer_tutor`
+- `codehelp_codeaid_no_direct_solution_tutor`
+- `dbox_inspired_decomposition_tutor`
+- `dbox_inspired_decomposition_tutor + guard`
+- `bridge_inspired_expert_decision_tutor`
 - `single_llm_structured`
 - `bridge_contract`
 - `bridge_contract_plus_guard`
@@ -204,10 +225,10 @@ Do not patch prompts from one anecdotal case. A patch requires:
 Immediate next steps:
 
 1. Finish Research v1 cleanup and path hygiene.
-2. Run a smoke check for the newly added `single_llm_structured` baseline.
-3. Run a 20-case mini-study across current_system / single_llm_structured / bridge_contract / guard / repair.
-4. Export Chinese and English reports for the mini-study.
-5. Expand to 50 coach-labeled seed cases only after the 20-case pipeline is stable.
+2. Expand the prompt-controlled ablation from 3 cases to 10-20 cases to separate prompt wording effects from concrete Bridge Contract effects.
+3. Finish Repair stress before/after coach review and summarize quality-vs-leakage trade-offs.
+4. Build the 50-case held-out set only after prompt/rubric versions are frozen on the dev/regression set.
+5. Run partial double annotation and judge calibration before using any result as a headline paper claim.
 
 ## Reporting Rule
 

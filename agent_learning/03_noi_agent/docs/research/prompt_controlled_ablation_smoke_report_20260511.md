@@ -31,6 +31,8 @@ Interpretation logic:
 - Output JSONL: [prompt_controlled_ablation_smoke3_20260511.jsonl](../../evals/aichat/ad_hoc_runs/prompt_controlled_ablation_smoke3_20260511.jsonl)
 - Blind review workbook: [coach_response_review_workbook_prompt_controlled_ablation_smoke3_20260511.zh.xlsx](coach_response_review_workbook_prompt_controlled_ablation_smoke3_20260511.zh.xlsx)
 - Anonymous key: [coach_response_review_workbook_prompt_controlled_ablation_smoke3_20260511.key.csv](coach_response_review_workbook_prompt_controlled_ablation_smoke3_20260511.key.csv)
+- Blind review labels: [coach_response_review_labels_prompt_controlled_ablation_smoke3_20260511.jsonl](coach_response_review_labels_prompt_controlled_ablation_smoke3_20260511.jsonl)
+- Blind review analysis: [prompt_controlled_ablation_blind_review_20260511.md](prompt_controlled_ablation_blind_review_20260511.md)
 
 ## Run Command
 
@@ -70,12 +72,12 @@ Therefore, the next step is prompt-controlled blind review, not a stronger archi
 
 ## Next Steps
 
-1. Have the coach review `coach_response_review_workbook_prompt_controlled_ablation_smoke3_20260511.zh.xlsx`.
-2. If the 3-case review separates variants, scale to 10-20 cases.
+1. The 3-case blind review is complete. It suggests that `enhanced_prompt_only` is already strong, so prompt wording likely explains a substantial part of the observed quality gain; however, `bridge_contract_predicted` outperforms `bridge_contract_shuffled`, so concrete contract content still appears meaningful.
+2. Scale the same setup to 10-20 cases with the same anonymized blind-review flow.
 3. Report three effects:
    - prompt effect: `enhanced_prompt_only - single_llm_structured`
    - predicted diagnosis effect: `bridge_contract_predicted - enhanced_prompt_only`
-   - contract validity effect: `bridge_contract_oracle - bridge_contract_shuffled`
+   - contract validity effect: `bridge_contract_predicted - bridge_contract_shuffled`
+   - oracle upper-bound sanity check: `bridge_contract_oracle - bridge_contract_predicted`
 4. If shuffled contracts still score highly, revise Bridge Contract prompting so that it relies more strongly on the specific missing bridge rather than generic tutoring style.
 5. In the paper, state that current Bridge Contract gains may mix prompt wording, diagnosis information, and modular decomposition; this ablation is needed to separate them.
-

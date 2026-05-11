@@ -14,7 +14,7 @@ CP-MissingBridgeBench 是一篇算法竞赛 LLM 辅导的 AI+教育评测框架�
 我们提出 missing bridge 作为算法竞赛辅导中的逐轮卡点表示；
 我们提出 critical bridge leakage 作为传统答案泄露之外的教学失败类型；
 我们构建 coach-reference-based offline evaluation workflow；
-我们公平比较 current AIChat、strong single-LLM baseline、Bridge Contract、Guard、Repair 在质量、泄露和成本上的权衡。
+我们公平比较 current AIChat deployment baseline、strong prompt-only baseline、文献启发 tutoring baseline、Bridge Contract、Guard、Repair 在质量、泄露和成本上的权衡。
 ```
 
 ## 四条范围锁
@@ -85,17 +85,20 @@ Bridge Contract / Guard / Repair 是否在 strong single-LLM baseline 之外提�
 
 要回答的问题：
 
-- strong `single_llm_structured` baseline 是否已经足够强？
+- strong prompt-only baseline 是否已经足够强？
+- 文献启发 baseline 是否已经接近或超过 Bridge Contract？
 - Bridge Contract 是否提升脚手架贴合度或可解释控制？
+- Bridge Contract 的收益能否和通用强教学 prompt wording 的收益区分开？
 - Guard 是否降低 critical bridge leakage？
 - Repair 是否降低泄露且不明显损害教学质量？
 - risk-triggered routing 是否在接近 full multi-judge 安全性的同时降低延迟和调用成本？
 
 主要证据：
 
-- current_system vs single_llm_structured vs bridge_contract；
+- current_system deployment baseline vs strong prompt-only vs literature-inspired baseline vs bridge_contract；
 - single_llm_structured + guard / repair；
 - bridge_contract + guard / repair；
+- prompt-controlled ablation: `enhanced_prompt_only`、`bridge_contract_predicted`、`bridge_contract_shuffled`、`bridge_contract_oracle`；
 - latency p50 / p95；
 - LLM call count；
 - coach quality score；
@@ -105,7 +108,13 @@ Bridge Contract / Guard / Repair 是否在 strong single-LLM baseline 之外提�
 
 | System | 目的 |
 |---|---|
-| `current_system` | 当前线上 AIChat baseline |
+| `current_system` | 当前线上 AIChat deployment baseline；固定产品现状，不作为唯一科研 baseline |
+| `enhanced_prompt_only` | 强 prompt-only baseline；检验通用教学提示词本身是否足够 |
+| `socratic_no_answer_tutor` | 文献启发 baseline；检验 Socratic/no-answer tutoring |
+| `codehelp_codeaid_no_direct_solution_tutor` | 文献启发 baseline；检验普通 no-direct-solution guardrail 是否足够 |
+| `dbox_inspired_decomposition_tutor` | DBox-inspired baseline；检验单轮 step-tree-style 分解式脚手架 |
+| `dbox_inspired_decomposition_tutor + guard` | 检验 Guard 是否也能增强分解式 baseline，避免只给我们方法加安全模块 |
+| `bridge_inspired_expert_decision_tutor` | 文献启发 baseline；检验专家决策式 prompt 是否接近 Bridge Contract |
 | `single_llm_structured` | 检验一个结构化 LLM 调用是否已经足够 |
 | `single_llm_structured + guard` | 检验 Guard 的收益是否不依赖 Bridge Contract |
 | `single_llm_structured + guard + repair` | 检验 Repair 是否也能增强 strong single-LLM baseline |
@@ -138,7 +147,7 @@ Prompt design 是 harness 的一部分，不应假装不存在。论文中应明
 - 提出 CP-specific missing bridge schema。
 - 提出 critical bridge leakage 作为算法竞赛辅导的重要评测维度。
 - 构建 coach-reference-based offline evaluation workflow。
-- 比较 current system、strong single-LLM baseline、Bridge Contract、Guard、Repair。
+- 比较 current system deployment baseline、strong prompt-only baseline、文献启发 tutoring baseline、Bridge Contract、Guard、Repair。
 - 发现 strong single-LLM baseline 很强，多模块机制的价值需要通过泄露控制、稳定性、解释性和高风险场景进一步验证。
 
 ## 不应声称

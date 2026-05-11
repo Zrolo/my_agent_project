@@ -31,6 +31,8 @@
 - Output JSONL: [prompt_controlled_ablation_smoke3_20260511.jsonl](../../evals/aichat/ad_hoc_runs/prompt_controlled_ablation_smoke3_20260511.jsonl)
 - Blind review workbook: [coach_response_review_workbook_prompt_controlled_ablation_smoke3_20260511.zh.xlsx](coach_response_review_workbook_prompt_controlled_ablation_smoke3_20260511.zh.xlsx)
 - Anonymous key: [coach_response_review_workbook_prompt_controlled_ablation_smoke3_20260511.key.csv](coach_response_review_workbook_prompt_controlled_ablation_smoke3_20260511.key.csv)
+- Blind review labels: [coach_response_review_labels_prompt_controlled_ablation_smoke3_20260511.jsonl](coach_response_review_labels_prompt_controlled_ablation_smoke3_20260511.jsonl)
+- Blind review analysis: [prompt_controlled_ablation_blind_review_20260511.zh.md](prompt_controlled_ablation_blind_review_20260511.zh.md)
 
 ## 运行配置
 
@@ -70,12 +72,12 @@ python3 -m evals.aichat.run_prompt_controlled_ablation \
 
 ## 下一步
 
-1. 让教练评审 `coach_response_review_workbook_prompt_controlled_ablation_smoke3_20260511.zh.xlsx`。
-2. 如果 3-case 盲评能区分变体，再扩到 10-20 case。
+1. 3-case 盲评已经完成。结果显示 `enhanced_prompt_only` 平均质量很强，说明 prompt wording 本身可能解释相当一部分提升；但 `bridge_contract_predicted` 明显好于 `bridge_contract_shuffled`，说明具体 contract 内容仍可能有额外价值。
+2. 扩到 10-20 case，并继续使用相同的匿名盲评流程。
 3. 把正式报告分成三类 effect：
    - prompt effect: `enhanced_prompt_only - single_llm_structured`
    - predicted diagnosis effect: `bridge_contract_predicted - enhanced_prompt_only`
-   - contract validity effect: `bridge_contract_oracle - bridge_contract_shuffled`
+   - contract validity effect: `bridge_contract_predicted - bridge_contract_shuffled`
+   - oracle upper-bound sanity check: `bridge_contract_oracle - bridge_contract_predicted`
 4. 若 shuffled contract 仍然高分，需要修 Bridge Contract prompt，让它更明确依赖具体 missing bridge，而不是只套通用教学模板。
 5. 在论文里明确：当前 pilot 的 Bridge Contract 增益可能混合了 prompt wording、diagnosis information 和 modular decomposition，必须通过本消融分开解释。
-

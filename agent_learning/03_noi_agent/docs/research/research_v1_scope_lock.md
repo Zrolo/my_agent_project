@@ -32,7 +32,7 @@ Research v1 includes:
 - Bridge Contract Tutor response generation experiments;
 - Leakage Judge detection experiments;
 - Repair Generator offline experiments;
-- current_system vs single_llm_structured vs bridge_contract ablations;
+- current_system deployment baseline vs strong prompt-only vs literature-inspired vs bridge_contract ablations;
 - response blind review workflow;
 - risk-triggered routing simulation;
 - latency, LLM call count, and stage error reporting;
@@ -54,7 +54,7 @@ Research v1 explicitly excludes:
 
 ## Online AIChat Boundary
 
-Current online AIChat remains the baseline unless a later active-mode rollout is explicitly approved.
+Current online AIChat remains the deployment baseline unless a later active-mode rollout is explicitly approved. It must not be treated as the sole research baseline; Research v1 comparisons should also include strong prompt-only and literature-inspired tutoring baselines.
 
 Research v1 tools may run:
 

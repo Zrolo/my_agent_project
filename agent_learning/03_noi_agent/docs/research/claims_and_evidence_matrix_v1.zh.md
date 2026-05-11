@@ -20,12 +20,13 @@
 | Critical bridge leakage 是传统完整答案泄露之外的重要风险 | mini-study 和 response review 中已出现“未给完整代码但说穿关键桥”的样例 | 还缺稳定 leakage label 和 grader 校准 | coach leakage labels；offline leakage grader precision/recall/F1；critical false negative rate | `needs_judge_validation` |
 | Current AIChat 可以作为 baseline，但不能代表完整 Bridge-aware Tutor | `aichat_current_flow_v1.md` 已固定当前线上流程；v2 Judge 多为 soft control | 需要持续避免文档中混淆 online active 与 offline research | implementation status matrix；scope lock；paper wording audit | `supported_pilot` |
 | Strong single-LLM baseline 必须纳入主实验 | 20-case mini-study 显示 `single_llm_structured` 很强 | 还缺 single-LLM + guard / repair 变体 | 主实验矩阵加入 `single_llm_structured + guard` 和 `single_llm_structured + guard + repair` | `needs_main_experiment` |
+| 仅用 `current_system` 会造成 weak-baseline risk | 外部审查和 3-case prompt-controlled ablation 均显示强 prompt baseline 很可能解释相当一部分质量提升 | 还缺文献启发 baseline 和正式 50-case held-out 对比 | 新增 baseline protocol；加入 `enhanced_prompt_only`、`socratic_no_answer_tutor`、`codehelp_codeaid_no_direct_solution_tutor`、`dbox_inspired_decomposition_tutor`、`dbox_inspired_decomposition_tutor + guard`、`bridge_inspired_expert_decision_tutor`；扩展 prompt-controlled ablation | `needs_main_experiment` |
 | Bridge Contract 可能提升脚手架贴合度和控制可解释性 | 已有 bridge_contract runner、contract schema、部分盲评样例 | 还不能证明优于 prompt-tuned single LLM | held-out comparison；response blind review；qualitative error analysis | `needs_main_experiment` |
 | Leakage Guard 可以降低 critical bridge leakage | 已有 Leakage Judge 和 guard pipeline | 需要证明 guard 准确且不是靠 oracle forbidden content | predicted-only guard；coach leakage labels；precision/recall/F1；false positive rewrite rate | `needs_judge_validation` |
 | Repair 可以降低泄露且保留教学质量 | 已有 Repair Generator、before/after 工具、12-case repair stress smoke；自动二次 guard 显示 repaired response 无 critical leakage | 12-case smoke 仍不足以证明教学质量，且自检发现部分 repaired response 仍可能是低质量 micro-example | 扩到 20-30 条 repair stress candidates；before/after blind review；coach quality score | `needs_repair_stress` |
 | Risk-triggered routing 可以降低延迟成本 | 已有 routing policy 文档和 control harness policy | 还缺 simulation 数据 | full multi-judge vs risk-triggered simulation；p50/p95 latency；LLM calls；under/over-trigger rate | `future_work` |
 | LLM Judge 可用于开放式语义评测 | 已有 agent eval 方法论文档 | 还缺正式 calibration protocol 和 UNKNOWN 处理 | `llm_judge_calibration_protocol_v1.zh.md`；judge validation report | `needs_judge_validation` |
-| Prompt 改进与架构改进可以被区分 | 已有 prompt patch log 雏形 | 需要 dev/test split 和 prompt freeze | 20 old seeds = dev/regression；50 new seeds = held-out；prompt/judge patch logs | `needs_main_experiment` |
+| Prompt 改进与架构改进可以被区分 | 已有 prompt patch log 雏形；3-case prompt-controlled ablation 盲评显示 `enhanced_prompt_only` 平均质量很强，说明 prompt wording 本身可能解释相当一部分提升；同时 `bridge_contract_predicted` 明显好于 `bridge_contract_shuffled`，说明具体 contract 内容仍可能有价值 | 3-case 样本太小；还需要 10-20 case prompt-controlled ablation、dev/test split 和 prompt freeze | 20 old seeds = dev/regression；扩展 prompt-controlled ablation；50 new seeds = held-out；prompt/judge patch logs | `needs_main_experiment` |
 | 控制论/feedback harness 有助于组织系统 | 已有 `control_harness_policy_v1.md` | 不能作为主创新；需要避免 concept creep | 只作为 system design principle 和 deployment simulation | `supported_pilot` |
 
 ## 论文写法约束
@@ -66,7 +67,8 @@
 
 1. 50-case held-out test set。
 2. Partial double annotation and adjudication。
-3. `single_llm_structured + guard / repair` baseline。
-4. LLM Judge calibration report。
-5. Repair stress test 扩展与 before/after 盲评。
-6. Prompt / judge prompt freeze logs。
+3. 强 prompt-only 和文献启发 baseline。
+4. `single_llm_structured + guard / repair` baseline。
+5. LLM Judge calibration report。
+6. Repair stress test 扩展与 before/after 盲评。
+7. Prompt / judge prompt freeze logs。
