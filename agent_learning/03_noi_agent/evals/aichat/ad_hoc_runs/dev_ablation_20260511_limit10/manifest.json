@@ -1,0 +1,96 @@
+{
+  "input_jsonl": "docs/research/bridgebench_cp_seed_v2_gold_20.jsonl",
+  "output_dir": "evals/aichat/ad_hoc_runs/dev_ablation_20260511_limit10",
+  "case_count": 10,
+  "condition_count": 11,
+  "conditions": [
+    {
+      "condition_id": "enhanced_prompt_only_clean",
+      "tutor_mode": "enhanced_prompt_only",
+      "pipeline_mode": "tutor_only_no_diagnosis",
+      "guard_mode": "predicted"
+    },
+    {
+      "condition_id": "socratic_no_answer_clean",
+      "tutor_mode": "socratic_no_answer_tutor",
+      "pipeline_mode": "tutor_only_no_diagnosis",
+      "guard_mode": "predicted"
+    },
+    {
+      "condition_id": "codehelp_codeaid_clean",
+      "tutor_mode": "codehelp_codeaid_no_direct_solution_tutor",
+      "pipeline_mode": "tutor_only_no_diagnosis",
+      "guard_mode": "predicted"
+    },
+    {
+      "condition_id": "dbox_inspired_clean",
+      "tutor_mode": "dbox_inspired_decomposition_tutor",
+      "pipeline_mode": "tutor_only_no_diagnosis",
+      "guard_mode": "predicted"
+    },
+    {
+      "condition_id": "dbox_inspired_guard",
+      "tutor_mode": "dbox_inspired_decomposition_tutor",
+      "pipeline_mode": "tutor_plus_guard",
+      "guard_mode": "predicted"
+    },
+    {
+      "condition_id": "bridge_inspired_expert_decision_clean",
+      "tutor_mode": "bridge_inspired_expert_decision_tutor",
+      "pipeline_mode": "tutor_only_no_diagnosis",
+      "guard_mode": "predicted"
+    },
+    {
+      "condition_id": "single_llm_structured_clean",
+      "tutor_mode": "single_llm_structured",
+      "pipeline_mode": "tutor_only",
+      "guard_mode": "predicted"
+    },
+    {
+      "condition_id": "single_llm_structured_guard",
+      "tutor_mode": "single_llm_structured",
+      "pipeline_mode": "tutor_plus_guard",
+      "guard_mode": "predicted"
+    },
+    {
+      "condition_id": "bridge_contract_clean",
+      "tutor_mode": "bridge_contract",
+      "pipeline_mode": "tutor_only",
+      "guard_mode": "predicted"
+    },
+    {
+      "condition_id": "bridge_contract_guard",
+      "tutor_mode": "bridge_contract",
+      "pipeline_mode": "tutor_plus_guard",
+      "guard_mode": "predicted"
+    },
+    {
+      "condition_id": "bridge_contract_guard_repair",
+      "tutor_mode": "bridge_contract",
+      "pipeline_mode": "tutor_plus_guard_plus_repair",
+      "guard_mode": "predicted"
+    }
+  ],
+  "condition_outputs": [
+    "evals/aichat/ad_hoc_runs/dev_ablation_20260511_limit10/enhanced_prompt_only_clean.jsonl",
+    "evals/aichat/ad_hoc_runs/dev_ablation_20260511_limit10/socratic_no_answer_clean.jsonl",
+    "evals/aichat/ad_hoc_runs/dev_ablation_20260511_limit10/codehelp_codeaid_clean.jsonl",
+    "evals/aichat/ad_hoc_runs/dev_ablation_20260511_limit10/dbox_inspired_clean.jsonl",
+    "evals/aichat/ad_hoc_runs/dev_ablation_20260511_limit10/dbox_inspired_guard.jsonl",
+    "evals/aichat/ad_hoc_runs/dev_ablation_20260511_limit10/bridge_inspired_expert_decision_clean.jsonl",
+    "evals/aichat/ad_hoc_runs/dev_ablation_20260511_limit10/single_llm_structured_clean.jsonl",
+    "evals/aichat/ad_hoc_runs/dev_ablation_20260511_limit10/single_llm_structured_guard.jsonl",
+    "evals/aichat/ad_hoc_runs/dev_ablation_20260511_limit10/bridge_contract_clean.jsonl",
+    "evals/aichat/ad_hoc_runs/dev_ablation_20260511_limit10/bridge_contract_guard.jsonl",
+    "evals/aichat/ad_hoc_runs/dev_ablation_20260511_limit10/bridge_contract_guard_repair.jsonl"
+  ],
+  "combined_row_count": 110,
+  "combined_jsonl": "evals/aichat/ad_hoc_runs/dev_ablation_20260511_limit10/combined_dev_ablation.jsonl",
+  "summary_json": "evals/aichat/ad_hoc_runs/dev_ablation_20260511_limit10/combined_dev_ablation_summary.json",
+  "summary_md": "evals/aichat/ad_hoc_runs/dev_ablation_20260511_limit10/combined_dev_ablation_summary.md",
+  "summary_md_zh": "evals/aichat/ad_hoc_runs/dev_ablation_20260511_limit10/combined_dev_ablation_summary.zh.md",
+  "review_csv": "evals/aichat/ad_hoc_runs/dev_ablation_20260511_limit10/coach_response_review_workbook_dev_ablation.csv",
+  "review_key_csv": "evals/aichat/ad_hoc_runs/dev_ablation_20260511_limit10/coach_response_review_workbook_dev_ablation.key.csv",
+  "review_xlsx": "evals/aichat/ad_hoc_runs/dev_ablation_20260511_limit10/coach_response_review_workbook_dev_ablation.zh.xlsx",
+  "review_row_count": 110
+}

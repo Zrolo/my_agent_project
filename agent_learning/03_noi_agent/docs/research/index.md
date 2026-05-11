@@ -114,6 +114,8 @@ Research v1 不包含：
 - [literature_baseline_smoke1_report_20260511.md](literature_baseline_smoke1_report_20260511.md): English 1-case smoke report for literature baselines.
 - [dev_ablation_suite_smoke_report_20260511.zh.md](dev_ablation_suite_smoke_report_20260511.zh.md): P1 dev ablation suite 中文 smoke，验证 shared runner、summary 和盲评导出链路。
 - [dev_ablation_suite_smoke_report_20260511.md](dev_ablation_suite_smoke_report_20260511.md): English P1 dev ablation suite smoke report.
+- [dev_ablation_limit10_report_20260511.zh.md](dev_ablation_limit10_report_20260511.zh.md): P1 10-case dev ablation 中文执行报告，包含 11 个条件、110 条回复、自动 leakage/latency 摘要和盲评入口。
+- [dev_ablation_limit10_report_20260511.md](dev_ablation_limit10_report_20260511.md): English P1 10-case dev ablation execution report.
 - [mini_study_20_report_20260510.zh.md](mini_study_20_report_20260510.zh.md): 20 条 seed mini-study 中文初步报告。
 - [mini_study_20_report_20260510.md](mini_study_20_report_20260510.md): 20-seed mini-study preliminary English report.
 - [hard_gate_overfallback_rerun_20260510.zh.md](hard_gate_overfallback_rerun_20260510.zh.md): hard gate 过度兜底修复后的中文定点复测报告。
