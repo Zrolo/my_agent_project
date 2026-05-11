@@ -88,6 +88,8 @@ Research v1 不包含：
 - [single_llm_structured_calibrated_smoke_report_20260510.md](single_llm_structured_calibrated_smoke_report_20260510.md): single-LLM scaffold calibration English smoke report.
 - [single_llm_guard_smoke_report_20260511.zh.md](single_llm_guard_smoke_report_20260511.zh.md): single-LLM + Guard/Repair 中文 smoke 报告。
 - [single_llm_guard_smoke_report_20260511.md](single_llm_guard_smoke_report_20260511.md): single-LLM + Guard/Repair English smoke report.
+- [fair_baseline_smoke3_report_20260511.zh.md](fair_baseline_smoke3_report_20260511.zh.md): 4 个 Guard-enabled baseline 的 3-case 中文 smoke 报告。
+- [fair_baseline_smoke3_report_20260511.md](fair_baseline_smoke3_report_20260511.md): 3-case fair baseline smoke report in English.
 - [mini_study_20_report_20260510.zh.md](mini_study_20_report_20260510.zh.md): 20 条 seed mini-study 中文初步报告。
 - [mini_study_20_report_20260510.md](mini_study_20_report_20260510.md): 20-seed mini-study preliminary English report.
 - [hard_gate_overfallback_rerun_20260510.zh.md](hard_gate_overfallback_rerun_20260510.zh.md): hard gate 过度兜底修复后的中文定点复测报告。

@@ -1,0 +1,190 @@
+{
+  "case_count": 12,
+  "completed_count": 12,
+  "error_count": 0,
+  "student_state_accuracy": 0.833,
+  "bridge_family_accuracy": 1.0,
+  "known_focus_accuracy": 1.0,
+  "known_focus_accuracy_on_registered": 1.0,
+  "unknown_focus_recall": null,
+  "help_seeking_type_accuracy": 0.667,
+  "allowed_help_level_accuracy": 0.917,
+  "leakage_rate": 0.083,
+  "critical_bridge_leakage_rate": 0.0,
+  "answer_or_code_leakage_rate": 0.0,
+  "rewrite_rate": 0.083,
+  "block_rate": 0.0,
+  "repair_rate": 0.083,
+  "invalid_label_rate": 0.0,
+  "focus_out_of_registry_rate": 0.0,
+  "self_contradiction_rate": 0.0,
+  "average_prompt_tokens": 481.417,
+  "average_llm_call_count": 2.75,
+  "avg_bridge_judge_confidence": 0.922,
+  "latency_ms": {
+    "total_p50": 14143.832,
+    "total_p95": 34648.289
+  },
+  "stage_error_counts": {},
+  "groups": {
+    "tutor_mode=bridge_contract|guard_mode=predicted|pipeline_mode=tutor_plus_guard_plus_repair|judge_schema_mode=retrieval_augmented_compact_judge|tutor_model_provider=deepseek_flash|chat_thinking_mode=disabled": {
+      "case_count": 3,
+      "completed_count": 3,
+      "error_count": 0,
+      "student_state_accuracy": 1.0,
+      "bridge_family_accuracy": 1.0,
+      "known_focus_accuracy": 1.0,
+      "known_focus_accuracy_on_registered": 1.0,
+      "unknown_focus_recall": null,
+      "help_seeking_type_accuracy": 0.667,
+      "allowed_help_level_accuracy": 1.0,
+      "leakage_rate": 0.333,
+      "critical_bridge_leakage_rate": 0.0,
+      "answer_or_code_leakage_rate": 0.0,
+      "rewrite_rate": 0.333,
+      "block_rate": 0.0,
+      "repair_rate": 0.333,
+      "invalid_label_rate": 0.0,
+      "focus_out_of_registry_rate": 0.0,
+      "self_contradiction_rate": 0.0,
+      "average_prompt_tokens": 538.333,
+      "average_llm_call_count": 3.667,
+      "avg_bridge_judge_confidence": 0.93,
+      "latency_ms": {
+        "total_p50": 19798.445,
+        "total_p95": 34648.289
+      },
+      "stage_error_counts": {},
+      "groups": {},
+      "safe_action_counts": {
+        "pass": 2,
+        "rewrite": 1
+      },
+      "leakage_level_counts": {
+        "0": 2,
+        "2": 1
+      },
+      "error_cases": []
+    },
+    "tutor_mode=bridge_contract|guard_mode=predicted|pipeline_mode=tutor_plus_guard|judge_schema_mode=retrieval_augmented_compact_judge|tutor_model_provider=deepseek_flash|chat_thinking_mode=disabled": {
+      "case_count": 3,
+      "completed_count": 3,
+      "error_count": 0,
+      "student_state_accuracy": 0.667,
+      "bridge_family_accuracy": 1.0,
+      "known_focus_accuracy": 1.0,
+      "known_focus_accuracy_on_registered": 1.0,
+      "unknown_focus_recall": null,
+      "help_seeking_type_accuracy": 0.667,
+      "allowed_help_level_accuracy": 1.0,
+      "leakage_rate": 0.0,
+      "critical_bridge_leakage_rate": 0.0,
+      "answer_or_code_leakage_rate": 0.0,
+      "rewrite_rate": 0.0,
+      "block_rate": 0.0,
+      "repair_rate": 0.0,
+      "invalid_label_rate": 0.0,
+      "focus_out_of_registry_rate": 0.0,
+      "self_contradiction_rate": 0.0,
+      "average_prompt_tokens": 537.333,
+      "average_llm_call_count": 3.333,
+      "avg_bridge_judge_confidence": 0.913,
+      "latency_ms": {
+        "total_p50": 16949.876,
+        "total_p95": 24325.95
+      },
+      "stage_error_counts": {},
+      "groups": {},
+      "safe_action_counts": {
+        "pass": 3
+      },
+      "leakage_level_counts": {
+        "0": 3
+      },
+      "error_cases": []
+    },
+    "tutor_mode=single_llm_structured|guard_mode=predicted|pipeline_mode=tutor_plus_guard_plus_repair|judge_schema_mode=retrieval_augmented_compact_judge|tutor_model_provider=deepseek_flash|chat_thinking_mode=disabled": {
+      "case_count": 3,
+      "completed_count": 3,
+      "error_count": 0,
+      "student_state_accuracy": null,
+      "bridge_family_accuracy": 1.0,
+      "known_focus_accuracy": 1.0,
+      "known_focus_accuracy_on_registered": 1.0,
+      "unknown_focus_recall": null,
+      "help_seeking_type_accuracy": null,
+      "allowed_help_level_accuracy": 0.667,
+      "leakage_rate": 0.0,
+      "critical_bridge_leakage_rate": 0.0,
+      "answer_or_code_leakage_rate": 0.0,
+      "rewrite_rate": 0.0,
+      "block_rate": 0.0,
+      "repair_rate": 0.0,
+      "invalid_label_rate": 0.0,
+      "focus_out_of_registry_rate": 0.0,
+      "self_contradiction_rate": 0.0,
+      "average_prompt_tokens": 425.0,
+      "average_llm_call_count": 2.0,
+      "avg_bridge_judge_confidence": null,
+      "latency_ms": {
+        "total_p50": 10843.644,
+        "total_p95": 12471.783
+      },
+      "stage_error_counts": {},
+      "groups": {},
+      "safe_action_counts": {
+        "pass": 3
+      },
+      "leakage_level_counts": {
+        "0": 3
+      },
+      "error_cases": []
+    },
+    "tutor_mode=single_llm_structured|guard_mode=predicted|pipeline_mode=tutor_plus_guard|judge_schema_mode=retrieval_augmented_compact_judge|tutor_model_provider=deepseek_flash|chat_thinking_mode=disabled": {
+      "case_count": 3,
+      "completed_count": 3,
+      "error_count": 0,
+      "student_state_accuracy": null,
+      "bridge_family_accuracy": 1.0,
+      "known_focus_accuracy": 1.0,
+      "known_focus_accuracy_on_registered": 1.0,
+      "unknown_focus_recall": null,
+      "help_seeking_type_accuracy": null,
+      "allowed_help_level_accuracy": 1.0,
+      "leakage_rate": 0.0,
+      "critical_bridge_leakage_rate": 0.0,
+      "answer_or_code_leakage_rate": 0.0,
+      "rewrite_rate": 0.0,
+      "block_rate": 0.0,
+      "repair_rate": 0.0,
+      "invalid_label_rate": 0.0,
+      "focus_out_of_registry_rate": 0.0,
+      "self_contradiction_rate": 0.0,
+      "average_prompt_tokens": 425.0,
+      "average_llm_call_count": 2.0,
+      "avg_bridge_judge_confidence": null,
+      "latency_ms": {
+        "total_p50": 12932.248,
+        "total_p95": 13406.206
+      },
+      "stage_error_counts": {},
+      "groups": {},
+      "safe_action_counts": {
+        "pass": 3
+      },
+      "leakage_level_counts": {
+        "0": 3
+      },
+      "error_cases": []
+    }
+  },
+  "safe_action_counts": {
+    "pass": 11,
+    "rewrite": 1
+  },
+  "leakage_level_counts": {
+    "0": 11,
+    "2": 1
+  },
+  "error_cases": []
+}
