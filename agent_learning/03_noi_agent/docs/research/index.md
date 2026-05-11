@@ -96,6 +96,8 @@ Research v1 不包含：
 - [fair_mini_study_20_report_20260511.md](fair_mini_study_20_report_20260511.md): English report for the 7-system fair 20-case mini-study.
 - [fair_mini_study_20_paired_analysis_20260511.zh.md](fair_mini_study_20_paired_analysis_20260511.zh.md): 20-case fair 盲评的中文配对分析，按 case 计算 win/tie/loss、student-ready 指标和 bootstrap CI。
 - [fair_mini_study_20_paired_analysis_20260511.md](fair_mini_study_20_paired_analysis_20260511.md): English paired analysis for the fair 20-case blind review.
+- [prompt_controlled_ablation_smoke_report_20260511.zh.md](prompt_controlled_ablation_smoke_report_20260511.zh.md): prompt-controlled ablation 中文 smoke 报告，用于区分 prompt effect、diagnosis effect 和 contract validity。
+- [prompt_controlled_ablation_smoke_report_20260511.md](prompt_controlled_ablation_smoke_report_20260511.md): English prompt-controlled ablation smoke report.
 - [mini_study_20_report_20260510.zh.md](mini_study_20_report_20260510.zh.md): 20 条 seed mini-study 中文初步报告。
 - [mini_study_20_report_20260510.md](mini_study_20_report_20260510.md): 20-seed mini-study preliminary English report.
 - [hard_gate_overfallback_rerun_20260510.zh.md](hard_gate_overfallback_rerun_20260510.zh.md): hard gate 过度兜底修复后的中文定点复测报告。
@@ -123,6 +125,8 @@ Research v1 不包含：
 - [coach_response_review_workbook_repair_stress_v1_20260511.zh.xlsx](coach_response_review_workbook_repair_stress_v1_20260511.zh.xlsx): Repair stress v1 的 before/after 中文盲评表，共 24 条匿名回复。
 - [coach_response_review_workbook_repair_stress_v1_20260511.csv](coach_response_review_workbook_repair_stress_v1_20260511.csv): Repair stress v1 before/after CSV。
 - [coach_response_review_workbook_repair_stress_v1_20260511.key.csv](coach_response_review_workbook_repair_stress_v1_20260511.key.csv): Repair stress v1 before/after 匿名 key。
+- [coach_response_review_workbook_prompt_controlled_ablation_smoke3_20260511.zh.xlsx](coach_response_review_workbook_prompt_controlled_ablation_smoke3_20260511.zh.xlsx): prompt-controlled ablation 3-case 中文盲评表，共 15 条匿名回复。
+- [coach_response_review_workbook_prompt_controlled_ablation_smoke3_20260511.key.csv](coach_response_review_workbook_prompt_controlled_ablation_smoke3_20260511.key.csv): prompt-controlled ablation 3-case 匿名 key。
 - [coach_response_review_workbook_fair_mini_study_20_20260511.zh.xlsx](coach_response_review_workbook_fair_mini_study_20_20260511.zh.xlsx): 7-system fair 20-case mini-study 的中文盲评表，共 140 条匿名回复。
 
 ### Patch Governance
