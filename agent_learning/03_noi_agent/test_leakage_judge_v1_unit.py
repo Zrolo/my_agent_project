@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from noi_agent import (
     _build_leakage_judge_v1_user_message,
+    _read_leakage_judge_v1_system_prompt,
     _validate_leakage_judge_v1_schema,
     leakage_judge_v1,
 )
@@ -39,6 +40,13 @@ class LeakageJudgeV1Tests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "leakage_level"):
             _validate_leakage_judge_v1_schema(payload)
+
+    def test_leakage_judge_prompt_requires_leaked_elements_when_level_is_positive(self):
+        system_prompt = _read_leakage_judge_v1_system_prompt()
+
+        self.assertIn("leakage_level > 0", system_prompt)
+        self.assertIn("leaked_elements 必须非空", system_prompt)
+        self.assertIn("如果无法指出泄露了什么，不要把 leakage_level 设为 1-5", system_prompt)
 
     def test_build_leakage_judge_user_message_wraps_candidate_and_contract(self):
         user_message = _build_leakage_judge_v1_user_message(

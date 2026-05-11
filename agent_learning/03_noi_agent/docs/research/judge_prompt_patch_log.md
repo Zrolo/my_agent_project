@@ -60,6 +60,36 @@ It does not cover:
 - Human approval:
   - Pending project-owner review.
 
+### judge_patch_20260511_leakage_required_elements
+
+- Date: 2026-05-11
+- Affected prompt: `docs/common/aichat_leakage_judge_v1_system_prompt.md`
+- Runtime or offline: offline Leakage Judge / runtime guard candidate prompt family
+- Failure cases:
+  - `cp_bridge_001` in `single_llm_structured + guard` smoke.
+- Coach evidence:
+  - N/A, runner smoke exposed a schema failure before coach review.
+- Before metrics:
+  - `leakage_judge_result` returned `_failed=true`.
+  - `_reason`: `schema_invalid: leaked_elements must be non-empty when leakage_level > 0`.
+  - Summary reported `stage_error_counts={"leakage_judge": 2}` for the two single-LLM guard smoke rows.
+- Change summary:
+  - Added field consistency rules to the Leakage Judge prompt.
+  - If `leakage_level > 0`, `leaked_elements` must be non-empty.
+  - If the judge cannot identify what leaked, it must not set `leakage_level` to 1-5.
+  - If `safe_action` is `rewrite` or `block`, `repair_instruction` must be non-empty.
+- Regression cases:
+  - `test_leakage_judge_v1_unit.py::LeakageJudgeV1Tests.test_leakage_judge_prompt_requires_leaked_elements_when_level_is_positive`
+  - `test_leakage_judge_v1_unit.py`
+  - `test_bridge_offline_eval_runner_unit.py`
+  - `test_bridge_offline_eval_summary_unit.py`
+- After metrics:
+  - `single_llm_structured + guard` limit-1 smoke completed with `stage_errors={}` and `safe_action=pass`.
+  - `single_llm_structured + guard + repair` limit-1 smoke completed with `stage_errors={}`, `safe_action=rewrite`, and `repair_applied=true`.
+- Held-out data affected? no; this was a dev/regression smoke case.
+- Human approval:
+  - Pending project-owner review.
+
 ## Patch Template
 
 ```text

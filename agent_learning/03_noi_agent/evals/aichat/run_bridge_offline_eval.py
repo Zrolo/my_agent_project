@@ -842,16 +842,25 @@ def _run_one_bridge_offline_case(
         return _finish_case_result(result, latency_ms=latency_ms, stage_errors=stage_errors, total_start=total_start)
 
     stage_start = time.perf_counter()
-    try:
-        with _temporary_chat_thinking_mode(chat_thinking_mode):
-            tutor_result = tutor_fn(row, messages, bridge_result)
-        _add_llm_calls(result)
-    except Exception as exc:
-        _add_llm_calls(result)
-        _record_latency(latency_ms, "tutor_latency_ms", stage_start)
-        stage_errors["tutor"] = f"{type(exc).__name__}: {exc}"
-        result["error"] = "tutor_exception"
-        return _finish_case_result(result, latency_ms=latency_ms, stage_errors=stage_errors, total_start=total_start)
+    tutor_retries = 0
+    while True:
+        try:
+            with _temporary_chat_thinking_mode(chat_thinking_mode):
+                tutor_result = tutor_fn(row, messages, bridge_result)
+            _add_llm_calls(result)
+            result["retry_count"] = result.get("retry_count", 0) + tutor_retries
+            break
+        except Exception as exc:
+            _add_llm_calls(result)
+            if tutor_retries >= max_retries:
+                result["retry_count"] = result.get("retry_count", 0) + tutor_retries
+                _record_latency(latency_ms, "tutor_latency_ms", stage_start)
+                stage_errors["tutor"] = f"{type(exc).__name__}: {exc}"
+                result["error"] = "tutor_exception"
+                return _finish_case_result(
+                    result, latency_ms=latency_ms, stage_errors=stage_errors, total_start=total_start
+                )
+            tutor_retries += 1
     _record_latency(latency_ms, "tutor_latency_ms", stage_start)
     result["tutor_response"] = tutor_result
     candidate_response = tutor_result.get("response_text", "")

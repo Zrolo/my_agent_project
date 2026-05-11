@@ -239,6 +239,53 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
         self.assertEqual("你先贴题面。", result["final_response_text"])
         self.assertEqual("candidate", result["final_response_source"])
 
+    def test_tutor_stage_retries_transient_exception(self):
+        rows = [{"id": "case_tutor_retry", "student_message": "我知道像背包，但状态怎么设？"}]
+        attempts = []
+
+        def fake_bridge_judge(**kwargs):
+            return {
+                "problem_solving_state": "modeling_representation_gap",
+                "missing_bridge": {
+                    "family": "representation_state_bridge",
+                    "subtype": "state.dp_state_semantics",
+                    "description": "学生缺少状态含义。",
+                    "evidence": ["学生问状态怎么设"],
+                    "known_focus": "state_design",
+                    "needs_new_focus": False,
+                },
+                "help_seeking_type": "concept_explanation",
+                "allowed_help_level": "L2",
+                "help_form": "micro_example",
+                "forbidden_content": ["不要直接给完整状态定义。"],
+                "leakage_risk": "high",
+                "confidence": 0.8,
+                "reason": "unit test",
+            }
+
+        def flaky_tutor(row, messages, bridge_result):
+            attempts.append("try")
+            if len(attempts) == 1:
+                raise ValueError("transient json parse")
+            return {"response_text": "先说说数组下标和格子值分别可能表示什么。", "level": "L2"}
+
+        result_rows = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+            rows,
+            bridge_judge_fn=fake_bridge_judge,
+            tutor_fn=flaky_tutor,
+            pipeline_mode="tutor_only",
+            max_retries=1,
+        )
+
+        result = result_rows[0]
+        self.assertEqual(2, len(attempts))
+        self.assertEqual("先说说数组下标和格子值分别可能表示什么。", result["final_response_text"])
+        self.assertEqual("candidate", result["final_response_source"])
+        self.assertEqual(1, result["retry_count"])
+        self.assertEqual(3, result["llm_call_count"])
+        self.assertNotIn("tutor", result["stage_errors"])
+        self.assertNotIn("error", result)
+
     def test_tutor_only_no_diagnosis_pipeline_skips_bridge_judge_for_current_system_baseline(self):
         rows = [{"id": "case_current_only", "student_message": "我不会。"}]
         calls = []
