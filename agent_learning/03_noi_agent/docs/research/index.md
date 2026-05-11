@@ -90,6 +90,8 @@ Research v1 不包含：
 - [single_llm_guard_smoke_report_20260511.md](single_llm_guard_smoke_report_20260511.md): single-LLM + Guard/Repair English smoke report.
 - [fair_baseline_smoke3_report_20260511.zh.md](fair_baseline_smoke3_report_20260511.zh.md): 4 个 Guard-enabled baseline 的 3-case 中文 smoke 报告。
 - [fair_baseline_smoke3_report_20260511.md](fair_baseline_smoke3_report_20260511.md): 3-case fair baseline smoke report in English.
+- [fair_mini_study_20_report_20260511.zh.md](fair_mini_study_20_report_20260511.zh.md): 7 个系统的 20-case 公平 mini-study 中文报告，包含 single-LLM + Guard/Repair 对照。
+- [fair_mini_study_20_report_20260511.md](fair_mini_study_20_report_20260511.md): English report for the 7-system fair 20-case mini-study.
 - [mini_study_20_report_20260510.zh.md](mini_study_20_report_20260510.zh.md): 20 条 seed mini-study 中文初步报告。
 - [mini_study_20_report_20260510.md](mini_study_20_report_20260510.md): 20-seed mini-study preliminary English report.
 - [hard_gate_overfallback_rerun_20260510.zh.md](hard_gate_overfallback_rerun_20260510.zh.md): hard gate 过度兜底修复后的中文定点复测报告。
@@ -109,6 +111,7 @@ Research v1 不包含：
 - [coach_response_review_workbook_repair_before_after_20260510.zh.xlsx](coach_response_review_workbook_repair_before_after_20260510.zh.xlsx): Repair 前后对照中文 Excel 备份表。
 - [repair_before_after_review_analysis_20260510.zh.md](repair_before_after_review_analysis_20260510.zh.md): Repair 前后对照中文盲评分析，导出评分后可重复生成。
 - [repair_before_after_review_analysis_20260510.md](repair_before_after_review_analysis_20260510.md): Repair before/after English blind-review analysis.
+- [coach_response_review_workbook_fair_mini_study_20_20260511.zh.xlsx](coach_response_review_workbook_fair_mini_study_20_20260511.zh.xlsx): 7-system fair 20-case mini-study 的中文盲评表，共 140 条匿名回复。
 
 ### Patch Governance
 
