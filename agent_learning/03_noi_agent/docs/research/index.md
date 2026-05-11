@@ -100,6 +100,8 @@ Research v1 不包含：
 - [hard_gate_overfallback_rerun_20260510.md](hard_gate_overfallback_rerun_20260510.md): English targeted rerun report for the hard-gate overfallback fix.
 - [repair_prompt_fix_mini_study_20_20260510.zh.md](repair_prompt_fix_mini_study_20_20260510.zh.md): Repair prompt 修复后的 20 条中文复测报告。
 - [repair_prompt_fix_mini_study_20_20260510.md](repair_prompt_fix_mini_study_20_20260510.md): English 20-case rerun report after the repair prompt fix.
+- [repair_stress_v1_smoke_report_20260511.zh.md](repair_stress_v1_smoke_report_20260511.zh.md): 12-case Repair stress 中文 smoke 报告，专门测试高泄露候选回复的 detect -> repair -> second-pass guard 链路。
+- [repair_stress_v1_smoke_report_20260511.md](repair_stress_v1_smoke_report_20260511.md): English report for the 12-case Repair stress smoke.
 
 ### Response Blind Review
 
@@ -116,6 +118,9 @@ Research v1 不包含：
 - [coach_response_review_workbook_repair_before_after_20260510.zh.xlsx](coach_response_review_workbook_repair_before_after_20260510.zh.xlsx): Repair 前后对照中文 Excel 备份表。
 - [repair_before_after_review_analysis_20260510.zh.md](repair_before_after_review_analysis_20260510.zh.md): Repair 前后对照中文盲评分析，导出评分后可重复生成。
 - [repair_before_after_review_analysis_20260510.md](repair_before_after_review_analysis_20260510.md): Repair before/after English blind-review analysis.
+- [coach_response_review_workbook_repair_stress_v1_20260511.zh.xlsx](coach_response_review_workbook_repair_stress_v1_20260511.zh.xlsx): Repair stress v1 的 before/after 中文盲评表，共 24 条匿名回复。
+- [coach_response_review_workbook_repair_stress_v1_20260511.csv](coach_response_review_workbook_repair_stress_v1_20260511.csv): Repair stress v1 before/after CSV。
+- [coach_response_review_workbook_repair_stress_v1_20260511.key.csv](coach_response_review_workbook_repair_stress_v1_20260511.key.csv): Repair stress v1 before/after 匿名 key。
 - [coach_response_review_workbook_fair_mini_study_20_20260511.zh.xlsx](coach_response_review_workbook_fair_mini_study_20_20260511.zh.xlsx): 7-system fair 20-case mini-study 的中文盲评表，共 140 条匿名回复。
 
 ### Patch Governance

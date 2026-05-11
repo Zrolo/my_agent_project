@@ -120,7 +120,7 @@ Bridge Contract / Guard / Repair 是否在 strong single-LLM baseline 之外提�
 |---|---|---|
 | 20 old seeds | dev / regression；允许 prompt tuning | 已用于 pilot，不再作为正式 test |
 | 50 held-out seeds | 主实验 test；prompt freeze 后只跑主结果 | 待构建 |
-| 20-30 repair stress cases | 专门测试 Repair 是否能降低高泄露 candidate | 待构建 |
+| 20-30 repair stress cases | 专门测试 Repair 是否能降低高泄露 candidate | 已有 12-case smoke；正式实验仍需扩展和 before/after 盲评 |
 | shadow logs | 未来真实学生数据，只做线上前观察 | 待设计/待实现 |
 
 ## Prompt 与 Judge Freeze

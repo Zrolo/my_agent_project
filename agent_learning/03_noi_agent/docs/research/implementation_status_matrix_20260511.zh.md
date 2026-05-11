@@ -35,7 +35,7 @@ Date: 2026-05-11
 | Runtime bridge contract schema | `offline_eval_only` | `runtime_bridge_contract_schema_v1.json` | 可作为研究中的 compact control signal |
 | Bridge Contract Tutor | `offline_eval_only` | runner 支持 bridge_contract 相关模式 | 可作为 ablation condition |
 | Leakage Judge / Guard | `offline_eval_only` | 离线检测 candidate / final response | 可作为 guard ablation，但需校准 |
-| Repair Generator | `offline_eval_only` | 离线 repair；自然 mini-study 中不一定触发 | 需要 repair stress test 后才能主张效果 |
+| Repair Generator | `offline_eval_only` | 离线 repair；自然 mini-study 中不一定触发；已有 12-case repair stress smoke | 需要 before/after 盲评和 20-30 stress cases 后才能主张最终效果 |
 | Response blind review workbook | `teacher_tool_only` | 教师端/Excel/workbook 盲评流程 | 可作为 coach review workflow |
 | Repair before/after review | `teacher_tool_only` | 已有 before/after review scripts and reports | 可作为 Repair stress workflow 的基础 |
 | bilingual reports | `offline_eval_only` | 中文为教练主读面，英文为外部协作面 | 可作为研究协作规范 |
@@ -60,7 +60,7 @@ Date: 2026-05-11
 | partial double annotation | `not_implemented` | 需 Coach B 独立标至少 20 条 |
 | adjudicated reference | `not_implemented` | 主实验 headline metrics 前需要 |
 | LLM Judge calibration protocol | `doc_only` after this update | 协议先建，报告后补 |
-| repair stress set | `not_implemented` | 需要 20-30 个高泄露 candidate |
+| repair stress set | `offline_eval_only` | 已有 `repair_stress_cases_v1.jsonl` 12 条和 `repair_stress_v1_smoke_report_20260511`；正式实验仍需扩到 20-30 条 |
 | pass^3 stability eval | `not_implemented` | 用于 online reliability discussion |
 
 ## 论文声明边界
