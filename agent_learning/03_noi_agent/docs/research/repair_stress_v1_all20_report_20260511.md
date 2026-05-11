@@ -97,3 +97,17 @@ The workbook contains 40 anonymized rows: before candidate and after repair for 
 2. Compare before vs after quality, leakage, and student-ready pass.
 3. Add `repair_stress_004` to Repair prompt or Leakage Guard regression.
 4. Decide whether Repair belongs in the 50-case held-out main table or only in appendix/stress-test analysis.
+
+After review, run:
+
+```bash
+python3 -m evals.aichat.summarize_repair_before_after_review \
+  --workbook-csv docs/research/coach_response_review_workbook_repair_stress_v1_all20_20260511.zh.xlsx \
+  --key-csv docs/research/coach_response_review_workbook_repair_stress_v1_all20_20260511.key.csv \
+  --labels docs/research/nonexistent_repair_stress_all20_labels.jsonl \
+  --output-json docs/research/repair_stress_v1_all20_review_analysis_20260511.summary.json \
+  --output-md docs/research/repair_stress_v1_all20_review_analysis_20260511.md \
+  --output-md-zh docs/research/repair_stress_v1_all20_review_analysis_20260511.zh.md
+```
+
+The `--labels` file may be missing; the script can read the new Chinese review fields directly from the filled workbook.

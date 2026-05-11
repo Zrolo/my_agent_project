@@ -5,6 +5,8 @@ import sys
 from pathlib import Path
 from statistics import mean
 
+from openpyxl import load_workbook
+
 
 DEFAULT_WORKBOOK_CSV = Path("docs/research/coach_response_review_workbook_repair_before_after_20260510.csv")
 DEFAULT_KEY_CSV = Path("docs/research/coach_response_review_workbook_repair_before_after_20260510.key.csv")
@@ -34,11 +36,44 @@ def _read_csv(path: Path) -> list[dict]:
         return list(csv.DictReader(f))
 
 
+def load_review_rows(path: Path | str) -> list[dict]:
+    path = Path(path)
+    if not path.exists():
+        return []
+    if path.suffix.lower() != ".xlsx":
+        return _read_csv(path)
+
+    workbook = load_workbook(path, data_only=True, read_only=True)
+    sheet = workbook["盲评表"] if "盲评表" in workbook.sheetnames else workbook.active
+    rows = list(sheet.iter_rows(values_only=True))
+    header_index = None
+    headers: list[str] = []
+    for index, row in enumerate(rows):
+        values = [str(value or "").strip() for value in row]
+        if "anonymized_response_id" in values:
+            header_index = index
+            headers = values
+            break
+    if header_index is None:
+        return []
+
+    output = []
+    for row in rows[header_index + 1 :]:
+        item = {
+            header: "" if value is None else str(value)
+            for header, value in zip(headers, row)
+            if header
+        }
+        if any(str(value).strip() for value in item.values()):
+            output.append(item)
+    return output
+
+
 def _read_labels(path: Path) -> dict[str, dict]:
     if not path.exists():
         return {}
-    if path.suffix.lower() == ".csv":
-        rows = _read_csv(path)
+    if path.suffix.lower() in {".csv", ".xlsx"}:
+        rows = load_review_rows(path)
     else:
         rows = []
         for raw_line in path.read_text(encoding="utf-8").splitlines():
@@ -71,8 +106,38 @@ def _label_for(response_id: str, labels: dict[str, dict]) -> dict:
     return labels.get(response_id, {})
 
 
+def _choice_id(value: str) -> str:
+    raw = str(value or "").strip()
+    if "｜" in raw:
+        return raw.split("｜", 1)[0].strip()
+    if "|" in raw:
+        return raw.split("|", 1)[0].strip()
+    return raw
+
+
 def _score(value: str, mapping: dict[str, int]) -> int | None:
-    return mapping.get(str(value or "").strip())
+    choice = _choice_id(value)
+    if choice in mapping:
+        return mapping[choice]
+    if choice.isdigit():
+        return int(choice)
+    return None
+
+
+def _pick(*values) -> str:
+    for value in values:
+        if value is not None and str(value).strip():
+            return str(value)
+    return ""
+
+
+def _is_labeled(value: str) -> bool:
+    return _choice_id(value) == "labeled"
+
+
+def _student_ready_score(value: str) -> int | None:
+    mapping = {"no": 0, "borderline": 1, "yes": 2}
+    return mapping.get(_choice_id(value))
 
 
 def _rate(count: int, total: int) -> float:
@@ -87,7 +152,7 @@ def summarize(
     key_csv: Path = DEFAULT_KEY_CSV,
     labels_path: Path = DEFAULT_LABELS_PATH,
 ) -> dict:
-    workbook_rows = {str(row.get("anonymized_response_id") or ""): row for row in _read_csv(workbook_csv)}
+    workbook_rows = {str(row.get("anonymized_response_id") or ""): row for row in load_review_rows(workbook_csv)}
     key_rows = _read_csv(key_csv)
     labels = _read_labels(labels_path)
 
@@ -100,13 +165,37 @@ def summarize(
             continue
         review_row = workbook_rows.get(response_id, {})
         label_row = _label_for(response_id, labels)
+        overall_quality = _pick(
+            label_row.get("overall_quality"),
+            label_row.get("coach_overall_quality_score"),
+            review_row.get("coach_overall_quality_score"),
+            review_row.get("overall_quality"),
+        )
+        leakage_label = _pick(
+            label_row.get("leakage_label"),
+            label_row.get("coach_leakage_label"),
+            review_row.get("coach_leakage_label"),
+            review_row.get("leakage_label"),
+        )
+        would_show = _pick(
+            label_row.get("would_show_to_student"),
+            label_row.get("coach_would_show_to_student"),
+            review_row.get("coach_would_show_to_student"),
+            review_row.get("would_show_to_student"),
+        )
+        review_status = _pick(
+            label_row.get("review_status"),
+            review_row.get("review_status"),
+            "unlabeled",
+        )
         item = {
             "anonymized_response_id": response_id,
-            "overall_quality": str(label_row.get("overall_quality") or ""),
-            "leakage_label": str(label_row.get("leakage_label") or review_row.get("coach_leakage_label") or ""),
+            "overall_quality": overall_quality,
+            "leakage_label": leakage_label,
+            "would_show_to_student": would_show,
             "preference_rank": str(label_row.get("preference_rank") or ""),
-            "notes": str(label_row.get("notes") or ""),
-            "review_status": str(label_row.get("review_status") or review_row.get("review_status") or "unlabeled"),
+            "notes": _pick(label_row.get("notes"), label_row.get("coach_notes"), review_row.get("coach_notes")),
+            "review_status": review_status,
             "response_excerpt": str(review_row.get("response_text") or "")[:240],
         }
         cases.setdefault(case_id, {"case_id": case_id})[kind] = item
@@ -119,6 +208,7 @@ def summarize(
     candidate_major_or_answer = 0
     repaired_major_or_answer = 0
     labeled_pair_count = 0
+    student_ready_improves = student_ready_ties = student_ready_worse = 0
 
     for case_id in sorted(cases):
         pair = cases[case_id]
@@ -130,8 +220,11 @@ def summarize(
         repaired_quality = _score(repaired.get("overall_quality", ""), QUALITY_SCORE)
         candidate_leakage = _score(candidate.get("leakage_label", ""), LEAKAGE_SEVERITY)
         repaired_leakage = _score(repaired.get("leakage_label", ""), LEAKAGE_SEVERITY)
+        candidate_ready = _student_ready_score(candidate.get("would_show_to_student", ""))
+        repaired_ready = _student_ready_score(repaired.get("would_show_to_student", ""))
         quality_delta = None
         leakage_delta = None
+        student_ready_delta = None
         if candidate_quality is not None and repaired_quality is not None:
             quality_delta = repaired_quality - candidate_quality
             quality_deltas.append(quality_delta)
@@ -154,7 +247,15 @@ def summarize(
                 candidate_major_or_answer += 1
             if repaired_leakage >= LEAKAGE_SEVERITY["major_bridge_leakage"]:
                 repaired_major_or_answer += 1
-        if candidate.get("review_status") == "labeled" and repaired.get("review_status") == "labeled":
+        if candidate_ready is not None and repaired_ready is not None:
+            student_ready_delta = repaired_ready - candidate_ready
+            if student_ready_delta > 0:
+                student_ready_improves += 1
+            elif student_ready_delta < 0:
+                student_ready_worse += 1
+            else:
+                student_ready_ties += 1
+        if _is_labeled(candidate.get("review_status", "")) and _is_labeled(repaired.get("review_status", "")):
             labeled_pair_count += 1
         pairs.append(
             {
@@ -163,6 +264,7 @@ def summarize(
                 "repaired": repaired,
                 "quality_delta": quality_delta,
                 "leakage_severity_delta": leakage_delta,
+                "student_ready_delta": student_ready_delta,
             }
         )
 
@@ -187,6 +289,11 @@ def summarize(
             "candidate_major_or_answer_rate": round(_rate(candidate_major_or_answer, leakage_total), 3),
             "repaired_major_or_answer_rate": round(_rate(repaired_major_or_answer, leakage_total), 3),
         },
+        "student_ready": {
+            "repaired_improves": student_ready_improves,
+            "ties": student_ready_ties,
+            "repaired_worse": student_ready_worse,
+        },
         "pairs": pairs,
     }
 
@@ -194,6 +301,7 @@ def summarize(
 def render_markdown_zh(result: dict) -> str:
     quality = result.get("quality", {})
     leakage = result.get("leakage", {})
+    student_ready = result.get("student_ready", {})
     lines = [
         "# Repair 前后对照盲评分析",
         "",
@@ -217,6 +325,9 @@ def render_markdown_zh(result: dict) -> str:
         f"| 平均泄露严重度变化 | {leakage.get('average_severity_delta', 0)} |",
         f"| 候选回复重大/答案泄露率 | {leakage.get('candidate_major_or_answer_rate', 0):.1%} |",
         f"| 修复后重大/答案泄露率 | {leakage.get('repaired_major_or_answer_rate', 0):.1%} |",
+        f"| 修复后更愿意给学生看 | {student_ready.get('repaired_improves', 0)} |",
+        f"| 是否给学生看持平 | {student_ready.get('ties', 0)} |",
+        f"| 修复后更不适合给学生看 | {student_ready.get('repaired_worse', 0)} |",
         "",
         "## 逐例备注",
         "",
@@ -250,6 +361,7 @@ def render_markdown_zh(result: dict) -> str:
 def render_markdown(result: dict) -> str:
     quality = result.get("quality", {})
     leakage = result.get("leakage", {})
+    student_ready = result.get("student_ready", {})
     lines = [
         "# Repair Before/After Blind Review Analysis",
         "",
@@ -273,6 +385,9 @@ def render_markdown(result: dict) -> str:
         f"| average leakage severity delta | {leakage.get('average_severity_delta', 0)} |",
         f"| candidate major/answer leakage rate | {leakage.get('candidate_major_or_answer_rate', 0):.1%} |",
         f"| repaired major/answer leakage rate | {leakage.get('repaired_major_or_answer_rate', 0):.1%} |",
+        f"| student-ready improves after repair | {student_ready.get('repaired_improves', 0)} |",
+        f"| student-ready ties | {student_ready.get('ties', 0)} |",
+        f"| student-ready worsens after repair | {student_ready.get('repaired_worse', 0)} |",
         "",
         "## Case Notes",
         "",

@@ -129,3 +129,17 @@ docs/research/coach_response_review_workbook_repair_stress_v1_all20_20260511.key
 2. 汇总 before vs after 的质量、泄露、student-ready pass；
 3. 将 `repair_stress_004` 加入 Repair prompt 或 Leakage Guard regression；
 4. 根据盲评决定 Repair 是否进入 50-case held-out 主表，或仅作为 appendix/stress-test 模块。
+
+填完后可用：
+
+```bash
+python3 -m evals.aichat.summarize_repair_before_after_review \
+  --workbook-csv docs/research/coach_response_review_workbook_repair_stress_v1_all20_20260511.zh.xlsx \
+  --key-csv docs/research/coach_response_review_workbook_repair_stress_v1_all20_20260511.key.csv \
+  --labels docs/research/nonexistent_repair_stress_all20_labels.jsonl \
+  --output-json docs/research/repair_stress_v1_all20_review_analysis_20260511.summary.json \
+  --output-md docs/research/repair_stress_v1_all20_review_analysis_20260511.md \
+  --output-md-zh docs/research/repair_stress_v1_all20_review_analysis_20260511.zh.md
+```
+
+这里 `--labels` 可以指向不存在的文件；脚本会直接读取 filled workbook 中的新版中文评审字段。
