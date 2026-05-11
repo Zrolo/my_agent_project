@@ -28,7 +28,7 @@ The 140 rows are not independent samples; they are seven system responses for ea
 
 1. `bridge_contract + guard + repair` is strongest overall in this blind review: overall quality 4.40, 13/20 directly showable responses, 0 not-show responses, and 6 rank-1 cases.
 2. `bridge_contract` and `bridge_contract + guard` are also strong, with 5 and 6 rank-1 cases respectively, suggesting a positive signal from Bridge Contract.
-3. Raw `single_llm_structured` is not a weak baseline, but `single_llm + guard` performs better in this human review: overall quality rises from 3.35 to 3.95.
+3. Raw `single_llm_structured` is not a weak baseline, but `single_llm + guard` performs better in this human review: overall quality rises from 3.35 to 3.95. This difference should not be attributed to Guard itself: in the current guard-only condition, all 20 rows kept `final_response_source=candidate`, `repair_applied=false`, and `blocked=false`. The more plausible explanation is run-to-run variance from separately generated LLM responses. A causal Guard/Repair estimate requires a paired before/after ablation that reuses the same candidate response.
 4. `current_system` remains useful as the online baseline, but it has 7 major bridge leakage labels and 5 not-show responses.
 5. There is no answer/code leakage in these 140 rows; the main problem is critical bridge leakage, not complete-code leakage.
 6. Bridge-oriented micro-example quality is a meaningful dimension: Bridge Contract variants score higher than current_system and raw single-LLM.

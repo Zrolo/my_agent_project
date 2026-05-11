@@ -42,7 +42,7 @@
 
 1. `bridge_contract + guard + repair` 在总体质量均分、愿意给学生看的数量、rank=1 数量上综合最好：总体质量 4.40，13/20 条可直接给学生看，0 条“不建议给学生看”，6 个 case 排名第一。
 2. `bridge_contract` 和 `bridge_contract + guard` 也很强，分别有 5 和 6 个 case 排名第一；这说明 Bridge Contract 对回复质量有明显正向信号。
-3. `single_llm_structured` 原始版本不是弱基线，但在本次人类盲评中低于加 Guard 后的版本。`single_llm + guard` 从总体质量 3.35 提升到 3.95，说明 Guard 可能不只是安全模块，也间接帮助筛掉部分过强回复。
+3. `single_llm_structured` 原始版本不是弱基线，但在本次人类盲评中低于加 Guard 后的版本。需要注意：当前 `single_llm + guard` 的 guard-only 条件没有修改最终回复，20 条均为 `final_response_source=candidate`、`repair_applied=false`、`blocked=false`。因此这 0.60 的总体质量差异不能归因于 Guard 本身，更可能来自分别生成回复时的 LLM run-to-run variance。后续需要复用同一 candidate 的 paired before/after ablation 来估计 Guard/Repair 的因果作用。
 4. `current_system` 有 7 条 major bridge leakage，且 5 条“不建议给学生看”；它仍适合作为当前线上 baseline，但不应作为最终研究系统。
 5. 全部 140 条没有 answer/code leakage，问题主要集中在 major/minor critical bridge leakage，而不是完整代码泄露。
 6. `bridge-oriented micro-example` 是有效区分维度：Bridge Contract 组的微型例子分明显高于 current_system 和原始 single-LLM。

@@ -94,6 +94,8 @@ Research v1 不包含：
 - [fair_baseline_smoke3_report_20260511.md](fair_baseline_smoke3_report_20260511.md): 3-case fair baseline smoke report in English.
 - [fair_mini_study_20_report_20260511.zh.md](fair_mini_study_20_report_20260511.zh.md): 7 个系统的 20-case 公平 mini-study 中文报告，包含 single-LLM + Guard/Repair 对照。
 - [fair_mini_study_20_report_20260511.md](fair_mini_study_20_report_20260511.md): English report for the 7-system fair 20-case mini-study.
+- [fair_mini_study_20_paired_analysis_20260511.zh.md](fair_mini_study_20_paired_analysis_20260511.zh.md): 20-case fair 盲评的中文配对分析，按 case 计算 win/tie/loss、student-ready 指标和 bootstrap CI。
+- [fair_mini_study_20_paired_analysis_20260511.md](fair_mini_study_20_paired_analysis_20260511.md): English paired analysis for the fair 20-case blind review.
 - [mini_study_20_report_20260510.zh.md](mini_study_20_report_20260510.zh.md): 20 条 seed mini-study 中文初步报告。
 - [mini_study_20_report_20260510.md](mini_study_20_report_20260510.md): 20-seed mini-study preliminary English report.
 - [hard_gate_overfallback_rerun_20260510.zh.md](hard_gate_overfallback_rerun_20260510.zh.md): hard gate 过度兜底修复后的中文定点复测报告。
