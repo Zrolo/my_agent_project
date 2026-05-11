@@ -248,7 +248,7 @@ Use `literature-inspired` unless the public code, data, and settings are actuall
 ## Immediate Next Steps
 
 1. Expand prompt-controlled ablation from 3 cases to 10-20 cases.
-2. Implement or document `socratic_no_answer_tutor`, `dbox_inspired_decomposition_tutor`, and `bridge_inspired_expert_decision_tutor`.
+2. Use the implemented `enhanced_prompt_only`, `socratic_no_answer_tutor`, `codehelp_codeaid_no_direct_solution_tutor`, `dbox_inspired_decomposition_tutor`, and `bridge_inspired_expert_decision_tutor` modes in the shared offline runner rather than ad hoc scripts.
 3. Freeze strong prompt and judge prompts before the 50-case held-out test.
 4. Treat `current_system` as a deployment baseline in the main table.
 5. Frame the paper around quality-leakage-cost trade-offs rather than one architecture always winning.

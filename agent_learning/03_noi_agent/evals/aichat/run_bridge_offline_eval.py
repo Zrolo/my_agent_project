@@ -42,6 +42,7 @@ TUTOR_MODES = {
     "bridge_contract",
     "bridge_inspired_expert_decision_tutor",
     "codehelp_codeaid_no_direct_solution_tutor",
+    "enhanced_prompt_only",
     "single_llm_structured",
     "dbox_inspired_decomposition_tutor",
     "socratic_no_answer_tutor",
@@ -50,6 +51,7 @@ STANDALONE_NO_DIAGNOSIS_TUTOR_MODES = {
     "current_system",
     "codehelp_codeaid_no_direct_solution_tutor",
     "dbox_inspired_decomposition_tutor",
+    "enhanced_prompt_only",
     "bridge_inspired_expert_decision_tutor",
     "socratic_no_answer_tutor",
 }
@@ -252,6 +254,57 @@ def _call_current_system_tutor(row: dict, messages: list[dict], chat_model_provi
     return {
         "baseline_group": "current_system",
         "tutor_mode": "current_system",
+        "tutor_model_provider": chat_model_provider or "default",
+        "response_text": response_text,
+        "history_text": history_text,
+        "level": level,
+    }
+
+
+def _enhanced_prompt_message() -> dict:
+    return {
+        "role": "assistant",
+        "content": "\n".join(
+            [
+                "[Offline Enhanced Tutor Prompt - research control, not student text]",
+                "你正在生成算法竞赛辅导回复，但这一组实验不给你具体 Bridge Contract。",
+                "请遵守以下通用教学规则：",
+                "1. 不要直接给完整题解或完整代码。",
+                "2. 不要直接补完学生当前缺失的关键桥，例如完整状态定义、转移式、check 条件、边界更新、贪心准则或标记公式。",
+                "3. 先根据学生话语判断当前最可能缺的桥，但不要输出内部标签。",
+                "4. 使用 bridge-first, topic-second 原则：先按学生缺失的推理桥决定教学动作，算法名只作为上下文。",
+                "5. 如果使用微型例子，先说明这个例子要观察的桥梁问题；给足够小的例子；只问一个局部问题；最后要求学生抽象成可迁移规则。",
+                "6. 不要在微型例子里预填关键操作的一半再让学生补另一半。",
+                "7. 只给一个清晰、可回答的下一步问题。",
+                "8. 如果信息不足，先索取题面、代码、错误现象或学生已有尝试。",
+                "9. 回复自然，不输出 JSON、[LEVEL:] 或内部评测字段。",
+            ]
+        ),
+    }
+
+
+def _call_enhanced_prompt_tutor(
+    row: dict,
+    messages: list[dict],
+    bridge_result: dict,
+    chat_model_provider: str | None = None,
+) -> dict:
+    enhanced_messages = (
+        [*messages[:-1], _enhanced_prompt_message(), messages[-1]]
+        if messages
+        else [_enhanced_prompt_message()]
+    )
+    problem_ref = (row.get("problem_ref") or row.get("id") or "unknown_problem").strip()
+    case_id = row.get("id") or row.get("case_id") or problem_ref
+    response_text, history_text, level = noi_agent_chat(
+        enhanced_messages,
+        "bridge_offline_eval_student",
+        f"{problem_ref}::{case_id}",
+        chat_model_provider=chat_model_provider,
+    )
+    return {
+        "baseline_group": "enhanced_prompt_only",
+        "tutor_mode": "enhanced_prompt_only",
         "tutor_model_provider": chat_model_provider or "default",
         "response_text": response_text,
         "history_text": history_text,
@@ -871,6 +924,13 @@ def _make_tutor_fn(tutor_mode: str, chat_model_provider: str | None) -> TutorFn:
         )
     if tutor_mode == "single_llm_structured":
         return lambda row, messages, bridge_result: _call_single_llm_structured_tutor(
+            row,
+            messages,
+            bridge_result,
+            chat_model_provider=chat_model_provider,
+        )
+    if tutor_mode == "enhanced_prompt_only":
+        return lambda row, messages, bridge_result: _call_enhanced_prompt_tutor(
             row,
             messages,
             bridge_result,

@@ -221,6 +221,20 @@ python3 -m evals.aichat.run_bridge_offline_eval \
   --limit 3
 ```
 
+Use `--tutor-mode enhanced_prompt_only` for the strong prompt-only baseline. This mode uses stronger tutoring instructions but does not receive a concrete Bridge Contract, predicted missing bridge, or runtime diagnosis object. It isolates prompt wording effects from missing-bridge diagnosis effects. Run its clean condition with `--pipeline-mode tutor_only_no_diagnosis`; add `tutor_plus_guard` only when testing whether the same Leakage Guard helps strong prompt-only generation.
+
+Example:
+
+```bash
+python3 -m evals.aichat.run_bridge_offline_eval \
+  --input-jsonl docs/research/bridgebench_cp_seed_v2_gold_20.jsonl \
+  --output-jsonl evals/aichat/ad_hoc_runs/enhanced_prompt_only_smoke.jsonl \
+  --tutor-mode enhanced_prompt_only \
+  --pipeline-mode tutor_only_no_diagnosis \
+  --chat-model-provider deepseek_flash \
+  --limit 3
+```
+
 Use `--tutor-mode dbox_inspired_decomposition_tutor` for the DBox-inspired literature baseline. This mode asks the tutor LLM to internally emit a single-turn step-tree-style decomposition object and a student-visible response. It is not a DBox reproduction. The prompt allows only first-level decomposition guidance: one current substep, a general guiding question or micro-task, and no reveal substep/code. For a fair safety comparison, include both:
 
 ```text
@@ -249,7 +263,7 @@ Use `--pipeline-mode` to isolate ablations:
 | Mode | Stages run | Primary use |
 | --- | --- | --- |
 | `diagnosis_only` | Bridge Judge only | Bridge diagnosis accuracy. |
-| `tutor_only_no_diagnosis` | Tutor only, no Bridge Judge and no candidate retrieval | Fair standalone response/latency baseline. Valid with `current_system`, `socratic_no_answer_tutor`, `codehelp_codeaid_no_direct_solution_tutor`, `dbox_inspired_decomposition_tutor`, and `bridge_inspired_expert_decision_tutor`. |
+| `tutor_only_no_diagnosis` | Tutor only, no Bridge Judge and no candidate retrieval | Fair standalone response/latency baseline. Valid with `current_system`, `enhanced_prompt_only`, `socratic_no_answer_tutor`, `codehelp_codeaid_no_direct_solution_tutor`, `dbox_inspired_decomposition_tutor`, and `bridge_inspired_expert_decision_tutor`. |
 | `tutor_only` | Bridge Judge + tutor | Tutor quality without output guard. |
 | `tutor_plus_guard` | Bridge Judge + tutor + Leakage Judge | Leakage detection without repair. |
 | `tutor_plus_guard_plus_repair` | Bridge Judge + tutor + Leakage Judge + Repair | Full offline safety pipeline. |

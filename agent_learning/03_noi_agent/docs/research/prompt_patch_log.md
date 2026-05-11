@@ -15,9 +15,29 @@ This log records slow-variable changes to prompts, rubrics, registries, routers,
 | Prompt family | Current freeze target | Status |
 |---|---|---|
 | Main Tutor / current AIChat prompt | `tutor_prompt_v1.0-dev` | pending freeze |
+| Enhanced Prompt-Only Tutor prompt | `enhanced_prompt_only_v1.0-dev` | in dev, runner-integrated |
 | Bridge Contract Tutor prompt | `bridge_contract_tutor_prompt_v1.0-dev` | pending freeze |
 | Repair Generator prompt | `repair_prompt_v1.0-dev` | in dev after micro-task guard patch |
 | Deterministic fallback policy text | `fallback_policy_v1.0-dev` | pending freeze |
+
+## patch_20260511_enhanced_prompt_only_runner
+
+- Date: 2026-05-11
+- Affected layer: offline strong prompt-only tutor baseline
+- Failure/risk pattern:
+  - External review identified a mismatch between the baseline protocol and the shared offline runner: `enhanced_prompt_only` was a key strong prompt-only baseline in the research design, but it was not available in `run_bridge_offline_eval.py`.
+  - Without this mode in the same runner, Research v1 could not cleanly separate prompt wording effects from predicted missing-bridge diagnosis effects.
+- Change:
+  - Added `enhanced_prompt_only` to the shared offline runner and CLI `--tutor-mode` choices.
+  - Allowed `enhanced_prompt_only` with `--pipeline-mode tutor_only_no_diagnosis` so it can run as a standalone response/latency baseline without Bridge Judge or candidate retrieval.
+  - Added a strong tutoring control prompt that gives Socratic, single-focus, bridge-oriented micro-example guidance without a concrete Bridge Contract.
+- Regression checks:
+  - `test_bridge_offline_eval_runner_unit.py::BridgeOfflineEvalRunnerTests.test_enhanced_prompt_only_runs_without_bridge_diagnosis`
+  - `test_bridge_offline_eval_runner_unit.py::BridgeOfflineEvalRunnerTests.test_cli_accepts_enhanced_prompt_only_tutor_mode`
+- Verification:
+  - `python3 -m unittest test_bridge_offline_eval_runner_unit.py` passed on 2026-05-11.
+- Human approval:
+  - Pending project-owner review before prompt freeze.
 
 ## patch_20260511_bridge_first_topic_second
 

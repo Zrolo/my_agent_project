@@ -838,6 +838,128 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
         self.assertEqual("candidate", result["final_response_source"])
         self.assertEqual(1, result["llm_call_count"])
 
+    def test_enhanced_prompt_only_runs_without_bridge_diagnosis(self):
+        rows = [
+            {
+                "id": "case_enhanced_prompt",
+                "problem_ref": "P1048",
+                "student_message": "我知道像背包，但状态怎么设？",
+                "problem_context": "采药，时间限制内最大化价值。",
+            }
+        ]
+        captured_messages = []
+
+        def bridge_judge_should_not_run(**kwargs):
+            raise AssertionError("enhanced_prompt_only standalone should not call Bridge Judge")
+
+        def fake_noi_agent_chat(messages, student_id, problem_id, chat_model_provider=None):
+            captured_messages.extend(messages)
+            return (
+                "先不直接定义状态。你先说说：数组一格至少要记录哪类信息？",
+                "history",
+                "L2",
+            )
+
+        with patch.object(run_bridge_offline_eval, "noi_agent_chat", side_effect=fake_noi_agent_chat):
+            result_rows = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+                rows,
+                bridge_judge_fn=bridge_judge_should_not_run,
+                tutor_mode="enhanced_prompt_only",
+                pipeline_mode="tutor_only_no_diagnosis",
+                chat_model_provider="deepseek_flash",
+            )
+
+        result = result_rows[0]
+        self.assertEqual("enhanced_prompt_only", result["tutor_mode"])
+        self.assertEqual("enhanced_prompt_only", result["baseline_group"])
+        self.assertEqual("enhanced_prompt_only", result["tutor_response"]["baseline_group"])
+        self.assertEqual("candidate", result["final_response_source"])
+        self.assertEqual(1, result["llm_call_count"])
+        joined = "\n".join(message["content"] for message in captured_messages)
+        self.assertIn("Enhanced Tutor Prompt", joined)
+        self.assertIn("不给你具体 Bridge Contract", joined)
+        self.assertIn("不要直接补完学生当前缺失的关键桥", joined)
+
+    def test_enhanced_prompt_only_can_run_with_guard_stack(self):
+        rows = [
+            {
+                "id": "case_enhanced_guard",
+                "problem_ref": "P1048",
+                "student_message": "我知道像背包，但状态怎么设？",
+                "problem_context": "采药，时间限制内最大化价值。",
+            }
+        ]
+        calls = []
+
+        def fake_bridge_judge(**kwargs):
+            calls.append(("bridge", kwargs["student_message"]))
+            return {
+                "problem_solving_state": "modeling_representation_gap",
+                "missing_bridge": {
+                    "family": "representation_state_bridge",
+                    "subtype": "state.dp_state_semantics",
+                    "description": "学生缺少状态含义。",
+                    "evidence": ["学生问状态怎么设"],
+                    "known_focus": "state_design",
+                    "needs_new_focus": False,
+                },
+                "help_seeking_type": "concept_explanation",
+                "allowed_help_level": "L2",
+                "help_form": "micro_example",
+                "forbidden_content": ["不要直接给完整状态定义。"],
+                "leakage_risk": "high",
+                "confidence": 0.9,
+                "reason": "unit test",
+            }
+
+        def fake_noi_agent_chat(messages, student_id, problem_id, chat_model_provider=None):
+            calls.append(("tutor", chat_model_provider))
+            return (
+                "先不直接定义状态。你先说说：数组一格至少要记录哪类信息？",
+                "history",
+                "L2",
+            )
+
+        def fake_leakage(**kwargs):
+            calls.append(("leakage", kwargs["forbidden_content"]))
+            return {
+                "leakage_level": 0,
+                "leakage_types": [],
+                "leaked_elements": [],
+                "violated_forbidden_content": [],
+                "is_critical_bridge_leakage": False,
+                "is_answer_or_code_leakage": False,
+                "safe_action": "pass",
+                "confidence": 0.88,
+                "reason": "unit test",
+            }
+
+        with patch.object(run_bridge_offline_eval, "noi_agent_chat", side_effect=fake_noi_agent_chat):
+            result_rows = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+                rows,
+                bridge_judge_fn=fake_bridge_judge,
+                leakage_judge_fn=fake_leakage,
+                tutor_mode="enhanced_prompt_only",
+                pipeline_mode="tutor_plus_guard",
+                chat_model_provider="deepseek_flash",
+            )
+
+        result = result_rows[0]
+        self.assertEqual(
+            [
+                ("bridge", "我知道像背包，但状态怎么设？"),
+                ("tutor", "deepseek_flash"),
+                ("leakage", ["不要直接给完整状态定义。"]),
+            ],
+            calls,
+        )
+        self.assertEqual("enhanced_prompt_only", result["tutor_mode"])
+        self.assertEqual("enhanced_prompt_only", result["baseline_group"])
+        self.assertEqual("pass", result["leakage_judge_result"]["safe_action"])
+        self.assertEqual("candidate", result["final_response_source"])
+        self.assertFalse(result["repair_applied"])
+        self.assertEqual(3, result["llm_call_count"])
+
     def test_single_llm_structured_receives_strict_enum_and_top_k_focus_candidates(self):
         rows = [
             {
@@ -1248,6 +1370,19 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
 
         self.assertEqual("single_llm_structured", args.tutor_mode)
         self.assertEqual("tutor_only", args.pipeline_mode)
+
+    def test_cli_accepts_enhanced_prompt_only_tutor_mode(self):
+        args = run_bridge_offline_eval._parse_args(
+            [
+                "--tutor-mode",
+                "enhanced_prompt_only",
+                "--pipeline-mode",
+                "tutor_only_no_diagnosis",
+            ]
+        )
+
+        self.assertEqual("enhanced_prompt_only", args.tutor_mode)
+        self.assertEqual("tutor_only_no_diagnosis", args.pipeline_mode)
 
 
 if __name__ == "__main__":
