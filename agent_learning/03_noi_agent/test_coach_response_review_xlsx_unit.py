@@ -60,7 +60,12 @@ class CoachResponseReviewXlsxTests(unittest.TestCase):
         self.assertEqual("5｜优秀：非常愿意给学生看", options["K2"].value)
         self.assertEqual("yes｜愿意：可以直接给学生看", options["L2"].value)
         guide = workbook["评分说明"]
-        self.assertIn("0-2", guide["A1"].value)
+        guide_values = "\n".join(str(cell.value or "") for row in guide.iter_rows() for cell in row)
+        self.assertIn("0-2", guide_values)
+        self.assertIn("例子", guide_values)
+        self.assertIn("状态怎么设", guide_values)
+        self.assertIn("总体质量", guide_values)
+        self.assertIn("评分置信度", guide_values)
 
 
 if __name__ == "__main__":

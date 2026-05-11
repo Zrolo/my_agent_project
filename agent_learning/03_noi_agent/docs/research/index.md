@@ -64,6 +64,8 @@ Research v1 不包含：
 - [annotation_reliability_protocol_v1.md](annotation_reliability_protocol_v1.md): single-coach reference、double annotation、adjudicated gold 的解释与流程。
 - [schema_mapping_human_to_runtime_v1.md](schema_mapping_human_to_runtime_v1.md): 人类细标注 schema 与 runtime compact contract 的映射。
 - [bridge_schema_annotation_guide_v1.md](bridge_schema_annotation_guide_v1.md): bridge schema 标注指导。
+- [response_review_rubric_v2.zh.md](response_review_rubric_v2.zh.md): AIChat 回复盲评中文评分标准，包含新增总体质量、是否愿意给学生看、评分置信度和示例。
+- [response_review_rubric_v2.md](response_review_rubric_v2.md): English response blind-review rubric v2.
 
 ### Runtime Contract And Registries
 
@@ -164,6 +166,11 @@ Export an anonymized response review workbook. The coach should not see the base
 - next-step clarity
 - single-focus coherence
 - bridge-oriented micro-example quality
+- micro-example applicability
+- overall quality score
+- would-show-to-student decision
+- reviewer confidence
+- needs-discussion flag
 - actual leakage label
 - overall quality band
 
