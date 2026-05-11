@@ -1,0 +1,92 @@
+﻿case_id,anonymized_response_id,problem_ref,student_message,problem_context,recent_dialogue,response_text,coach_bridge_identification_score,coach_groundedness_score,coach_scaffold_appropriateness_score,coach_bridge_leakage_control_score,coach_next_step_clarity_score,coach_single_focus_coherence_score,coach_bridge_oriented_micro_example_score,coach_micro_example_applicability,coach_leakage_label,coach_preference_rank,coach_overall_quality_score,coach_would_show_to_student,coach_reviewer_confidence,coach_needs_discussion,coach_notes,review_status
+repair_stress_012,resp_b0a8cb4046,cp_bridge_014,我的双重循环看起来挺简单，为什么会 TLE？n 是 2e5。,复杂度估算与瓶颈定位，学生缺少 n^2 与数据范围之间的桥。,N/A,你提到 n=2e5，那么外层循环 n 次，内层循环 n 次总操作数是多少？这个量级在通常的 1 秒时限内能跑完吗？如果觉得内层循环耗时过多，试着想想：内层循环中有哪些操作是可以提前或不用每次从头计算的？比如能否用一次扫描或某种方式快速得到需要的值？[LEVEL:L2],,,,,,,,,,,,,,,,unlabeled
+repair_stress_016,resp_0d4624de1b,cp_bridge_033,这个 DP 初始化我总写错，dp[0] 到底该是 0 还是无穷？其他位置呢？,最值型 DP，学生缺少 base case 与不可达状态初始化之间的桥梁。,N/A,"如果是求最小代价，dp[0]=0 表示什么都不做代价为 0，其他 dp[i] 都初始化为 INF，表示还不可达。然后转移时只从已经不是 INF 的状态往后更新。
+
+[LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled
+repair_stress_015,resp_141f2c8f59,cp_bridge_033,单调队列里为什么队尾比当前元素差就能弹掉？它以后真的不会再用了吗？,滑动窗口最大值/单调队列优化，学生缺少支配关系与弹出正确性的桥梁。,N/A,"假设你正在处理一个滑动窗口问题，窗口大小为3，当前队列中有元素[5,3,2]，新元素是4。请观察队列中哪些元素会被弹出？对比一下新元素和队尾元素，你觉得队尾元素在未来的窗口里还有可能成为最大值吗？为什么？[LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled
+repair_stress_011,resp_c46334c779,cp_bridge_018,合并果子为什么每次都要从堆里取两个最小的？我能不能直接顺序合并？,哈夫曼/合并果子，学生缺少堆操作和贪心选择之间的连接。,N/A,"好问题！我们来看一个具体例子：果子重量分别为 1, 2, 3, 4。
+如果直接顺序合并，先合并 1+2=3，得到新序列 [3,3,4]；再合并 3+3=6，得到 [4,6]；最后 4+6=10，总代价 3+6+10=19。
+
+现在请你试试另一种合并方式：每次选择当前最小的两堆合并，你会怎么选？请写出每一步合并的两个重量、合并后的新重量，并计算总代价。最后比较两种方式的结果。
+
+[LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled
+repair_stress_013,resp_9490240bea,cp_bridge_045,KMP 的 next 数组到底表示什么？失配时为什么能跳到 next[j]？,字符串匹配，学生知道 KMP 名字，但缺少 prefix/next 数组语义和失配跳转理由。,N/A,"next[j] 表示模式串前 j 个字符中最长的相等真前后缀长度。失配时，前面已经匹配的部分里长度为 next[j] 的前缀仍然能和文本当前位置前的后缀对齐，所以 j 可以直接跳到 next[j]，不用从头比较。
+
+[LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled
+repair_stress_020,resp_7d93995f2f,cp_bridge_023,这题是不是直接用 Dijkstra 加堆？你告诉我方向就行。,带非负边权的最短路题，学生直接请求确认算法名和路线。,N/A,你提到 Dijkstra 和堆，是什么让你觉得这个方向合适？另外，题目里的边权都是非负的，这个条件在你选算法时有什么作用呢？[LEVEL:L1],,,,,,,,,,,,,,,,unlabeled
+repair_stress_020,resp_3b330b103b,cp_bridge_023,这题是不是直接用 Dijkstra 加堆？你告诉我方向就行。,带非负边权的最短路题，学生直接请求确认算法名和路线。,N/A,"是的，这题就是 Dijkstra + 小根堆优化。因为边权非负，所以每次取当前最短的未确定点，然后用它去松弛邻边即可，复杂度 O((n+m)logn)。
+
+[LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled
+repair_stress_019,resp_57d7fa489e,cp_bridge_039,"一维前缀和求区间 [L,R] 为什么是 pre[R]-pre[L-1]？我老是下标减错。",一维前缀和，学生缺少区间贡献与左边界前一项抵消关系。,N/A,"因为 pre[R] 包含 1..R 的和，pre[L-1] 包含 1..L-1 的和，二者相减就刚好剩下 L..R，所以区间和就是 pre[R]-pre[L-1]。
+
+[LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled
+repair_stress_005,resp_41ca547597,cp_bridge_005,线段树区间加我会写一点，但 lazy 到底表示还没做什么，我说不清。,区间加、区间求和的线段树懒标记。学生会一些代码，但不理解 lazy 的语义。,N/A,"lazy[x] 表示当前节点代表的整段已经整体加过了，sum[x] 也已经更新了，但这个加法还没有下传到两个子节点。等以后访问子节点时，再把 lazy[x] 下推给孩子，并清空 lazy[x]。
+
+[LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled
+repair_stress_005,resp_b1a9fd18c5,cp_bridge_005,线段树区间加我会写一点，但 lazy 到底表示还没做什么，我说不清。,区间加、区间求和的线段树懒标记。学生会一些代码，但不理解 lazy 的语义。,N/A,区间加操作后，当前节点的 sum 应该立即更新吗？它的子节点 sum 呢？那 lazy 标记可以记录什么？[LEVEL:L2],,,,,,,,,,,,,,,,unlabeled
+repair_stress_018,resp_93d44a07e3,cp_bridge_015,我这个贪心老 WA，但我想不出反例，你能给我一个吗？,调试错误贪心，学生缺少构造最小反例和验证假设的证据桥梁。,学生当前贪心策略：每次选当前价值最大的物品。,"反例可以是容量 10，物品 A 重 10 价值 10，物品 B 重 6 价值 7，物品 C 重 4 价值 6。你的贪心会先选 A 得 10，但最优是选 B+C 得 13，所以策略错了。
+
+[LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled
+repair_stress_007,resp_01d2b76a6d,cp_bridge_011,差分约束我知道像建图，但 a[i]-a[j] <= c 到底边从谁连谁我总写反。,差分约束系统建图，学生缺少不等式到边方向的映射。,N/A,"把 a[i]-a[j] <= c 变形为 a[i] <= a[j] + c，所以建边 j -> i，边权 c。这样最短路的 relax 正好对应 a[i] 被 a[j]+c 约束住。
+
+[LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled
+repair_stress_009,resp_8b822335b2,cp_bridge_008,二分找第一个满足条件的位置时，l 和 r 到底怎么收缩我老写反。,二分查找 first true / lower_bound 风格边界更新。,N/A,"如果 check(mid) 为 true，说明答案可能是 mid 或更左边，所以 r = mid；如果 false，说明 mid 和左边都不行，所以 l = mid + 1。循环用 while (l < r)。
+
+[LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled
+repair_stress_015,resp_0d52bf85bb,cp_bridge_033,单调队列里为什么队尾比当前元素差就能弹掉？它以后真的不会再用了吗？,滑动窗口最大值/单调队列优化，学生缺少支配关系与弹出正确性的桥梁。,N/A,"如果新元素 i 比队尾 j 更靠右，而且值还不小于 j，那么在之后所有包含 j 的窗口里，i 也会更晚过期且值更大或相等，所以 j 永远不可能成为最大值，可以直接从队尾弹掉。
+
+[LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled
+repair_stress_017,resp_69d27d84eb,cp_bridge_050,这个 if 条件我就差一点，你直接帮我补上吧：判断一条边能不能 relax。,最短路 relax 局部条件补全，学生直接请求补完整 if 条件。,N/A,Relax 操作中，你要比较哪两个距离？如果新路径更短，你需要对 dist[v] 做什么操作？[LEVEL:L1],,,,,,,,,,,,,,,,unlabeled
+repair_stress_016,resp_8d568ed18a,cp_bridge_033,这个 DP 初始化我总写错，dp[0] 到底该是 0 还是无穷？其他位置呢？,最值型 DP，学生缺少 base case 与不可达状态初始化之间的桥梁。,N/A,你问到了关键点！对于求最小代价的 DP，你觉得 dp[0] 应该表示什么含义？其他位置的初始值又代表什么意义呢？[LEVEL:L2],,,,,,,,,,,,,,,,unlabeled
+repair_stress_004,resp_85461898c7,cp_bridge_001,我知道要 LCA，但不知道每条路径到底在哪里加减标记。,树上路径差分，统计每条边被多少条路径经过。,N/A,"比如路径 4 到 7 的 LCA 是 2，就在 4 和 7 各加 1，在 2 减 2。之后 DFS 往上累加，某个子树的和就是连接这棵子树到父亲那条边被路径经过的次数。
+
+[LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled
+repair_stress_007,resp_a4a1cd42dc,cp_bridge_011,差分约束我知道像建图，但 a[i]-a[j] <= c 到底边从谁连谁我总写反。,差分约束系统建图，学生缺少不等式到边方向的映射。,N/A,你的思路是对的，差分约束需要建图。先看这个不等式：a[i] - a[j] <= c。我们想把它变成最短路松弛的条件形式 d[v] <= d[u] + w。你能不能试着把 a[i] - a[j] <= c 变形一下，让它左边只有一个变量，右边是另一个变量加某个数？然后想想要是从谁连向谁，才能让最短路的松弛刚好体现这个不等式？[LEVEL:L2],,,,,,,,,,,,,,,,unlabeled
+repair_stress_009,resp_a27914955b,cp_bridge_008,二分找第一个满足条件的位置时，l 和 r 到底怎么收缩我老写反。,二分查找 first true / lower_bound 风格边界更新。,N/A,"假设我们在找第一个满足条件的位置，当前区间是[l, r]。看mid这个位置：如果check(mid)为真，说明mid可能是答案，那么答案可能还在mid左边还是右边？如果check(mid)为假，说明mid肯定不行，那么答案应该在mid的哪一边？试着根据这个思路自己写出收缩规则。或者看这个小例子：数组[0,0,0,1,1,1]，找第一个1的位置，初始l=0,r=5，mid=2时check=false，你该动l还是r？这样的收缩方向和你之前写反的有什么不同？[LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled
+repair_stress_010,resp_221371f2e2,cp_bridge_002,我知道要二分答案，但 check(mid) 到底返回 true 还是 false 我总写反。,二分答案，学生缺少判定函数 true/false 语义和边界更新之间的连接。,N/A,能再描述一下 check(mid) 应该判断“mid 是否可行”还是“是否至少可以”之类的问题？如果 mid 可行，你觉得边界应该往哪个方向调整？[LEVEL:L2],,,,,,,,,,,,,,,,unlabeled
+repair_stress_006,resp_5caee600ea,cp_bridge_005,pushdown 的时候我总觉得 lazy 是欠账，但欠给谁、什么时候还，我说不清。,线段树区间加与 lazy pushdown。,N/A,"lazy 就是父节点欠两个儿子的账。pushdown 时，把 lazy[x] 加到 lazy[left] 和 lazy[right]，同时把 sum[left] 增加 lazy[x] * len(left)，sum[right] 增加 lazy[x] * len(right)，最后 lazy[x]=0。
+
+[LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled
+repair_stress_008,resp_039076ac56,cp_bridge_011,差分约束到底是最长路还是最短路？我一看到不等式就乱。,差分约束建图与最短/最长路选择。,N/A,你可以回忆一下，形如 x_v <= x_u + w 的不等式，如果转化成最短路形式，边的方向应该怎么建？反过来 x_v >= x_u + w 呢？  [LEVEL:L1],,,,,,,,,,,,,,,,unlabeled
+repair_stress_002,resp_aab6483a28,cp_bridge_010,二维 dp 我会写了，但老师说可以压成一维，我不知道压掉哪一维才不会覆盖错。,01 背包二维 DP 压一维，关键是理解覆盖顺序和依赖方向。,N/A,"压成一维后写成 for j = V downto w[i]: dp[j] = max(dp[j], dp[j-w[i]] + v[i])。倒序的原因是 dp[j-w[i]] 还停留在上一件物品处理完后的值，正序会用到当前物品刚更新出来的值。
+
+[LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled
+repair_stress_006,resp_d20bf2d394,cp_bridge_005,pushdown 的时候我总觉得 lazy 是欠账，但欠给谁、什么时候还，我说不清。,线段树区间加与 lazy pushdown。,N/A,"你说得对，lazy 就像父节点欠两个孩子的账。但具体欠了什么？如果父节点有一个区间加法的欠账，它应该怎样影响两个孩子？请用你自己的话描述：每个孩子节点需要更新哪两个值？试着用一个简单例子说明，比如父节点代表 [1,4]，lazy 值为 2，两个孩子代表 [1,2] 和 [3,4]，每个孩子长度为 2。你觉得欠账应该怎么分？ [LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled
+repair_stress_004,resp_5f65f10f36,cp_bridge_001,我知道要 LCA，但不知道每条路径到底在哪里加减标记。,树上路径差分，统计每条边被多少条路径经过。,N/A,想象一条路径 4→7，我们只能对端点 4 和 7 做一种标记（比如+1），对它们的 LCA 2 做另一种标记（比如-2）。之后 DFS 累加子树和，你觉得这样的标记会带来什么结果？试着自己在草稿上模拟一下 4 加+1、7 加+1、2 加-2，然后从叶子向上累加，看看每个节点子树和表示什么。[LEVEL:L2],,,,,,,,,,,,,,,,unlabeled
+repair_stress_011,resp_379d22197a,cp_bridge_018,合并果子为什么每次都要从堆里取两个最小的？我能不能直接顺序合并？,哈夫曼/合并果子，学生缺少堆操作和贪心选择之间的连接。,N/A,"每一步都从小根堆弹出两个最小值 a,b，代价加 a+b，再把 a+b 放回堆。这样能保证小的重量尽量少被重复累加，是哈夫曼贪心的核心。
+
+[LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled
+repair_stress_008,resp_505386ceed,cp_bridge_011,差分约束到底是最长路还是最短路？我一看到不等式就乱。,差分约束建图与最短/最长路选择。,N/A,"如果是不等式 x_v <= x_u + w，就建 u -> v 权 w，跑最短路；如果是 x_v >= x_u + w，就建 u -> v 权 w，跑最长路。你这题属于前一种，所以用最短路。
+
+[LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled
+repair_stress_014,resp_a34fc9afa3,cp_bridge_025,为什么活动选择按结束时间最早排序就是对的？我感觉只是经验。,区间活动选择/贪心，学生缺少交换论证和安全选择的正确性桥梁。,N/A,你的想法很自然。不妨假设最优解第一个活动不是结束最早的，而是另一个活动 b。既然 a 比 b 结束得早，那么如果我们用 a 替换 b，你觉得替换后还能选原本 b 后面的那些活动吗？为什么？[LEVEL:L2],,,,,,,,,,,,,,,,unlabeled
+repair_stress_002,resp_fd20999b08,cp_bridge_010,二维 dp 我会写了，但老师说可以压成一维，我不知道压掉哪一维才不会覆盖错。,01 背包二维 DP 压一维，关键是理解覆盖顺序和依赖方向。,N/A,压成一维后，容量循环的顺序会决定 dp[j-w[i]] 代表的是上一件物品的值还是当前物品的更新值。你试试看：如果容量从小到大正序循环，用一个小例子（比如只有一件物品，重量2价值3，容量3）手动推一遍，观察 dp[2] 更新完后 dp[3] 会用哪个 dp[1] 的值？这样会有什么问题？ [LEVEL:L2],,,,,,,,,,,,,,,,unlabeled
+repair_stress_001,resp_4d39178d36,cp_bridge_010,01 背包为什么容量要倒着枚举？正着枚举不是也能更新吗？,01 背包，每个物品最多选一次。学生知道二维 DP，正在理解压成一维后的枚举顺序。,N/A,我们可以用一个小例子手动模拟一下正序枚举下dp数组的变化。假设容量为5，第一件物品体积2价值5。正序枚举容量从1到5，请你写出每次更新时dp数组的值，观察是否存在重复选择的问题？填完后再对照思考：倒序枚举会如何？[LEVEL:L2],,,,,,,,,,,,,,,,unlabeled
+repair_stress_001,resp_c929c23858,cp_bridge_010,01 背包为什么容量要倒着枚举？正着枚举不是也能更新吗？,01 背包，每个物品最多选一次。学生知道二维 DP，正在理解压成一维后的枚举顺序。,N/A,"正着枚举会重复使用当前物品。比如第一个物品体积 2、价值 5，容量从小到大更新时，dp[2] 先变成 5，随后 dp[4] 会立刻用刚更新的 dp[2] 再加一次 5，变成 10，这等于把同一个物品选了两次。所以 01 背包必须倒着枚举容量。
+
+[LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled
+repair_stress_014,resp_a5d7b7fc33,cp_bridge_025,为什么活动选择按结束时间最早排序就是对的？我感觉只是经验。,区间活动选择/贪心，学生缺少交换论证和安全选择的正确性桥梁。,N/A,"证明方法是交换论证：设最优解第一项不是结束最早的活动 a，而是另一个活动 b。因为 a 结束不晚于 b，所以把 b 换成 a 后不会减少后面能选的活动数量，因此仍然是最优解。于是一定存在一个以结束最早活动开头的最优解。
+
+[LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled
+repair_stress_013,resp_fbed75d23f,cp_bridge_045,KMP 的 next 数组到底表示什么？失配时为什么能跳到 next[j]？,字符串匹配，学生知道 KMP 名字，但缺少 prefix/next 数组语义和失配跳转理由。,N/A,在对模式串进行匹配时，如果当前字符失配，我们有时可以跳过一些不必要的比较。你觉得这个next数组可能记录了什么信息？为什么失配时可以跳过一些比较呢？[LEVEL:L2],,,,,,,,,,,,,,,,unlabeled
+repair_stress_019,resp_394c20e882,cp_bridge_039,"一维前缀和求区间 [L,R] 为什么是 pre[R]-pre[L-1]？我老是下标减错。",一维前缀和，学生缺少区间贡献与左边界前一项抵消关系。,N/A,"先想一下 pre[5] 包含了哪些下标元素的和？那 pre[2] 又包含了哪些？如果我想求区间 [3,5] 的和，能不能从 pre[5] 里去掉 pre[2] 的部分？你看看减法之后剩下什么。 [LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled
+repair_stress_017,resp_2a82bf96d1,cp_bridge_050,这个 if 条件我就差一点，你直接帮我补上吧：判断一条边能不能 relax。,最短路 relax 局部条件补全，学生直接请求补完整 if 条件。,N/A,"这里直接写 if (dist[v] > dist[u] + w) { dist[v] = dist[u] + w; }。条件含义是从 u 走到 v 能让 v 的当前距离变得更小。
+
+[LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled
+repair_stress_003,resp_88c7fac44a,cp_bridge_001,我知道要 LCA，但不知道每条路径到底在哪里加减标记。,树上多条路径贡献统计，学生知道 LCA，但缺少端点/LCA 差分标记和 DFS 汇总这一步。,N/A,我们先用一个小树来试。假设树是 1-2-3，1 是根，路径 2-3。你想象一下，如果我们要统计每条边被经过的次数，你会在哪些节点上做加减标记？具体地，你会在端点 2 和 3 上做什么操作？LCA 呢？试着自己写出来，然后我们对比一下你的结果。 [LEVEL:L2],,,,,,,,,,,,,,,,unlabeled
+repair_stress_010,resp_32073b46db,cp_bridge_002,我知道要二分答案，但 check(mid) 到底返回 true 还是 false 我总写反。,二分答案，学生缺少判定函数 true/false 语义和边界更新之间的连接。,N/A,"check(mid) 应该返回是否存在一个合法方案让答案至少达到 mid。如果 check(mid)=true，说明 mid 可行，可以尝试更大的 mid；如果 false，就要把上界往小调。
+
+[LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled
+repair_stress_012,resp_668743ca5b,cp_bridge_014,我的双重循环看起来挺简单，为什么会 TLE？n 是 2e5。,复杂度估算与瓶颈定位，学生缺少 n^2 与数据范围之间的桥。,N/A,"双重循环是 O(n^2)，n=2e5 时大约 4e10 次操作，肯定过不了。你需要把内层循环换成能快速查询或维护答案的数据结构，比如前缀和、树状数组或单调结构。
+
+[LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled
+repair_stress_003,resp_a56b27eb38,cp_bridge_001,我知道要 LCA，但不知道每条路径到底在哪里加减标记。,树上多条路径贡献统计，学生知道 LCA，但缺少端点/LCA 差分标记和 DFS 汇总这一步。,N/A,"对一条路径 u-v，设 w=lca(u,v)，差分标记就是 cnt[u]++、cnt[v]++、cnt[w]--、cnt[parent[w]]--，最后 DFS 汇总子树贡献。这样每条边被经过的次数就能从子树和里得到。
+
+[LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled
+repair_stress_018,resp_e699e601a0,cp_bridge_015,我这个贪心老 WA，但我想不出反例，你能给我一个吗？,调试错误贪心，学生缺少构造最小反例和验证假设的证据桥梁。,学生当前贪心策略：每次选当前价值最大的物品。,"想想看，如果容量够，你会选一个很大但只占满容量的物品，还是选多个虽小但总价值更高的物品？试试构造一个容量为10的例子，有两种物品：一种重10值10，另一种重6值7，还有没有其他可能的物品？填一下容量和价值的空位，再看看贪心选了什么，最优选了什么？
+物品A：重___，价值___
+物品B：重___，价值___
+贪心选择：___
+最优选择：___
+
+[LEVEL:L2]",,,,,,,,,,,,,,,,unlabeled

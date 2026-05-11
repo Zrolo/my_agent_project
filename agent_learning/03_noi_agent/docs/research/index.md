@@ -124,6 +124,8 @@ Research v1 不包含：
 - [repair_prompt_fix_mini_study_20_20260510.md](repair_prompt_fix_mini_study_20_20260510.md): English 20-case rerun report after the repair prompt fix.
 - [repair_stress_v1_smoke_report_20260511.zh.md](repair_stress_v1_smoke_report_20260511.zh.md): 12-case Repair stress 中文 smoke 报告，专门测试高泄露候选回复的 detect -> repair -> second-pass guard 链路。
 - [repair_stress_v1_smoke_report_20260511.md](repair_stress_v1_smoke_report_20260511.md): English report for the 12-case Repair stress smoke.
+- [repair_stress_v1_all20_report_20260511.zh.md](repair_stress_v1_all20_report_20260511.zh.md): 20-case Repair stress 中文报告，扩展 KMP、贪心正确性、单调结构、初始化、局部补全、调试反例、前缀和和算法确认等高泄露压力样本。
+- [repair_stress_v1_all20_report_20260511.md](repair_stress_v1_all20_report_20260511.md): English report for the 20-case Repair stress run.
 
 ### Response Blind Review
 
@@ -143,6 +145,9 @@ Research v1 不包含：
 - [coach_response_review_workbook_repair_stress_v1_20260511.zh.xlsx](coach_response_review_workbook_repair_stress_v1_20260511.zh.xlsx): Repair stress v1 的 before/after 中文盲评表，共 24 条匿名回复。
 - [coach_response_review_workbook_repair_stress_v1_20260511.csv](coach_response_review_workbook_repair_stress_v1_20260511.csv): Repair stress v1 before/after CSV。
 - [coach_response_review_workbook_repair_stress_v1_20260511.key.csv](coach_response_review_workbook_repair_stress_v1_20260511.key.csv): Repair stress v1 before/after 匿名 key。
+- [coach_response_review_workbook_repair_stress_v1_all20_20260511.zh.xlsx](coach_response_review_workbook_repair_stress_v1_all20_20260511.zh.xlsx): Repair stress v1 all20 before/after 中文盲评表，共 40 条匿名回复。
+- [coach_response_review_workbook_repair_stress_v1_all20_20260511.csv](coach_response_review_workbook_repair_stress_v1_all20_20260511.csv): Repair stress v1 all20 before/after CSV。
+- [coach_response_review_workbook_repair_stress_v1_all20_20260511.key.csv](coach_response_review_workbook_repair_stress_v1_all20_20260511.key.csv): Repair stress v1 all20 before/after 匿名 key。
 - [coach_response_review_workbook_prompt_controlled_ablation_smoke3_20260511.zh.xlsx](coach_response_review_workbook_prompt_controlled_ablation_smoke3_20260511.zh.xlsx): prompt-controlled ablation 3-case 中文盲评表，共 15 条匿名回复。
 - [coach_response_review_workbook_prompt_controlled_ablation_smoke3_20260511.key.csv](coach_response_review_workbook_prompt_controlled_ablation_smoke3_20260511.key.csv): prompt-controlled ablation 3-case 匿名 key。
 - [coach_response_review_labels_prompt_controlled_ablation_smoke3_20260511.jsonl](coach_response_review_labels_prompt_controlled_ablation_smoke3_20260511.jsonl): prompt-controlled ablation 3-case 盲评标签 JSONL，已映射到匿名系统条件。
