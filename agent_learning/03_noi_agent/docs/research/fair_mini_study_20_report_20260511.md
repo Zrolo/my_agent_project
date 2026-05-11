@@ -55,6 +55,7 @@ These metrics come from Leakage Judge, not coach blind-review labels. They are u
    - whether Guard reduces critical bridge leakage;
    - whether Repair preserves teaching quality;
    - whether bridge-oriented micro-examples outperform generic micro-examples.
+   - whether overall quality, would-show-to-student, and reviewer confidence agree with dimension-level scores.
 3. If the single-LLM baseline remains strong under blind review, it should become the main baseline rather than a weak strawman.
 
 ## Boundary

@@ -31,8 +31,13 @@ CHINESE_HEADERS = {
     "coach_next_step_clarity_score": "下一步是否清楚 0-2",
     "coach_single_focus_coherence_score": "是否保持单一焦点 0-2",
     "coach_bridge_oriented_micro_example_score": "桥梁导向微型例子 0-2",
+    "coach_micro_example_applicability": "微型例子是否适用",
     "coach_leakage_label": "泄露标签",
     "coach_preference_rank": "同题回复排序",
+    "coach_overall_quality_score": "总体质量 1-5",
+    "coach_would_show_to_student": "是否愿意给学生看",
+    "coach_reviewer_confidence": "评分置信度",
+    "coach_needs_discussion": "是否需要讨论",
     "coach_notes": "备注",
     "review_status": "评审状态",
 }
@@ -44,9 +49,14 @@ FIELD_HELP = {
     "coach_bridge_leakage_control_score": "是否避免说穿当前关键桥。关键桥指学生这一轮本该自己构造的状态、转移、check、公式、局部条件等。",
     "coach_next_step_clarity_score": "学生看完是否知道下一步具体做什么，且这个下一步能实际回答或执行。",
     "coach_single_focus_coherence_score": "回复是否围绕一个主要卡点推进，避免同时讲多个方向让学生更乱。",
-    "coach_bridge_oriented_micro_example_score": "如果回复使用小例子，例子是否引导学生提炼可迁移的桥梁关系，而不是只完成一次临时任务。没有小例子但回复合理时可评 2。",
+    "coach_bridge_oriented_micro_example_score": "如果回复使用或应该使用小例子，例子是否引导学生提炼可迁移的桥梁关系，而不是只完成一次临时任务。不适用时先在“微型例子是否适用”选 N/A。",
+    "coach_micro_example_applicability": "判断这条回复是否需要单独评价微型例子。若回复没有使用例子且本轮不需要例子，选 N/A，微型例子分数可留空。",
     "coach_leakage_label": "判断这条回复实际有没有泄露当前关键桥或完整答案/代码。",
     "coach_preference_rank": "同一个样本如果有多条匿名回复，可按质量排序。1 表示最好，可留空。",
+    "coach_overall_quality_score": "整体看，你作为教练愿不愿意把这条回复给学生看。1=很差，5=优秀。",
+    "coach_would_show_to_student": "把细项放到一边，判断这条回复是否可以直接给学生看。",
+    "coach_reviewer_confidence": "你对本次评分的把握程度。低置信样本后续应进入讨论或双标。",
+    "coach_needs_discussion": "是否需要二次讨论或裁决。适合边界样本、信息不足或多个系统难分高下的情况。",
     "review_status": "评完后选“已评完”；不确定就选“需要讨论”。",
 }
 
@@ -90,7 +100,11 @@ BRIDGE_ORIENTED_MICRO_EXAMPLE_OPTIONS = [
     "2｜好：例子能引导学生抽象可迁移的桥梁关系",
     "1｜一般：例子相关，但更像一次临时小任务",
     "0｜差：例子和卡点关系弱，或直接替学生补完关键桥",
-    "N/A｜没有使用微型例子，无法单独评价",
+]
+
+MICRO_EXAMPLE_APPLICABILITY_OPTIONS = [
+    "applicable｜适用：这条回复使用或应该使用微型例子",
+    "not_applicable｜不适用：本轮不需要单独评价微型例子",
 ]
 
 LEAKAGE_LABEL_OPTIONS = [
@@ -104,7 +118,36 @@ PREFERENCE_RANK_OPTIONS = [
     "1｜同题中最好",
     "2｜同题中第二",
     "3｜同题中第三",
+    "4｜同题中第四",
+    "5｜同题中第五",
+    "6｜同题中第六",
+    "7｜同题中第七",
     "tie｜并列/无法区分",
+]
+
+OVERALL_QUALITY_OPTIONS = [
+    "5｜优秀：非常愿意给学生看",
+    "4｜较好：可以给学生看，只有小问题",
+    "3｜可用：有帮助，但需要接受一些明显不足",
+    "2｜勉强：问题较多，只能作为弱参考",
+    "1｜不可用：不建议给学生看",
+]
+
+WOULD_SHOW_OPTIONS = [
+    "yes｜愿意：可以直接给学生看",
+    "borderline｜勉强：需要人工改一下或有明显风险",
+    "no｜不愿意：不应给学生看",
+]
+
+REVIEWER_CONFIDENCE_OPTIONS = [
+    "high｜高：评分把握大",
+    "medium｜中：基本确定，但可能有边界",
+    "low｜低：证据不足或很难判断",
+]
+
+NEEDS_DISCUSSION_OPTIONS = [
+    "no｜不需要讨论",
+    "yes｜需要讨论",
 ]
 
 REVIEW_STATUS_OPTIONS = [
@@ -122,8 +165,13 @@ OPTION_LISTS = {
     "next_step": NEXT_STEP_OPTIONS,
     "single_focus": SINGLE_FOCUS_OPTIONS,
     "bridge_oriented_micro_example": BRIDGE_ORIENTED_MICRO_EXAMPLE_OPTIONS,
+    "micro_example_applicability": MICRO_EXAMPLE_APPLICABILITY_OPTIONS,
     "leakage_label": LEAKAGE_LABEL_OPTIONS,
     "preference_rank": PREFERENCE_RANK_OPTIONS,
+    "overall_quality": OVERALL_QUALITY_OPTIONS,
+    "would_show": WOULD_SHOW_OPTIONS,
+    "reviewer_confidence": REVIEWER_CONFIDENCE_OPTIONS,
+    "needs_discussion": NEEDS_DISCUSSION_OPTIONS,
     "review_status": REVIEW_STATUS_OPTIONS,
 }
 
@@ -142,10 +190,15 @@ COLUMN_WIDTHS = {
     "L": 24,
     "M": 26,
     "N": 30,
-    "O": 34,
-    "P": 18,
-    "Q": 34,
-    "R": 18,
+    "O": 22,
+    "P": 34,
+    "Q": 18,
+    "R": 22,
+    "S": 24,
+    "T": 18,
+    "U": 18,
+    "V": 34,
+    "W": 18,
 }
 
 
@@ -216,8 +269,10 @@ def _add_instruction_sheet(workbook: Workbook) -> None:
     rows = [
         ["怎么使用", "进入“盲评表”，先看学生当前问题、题目/上下文和 AI 回复，再填写黄色评分列。"],
         ["是否盲评", "匿名回复编号隐藏了系统来源。不要根据模型名评分，只看回复本身。"],
-        ["评分方式", "六个维度都用 0/1/2：2=好，1=一般，0=差。每格都有中文下拉解释。"],
+        ["评分方式", "细维度用 0/1/2：2=好，1=一般，0=差；总体质量用 1/2/3/4/5。每格都有中文下拉解释。"],
         ["泄露判断", "关键问题是：看完 AI 回复后，学生是否还需要自己构造当前关键桥？如果不需要，通常就是严重桥梁泄露。"],
+        ["微型例子", "先判断这条回复是否需要评价微型例子；不适用时选 N/A/不适用，微型例子分数可留空。"],
+        ["整体判断", "总体质量和“是否愿意给学生看”用于保留你的教练直觉，不替代细项评分。"],
         ["不确定怎么办", "review_status 选“不确定，需要讨论”，备注写原因。"],
     ]
     sheet.append(["AIChat 回复盲评说明", ""])
@@ -244,8 +299,13 @@ def _add_guide_sheet(workbook: Workbook) -> None:
         ["下一步是否清楚", "看学生读完后是否知道接下来要回答/尝试哪一步。"],
         ["是否保持单一焦点", "看回复是否围绕一个核心卡点，不同时抛出多个无关任务。"],
         ["桥梁导向微型例子", "如果用了例子，看它是否帮助学生提炼可迁移关系；只是让学生算一下/选一下但没有抽象方向，通常只能给 1。"],
+        ["微型例子是否适用", "如果回复没有使用例子且本轮也不需要例子，选“不适用”，微型例子分数可留空。"],
         ["泄露标签", "no_leakage=无泄露；minor=偏强但仍需推理；major=补完关键桥；answer=完整题解/步骤/代码泄露。"],
         ["同题回复排序", "如果同一个 case 有多条回复，可填 1/2/3；只评单条时可留空。"],
+        ["总体质量", "1-5 的整体教练判断，用来表达细项平均分捕捉不到的整体可用性。"],
+        ["是否愿意给学生看", "yes=可直接给学生；borderline=勉强；no=不建议给学生看。"],
+        ["评分置信度", "标低置信的样本后续应进入双标或裁决。"],
+        ["是否需要讨论", "用于标记边界样本、争议样本或需要第二位教练复核的样本。"],
     ]
     for row in rows:
         sheet.append(row)
@@ -291,8 +351,13 @@ def export_xlsx(
         "coach_next_step_clarity_score": ranges["next_step"],
         "coach_single_focus_coherence_score": ranges["single_focus"],
         "coach_bridge_oriented_micro_example_score": ranges["bridge_oriented_micro_example"],
+        "coach_micro_example_applicability": ranges["micro_example_applicability"],
         "coach_leakage_label": ranges["leakage_label"],
         "coach_preference_rank": ranges["preference_rank"],
+        "coach_overall_quality_score": ranges["overall_quality"],
+        "coach_would_show_to_student": ranges["would_show"],
+        "coach_reviewer_confidence": ranges["reviewer_confidence"],
+        "coach_needs_discussion": ranges["needs_discussion"],
         "review_status": ranges["review_status"],
     }
     for field, formula_range in validations.items():

@@ -241,6 +241,11 @@ Metrics:
 - next-step clarity;
 - single-focus coherence;
 - bridge-oriented micro-example score;
+- micro-example applicability;
+- overall quality score;
+- would-show-to-student decision;
+- reviewer confidence;
+- needs-discussion flag;
 - coach preference rank.
 
 ### Layer 3: Leakage Eval

@@ -83,6 +83,11 @@ class CoachResponseReviewWorkbookTests(unittest.TestCase):
         self.assertIn("coach_bridge_oriented_micro_example_score", reader.fieldnames)
         self.assertIn("coach_leakage_label", reader.fieldnames)
         self.assertIn("coach_preference_rank", reader.fieldnames)
+        self.assertIn("coach_micro_example_applicability", reader.fieldnames)
+        self.assertIn("coach_overall_quality_score", reader.fieldnames)
+        self.assertIn("coach_would_show_to_student", reader.fieldnames)
+        self.assertIn("coach_reviewer_confidence", reader.fieldnames)
+        self.assertIn("coach_needs_discussion", reader.fieldnames)
 
     def test_main_writes_blind_workbook_and_key(self):
         with tempfile.TemporaryDirectory() as tmpdir:

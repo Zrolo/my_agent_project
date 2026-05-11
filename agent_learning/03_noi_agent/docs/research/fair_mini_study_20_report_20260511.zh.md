@@ -55,6 +55,7 @@
    - Guard 是否减少关键桥泄露；
    - Repair 是否保留教学质量；
    - Bridge-oriented micro-example 是否比普通 micro-example 更好。
+   - 总体质量、是否愿意给学生看、评分置信度是否与细项分数一致。
 3. 如果 single-LLM 继续明显强，应把它作为论文主 baseline，而不是弱 baseline。
 
 ## 当前结论边界
