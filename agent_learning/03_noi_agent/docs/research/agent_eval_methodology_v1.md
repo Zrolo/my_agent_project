@@ -94,6 +94,60 @@ Response Judge: tutoring quality only
 Repair Review: whether repair still leaks or degrades quality
 ```
 
+### Separate Runtime Judges From Offline Graders
+
+Do not use "judge" ambiguously in the paper.
+
+Recommended terminology:
+
+```text
+Runtime Bridge Diagnoser: produces bridge contracts inside the system.
+Runtime Leakage Guard: decides pass / rewrite / block inside the system.
+Offline Bridge Grader: evaluates missing-bridge diagnosis after the run.
+Offline Leakage Grader: evaluates candidate/final response leakage after the run.
+Offline Response Grader: evaluates tutoring quality after the run.
+Offline Repair Grader: evaluates before/after repair quality and leakage.
+```
+
+Principles:
+
+- runtime diagnosers/guards may be part of the system under evaluation;
+- offline graders are evaluation tools;
+- offline graders must have separate prompts, versions, and reports;
+- the system's own runtime guard should not be used as the final proof that the system is safe.
+
+### LLM Judges Must Support UNKNOWN
+
+Semantic graders should not be forced to guess when evidence is insufficient. All LLM graders should support:
+
+```text
+PASS
+PARTIAL
+FAIL
+UNKNOWN
+INSUFFICIENT_CONTEXT
+```
+
+Reports should include:
+
+- `unknown_rate`;
+- `low_confidence_rate`;
+- `human_review_needed_rate`.
+
+`UNKNOWN` is not a success and should not be forced into accuracy. It means the case or output requires human review.
+
+### Judge Prompts Must Also Be Frozen
+
+Tutor prompts are not the only prompts that affect results. Bridge Grader, Leakage Grader, Response Grader, and Repair Grader prompts also need versioning and freezing.
+
+Workflow:
+
+1. calibrate judge prompts on the dev/regression set;
+2. log every judge prompt edit in `judge_prompt_patch_log.md`;
+3. freeze judge prompts before held-out evaluation;
+4. put held-out failures into error analysis or a future prompt version;
+5. do not tune a grader on held-out test results and then report that same held-out set as headline evidence.
+
 ### 3. Coach Reference
 
 Coach labels are expert references, not absolute truth.
@@ -252,6 +306,8 @@ We evaluate whether bridge contracts, leakage guards, and repair loops provide a
 |---|---|
 | current_system | Current online baseline |
 | single_llm_structured | Tests whether one structured LLM call is enough |
+| single_llm_structured + guard | Tests whether Guard also helps a strong single-LLM baseline |
+| single_llm_structured + guard + repair | Tests whether Repair also improves a strong single-LLM baseline |
 | bridge_contract | Tests explicit missing-bridge control |
 | bridge_contract + guard | Tests post-generation leakage detection |
 | bridge_contract + guard + repair | Tests whether repair improves safety without degrading tutoring |
@@ -260,7 +316,7 @@ We evaluate whether bridge contracts, leakage guards, and repair loops provide a
 ## Next Research v1 Steps
 
 1. Finish the 8-row Repair before/after blind review and generate bilingual reports.
-2. Freeze the current prompt set as `prompt_v1.0-dev`.
+2. Freeze the current tutor and judge prompts as `v1.0-dev`.
 3. Split the current 20 seeds into dev/regression purposes and prepare 50 held-out test seeds.
 4. Add `success_criteria` and `forbidden_content` to each task.
 5. Run a small `pass^3` stability experiment.

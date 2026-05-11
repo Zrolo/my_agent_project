@@ -95,6 +95,60 @@ Response Judge: 只判断教学质量
 Repair Judge / Review: 只判断 repair 后是否仍泄露或变差
 ```
 
+### Runtime Judge 与 Offline Grader 必须分开
+
+论文里不要混用 “Judge” 这个词。
+
+推荐命名：
+
+```text
+Runtime Bridge Diagnoser: 系统运行时生成 bridge contract 的诊断器。
+Runtime Leakage Guard: 系统运行时决定 pass / rewrite / block 的泄露检测器。
+Offline Bridge Grader: 实验后评估 missing bridge 诊断是否接近教练 reference。
+Offline Leakage Grader: 实验后评估 candidate/final response 是否泄露。
+Offline Response Grader: 实验后评估回复教学质量。
+Offline Repair Grader: 实验后评估 repair 前后变化。
+```
+
+原则：
+
+- runtime diagnoser / guard 可以是被评测系统的一部分；
+- offline grader 是评测工具；
+- offline grader 必须和 runtime guard 分开版本、分开 prompt、分开报告；
+- 不要用系统自己的 runtime guard 直接证明系统自己安全。
+
+### LLM Judge 必须允许 UNKNOWN
+
+开放式评测中，LLM Judge 不应被迫在证据不足时猜测。建议所有 LLM Grader 支持：
+
+```text
+PASS
+PARTIAL
+FAIL
+UNKNOWN
+INSUFFICIENT_CONTEXT
+```
+
+报告时应单独列出：
+
+- `unknown_rate`；
+- `low_confidence_rate`；
+- `human_review_needed_rate`。
+
+`UNKNOWN` 不算成功，也不应被强行塞进 accuracy。它表示这条样本或这次输出需要教练复核。
+
+### Judge Prompt 也要冻结
+
+不仅 tutor prompt 要冻结，Bridge Grader、Leakage Grader、Response Grader 和 Repair Grader 的 prompt 也要冻结。
+
+流程：
+
+1. 在 dev/regression set 上校准 judge prompt；
+2. 每次修改写入 `judge_prompt_patch_log.md`；
+3. held-out test 前冻结 judge prompt；
+4. test 后发现的问题进入 error analysis 或下一版 prompt；
+5. 不允许一边看 held-out 结果一边调 grader，再用同一批 held-out 报 headline metrics。
+
 ### 3. Coach Reference
 
 教练标注是 expert reference，不是绝对真理。
@@ -269,6 +323,8 @@ We evaluate whether bridge contracts, leakage guards, and repair loops provide a
 |---|---|
 | current_system | 当前线上 baseline |
 | single_llm_structured | 检验单 LLM 是否已经足够 |
+| single_llm_structured + guard | 检验 Guard 的收益是否也能加在 strong single-LLM baseline 上 |
+| single_llm_structured + guard + repair | 检验 Repair 是否也能增强 strong single-LLM baseline |
 | bridge_contract | 检验 explicit missing bridge contract 是否提升脚手架 |
 | bridge_contract + guard | 检验 post-generation leakage detection |
 | bridge_contract + guard + repair | 检验泄露修复是否保留教学质量 |
@@ -277,7 +333,7 @@ We evaluate whether bridge contracts, leakage guards, and repair loops provide a
 ## Research v1 下一步
 
 1. 完成 Repair 前后 8 条盲评，并生成中英文 before/after 报告。
-2. 冻结当前 prompt 为 `prompt_v1.0-dev`。
+2. 冻结当前 tutor prompt 和 judge prompt 为 `v1.0-dev`。
 3. 把 20 条 seed 拆成 dev/regression 用途，另建 50 条 test seed。
 4. 为每个 task 补 `success_criteria` 和 `forbidden_content`。
 5. 跑 `pass^3` 小实验，观察稳定性而不是单次好坏。

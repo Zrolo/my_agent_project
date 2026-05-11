@@ -45,6 +45,12 @@ Research v1 不包含：
 
 ## Core Documents
 
+### Paper Scope And Evidence
+
+- [paper_scope_v2.zh.md](paper_scope_v2.zh.md): 当前论文主线、研究问题、实验矩阵和不应声称的内容。
+- [claims_and_evidence_matrix_v1.zh.md](claims_and_evidence_matrix_v1.zh.md): 每个论文 claim 对应的当前证据、缺口和下一步实验。
+- [implementation_status_matrix_20260511.zh.md](implementation_status_matrix_20260511.zh.md): 当前线上、离线、shadow/proposed 和未实现模块的状态矩阵。
+
 ### Current System
 
 - [aichat_current_flow_v1.md](aichat_current_flow_v1.md): 当前线上 AIChat 真实调用链快照。
@@ -70,6 +76,7 @@ Research v1 不包含：
 - [bridge_judge_offline_eval_v1.md](bridge_judge_offline_eval_v1.md): 离线 Bridge Judge / Tutor / Guard / Repair 评测设计。
 - [agent_eval_methodology_v1.zh.md](agent_eval_methodology_v1.zh.md): 基于 agent eval 文章整理的中文评测方法论。
 - [agent_eval_methodology_v1.md](agent_eval_methodology_v1.md): English agent-eval methodology mapping for Research v1.
+- [llm_judge_calibration_protocol_v1.zh.md](llm_judge_calibration_protocol_v1.zh.md): LLM Judge / Offline Grader 校准协议，包含 UNKNOWN、false positive/negative 和 prompt freeze 要求。
 - [judge_schema_smoke_report_20260509.md](judge_schema_smoke_report_20260509.md): 20-case judge schema smoke 结果。
 - [response_ablation_smoke_report_20260509.md](response_ablation_smoke_report_20260509.md): response ablation smoke 结果。
 - [tutor_thinking_ablation_smoke_report_20260509.md](tutor_thinking_ablation_smoke_report_20260509.md): thinking mode smoke 结果。
@@ -102,6 +109,7 @@ Research v1 不包含：
 ### Patch Governance
 
 - [prompt_patch_log.md](prompt_patch_log.md): slow-variable prompt/rubric/registry/router patch log.
+- [judge_prompt_patch_log.md](judge_prompt_patch_log.md): runtime judge 与 offline grader prompt 的单独 patch log。
 
 ## Research Workflow
 

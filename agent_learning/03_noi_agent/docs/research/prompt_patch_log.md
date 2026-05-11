@@ -2,6 +2,23 @@
 
 This log records slow-variable changes to prompts, rubrics, registries, routers, or repair policy. Each patch should be tied to failure evidence and regression checks.
 
+## Governance Rules
+
+- Prompt changes are slow-variable updates. They should not happen automatically during a student conversation.
+- Student-facing tutor prompts are tracked here. Judge and grader prompts are tracked separately in `judge_prompt_patch_log.md`.
+- Prompt tuning should happen on dev/regression cases, not on held-out test cases used for headline results.
+- A prompt patch requires failure evidence, regression checks, and human approval before it is treated as a frozen research version.
+- When possible, patch one layer at a time: tutor prompt, repair prompt, rubric, registry, router, or fallback policy.
+
+## Freeze Targets
+
+| Prompt family | Current freeze target | Status |
+|---|---|---|
+| Main Tutor / current AIChat prompt | `tutor_prompt_v1.0-dev` | pending freeze |
+| Bridge Contract Tutor prompt | `bridge_contract_tutor_prompt_v1.0-dev` | pending freeze |
+| Repair Generator prompt | `repair_prompt_v1.0-dev` | in dev after micro-task guard patch |
+| Deterministic fallback policy text | `fallback_policy_v1.0-dev` | pending freeze |
+
 ## patch_20260510_repair_micro_task_guard
 
 - Date: 2026-05-10
