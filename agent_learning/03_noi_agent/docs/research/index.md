@@ -109,6 +109,9 @@ Research v1 不包含：
 - [coach_response_review_micro_example_policy_n10_20260510.md](coach_response_review_micro_example_policy_n10_20260510.md): micro-example policy English analysis.
 - [coach_response_review_analysis_mini_study_20_20260510.zh.md](coach_response_review_analysis_mini_study_20_20260510.zh.md): 20-case mini-study 回复盲评中文分析。
 - [coach_response_review_analysis_mini_study_20_20260510.md](coach_response_review_analysis_mini_study_20_20260510.md): 20-case mini-study response blind-review English analysis.
+- [coach_response_review_analysis_fair_mini_study_20_20260511.zh.md](coach_response_review_analysis_fair_mini_study_20_20260511.zh.md): 7-system fair 20-case 回复盲评中文分析，基于新版 v2 rubric。
+- [coach_response_review_analysis_fair_mini_study_20_20260511.md](coach_response_review_analysis_fair_mini_study_20_20260511.md): English analysis for the 7-system fair 20-case response blind review.
+- [coach_response_review_labels_fair_mini_study_20_20260511.jsonl](coach_response_review_labels_fair_mini_study_20_20260511.jsonl): 7-system fair 20-case 盲评标签 JSONL，保留匿名回复 ID 和系统 key 映射后的系统条件。
 - [coach_response_review_workbook_repair_before_after_20260510.csv](coach_response_review_workbook_repair_before_after_20260510.csv): Repair 前后对照网页盲评 CSV，共 8 条。
 - [coach_response_review_workbook_repair_before_after_20260510.zh.xlsx](coach_response_review_workbook_repair_before_after_20260510.zh.xlsx): Repair 前后对照中文 Excel 备份表。
 - [repair_before_after_review_analysis_20260510.zh.md](repair_before_after_review_analysis_20260510.zh.md): Repair 前后对照中文盲评分析，导出评分后可重复生成。
