@@ -1,0 +1,26 @@
+{
+  "input_jsonl": "docs/research/bridgebench_cp_seed_v2_gold_20.jsonl",
+  "output_dir": "evals/aichat/ad_hoc_runs/dev_ablation_20260511_dbox_guard_retry_smoke1",
+  "case_count": 1,
+  "condition_count": 1,
+  "conditions": [
+    {
+      "condition_id": "dbox_inspired_guard",
+      "tutor_mode": "dbox_inspired_decomposition_tutor",
+      "pipeline_mode": "tutor_plus_guard",
+      "guard_mode": "predicted"
+    }
+  ],
+  "condition_outputs": [
+    "evals/aichat/ad_hoc_runs/dev_ablation_20260511_dbox_guard_retry_smoke1/dbox_inspired_guard.jsonl"
+  ],
+  "combined_row_count": 1,
+  "combined_jsonl": "evals/aichat/ad_hoc_runs/dev_ablation_20260511_dbox_guard_retry_smoke1/combined_dev_ablation.jsonl",
+  "summary_json": "evals/aichat/ad_hoc_runs/dev_ablation_20260511_dbox_guard_retry_smoke1/combined_dev_ablation_summary.json",
+  "summary_md": "evals/aichat/ad_hoc_runs/dev_ablation_20260511_dbox_guard_retry_smoke1/combined_dev_ablation_summary.md",
+  "summary_md_zh": "evals/aichat/ad_hoc_runs/dev_ablation_20260511_dbox_guard_retry_smoke1/combined_dev_ablation_summary.zh.md",
+  "review_csv": "evals/aichat/ad_hoc_runs/dev_ablation_20260511_dbox_guard_retry_smoke1/coach_response_review_workbook_dev_ablation.csv",
+  "review_key_csv": "evals/aichat/ad_hoc_runs/dev_ablation_20260511_dbox_guard_retry_smoke1/coach_response_review_workbook_dev_ablation.key.csv",
+  "review_xlsx": "evals/aichat/ad_hoc_runs/dev_ablation_20260511_dbox_guard_retry_smoke1/coach_response_review_workbook_dev_ablation.zh.xlsx",
+  "review_row_count": 1
+}

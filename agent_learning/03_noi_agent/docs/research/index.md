@@ -112,6 +112,8 @@ Research v1 不包含：
 - [bridge_first_prompt_sanity_check_20260511.md](bridge_first_prompt_sanity_check_20260511.md): English bridge-first prompt sanity check.
 - [literature_baseline_smoke1_report_20260511.zh.md](literature_baseline_smoke1_report_20260511.zh.md): 1-case 中文 smoke，检查 DBox-inspired、CodeHelp/CodeAid-style 和 Bridge-inspired baseline 的真实输出 schema 与早期泄露风险。
 - [literature_baseline_smoke1_report_20260511.md](literature_baseline_smoke1_report_20260511.md): English 1-case smoke report for literature baselines.
+- [dev_ablation_suite_smoke_report_20260511.zh.md](dev_ablation_suite_smoke_report_20260511.zh.md): P1 dev ablation suite 中文 smoke，验证 shared runner、summary 和盲评导出链路。
+- [dev_ablation_suite_smoke_report_20260511.md](dev_ablation_suite_smoke_report_20260511.md): English P1 dev ablation suite smoke report.
 - [mini_study_20_report_20260510.zh.md](mini_study_20_report_20260510.zh.md): 20 条 seed mini-study 中文初步报告。
 - [mini_study_20_report_20260510.md](mini_study_20_report_20260510.md): 20-seed mini-study preliminary English report.
 - [hard_gate_overfallback_rerun_20260510.zh.md](hard_gate_overfallback_rerun_20260510.zh.md): hard gate 过度兜底修复后的中文定点复测报告。
@@ -177,6 +179,20 @@ Run the same seed set across:
 - `bridge_contract_plus_guard`
 - `bridge_contract_plus_guard_plus_repair`
 - `risk_triggered_simulation`
+
+For the Research v1 development ablation, use the shared suite runner instead of hand-running each baseline:
+
+```bash
+python3 -m evals.aichat.run_dev_ablation_suite \
+  --input-jsonl docs/research/bridgebench_cp_seed_v2_gold_20.jsonl \
+  --output-dir evals/aichat/ad_hoc_runs/dev_ablation_20260511_limit10 \
+  --limit 10 \
+  --chat-model-provider deepseek_flash \
+  --judge-provider deepseek \
+  --max-retries 1
+```
+
+The suite writes per-condition JSONL files, `combined_dev_ablation.jsonl`, bilingual summary files, an anonymized coach-review CSV, a key CSV, and a Chinese XLSX workbook. This is the preferred P1 path for comparing `enhanced_prompt_only`, DBox-inspired, DBox-inspired + Guard, Bridge-inspired, single-LLM, and Bridge Contract variants.
 
 For every row, preserve:
 

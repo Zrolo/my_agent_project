@@ -84,6 +84,26 @@ class DBoxInspiredDecompositionTutorTests(unittest.TestCase):
         self.assertEqual("current_stuck_step", payload["decomposition_view"][1]["status"])
         self.assertIn("一个节点", payload["student_visible_response"])
 
+    def test_validate_dbox_payload_normalizes_common_llm_status_aliases(self):
+        payload = runner._validate_dbox_inspired_decomposition_payload(
+            {
+                "baseline_group": "literature_inspired_decomposition",
+                "decomposition_view": [
+                    {"step_id": "s1", "step_name": "确认题目动作", "status": "known"},
+                    {"step_id": "s2", "step_name": "拆出当前小问题", "status": "current"},
+                    {"step_id": "s3", "step_name": "后续实现", "status": "deferred"},
+                ],
+                "current_substep": "先把大问题拆成一个当前小问题。",
+                "hint_level": "general_question",
+                "student_visible_response": "先看一个最小子问题：你觉得当前只需要判断哪一步？",
+            }
+        )
+
+        self.assertEqual(
+            ["known_or_not_relevant", "current_stuck_step", "defer"],
+            [item["status"] for item in payload["decomposition_view"]],
+        )
+
     def test_runner_supports_dbox_inspired_tutor_mode_and_emits_trace_fields(self):
         calls = []
 

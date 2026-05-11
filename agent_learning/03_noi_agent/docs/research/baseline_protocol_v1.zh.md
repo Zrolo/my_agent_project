@@ -256,7 +256,7 @@ We reproduce MathDial / MRBench / DBox / Bridge.
 
 ## Immediate Next Steps
 
-1. 扩展 prompt-controlled ablation：3 case -> 10-20 case。
+1. 用 `python3 -m evals.aichat.run_dev_ablation_suite` 扩展 prompt-controlled ablation：3 case -> 10-20 case。
 2. 在 shared offline runner 中使用已经接入的 `enhanced_prompt_only`、`socratic_no_answer_tutor`、`codehelp_codeaid_no_direct_solution_tutor`、`dbox_inspired_decomposition_tutor` 和 `bridge_inspired_expert_decision_tutor`，不要再用零散脚本替代主评测链路。
 3. 在 50-case held-out 主实验前冻结 strong prompt 和 judge prompt。
 4. 主表降级 `current_system` 为 deployment baseline，并加入强 baseline。

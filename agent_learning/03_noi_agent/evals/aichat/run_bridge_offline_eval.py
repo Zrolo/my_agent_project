@@ -609,7 +609,22 @@ def _validate_dbox_inspired_decomposition_payload(payload: dict) -> dict:
     decomposition_view = payload.get("decomposition_view")
     if not isinstance(decomposition_view, list) or not decomposition_view:
         raise ValueError("decomposition_view must be a non-empty list")
-    allowed_statuses = {"known_or_not_relevant", "current_stuck_step", "defer"}
+    status_aliases = {
+        "known_or_not_relevant": "known_or_not_relevant",
+        "known": "known_or_not_relevant",
+        "known_or_relevant": "known_or_not_relevant",
+        "not_relevant": "known_or_not_relevant",
+        "current_stuck_step": "current_stuck_step",
+        "current": "current_stuck_step",
+        "current_substep": "current_stuck_step",
+        "current_step": "current_stuck_step",
+        "stuck": "current_stuck_step",
+        "missing": "current_stuck_step",
+        "defer": "defer",
+        "deferred": "defer",
+        "future": "defer",
+        "later": "defer",
+    }
     normalized_view = []
     current_count = 0
     for index, item in enumerate(decomposition_view, 1):
@@ -617,13 +632,14 @@ def _validate_dbox_inspired_decomposition_payload(payload: dict) -> dict:
             raise ValueError("each decomposition_view item must be an object")
         step_id = item.get("step_id")
         step_name = item.get("step_name")
-        status = item.get("status")
+        raw_status = item.get("status")
+        status = status_aliases.get(str(raw_status).strip().lower()) if raw_status is not None else None
         if not isinstance(step_id, str) or not step_id.strip():
             raise ValueError("each decomposition_view item needs a step_id")
         if not isinstance(step_name, str) or not step_name.strip():
             raise ValueError("each decomposition_view item needs a step_name")
-        if status not in allowed_statuses:
-            raise ValueError(f"invalid decomposition status at item {index}: {status}")
+        if status is None:
+            raise ValueError(f"invalid decomposition status at item {index}: {raw_status}")
         if status == "current_stuck_step":
             current_count += 1
         normalized_view.append(
