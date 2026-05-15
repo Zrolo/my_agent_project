@@ -378,8 +378,7 @@ def _problem_title_text(row: dict) -> str:
 
 
 def _is_knapsack_order_case(row: dict) -> bool:
-    tags = " ".join(str(tag) for tag in _as_list(row.get("problem_tags")))
-    return _problem_source_id(row) == "P1060" or "背包" in tags
+    return _problem_source_id(row) == "P1060"
 
 
 def _is_phone_keypress_case(row: dict) -> bool:
@@ -760,9 +759,9 @@ def _reply_for_context(row: dict, context_type: str, ordinal: int) -> tuple[str,
         elif _bucket_contains(row, "transition"):
             reply = _variant(
                 [
-                    "我只知道它应该从前一个更小阶段接过来，但还没说清具体前驱来源。",
-                    "一个来源大概是已经处理完前面部分后的结果，可我还没说清它对应哪个题目动作。",
-                    "我觉得当前量至少有一个来源，但具体是哪类更小情况还没说清。",
+                    "我知道要接更小情况，但还没说清前驱来源。",
+                    "一个来源大概是前面结果，但我还没说清对应哪个动作。",
+                    "当前量至少有个来源，但哪类前驱还没说清。",
                 ],
                 ordinal,
             )

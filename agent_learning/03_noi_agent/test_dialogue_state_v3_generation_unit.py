@@ -192,6 +192,7 @@ class DialogueStateV3GenerationTests(unittest.TestCase):
         self.assertEqual("F2", transition["student_scaffold_followability"])
         self.assertEqual("clarify", transition["expected_tutor_move"])
         self.assertIn("还没说清", transition["student_message"])
+        self.assertEqual("short", _length_bucket(transition["student_message"]))
         self.assertTrue(any("前驱来源" in item for item in transition["success_criteria"]))
 
         knapsack = by_source["heldout_v2_luogu_018"]
@@ -201,6 +202,9 @@ class DialogueStateV3GenerationTests(unittest.TestCase):
         self.assertTrue(all("哪一段仍可能包含答案" not in item for item in knapsack["success_criteria"]))
         self.assertTrue(any("本轮新值" in item or "上一轮" in item for item in knapsack["success_criteria"]))
 
+        other_knapsack_tag = by_source["heldout_v2_luogu_017"]
+        self.assertNotIn("本轮刚算出的新值覆盖或复用", other_knapsack_tag["prior_ai_scaffold"])
+
         phone = by_source["heldout_v2_luogu_043"]
         self.assertIn("字符", phone["prior_ai_scaffold"])
         self.assertIn("按键", phone["prior_ai_scaffold"])
@@ -209,6 +213,28 @@ class DialogueStateV3GenerationTests(unittest.TestCase):
         self.assertIn("按键", phone["student_message"])
         self.assertIn("字符/空格", phone["missing_bridge"])
         self.assertTrue(any("按键次数" in item for item in phone["success_criteria"]))
+
+    def test_default_luogu_source_keeps_review_gate_distributions_after_calibration(self):
+        source_path = Path("docs/research/bridgebench_cp_heldout_v2_50_draft.jsonl")
+        source_rows = [
+            json.loads(line)
+            for line in source_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+
+        cases = generate_dialogue_state_v3_50.build_dialogue_state_cases(source_rows)
+        by_id = {row["case_id"]: row for row in cases}
+        length_counts = Counter(_length_bucket(row["student_message"]) for row in cases)
+        followability_counts = Counter(row["student_scaffold_followability"] for row in cases)
+
+        self.assertEqual({"short": 20, "medium_short": 15, "medium_long": 10, "long": 5}, dict(length_counts))
+        self.assertEqual({"NA": 10, "F1": 6, "F2": 19, "F3": 10, "F4": 5}, dict(followability_counts))
+        self.assertEqual("F2", by_id["dialogue_v3_011_transition_recurrence_source"]["student_scaffold_followability"])
+        self.assertEqual("short", _length_bucket(by_id["dialogue_v3_011_transition_recurrence_source"]["student_message"]))
+        self.assertNotIn(
+            "本轮刚算出的新值覆盖或复用",
+            by_id["dialogue_v3_017_boundary_update_order"]["prior_ai_scaffold"],
+        )
 
     def test_generated_cases_pass_heldout_dataset_validator(self):
         target_buckets = ["short"] * 20 + ["medium_short"] * 15 + ["medium_long"] * 10 + ["long"] * 5
