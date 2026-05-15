@@ -80,6 +80,8 @@
 - 旧线上 AI 回复不进入数据集，避免 current_system 污染评测。
 - 当前状态是 `draft_needs_coach_review`，不能称为 gold。
 
+2026-05-15 后续更新：中英文审核表已加入结构化 case/source 审核列，包括 `source_ok`、`context_coherent`、`student_message_realistic`、`missing_bridge_ok`、`forbidden_content_ok`、`success_criteria_ok`、`leakage_boundary_ok`、`case_decision`、`issue_type`、`coach_fix_suggestion` 和 `reviewer_confidence`。这些字段用于统计 accept/revise/drop/discuss，不是 AI 回复质量评分。
+
 当前分布约束：
 
 | 维度 | 当前设计 |
@@ -190,6 +192,7 @@ critical bridge leakage 是核心创新，但不能把所有关键概念都一�
 2. 按桥梁桶 sheet 审核。
 3. 只审核 case 本身，不评价 AI 回复。
 4. 重点判断题源、题面、近期对话、学生问题、missing bridge、forbidden content 和 success criteria 是否可用。
+5. 在结构化审核列中给出 `accept / revise / drop / discuss`，并在需要修改时填写 `issue_type` 和 `coach_fix_suggestion`。
 
 通过后再进入生成 AI 回复。
 

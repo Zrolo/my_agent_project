@@ -21,6 +21,22 @@ The earlier `dialogue_state_v3` draft had F1-F4 labels and follow-up types, but 
 
 1. Current student replies now satisfy the target text-length distribution: `short=20`, `medium_short=15`, `medium_long=10`, `long=5`.
 2. Cases marked as long context now contain multi-turn recent dialogue in the actual text, not just in metadata.
+3. The Chinese and English case/source review workbooks now include structured review columns for `accept / revise / drop / discuss`, so coach review can be summarized rather than left only as free-text notes.
+
+The structured review columns are:
+
+- `source_ok`
+- `context_coherent`
+- `student_message_realistic`
+- `followability_ok`
+- `missing_bridge_ok`
+- `forbidden_content_ok`
+- `success_criteria_ok`
+- `leakage_boundary_ok`
+- `case_decision`
+- `issue_type`
+- `coach_fix_suggestion`
+- `reviewer_confidence`
 
 ## Validation
 
@@ -50,7 +66,7 @@ Passed gates:
 
 ## Next Steps
 
-1. Have a coach or researcher review `dialogue_state_v3_50_source_and_case_review.zh.xlsx`; use `dialogue_state_v3_50_source_and_case_review.en.xlsx` for external English review. Focus on problem statement, current student reply, recent dialogue, F1-F4 label, missing bridge, and forbidden content consistency.
+1. Have a coach or researcher review `dialogue_state_v3_50_source_and_case_review.zh.xlsx`; use `dialogue_state_v3_50_source_and_case_review.en.xlsx` for external English review. Focus on problem statement, current student reply, recent dialogue, F1-F4 label, missing bridge, forbidden content consistency, and fill the structured review columns.
 2. After review, export the formal generation-only input.
 3. Run the fixed condition matrix without mixing old v4 workbooks.
 4. After model generation, export the response review workbook with problem statement, recent dialogue, context AI reply, current student reply, target AI response, and case-specific rubric.

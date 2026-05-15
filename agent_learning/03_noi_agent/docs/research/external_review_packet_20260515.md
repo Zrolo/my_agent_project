@@ -80,6 +80,8 @@ Dataset status:
 - Legacy online AI replies are not used as dataset answers.
 - The current label status is `draft_needs_coach_review`, not gold.
 
+Update after 2026-05-15: the Chinese and English review workbooks now include structured case/source review columns: `source_ok`, `context_coherent`, `student_message_realistic`, `missing_bridge_ok`, `forbidden_content_ok`, `success_criteria_ok`, `leakage_boundary_ok`, `case_decision`, `issue_type`, `coach_fix_suggestion`, and `reviewer_confidence`. These fields summarize accept/revise/drop/discuss decisions; they are not AI-response quality scores.
+
 Current design constraints:
 
 | Dimension | Current Design |
@@ -183,6 +185,7 @@ Review `dialogue_state_v3_50_source_and_case_review.zh.xlsx` first:
 2. Review by bridge-bucket sheets.
 3. Evaluate the case itself, not AI responses.
 4. Focus on source/problem fit, dialogue coherence, student-message realism, missing bridge, forbidden content, and success criteria.
+5. Fill the structured review columns with `accept / revise / drop / discuss`; when a case needs revision, also fill `issue_type` and `coach_fix_suggestion`.
 
 ### Step 2: Freeze Main Conditions
 

@@ -178,6 +178,29 @@ class DialogueStateV3GenerationTests(unittest.TestCase):
         self.assertIn("上一轮 AI 脚手架", headers)
         self.assertIn("学生对脚手架的回答", headers)
         self.assertIn("跟随状态证据", headers)
+        self.assertIn("题源是否可用", headers)
+        self.assertIn("上下文是否连贯", headers)
+        self.assertIn("学生话术是否真实", headers)
+        self.assertIn("样本处理决定", headers)
+        self.assertIn("教练修改建议", headers)
+
+    def test_export_review_workbook_has_structured_review_validations(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = Path(tmpdir) / "dialogue_review.xlsx"
+            cases = generate_dialogue_state_v3_50.build_dialogue_state_cases([_v2_case(i) for i in range(1, 51)])
+
+            generate_dialogue_state_v3_50.export_dialogue_state_review_workbook(cases, output)
+            workbook = load_workbook(output)
+
+        sheet = workbook["总表"]
+        headers = [sheet.cell(row=1, column=col).value for col in range(1, sheet.max_column + 1)]
+        decision_col = headers.index("样本处理决定") + 1
+        confidence_col = headers.index("审核置信度") + 1
+        self.assertIn(sheet.cell(row=3, column=decision_col).value, {"", None})
+        self.assertIn(sheet.cell(row=3, column=confidence_col).value, {"", None})
+        validation_formulas = {validation.formula1 for validation in sheet.data_validations.dataValidation}
+        self.assertIn('"accept,revise,drop,discuss"', validation_formulas)
+        self.assertIn('"high,medium,low"', validation_formulas)
 
     def test_export_review_workbook_has_instruction_and_bridge_bucket_sheets(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -202,6 +225,7 @@ class DialogueStateV3GenerationTests(unittest.TestCase):
             for row in range(1, workbook["评审说明"].max_row + 1)
         ]
         self.assertTrue(any("先看原题题面" in str(value or "") for value in instruction_values))
+        self.assertTrue(any("accept / revise / drop / discuss" in str(value or "") for value in instruction_values))
         bucket_headers = [
             workbook["状态表示"].cell(row=1, column=col).value
             for col in range(1, workbook["状态表示"].max_column + 1)
@@ -234,6 +258,8 @@ class DialogueStateV3GenerationTests(unittest.TestCase):
         self.assertIn("Current Student Message / Reply", headers)
         self.assertIn("Target Missing Bridge", headers)
         self.assertIn("Forbidden Content", headers)
+        self.assertIn("Case Decision", headers)
+        self.assertIn("Coach Fix Suggestion", headers)
 
     def test_main_does_not_overwrite_v2_source(self):
         with tempfile.TemporaryDirectory() as tmpdir:

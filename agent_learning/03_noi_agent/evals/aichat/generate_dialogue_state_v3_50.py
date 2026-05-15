@@ -14,6 +14,8 @@ from collections import Counter
 from pathlib import Path
 
 from openpyxl import Workbook
+from openpyxl.worksheet.datavalidation import DataValidation
+from openpyxl.utils import get_column_letter
 from openpyxl.styles import Alignment, Font, PatternFill
 
 
@@ -118,6 +120,18 @@ REVIEW_COLUMNS = [
     "forbidden_content",
     "success_criteria",
     "review_notes_for_coach",
+    "source_ok",
+    "context_coherent",
+    "student_message_realistic",
+    "followability_ok",
+    "missing_bridge_ok",
+    "forbidden_content_ok",
+    "success_criteria_ok",
+    "leakage_boundary_ok",
+    "case_decision",
+    "issue_type",
+    "coach_fix_suggestion",
+    "reviewer_confidence",
 ]
 
 REVIEW_HEADERS_ZH = {
@@ -143,6 +157,18 @@ REVIEW_HEADERS_ZH = {
     "forbidden_content": "桥梁禁止内容",
     "success_criteria": "成功标准",
     "review_notes_for_coach": "给教练的复核备注",
+    "source_ok": "题源是否可用",
+    "context_coherent": "上下文是否连贯",
+    "student_message_realistic": "学生话术是否真实",
+    "followability_ok": "跟随状态是否合理",
+    "missing_bridge_ok": "缺失桥梁是否合理",
+    "forbidden_content_ok": "禁止内容是否合理",
+    "success_criteria_ok": "成功标准是否合理",
+    "leakage_boundary_ok": "泄露边界是否清楚",
+    "case_decision": "样本处理决定",
+    "issue_type": "问题类型",
+    "coach_fix_suggestion": "教练修改建议",
+    "reviewer_confidence": "审核置信度",
 }
 
 REVIEW_HEADERS_EN = {
@@ -168,6 +194,43 @@ REVIEW_HEADERS_EN = {
     "forbidden_content": "Forbidden Content",
     "success_criteria": "Success Criteria",
     "review_notes_for_coach": "Coach Review Notes",
+    "source_ok": "Source Usability",
+    "context_coherent": "Context Coherence",
+    "student_message_realistic": "Student Wording Realism",
+    "followability_ok": "Followability Label Validity",
+    "missing_bridge_ok": "Missing Bridge Validity",
+    "forbidden_content_ok": "Forbidden Content Validity",
+    "success_criteria_ok": "Success Criteria Validity",
+    "leakage_boundary_ok": "Leakage Boundary Clarity",
+    "case_decision": "Case Decision",
+    "issue_type": "Issue Type",
+    "coach_fix_suggestion": "Coach Fix Suggestion",
+    "reviewer_confidence": "Reviewer Confidence",
+}
+
+REVIEW_VALIDATION_CHOICES = {
+    "source_ok": ["yes", "partial", "no"],
+    "context_coherent": ["yes", "partial", "no"],
+    "student_message_realistic": ["yes", "partial", "no"],
+    "followability_ok": ["yes", "revise", "no", "not_applicable"],
+    "missing_bridge_ok": ["yes", "revise", "no"],
+    "forbidden_content_ok": ["yes", "too_strict", "too_loose", "unclear"],
+    "success_criteria_ok": ["yes", "revise", "no"],
+    "leakage_boundary_ok": ["yes", "revise", "no", "unclear"],
+    "case_decision": ["accept", "revise", "drop", "discuss"],
+    "issue_type": [
+        "none",
+        "source_issue",
+        "context_mismatch",
+        "student_language_artificial",
+        "followability_issue",
+        "bridge_label_issue",
+        "forbidden_content_issue",
+        "success_criteria_issue",
+        "leakage_boundary_issue",
+        "other",
+    ],
+    "reviewer_confidence": ["high", "medium", "low"],
 }
 
 BUCKET_SHEET_NAMES = {
@@ -205,7 +268,8 @@ INSTRUCTION_ROWS = [
     ["3. 再看学生当前问题/回复，确认 F1-F4 跟随状态是否合理。"],
     ["4. 再看目标缺失桥梁、禁止内容和成功标准，判断它们是否覆盖当前卡点。"],
     ["5. 如题面、学生回复、近期对话、bridge 标签或 forbidden content 不一致，请在复核备注中标记。"],
-    ["6. 本表是 case/source 复核，不是 AI 回复盲评；此时不评价任何 condition 的回复质量。"],
+    ["6. 结构化审核列使用固定英文选项，便于统计：case_decision 填 accept / revise / drop / discuss。"],
+    ["7. 本表是 case/source 复核，不是 AI 回复盲评；此时不评价任何 condition 的回复质量。"],
 ]
 
 INSTRUCTION_ROWS_EN = [
@@ -215,7 +279,8 @@ INSTRUCTION_ROWS_EN = [
     ["3. Then read the current student message/reply and check whether the F1-F4 followability label is reasonable."],
     ["4. Then review the target missing bridge, forbidden content, and success criteria."],
     ["5. If the problem statement, student reply, recent dialogue, bridge label, or forbidden content is inconsistent, mark it in the review notes."],
-    ["6. This workbook reviews case/source quality only. It is not an AI-response blind review and should not be used to score condition quality."],
+    ["6. Structured review columns use fixed English options for aggregation: case_decision is accept / revise / drop / discuss."],
+    ["7. This workbook reviews case/source quality only. It is not an AI-response blind review and should not be used to score condition quality."],
 ]
 
 
@@ -722,11 +787,40 @@ def _style_review_sheet(sheet) -> None:
         "S": 38,
         "T": 42,
         "U": 46,
+        "V": 34,
+        "W": 18,
+        "X": 18,
+        "Y": 20,
+        "Z": 20,
+        "AA": 20,
+        "AB": 22,
+        "AC": 22,
+        "AD": 22,
+        "AE": 18,
+        "AF": 26,
+        "AG": 44,
+        "AH": 18,
     }
     for col, width in widths.items():
         sheet.column_dimensions[col].width = width
     sheet.freeze_panes = "H3"
     sheet.auto_filter.ref = f"A2:{sheet.cell(row=2, column=len(REVIEW_COLUMNS)).coordinate}"
+
+
+def _apply_review_validations(sheet) -> None:
+    if sheet.max_row < 3:
+        return
+    for column_name, choices in REVIEW_VALIDATION_CHOICES.items():
+        column_index = REVIEW_COLUMNS.index(column_name) + 1
+        column_letter = get_column_letter(column_index)
+        formula = '"' + ",".join(choices) + '"'
+        validation = DataValidation(type="list", formula1=formula, allow_blank=True)
+        validation.error = "Please choose one of the allowed review codes."
+        validation.errorTitle = "Invalid review code"
+        validation.prompt = "Use the dropdown value so the review can be summarized."
+        validation.promptTitle = "Structured review"
+        sheet.add_data_validation(validation)
+        validation.add(f"{column_letter}3:{column_letter}{sheet.max_row}")
 
 
 def _headers_for_language(language: str) -> dict[str, str]:
@@ -740,6 +834,7 @@ def _append_review_rows(sheet, rows: list[dict], *, language: str) -> None:
     for row in rows:
         sheet.append([_join_cell(row.get(column)) for column in REVIEW_COLUMNS])
     _style_review_sheet(sheet)
+    _apply_review_validations(sheet)
 
 
 def _create_instruction_sheet(workbook: Workbook, *, language: str) -> None:

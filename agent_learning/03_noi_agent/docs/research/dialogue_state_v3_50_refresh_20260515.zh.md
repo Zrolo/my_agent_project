@@ -21,6 +21,22 @@ English version: `dialogue_state_v3_50_refresh_20260515.md`
 
 1. 当前学生回复按真实文本重新满足长度分布：`short=20`、`medium_short=15`、`medium_long=10`、`long=5`。
 2. 标记为 long context 的样本现在真的包含多轮近期对话，而不是只写一个字段。
+3. 中英文 case/source 复核表新增结构化审核列，用于统计 `accept / revise / drop / discuss`，避免只留下不可汇总的自由备注。
+
+新增结构化审核列包括：
+
+- `source_ok`
+- `context_coherent`
+- `student_message_realistic`
+- `followability_ok`
+- `missing_bridge_ok`
+- `forbidden_content_ok`
+- `success_criteria_ok`
+- `leakage_boundary_ok`
+- `case_decision`
+- `issue_type`
+- `coach_fix_suggestion`
+- `reviewer_confidence`
 
 ## 校验结果
 
@@ -50,7 +66,7 @@ English version: `dialogue_state_v3_50_refresh_20260515.md`
 
 ## 下一步
 
-1. 先让教练或研究者复核 `dialogue_state_v3_50_source_and_case_review.zh.xlsx`；如需外部英文审查，使用 `dialogue_state_v3_50_source_and_case_review.en.xlsx`。重点看题面、学生当前回复、近期对话、F1-F4 标签、missing bridge、forbidden content 是否一致。
+1. 先让教练或研究者复核 `dialogue_state_v3_50_source_and_case_review.zh.xlsx`；如需外部英文审查，使用 `dialogue_state_v3_50_source_and_case_review.en.xlsx`。重点看题面、学生当前回复、近期对话、F1-F4 标签、missing bridge、forbidden content 是否一致，并填写结构化审核列。
 2. 复核通过后，导出正式 generation-only 输入。
 3. 再跑固定 condition 矩阵，不再混用旧 v4 表。
 4. 生成 AI 回复后导出 response review workbook，盲评表必须显示原题题面、近期对话、上下文 AI 回复、当前学生回复、目标 AI 回复、case-specific rubric。
