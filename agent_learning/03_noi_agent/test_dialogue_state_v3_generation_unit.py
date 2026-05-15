@@ -278,7 +278,10 @@ class DialogueStateV3GenerationTests(unittest.TestCase):
             for row in range(1, workbook["评审说明"].max_row + 1)
         ]
         self.assertTrue(any("先看原题题面" in str(value or "") for value in instruction_values))
-        self.assertTrue(any("accept / revise / drop / discuss" in str(value or "") for value in instruction_values))
+        self.assertTrue(any("固定中文选项" in str(value or "") for value in instruction_values))
+        self.assertTrue(any("接受=accept" in str(value or "") for value in instruction_values))
+        self.assertTrue(any("context_ai_reply" in str(value or "") for value in instruction_values))
+        self.assertTrue(any("不用于评价该 AI 回复本身好坏" in str(value or "") for value in instruction_values))
         bucket_headers = [
             workbook["状态表示"].cell(row=1, column=col).value
             for col in range(1, workbook["状态表示"].max_column + 1)

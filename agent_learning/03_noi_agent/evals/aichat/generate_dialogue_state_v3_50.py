@@ -304,8 +304,9 @@ INSTRUCTION_ROWS = [
     ["3. 再看学生当前问题/回复，确认 F1-F4 跟随状态是否合理。"],
     ["4. 再看目标缺失桥梁、禁止内容和成功标准，判断它们是否覆盖当前卡点。"],
     ["5. 如题面、学生回复、近期对话、bridge 标签或 forbidden content 不一致，请在复核备注中标记。"],
-    ["6. 结构化审核列使用固定英文选项，便于统计：case_decision 填 accept / revise / drop / discuss。"],
+    ["6. 结构化审核列使用固定中文选项，统计脚本会映射为英文 canonical values。例如：接受=accept，修改=revise，丢弃=drop，讨论=discuss。"],
     ["7. 本表是 case/source 复核，不是 AI 回复盲评；此时不评价任何 condition 的回复质量。"],
+    ["8. context_ai_reply / prior_ai_scaffold 只用于判断学生当前回复是否承接上一轮脚手架，不用于评价该 AI 回复本身好坏。"],
 ]
 
 INSTRUCTION_ROWS_EN = [
