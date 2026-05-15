@@ -1,0 +1,40 @@
+{
+  "input_xlsx": "docs/research/dialogue_state_v3_50_source_and_case_review.zh.xlsx",
+  "sheet_name": "总表",
+  "row_count": 50,
+  "reviewed_count": 0,
+  "case_decision_counts": {
+    "blank": 50
+  },
+  "issue_type_counts": {
+    "blank": 50
+  },
+  "reviewer_confidence_counts": {
+    "blank": 50
+  },
+  "needs_followup_count": 0,
+  "source_ok_counts": {
+    "blank": 50
+  },
+  "context_coherent_counts": {
+    "blank": 50
+  },
+  "student_message_realistic_counts": {
+    "blank": 50
+  },
+  "followability_ok_counts": {
+    "blank": 50
+  },
+  "missing_bridge_ok_counts": {
+    "blank": 50
+  },
+  "forbidden_content_ok_counts": {
+    "blank": 50
+  },
+  "success_criteria_ok_counts": {
+    "blank": 50
+  },
+  "leakage_boundary_ok_counts": {
+    "blank": 50
+  }
+}
