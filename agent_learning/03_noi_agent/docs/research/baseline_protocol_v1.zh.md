@@ -21,6 +21,8 @@ Research v1 的主实验必须同时包含：
 - Guard / Repair 安全控制消融；
 - latency / LLM call count 成本指标。
 
+主实验还必须固定模型配置。除非专门声明为 model-setting ablation，所有主消融条件应使用同一 tutor provider、同一 tutor thinking mode、同一 judge / guard / repair stack。具体规则见 [model_runtime_configuration_v1.zh.md](model_runtime_configuration_v1.zh.md)。
+
 论文不应写成：
 
 ```text
@@ -88,6 +90,7 @@ CP-MissingBridgeBench 比较不同 tutoring harness 在教学质量、关键桥�
 | `mrbench_taxonomy_prompt` | MRBench / AI tutor pedagogical taxonomy | 按多维教学质量要求生成回复 |
 | `codehelp_codeaid_no_direct_solution_tutor` | CodeHelp / CodeAid programming guardrails | 检验普通 no-direct-solution guardrail 是否已经足够 |
 | `dbox_inspired_decomposition_tutor` | DBox / algorithmic programming co-decomposition | 单轮 step-tree-style 分解式脚手架，只帮当前一个子步骤 |
+| `edf_inspired_adaptive_scaffolding_tutor` | EDF / Copa-style evidence-decision-feedback adaptation | 单轮“证据-决策-反馈”式自适应脚手架，检验 adaptive scaffolding prompt 是否已经足够 |
 | `bridge_inspired_expert_decision_tutor` | Bridge / novice-expert decision modeling | 内部先判断学生错误、remediation strategy、teaching intention，再生成回复 |
 
 写作约束：
@@ -98,6 +101,8 @@ We do not claim direct reproduction unless code, data, and settings are actually
 ```
 
 `dbox_inspired_decomposition_tutor` 是 DBox-inspired baseline，不是 DBox reproduction。它参考官方材料中的 step tree、节点状态和 `general_hint` 原则，但不实现交互式 step-tree UI、多轮节点编辑、progressive reveal、代码与 step 对齐或真实学生学习收益评估。由于当前 benchmark 是单轮任务，DBox-inspired baseline 只允许 first-level general hint、guiding question 或 decomposition micro-task，不启用 reveal substep / reveal code，也不暴露 `detailed_hint`、`correctStep`、`correct_code` 或 pseudocode。
+
+`edf_inspired_adaptive_scaffolding_tutor` 是 EDF-inspired baseline，不是 EDF/Copa reproduction。它只把“Evidence -> Decision -> Feedback”的自适应脚手架原则适配到单轮离线回复评测：先内部概括学生证据和 learner state，再选择澄清、轻提示、微任务或检查理解等 first-level scaffold。它不复现 Copa 的数据、训练、在线策略或完整系统，也不启用多轮策略更新、reveal code、完整步骤揭示、完整状态/转移/check/边界补完。当前它只作为 dev / appendix 候选 baseline；是否进入 50-case 主表，取决于 10-20 case dev ablation 中的质量、泄露和延迟表现。
 
 ### Level 4: Missing-Bridge-Aware Methods
 
@@ -136,6 +141,7 @@ We do not claim direct reproduction unless code, data, and settings are actually
 | Literature-inspired | `codehelp_codeaid_no_direct_solution_tutor` |
 | Literature-inspired | `dbox_inspired_decomposition_tutor` |
 | Literature-inspired + safety | `dbox_inspired_decomposition_tutor + guard` |
+| Literature-inspired / appendix candidate | `edf_inspired_adaptive_scaffolding_tutor + guard` |
 | Literature-inspired | `bridge_inspired_expert_decision_tutor` |
 | Ours | `bridge_contract_predicted` |
 | Ours + safety | `bridge_contract_predicted + guard` |
@@ -186,6 +192,25 @@ Repair effect 必须同时报告：
 - 只使用 first-level general hint、guiding question 或 decomposition micro-task；
 - 不启用 reveal substep / reveal code。
 
+## EDF-inspired Baseline Gate
+
+`edf_inspired_adaptive_scaffolding_tutor` 进入 50-case held-out 主实验前，必须先作为 dev / appendix 候选完成：
+
+1. 3-case smoke；
+2. 10-20 case EDF core dev ablation；
+3. prompt freeze 和版本记录；
+4. 与 `enhanced_prompt_only`、`dbox_inspired_decomposition_tutor + guard`、`bridge_contract_predicted + guard` 的配对比较。
+
+进入主实验的最低条件：
+
+- 能稳定输出可评分回复；
+- 输出结构包含 `baseline_group=literature_inspired_adaptive_scaffolding`、`evidence_summary`、`learner_state`、`decision`、`scaffold_level`、`feedback_intent` 和 `student_visible_response`；
+- 只使用 clarification、light hint、micro-task、check understanding 等 first-level scaffold；
+- 不频繁给完整解法或直接补完关键桥；
+- major leakage 不明显高于 `enhanced_prompt_only`；
+- 质量不明显低于 `enhanced_prompt_only` 或 `dbox_inspired_decomposition_tutor + guard`；
+- 报告明确标注为 EDF-inspired adaptation，不声称复现 EDF/Copa。
+
 ## Metrics
 
 每个 baseline 至少报告：
@@ -202,6 +227,8 @@ Repair effect 必须同时报告：
 | `p50_latency` / `p95_latency` | 延迟 |
 | `llm_call_count` | 调用成本 |
 | `stage_error_rate` | 稳定性 |
+
+每份报告还必须列出 `tutor_model_provider`、`chat_thinking_mode`、`judge_model` 和 `final_response_source`。如果 `final_response_source=repair`，应说明学生可见回复来自 Repair stage，而不是原 tutor candidate。
 
 ## Current Pilot Interpretation
 
@@ -258,6 +285,7 @@ We reproduce MathDial / MRBench / DBox / Bridge.
 
 1. 用 `python3 -m evals.aichat.run_dev_ablation_suite` 扩展 prompt-controlled ablation：3 case -> 10-20 case。
 2. 在 shared offline runner 中使用已经接入的 `enhanced_prompt_only`、`socratic_no_answer_tutor`、`codehelp_codeaid_no_direct_solution_tutor`、`dbox_inspired_decomposition_tutor` 和 `bridge_inspired_expert_decision_tutor`，不要再用零散脚本替代主评测链路。
-3. 在 50-case held-out 主实验前冻结 strong prompt 和 judge prompt。
-4. 主表降级 `current_system` 为 deployment baseline，并加入强 baseline。
-5. 把论文 RQ 改成比较质量、泄露和成本 trade-off，而不是证明某个架构必胜。
+3. 用 `--condition-set edf_core` 维护 EDF-inspired 的小型 dev 消融，不把 EDF 默认塞进完整主矩阵。
+4. 在 50-case held-out 主实验前冻结 strong prompt 和 judge prompt。
+5. 主表降级 `current_system` 为 deployment baseline，并加入强 baseline。
+6. 把论文 RQ 改成比较质量、泄露和成本 trade-off，而不是证明某个架构必胜。

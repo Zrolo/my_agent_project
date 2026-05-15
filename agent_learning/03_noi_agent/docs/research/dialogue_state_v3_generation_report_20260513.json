@@ -1,0 +1,35 @@
+{
+  "context_type_counts": {
+    "followup_after_code_attempt": 10,
+    "followup_after_correct_short_answer": 7,
+    "followup_after_partial_answer": 8,
+    "followup_after_prerequisite_gap": 5,
+    "followup_after_wrong_answer": 7,
+    "initial_question": 10,
+    "policy_direct_answer_special": 3
+  },
+  "expected_tutor_move_counts": {
+    "advance": 7,
+    "clarify": 8,
+    "micro_step": 27,
+    "prerequisite_repair": 5,
+    "safe_redirect": 3
+  },
+  "followability_counts": {
+    "F1": 7,
+    "F2": 18,
+    "F3": 10,
+    "F4": 5,
+    "NA": 10
+  },
+  "low_confidence_count": 0,
+  "ok": true,
+  "output_jsonl": "docs/research/bridgebench_cp_dialogue_state_v3_50_draft.jsonl",
+  "reference_label_status": "draft_needs_coach_review",
+  "row_count": 50,
+  "source_jsonl": "docs/research/bridgebench_cp_heldout_v2_50_draft.jsonl",
+  "turn_position_counts": {
+    "followup": 40,
+    "initial": 10
+  }
+}

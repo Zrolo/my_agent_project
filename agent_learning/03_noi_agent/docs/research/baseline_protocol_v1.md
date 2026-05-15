@@ -26,6 +26,8 @@ The main experiments must include:
 - Guard / Repair ablations;
 - latency and LLM call-count metrics.
 
+The main experiments must also fix the model/runtime configuration. Unless a run is explicitly declared as a model-setting ablation, all main ablation conditions should use the same tutor provider, tutor thinking mode, and judge / guard / repair stack. See [model_runtime_configuration_v1.md](model_runtime_configuration_v1.md).
+
 ## Baseline Layers
 
 ### Level 0: Deployment Baseline
@@ -81,6 +83,7 @@ These conditions are **literature-inspired baselines**, not direct reproductions
 | `mrbench_taxonomy_prompt` | MRBench / AI tutor pedagogical taxonomy | Generate responses under multi-dimensional pedagogical quality constraints |
 | `codehelp_codeaid_no_direct_solution_tutor` | CodeHelp / CodeAid programming guardrails | Tests whether ordinary no-direct-solution guardrails are already sufficient |
 | `dbox_inspired_decomposition_tutor` | DBox / algorithmic programming co-decomposition | Single-turn step-tree-style decomposition scaffolding that helps only one current substep |
+| `edf_inspired_adaptive_scaffolding_tutor` | EDF / Copa-style evidence-decision-feedback adaptation | Single-turn evidence-decision-feedback adaptive scaffolding that tests whether adaptive-scaffold prompting is already sufficient |
 | `bridge_inspired_expert_decision_tutor` | Bridge / novice-expert decision modeling | Internally identify student issue, remediation strategy, and teaching intention before responding |
 
 Writing constraint:
@@ -91,6 +94,8 @@ We do not claim direct reproduction unless code, data, and settings are actually
 ```
 
 `dbox_inspired_decomposition_tutor` is a DBox-inspired baseline, not a DBox reproduction. It adapts the official materials' step-tree, node-status, and `general_hint` principles, but it does not implement an interactive step-tree UI, multi-turn node editing, progressive reveal, code-step alignment, or a real-student learning-outcome study. Because this benchmark is single-turn, the DBox-inspired baseline uses only first-level general hints, guiding questions, or decomposition micro-tasks. Reveal substep, reveal code, `detailed_hint`, `correctStep`, `correct_code`, and pseudocode are disabled.
+
+`edf_inspired_adaptive_scaffolding_tutor` is an EDF-inspired baseline, not an EDF/Copa reproduction. It adapts only the single-turn Evidence -> Decision -> Feedback scaffolding principle: it internally summarizes student evidence and learner state, then chooses a clarification, light hint, micro-task, or check-understanding scaffold. It does not reproduce Copa data, training, online policy learning, or a complete EDF system, and it does not reveal code, full substeps, full state definitions, full transitions, full check conditions, boundary-update rules, or direct critical-bridge completions. It is currently a development / appendix candidate; entering the 50-case main table depends on the 10-20 case development ablation.
 
 ### Level 4: Missing-Bridge-Aware Methods
 
@@ -129,6 +134,7 @@ The 50-case held-out test should include at least:
 | Literature-inspired | `codehelp_codeaid_no_direct_solution_tutor` |
 | Literature-inspired | `dbox_inspired_decomposition_tutor` |
 | Literature-inspired + safety | `dbox_inspired_decomposition_tutor + guard` |
+| Literature-inspired / appendix candidate | `edf_inspired_adaptive_scaffolding_tutor + guard` |
 | Literature-inspired | `bridge_inspired_expert_decision_tutor` |
 | Ours | `bridge_contract_predicted` |
 | Ours + safety | `bridge_contract_predicted + guard` |
@@ -177,6 +183,25 @@ Minimum entry criteria:
 - it uses only first-level general hints, guiding questions, or decomposition micro-tasks;
 - reveal substep and reveal code are disabled.
 
+## EDF-inspired Baseline Gate
+
+Before `edf_inspired_adaptive_scaffolding_tutor` enters the 50-case held-out main experiment, it must first remain a development / appendix candidate and complete:
+
+1. a 3-case smoke;
+2. a 10-20 case EDF core development ablation;
+3. prompt freeze and version logging;
+4. paired comparisons against `enhanced_prompt_only`, `dbox_inspired_decomposition_tutor + guard`, and `bridge_contract_predicted + guard`.
+
+Minimum entry criteria:
+
+- it produces stable, reviewable responses;
+- its structured payload includes `baseline_group=literature_inspired_adaptive_scaffolding`, `evidence_summary`, `learner_state`, `decision`, `scaffold_level`, `feedback_intent`, and `student_visible_response`;
+- it uses only clarification, light hint, micro-task, or check-understanding first-level scaffolds;
+- it does not frequently provide complete solutions or directly complete the critical bridge;
+- its major leakage rate is not clearly higher than `enhanced_prompt_only`;
+- its quality is not clearly lower than `enhanced_prompt_only` or `dbox_inspired_decomposition_tutor + guard`;
+- reports describe it as EDF-inspired adaptation, not an EDF/Copa reproduction.
+
 ## Metrics
 
 Each baseline should report:
@@ -193,6 +218,8 @@ Each baseline should report:
 | `p50_latency` / `p95_latency` | Latency |
 | `llm_call_count` | Call cost |
 | `stage_error_rate` | Stability |
+
+Every report must also list `tutor_model_provider`, `chat_thinking_mode`, `judge_model`, and `final_response_source`. If `final_response_source=repair`, the report should state that the student-visible response came from the Repair stage rather than the original tutor candidate.
 
 ## Current Pilot Interpretation
 
@@ -249,6 +276,7 @@ Use `literature-inspired` unless the public code, data, and settings are actuall
 
 1. Expand prompt-controlled ablation from 3 cases to 10-20 cases with `python3 -m evals.aichat.run_dev_ablation_suite`.
 2. Use the implemented `enhanced_prompt_only`, `socratic_no_answer_tutor`, `codehelp_codeaid_no_direct_solution_tutor`, `dbox_inspired_decomposition_tutor`, and `bridge_inspired_expert_decision_tutor` modes in the shared offline runner rather than ad hoc scripts.
-3. Freeze strong prompt and judge prompts before the 50-case held-out test.
-4. Treat `current_system` as a deployment baseline in the main table.
-5. Frame the paper around quality-leakage-cost trade-offs rather than one architecture always winning.
+3. Use `--condition-set edf_core` for small EDF-inspired development ablations instead of adding EDF to the full default matrix.
+4. Freeze strong prompt and judge prompts before the 50-case held-out test.
+5. Treat `current_system` as a deployment baseline in the main table.
+6. Frame the paper around quality-leakage-cost trade-offs rather than one architecture always winning.

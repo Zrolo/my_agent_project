@@ -1,0 +1,49 @@
+{
+  "category_counts": {
+    "aggregation_contribution_summary": 4,
+    "boundary_update_order": 5,
+    "correctness_invariant": 5,
+    "data_structure_operation_semantics": 5,
+    "debugging_evidence": 3,
+    "implementation_boundary": 4,
+    "modeling_object_relation": 5,
+    "policy_request": 3,
+    "predicate_check_semantics": 5,
+    "state_representation_semantics": 6,
+    "transition_recurrence_source": 5
+  },
+  "dataset_path": "docs/research/bridgebench_cp_heldout_v2_50_draft.jsonl",
+  "dev_seed_case_id_count": 50,
+  "dev_seed_paths": [
+    "docs/research/bridgebench_cp_seed_v1.jsonl",
+    "docs/research/bridgebench_cp_seed_v2_gold_20.jsonl",
+    "docs/research/coach_seed_labeling_v2_gold_20.jsonl"
+  ],
+  "error_count": 0,
+  "errors": [],
+  "expected_count": 50,
+  "ok": true,
+  "problem_source_platform_counts": {
+    "luogu": 50
+  },
+  "problem_statement_access_level_counts": {
+    "local_review_only": 50
+  },
+  "recent_dialogue_distribution": {
+    "long": 15,
+    "none": 10,
+    "short": 25
+  },
+  "require_frozen_status": false,
+  "row_count": 50,
+  "student_code_excerpt_distribution": {
+    "none": 40,
+    "present": 10
+  },
+  "student_message_length_distribution": {
+    "long": 5,
+    "medium_long": 10,
+    "medium_short": 15,
+    "short": 20
+  }
+}

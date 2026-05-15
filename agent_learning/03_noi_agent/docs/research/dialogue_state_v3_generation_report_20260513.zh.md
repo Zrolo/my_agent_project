@@ -1,0 +1,16 @@
+# Dialogue-State v3 50-Case 生成报告
+
+本文件是开发阶段草稿报告。v3 case 增加固定后续辅导上下文和 F1-F4 学生跟随状态，仍需教练复核；不作为 gold。
+
+- row_count: 50
+- source_jsonl: `docs/research/bridgebench_cp_heldout_v2_50_draft.jsonl`
+- output_jsonl: `docs/research/bridgebench_cp_dialogue_state_v3_50_draft.jsonl`
+- reference_label_status: `draft_needs_coach_review`
+
+## 分布
+
+- turn_position_counts: `{'initial': 10, 'followup': 40}`
+- context_type_counts: `{'initial_question': 10, 'followup_after_correct_short_answer': 7, 'followup_after_partial_answer': 8, 'followup_after_wrong_answer': 7, 'followup_after_code_attempt': 10, 'followup_after_prerequisite_gap': 5, 'policy_direct_answer_special': 3}`
+- followability_counts: `{'NA': 10, 'F1': 7, 'F2': 18, 'F3': 10, 'F4': 5}`
+- expected_tutor_move_counts: `{'micro_step': 27, 'advance': 7, 'clarify': 8, 'prerequisite_repair': 5, 'safe_redirect': 3}`
+- low_confidence_count: 0
