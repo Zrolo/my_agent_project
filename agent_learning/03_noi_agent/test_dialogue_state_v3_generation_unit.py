@@ -124,6 +124,38 @@ class DialogueStateV3GenerationTests(unittest.TestCase):
         self.assertEqual({"none": 10, "short": 25, "long": 15}, dict(actual_recent))
         self.assertTrue(all(row["context_ai_reply"] for row in cases if row["turn_position"] == "followup"))
 
+    def test_followup_replies_match_bridge_bucket(self):
+        v2_rows = [_v2_case(i) for i in range(1, 51)]
+        overrides = {
+            11: ("transition_recurrence_source", "转移/递推来源"),
+            18: ("boundary_update_order", "边界更新/循环方向"),
+            26: ("modeling_object_relation", "建模/对象关系"),
+            43: ("implementation_boundary", "实现边界/初始化/类型"),
+        }
+        for index, (bucket, bucket_zh) in overrides.items():
+            v2_rows[index - 1]["bridge_bucket"] = bucket
+            v2_rows[index - 1]["category"] = bucket
+            v2_rows[index - 1]["bridge_bucket_zh"] = bucket_zh
+        cases = generate_dialogue_state_v3_50.build_dialogue_state_cases(v2_rows)
+        by_source = {row["source_case_id"]: row for row in cases}
+
+        transition = by_source["heldout_v2_luogu_011"]
+        self.assertIn("来源", transition["student_message"])
+
+        boundary = by_source["heldout_v2_luogu_018"]
+        self.assertNotIn("分支怎么拆", boundary["student_message"])
+        self.assertTrue(any(token in boundary["student_message"] for token in ["旧值", "覆盖", "顺序"]))
+
+        modeling = by_source["heldout_v2_luogu_026"]
+        self.assertNotIn("true", modeling["student_message"])
+        self.assertNotIn("边界", modeling["student_message"])
+        self.assertTrue(any(token in modeling["student_message"] for token in ["对象", "关系", "覆盖"]))
+
+        implementation = by_source["heldout_v2_luogu_043"]
+        self.assertNotIn("哪一边还可能包含答案", implementation["prior_ai_scaffold"])
+        self.assertNotIn("可行性/状态语义", implementation["student_message"])
+        self.assertTrue(any(token in implementation["student_message"] for token in ["下标", "字符", "输入"]))
+
     def test_generated_cases_pass_heldout_dataset_validator(self):
         target_buckets = ["short"] * 20 + ["medium_short"] * 15 + ["medium_long"] * 10 + ["long"] * 5
         target_recent = ["none"] * 10 + ["short"] * 25 + ["long"] * 15

@@ -359,6 +359,10 @@ def _problem_short_name(row: dict) -> str:
 
 def _current_small_question(row: dict) -> str:
     bucket = row.get("bridge_bucket") or row.get("category") or ""
+    if "implementation" in bucket:
+        return "你先拿最小样例核对一个边界、初值或变量范围。"
+    if "debugging" in bucket:
+        return "你先构造一个最小反例，或者指出一个中间变量应该是多少。"
     if "state" in bucket or "representation" in bucket:
         return "你先用一句话说：这个状态的一格应该记录目标值、可行性、数量，还是代价？"
     if "transition" in bucket:
@@ -375,10 +379,6 @@ def _current_small_question(row: dict) -> str:
         return "你先说一次 update/query 之后，结构里应该保持什么摘要信息。"
     if "correctness" in bucket:
         return "你先比较两个相邻选择互换以后，目标值会不会变差。"
-    if "implementation" in bucket:
-        return "你先拿最小样例核对一个边界、初值或变量范围。"
-    if "debugging" in bucket:
-        return "你先构造一个最小反例，或者指出一个中间变量应该是多少。"
     return "你先把当前卡住的最小一步说出来，不需要写完整解法。"
 
 
@@ -412,24 +412,86 @@ def _variant(options: list[str], ordinal: int) -> str:
     return options[(ordinal - 1) % len(options)]
 
 
+def _bucket_contains(row: dict, fragment: str) -> bool:
+    return fragment in str(row.get("bridge_bucket") or row.get("category") or "")
+
+
 def _expand_reply_for_bucket(row: dict, context_type: str, reply: str, ordinal: int) -> str:
     """Keep follow-up replies realistic while preserving held-out length quotas."""
 
     bucket = _target_length_bucket(row)
     if bucket == "short":
         if _compact_len(reply) > 30:
-            short_replies = {
-                "followup_after_partial_answer": [
-                    "另一种情况也要算吗？",
-                    "我只想到一种来源。",
-                    "分支是不是漏了？",
-                ],
-                "followup_after_wrong_answer": [
-                    "我是不是理解反了？",
-                    "true 是不是该排除？",
-                    "这一边要不要丢掉？",
-                ],
-            }
+            short_replies = {}
+            if context_type == "followup_after_partial_answer":
+                if _bucket_contains(row, "boundary"):
+                    short_replies[context_type] = [
+                        "我怕旧值被覆盖。",
+                        "顺序一变就不对。",
+                        "还分不清新旧值。",
+                    ]
+                elif _bucket_contains(row, "modeling"):
+                    short_replies[context_type] = [
+                        "关系我还没列清。",
+                        "对象之间怎么连？",
+                        "覆盖关系我说不准。",
+                    ]
+                elif _bucket_contains(row, "implementation"):
+                    short_replies[context_type] = [
+                        "我还不知道先查哪格。",
+                        "下标和初值没对上。",
+                        "最小样例不会挑。",
+                    ]
+                else:
+                    short_replies[context_type] = [
+                        "另一种情况也要算吗？",
+                        "我只想到一种来源。",
+                        "分支是不是漏了？",
+                    ]
+            elif context_type == "followup_after_wrong_answer":
+                if _bucket_contains(row, "modeling"):
+                    short_replies[context_type] = [
+                        "对象关系可能反了。",
+                        "覆盖关系我搞反了。",
+                        "我像在猜怎么连。",
+                    ]
+                elif _bucket_contains(row, "transition"):
+                    short_replies[context_type] = [
+                        "我可能少看了一个来源。",
+                        "是不是只接一种情况？",
+                        "来源方向好像反了。",
+                    ]
+                elif _bucket_contains(row, "implementation"):
+                    short_replies[context_type] = [
+                        "下标可能反了。",
+                        "输入范围好像没对上。",
+                        "空格处理我猜错了。",
+                    ]
+                else:
+                    short_replies[context_type] = [
+                        "我是不是理解反了？",
+                        "true 是不是该排除？",
+                        "这一边要不要丢掉？",
+                    ]
+            elif context_type == "followup_after_prerequisite_gap":
+                if _bucket_contains(row, "implementation"):
+                    short_replies[context_type] = [
+                        "能先看一个字符吗？",
+                        "下标从哪开始？",
+                        "输入怎么读没对上。",
+                    ]
+                elif _bucket_contains(row, "modeling"):
+                    short_replies[context_type] = [
+                        "能先解释对象关系吗？",
+                        "谁和谁有关？",
+                        "题面关系没搭起来。",
+                    ]
+                else:
+                    short_replies[context_type] = [
+                        "能先用题里的对象解释吗？",
+                        "后面的转移我接不上。",
+                        "可能是前面概念没搭起来。",
+                    ]
             return _variant(short_replies.get(context_type, [reply]), ordinal)
         return reply
 
@@ -446,27 +508,95 @@ def _expand_reply_for_bucket(row: dict, context_type: str, reply: str, ordinal: 
             "如果要继续，我想先确认这一格和题目里的哪个阶段对应。",
         ]
     elif context_type == "followup_after_partial_answer":
-        short_additions = [
-            "我怕漏掉另一种情况。",
-            "另一个来源我不敢确定。",
-            "我还不会把分支合起来。",
-        ]
-        additions = [
-            "我现在只能说出一个来源，另一个来源是不是也要算进去就有点拿不准。",
-            f"放到《{title}》这里，我能看出前一步有关系，但不知道该怎么分清两类情况。",
-            "我怕少考虑一种情况，所以不敢直接把它合成公式。",
-        ]
+        if _bucket_contains(row, "boundary"):
+            short_additions = [
+                "我怕旧值被覆盖。",
+                "顺序一变就不对。",
+                "还分不清新旧值。",
+            ]
+            additions = [
+                "我能感觉顺序和旧值有关，但不知道怎样判断旧值会不会被刚更新的值覆盖。",
+                f"放到《{title}》这里，我知道要看更新前后，但不知道该保护哪一个旧状态。",
+                "我怕循环方向一写反，就把本轮刚算出的值又拿来用了。",
+            ]
+        elif _bucket_contains(row, "modeling"):
+            short_additions = [
+                "关系我还没列清。",
+                "对象之间怎么连不确定。",
+                "覆盖关系我说不准。",
+            ]
+            additions = [
+                "我能列出题面对象，但不知道它们之间应该看覆盖、相邻还是依赖关系。",
+                f"放到《{title}》这里，我知道有哪些对象，但不知道哪一种关系才是建模核心。",
+                "我怕把题面里的对象抽错，后面图或状态就全都偏了。",
+            ]
+        elif _bucket_contains(row, "implementation"):
+            short_additions = [
+                "我还不知道先查哪一格。",
+                "下标和初值没对上。",
+                "最小样例不会挑。",
+            ]
+            additions = [
+                "我知道现在该查实现细节，但不知道先检查下标、初值还是输入范围。",
+                f"放到《{title}》这里，我能看懂题意，但代码里哪一个边界最容易错还没抓住。",
+                "我怕不是算法问题，而是一个很小的输入或下标细节一直没对上。",
+            ]
+        else:
+            short_additions = [
+                "我怕漏掉另一种情况。",
+                "另一个来源我不敢确定。",
+                "我还不会把分支合起来。",
+            ]
+            additions = [
+                "我现在只能说出一个来源，另一个来源是不是也要算进去就有点拿不准。",
+                f"放到《{title}》这里，我能看出前一步有关系，但不知道该怎么分清两类情况。",
+                "我怕少考虑一种情况，所以不敢直接把它合成公式。",
+            ]
     elif context_type == "followup_after_wrong_answer":
-        short_additions = [
-            "我感觉方向反了。",
-            "边界一换我就乱了。",
-            "我现在更像在猜模板。",
-        ]
-        additions = [
-            "我感觉自己把 true/false 或左右方向理解反了，但说不出到底反在哪里。",
-            f"在《{title}》这题里，我能跟样例，但换一个边界就不知道该保留哪边。",
-            "我现在更像是在猜模板，不确定这个判断背后的含义。",
-        ]
+        if _bucket_contains(row, "modeling"):
+            short_additions = [
+                "对象关系可能反了。",
+                "覆盖关系我搞反了。",
+                "我像在猜怎么连。",
+            ]
+            additions = [
+                "我感觉自己把对象和关系放反了，但说不出到底应该让谁覆盖谁。",
+                f"在《{title}》这题里，我能复述题面，但不知道该把哪个限制当成关系。",
+                "我现在更像是在猜建模方式，不确定题面里的关系该怎么抽出来。",
+            ]
+        elif _bucket_contains(row, "transition"):
+            short_additions = [
+                "我可能少看了一个来源。",
+                "是不是只接一种情况？",
+                "来源方向好像反了。",
+            ]
+            additions = [
+                "我感觉自己只看了一个来源，但另一个更小情况是不是也要接进来还没想清。",
+                f"在《{title}》这题里，我知道要从更小情况来，但不确定是哪一类前驱。",
+                "我现在更像在猜转移方向，不确定当前量到底从哪里来。",
+            ]
+        elif _bucket_contains(row, "implementation"):
+            short_additions = [
+                "下标可能反了。",
+                "输入范围好像没对上。",
+                "空格处理我猜错了。",
+            ]
+            additions = [
+                "我感觉自己把下标或输入边界理解反了，但说不出先该查哪一个最小样例。",
+                f"在《{title}》这题里，我能跑样例，但一换输入就不知道哪个细节错了。",
+                "我现在更像是在猜实现细节，不确定是下标、初值还是类型出了问题。",
+            ]
+        else:
+            short_additions = [
+                "我感觉方向反了。",
+                "边界一换我就乱了。",
+                "我现在更像在猜模板。",
+            ]
+            additions = [
+                "我感觉自己把 true/false 或左右方向理解反了，但说不出到底反在哪里。",
+                f"在《{title}》这题里，我能跟样例，但换一个边界就不知道该保留哪边。",
+                "我现在更像是在猜模板，不确定这个判断背后的含义。",
+            ]
     elif context_type == "followup_after_code_attempt":
         short_additions = [
             "我怀疑不是单纯少写一行。",
@@ -479,16 +609,39 @@ def _expand_reply_for_bucket(row: dict, context_type: str, reply: str, ordinal: 
             "我想先知道应该打印哪个中间量，别一上来就整段重写。",
         ]
     elif context_type == "followup_after_prerequisite_gap":
-        short_additions = [
-            "能先用题里的对象解释吗？",
-            "后面的转移我接不上。",
-            "可能是前面概念没搭起来。",
-        ]
-        additions = [
-            "如果可以的话，能不能先用这题里的一个小对象解释这个词，而不是直接讲完整做法？",
-            f"我现在看《{title}》时连这个基础关系都没对上，所以后面的转移/维护都接不上。",
-            "我可能不是这一步不会写，而是前面那个概念就没有搭起来。",
-        ]
+        if _bucket_contains(row, "implementation"):
+            short_additions = [
+                "能先看一个字符吗？",
+                "下标从哪开始我没懂。",
+                "输入怎么读我没对上。",
+            ]
+            additions = [
+                "如果可以的话，能不能先用这题里的一个字符解释该检查哪个下标或输入边界？",
+                f"我现在看《{title}》时连字符、空格和计数范围都没对上，所以代码只能靠猜。",
+                "我可能不是算法不会，而是输入、下标或初值这个基础细节没有搭起来。",
+            ]
+        elif _bucket_contains(row, "modeling"):
+            short_additions = [
+                "能先解释对象关系吗？",
+                "我连谁和谁有关都没懂。",
+                "题面关系没搭起来。",
+            ]
+            additions = [
+                "如果可以的话，能不能先用题里的两个对象解释它们到底是什么关系？",
+                f"我现在看《{title}》时连对象之间的基础关系都没对上，所以后面建模接不上。",
+                "我可能不是不会写算法，而是题面里的对象和约束还没有搭起来。",
+            ]
+        else:
+            short_additions = [
+                "能先用题里的对象解释吗？",
+                "后面的转移我接不上。",
+                "可能是前面概念没搭起来。",
+            ]
+            additions = [
+                "如果可以的话，能不能先用这题里的一个小对象解释这个词，而不是直接讲完整做法？",
+                f"我现在看《{title}》时连这个基础关系都没对上，所以后面的转移/维护都接不上。",
+                "我可能不是这一步不会写，而是前面那个概念就没有搭起来。",
+            ]
     elif context_type == "policy_direct_answer_special":
         short_additions = [
             "不行的话先告诉我补哪步。",
@@ -549,7 +702,7 @@ def _prior_ai_scaffold(row: dict) -> str:
 
 def _reply_for_context(row: dict, context_type: str, ordinal: int) -> tuple[str, str, str]:
     if context_type == "followup_after_correct_short_answer":
-        if (row.get("bridge_bucket") or "").startswith("predicate"):
+        if _bucket_contains(row, "predicate"):
             reply = _variant(
                 [
                     "true 就是这个候选值能满足限制。",
@@ -559,6 +712,46 @@ def _reply_for_context(row: dict, context_type: str, ordinal: int) -> tuple[str,
                 ordinal,
             )
             evidence = "能满足限制"
+        elif _bucket_contains(row, "transition"):
+            reply = _variant(
+                [
+                    "我能说出一个来源：它应该从前一个更小阶段的结果接过来。",
+                    "一个来源应该是已经处理完前面部分后的结果。",
+                    "我觉得当前量至少有一个来源，是去掉当前选择后的更小情况。",
+                ],
+                ordinal,
+            )
+            evidence = "一个来源"
+        elif _bucket_contains(row, "boundary"):
+            reply = _variant(
+                [
+                    "我理解这里要保护旧值，不能让刚更新的值又被本轮用到。",
+                    "应该是看哪一边还是旧状态，避免被这轮更新覆盖。",
+                    "我知道顺序和旧值有关，不能把新值当成旧值再用。",
+                ],
+                ordinal,
+            )
+            evidence = "旧值"
+        elif _bucket_contains(row, "modeling"):
+            reply = _variant(
+                [
+                    "我能列出对象了：时间段和能覆盖它的选择之间有关系。",
+                    "对象应该是题面里的实体，关系是它们满足或覆盖某个限制。",
+                    "我知道要先找两个对象，再看它们之间是不是覆盖或依赖。",
+                ],
+                ordinal,
+            )
+            evidence = "对象"
+        elif _bucket_contains(row, "implementation"):
+            reply = _variant(
+                [
+                    "我知道先拿最小输入检查一个下标或初值。",
+                    "我应该先看输入里的一个字符或边界位置。",
+                    "先确认数组范围和初始值，再看后面的循环。",
+                ],
+                ordinal,
+            )
+            evidence = "下标"
         else:
             reply = _variant(
                 [
@@ -570,20 +763,56 @@ def _reply_for_context(row: dict, context_type: str, ordinal: int) -> tuple[str,
             )
             evidence = "最优/可行情况"
         final_reply = _expand_reply_for_bucket(row, context_type, reply, ordinal)
-        if (row.get("bridge_bucket") or "").startswith("predicate"):
+        if _bucket_contains(row, "predicate"):
             evidence = _evidence_quote(final_reply, ["true", "候选", "可行", "限制"])
+        elif _bucket_contains(row, "transition"):
+            evidence = _evidence_quote(final_reply, ["来源", "前一个", "更小", "选择"])
+        elif _bucket_contains(row, "boundary"):
+            evidence = _evidence_quote(final_reply, ["旧值", "顺序", "覆盖", "新值"])
+        elif _bucket_contains(row, "modeling"):
+            evidence = _evidence_quote(final_reply, ["对象", "关系", "覆盖", "依赖"])
+        elif _bucket_contains(row, "implementation"):
+            evidence = _evidence_quote(final_reply, ["下标", "输入", "字符", "初值"])
         else:
             evidence = _evidence_quote(final_reply, ["当前阶段", "这一格", "最优", "结果"])
         return final_reply, evidence, ""
     if context_type == "followup_after_partial_answer":
-        reply = _variant(
-            [
-                "大概是看前面能不能推过来，但我不知道要不要把另一种情况也算进去。",
-                "我能想到一个来源，但另一种情况是不是也要单独算，我不确定。",
-                "这一步好像能从前面接过来，可是分支怎么拆我还没想明白。",
-            ],
-            ordinal,
-        )
+        if _bucket_contains(row, "boundary"):
+            reply = _variant(
+                [
+                    "我知道要保护旧值，但不知道顺序怎么避免覆盖。",
+                    "我能看出要看更新前后，可是不知道哪一个值会被覆盖。",
+                    "好像和旧值顺序有关，但从大到小还是从小到大我还没想明白。",
+                ],
+                ordinal,
+            )
+        elif _bucket_contains(row, "modeling"):
+            reply = _variant(
+                [
+                    "我能列出对象，但它们之间到底是覆盖、相邻还是依赖，我不确定。",
+                    "对象我大概知道，可关系怎么连还没想明白。",
+                    "我知道题面里有哪些东西，但不知道该抽成哪种关系。",
+                ],
+                ordinal,
+            )
+        elif _bucket_contains(row, "implementation"):
+            reply = _variant(
+                [
+                    "我知道要查代码细节，但不知道先查下标、初值还是输入范围。",
+                    "我能跑样例，可是不知道该先打印哪一个中间量。",
+                    "看起来像边界错，但我还没想明白该拿哪个最小样例查。",
+                ],
+                ordinal,
+            )
+        else:
+            reply = _variant(
+                [
+                    "大概是看前面能不能推过来，但我不知道要不要把另一种情况也算进去。",
+                    "我能想到一个来源，但另一种情况是不是也要单独算，我不确定。",
+                    "这一步好像能从前面接过来，可是分支怎么拆我还没想明白。",
+                ],
+                ordinal,
+            )
         final_reply = _expand_reply_for_bucket(row, context_type, reply, ordinal)
         return (
             final_reply,
@@ -591,14 +820,42 @@ def _reply_for_context(row: dict, context_type: str, ordinal: int) -> tuple[str,
             "学生方向接近，但没有说清分支或条件。",
         )
     if context_type == "followup_after_wrong_answer":
-        reply = _variant(
-            [
-                "应该是反过来吧？如果 true 就说明这一边不用管了？",
-                "我是不是该把满足的那一边排除掉？感觉有点反。",
-                "是不是只要当前判断成立，就往另一边继续找？我有点乱。",
-            ],
-            ordinal,
-        )
+        if _bucket_contains(row, "modeling"):
+            reply = _variant(
+                [
+                    "我是不是把对象和关系放反了？应该看谁覆盖谁吗？",
+                    "对象是时间段还是选择本身？我感觉关系有点反。",
+                    "我是不是该把限制当成点，把对象当成边？感觉弄反了。",
+                ],
+                ordinal,
+            )
+        elif _bucket_contains(row, "transition"):
+            reply = _variant(
+                [
+                    "是不是只看一个来源就够了？另一个情况不用接进来吗？",
+                    "我是不是把来源方向反了，从当前往前推还是从前面推当前？",
+                    "当前这一步是不是直接继承就行？我感觉少了一种情况。",
+                ],
+                ordinal,
+            )
+        elif _bucket_contains(row, "implementation"):
+            reply = _variant(
+                [
+                    "是不是下标从 1 开始就没事？我感觉样例里空格处理也不对。",
+                    "我是不是把输入长度和数组范围弄反了？",
+                    "是不是循环多跑一位也没关系？我感觉这里猜错了。",
+                ],
+                ordinal,
+            )
+        else:
+            reply = _variant(
+                [
+                    "应该是反过来吧？如果 true 就说明这一边不用管了？",
+                    "我是不是该把满足的那一边排除掉？感觉有点反。",
+                    "是不是只要当前判断成立，就往另一边继续找？我有点乱。",
+                ],
+                ordinal,
+            )
         final_reply = _expand_reply_for_bucket(row, context_type, reply, ordinal)
         return (
             final_reply,
@@ -621,14 +878,33 @@ def _reply_for_context(row: dict, context_type: str, ordinal: int) -> tuple[str,
             "学生有尝试和错误证据，但还没有定位到最小桥。",
         )
     if context_type == "followup_after_prerequisite_gap":
-        reply = _variant(
-            [
-                "我有点懵，什么叫可行性/状态语义？这个词我没太懂。",
-                "我好像连这一格记录的“含义”都没懂，后面的公式就更接不上。",
-                "你说的维护量/不变量我没太理解，能不能先说它在题面里对应什么？",
-            ],
-            ordinal,
-        )
+        if _bucket_contains(row, "implementation"):
+            reply = _variant(
+                [
+                    "我有点懵，这题里空格和字母要怎么对应到次数？输入范围我也没对上。",
+                    "我好像连一个字符该怎么处理都没懂，后面的循环就更接不上。",
+                    "你说的下标和初值我没太理解，能不能先用题里的一个字符说明？",
+                ],
+                ordinal,
+            )
+        elif _bucket_contains(row, "modeling"):
+            reply = _variant(
+                [
+                    "我有点懵，题面里的对象和关系分别是什么？这个词我没太懂。",
+                    "我好像连谁和谁有关系都没懂，后面的建模就更接不上。",
+                    "你说的关系我没太理解，能不能先说它在题面里对应哪两个对象？",
+                ],
+                ordinal,
+            )
+        else:
+            reply = _variant(
+                [
+                    "我有点懵，什么叫可行性/状态语义？这个词我没太懂。",
+                    "我好像连这一格记录的“含义”都没懂，后面的公式就更接不上。",
+                    "你说的维护量/不变量我没太理解，能不能先说它在题面里对应什么？",
+                ],
+                ordinal,
+            )
         final_reply = _expand_reply_for_bucket(row, context_type, reply, ordinal)
         return (
             final_reply,
