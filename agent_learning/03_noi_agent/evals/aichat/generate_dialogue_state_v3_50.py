@@ -312,8 +312,9 @@ INSTRUCTION_ROWS = [
     ["5. 如题面、学生回复、近期对话、bridge 标签或 forbidden content 不一致，请在复核备注中标记。"],
     ["6. 请优先在各桥梁桶 sheet 中填写审核列；总表用于全局查看。审核结束后由脚本汇总各 bucket sheet 的审核结果。"],
     ["7. 结构化审核列使用固定中文选项，统计脚本会映射为英文 canonical values。例如：接受=accept，修改=revise，丢弃=drop，讨论=discuss。"],
-    ["8. 本表是 case/source 复核，不是 AI 回复盲评；此时不评价任何 condition 的回复质量。"],
-    ["9. context_ai_reply / prior_ai_scaffold 只用于判断学生当前回复是否承接上一轮脚手架，不用于评价该 AI 回复本身好坏。"],
+    ["8. reviewer_id 建议填写 coach_A / coach_B / ai_reviewer_1；review_round 建议填写 calibration / round1 / adjudication。"],
+    ["9. 本表是 case/source 复核，不是 AI 回复盲评；此时不评价任何 condition 的回复质量。"],
+    ["10. context_ai_reply / prior_ai_scaffold 只用于判断学生当前回复是否承接上一轮脚手架，不用于评价该 AI 回复本身好坏。"],
 ]
 
 INSTRUCTION_ROWS_EN = [
@@ -325,8 +326,9 @@ INSTRUCTION_ROWS_EN = [
     ["5. If the problem statement, student reply, recent dialogue, bridge label, or forbidden content is inconsistent, mark it in the review notes."],
     ["6. Prefer filling the bucket sheets; the main sheet is for global browsing. The summary script will aggregate structured review fields from bucket sheets."],
     ["7. Structured review columns use fixed English options for aggregation: case_decision is accept / revise / drop / discuss."],
-    ["8. This workbook reviews case/source quality only. It is not an AI-response blind review and should not be used to score condition quality."],
-    ["9. context_ai_reply / prior_ai_scaffold are only for checking whether the student reply follows the previous scaffold, not for judging that AI reply's quality."],
+    ["8. reviewer_id should be coach_A / coach_B / ai_reviewer_1; review_round should be calibration / round1 / adjudication."],
+    ["9. This workbook reviews case/source quality only. It is not an AI-response blind review and should not be used to score condition quality."],
+    ["10. context_ai_reply / prior_ai_scaffold are only for checking whether the student reply follows the previous scaffold, not for judging that AI reply's quality."],
 ]
 
 

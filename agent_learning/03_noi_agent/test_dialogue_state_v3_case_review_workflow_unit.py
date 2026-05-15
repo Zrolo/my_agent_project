@@ -89,11 +89,19 @@ class DialogueStateV3CaseReviewWorkflowTests(unittest.TestCase):
             decision_col = machine_headers.index("case_decision") + 1
             issue_col = machine_headers.index("issue_type") + 1
             confidence_col = machine_headers.index("reviewer_confidence") + 1
+            reviewer_col = machine_headers.index("reviewer_id") + 1
+            round_col = machine_headers.index("review_round") + 1
             sheet.cell(row=3, column=decision_col).value = "accept"
+            sheet.cell(row=3, column=reviewer_col).value = "coach_A"
+            sheet.cell(row=3, column=round_col).value = "calibration"
             sheet.cell(row=4, column=decision_col).value = "revise"
             sheet.cell(row=4, column=issue_col).value = "context_mismatch"
+            sheet.cell(row=4, column=reviewer_col).value = "coach_A"
+            sheet.cell(row=4, column=round_col).value = "calibration"
             sheet.cell(row=5, column=decision_col).value = "drop"
             sheet.cell(row=5, column=confidence_col).value = "low"
+            sheet.cell(row=5, column=reviewer_col).value = "coach_B"
+            sheet.cell(row=5, column=round_col).value = "round1"
             workbook.save(workbook_path)
 
             summary = summarize_dialogue_state_case_review.summarize_workbook(workbook_path, sheet_name="总表")
@@ -102,6 +110,8 @@ class DialogueStateV3CaseReviewWorkflowTests(unittest.TestCase):
         self.assertEqual({"accept": 1, "revise": 1, "drop": 1, "blank": 47}, summary["case_decision_counts"])
         self.assertEqual(1, summary["issue_type_counts"]["context_mismatch"])
         self.assertEqual(1, summary["reviewer_confidence_counts"]["low"])
+        self.assertEqual({"coach_A": 2, "coach_B": 1, "blank": 47}, summary["reviewer_id_counts"])
+        self.assertEqual({"calibration": 2, "round1": 1, "blank": 47}, summary["review_round_counts"])
         self.assertEqual(2, summary["needs_followup_count"])
 
     def test_case_review_summary_normalizes_chinese_review_choices(self):

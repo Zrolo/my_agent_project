@@ -282,6 +282,8 @@ class DialogueStateV3GenerationTests(unittest.TestCase):
         self.assertTrue(any("总表用于全局查看" in str(value or "") for value in instruction_values))
         self.assertTrue(any("固定中文选项" in str(value or "") for value in instruction_values))
         self.assertTrue(any("接受=accept" in str(value or "") for value in instruction_values))
+        self.assertTrue(any("reviewer_id 建议填写 coach_A" in str(value or "") for value in instruction_values))
+        self.assertTrue(any("review_round 建议填写 calibration" in str(value or "") for value in instruction_values))
         self.assertTrue(any("context_ai_reply" in str(value or "") for value in instruction_values))
         self.assertTrue(any("不用于评价该 AI 回复本身好坏" in str(value or "") for value in instruction_values))
         bucket_headers = [
@@ -312,6 +314,8 @@ class DialogueStateV3GenerationTests(unittest.TestCase):
         ]
         self.assertTrue(any("Read the problem statement first" in str(value or "") for value in instruction_values))
         self.assertTrue(any("Prefer filling the bucket sheets" in str(value or "") for value in instruction_values))
+        self.assertTrue(any("reviewer_id should be coach_A" in str(value or "") for value in instruction_values))
+        self.assertTrue(any("review_round should be calibration" in str(value or "") for value in instruction_values))
         headers = [
             workbook["dialogue_state_review"].cell(row=1, column=col).value
             for col in range(1, workbook["dialogue_state_review"].max_column + 1)

@@ -13,6 +13,12 @@
   "reviewer_confidence_counts": {
     "blank": 50
   },
+  "reviewer_id_counts": {
+    "blank": 50
+  },
+  "review_round_counts": {
+    "blank": 50
+  },
   "needs_followup_count": 0,
   "source_ok_counts": {
     "blank": 50

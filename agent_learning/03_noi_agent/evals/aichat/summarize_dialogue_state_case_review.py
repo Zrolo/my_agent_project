@@ -31,6 +31,8 @@ STRUCTURED_FIELDS = [
     "case_decision",
     "issue_type",
     "reviewer_confidence",
+    "reviewer_id",
+    "review_round",
 ]
 
 MAIN_SHEET_NAMES = {"总表", "dialogue_state_review"}
@@ -152,10 +154,12 @@ def summarize_workbook(path: Path, *, sheet_name: str | None = None) -> dict:
         "case_decision_counts": dict(Counter(row["case_decision"] for row in rows)),
         "issue_type_counts": dict(Counter(row["issue_type"] for row in rows)),
         "reviewer_confidence_counts": dict(Counter(row["reviewer_confidence"] for row in rows)),
+        "reviewer_id_counts": dict(Counter(row["reviewer_id"] for row in rows)),
+        "review_round_counts": dict(Counter(row["review_round"] for row in rows)),
         "needs_followup_count": sum(1 for row in rows if row["case_decision"] in {"revise", "drop", "discuss"}),
     }
     for field in STRUCTURED_FIELDS:
-        if field in {"case_decision", "issue_type", "reviewer_confidence"}:
+        if field in {"case_decision", "issue_type", "reviewer_confidence", "reviewer_id", "review_round"}:
             continue
         summary[f"{field}_counts"] = dict(Counter(row[field] for row in rows))
     return summary
