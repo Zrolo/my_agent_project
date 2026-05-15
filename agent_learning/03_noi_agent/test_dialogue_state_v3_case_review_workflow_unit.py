@@ -26,6 +26,10 @@ class DialogueStateV3CaseReviewWorkflowTests(unittest.TestCase):
 
         self.assertEqual(6, len(selected))
         self.assertEqual(
+            ["dialogue_v3_001_", "dialogue_v3_011_", "dialogue_v3_018_", "dialogue_v3_026_", "dialogue_v3_043_", "dialogue_v3_048_"],
+            [row["case_id"][:16] for row in selected],
+        )
+        self.assertEqual(
             {
                 "initial_question",
                 "followup_after_correct_short_answer",

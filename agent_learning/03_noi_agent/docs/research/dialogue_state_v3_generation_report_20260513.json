@@ -1,8 +1,8 @@
 {
   "context_type_counts": {
     "followup_after_code_attempt": 10,
-    "followup_after_correct_short_answer": 7,
-    "followup_after_partial_answer": 8,
+    "followup_after_correct_short_answer": 6,
+    "followup_after_partial_answer": 9,
     "followup_after_prerequisite_gap": 5,
     "followup_after_wrong_answer": 7,
     "initial_question": 10,

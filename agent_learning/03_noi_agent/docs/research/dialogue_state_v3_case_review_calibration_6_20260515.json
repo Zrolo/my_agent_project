@@ -11,8 +11,7 @@
   ],
   "context_type_counts": {
     "initial_question": 1,
-    "followup_after_correct_short_answer": 1,
-    "followup_after_partial_answer": 1,
+    "followup_after_partial_answer": 2,
     "followup_after_wrong_answer": 1,
     "followup_after_prerequisite_gap": 1,
     "policy_direct_answer_special": 1

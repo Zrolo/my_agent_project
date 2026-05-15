@@ -189,9 +189,10 @@ class DialogueStateV3GenerationTests(unittest.TestCase):
         by_source = {row["source_case_id"]: row for row in cases}
 
         transition = by_source["heldout_v2_luogu_011"]
+        self.assertEqual("followup_after_partial_answer", transition["context_type"])
         self.assertEqual("F2", transition["student_scaffold_followability"])
         self.assertEqual("clarify", transition["expected_tutor_move"])
-        self.assertIn("还没说清", transition["student_message"])
+        self.assertIn("没对应到", transition["student_message"])
         self.assertEqual("short", _length_bucket(transition["student_message"]))
         self.assertTrue(any("前驱来源" in item for item in transition["success_criteria"]))
 
@@ -210,8 +211,12 @@ class DialogueStateV3GenerationTests(unittest.TestCase):
         self.assertIn("按键", phone["prior_ai_scaffold"])
         self.assertNotIn("输入范围", phone["student_message"])
         self.assertNotIn("下标或输入边界", phone["student_message"])
+        self.assertNotIn("如果可以的话", phone["student_message"])
         self.assertIn("按键", phone["student_message"])
-        self.assertIn("字符/空格", phone["missing_bridge"])
+        self.assertEqual("medium_long", _length_bucket(phone["student_message"]))
+        self.assertIn("单个字符", phone["missing_bridge"])
+        self.assertIn("no_full_keypress_mapping_table", phone["forbidden_content"])
+        self.assertNotIn("no_direct_current_bridge", phone["forbidden_content"])
         self.assertTrue(any("按键次数" in item for item in phone["success_criteria"]))
 
     def test_default_luogu_source_keeps_review_gate_distributions_after_calibration(self):
@@ -230,6 +235,7 @@ class DialogueStateV3GenerationTests(unittest.TestCase):
         self.assertEqual({"short": 20, "medium_short": 15, "medium_long": 10, "long": 5}, dict(length_counts))
         self.assertEqual({"NA": 10, "F1": 6, "F2": 19, "F3": 10, "F4": 5}, dict(followability_counts))
         self.assertEqual("F2", by_id["dialogue_v3_011_transition_recurrence_source"]["student_scaffold_followability"])
+        self.assertEqual("followup_after_partial_answer", by_id["dialogue_v3_011_transition_recurrence_source"]["context_type"])
         self.assertEqual("short", _length_bucket(by_id["dialogue_v3_011_transition_recurrence_source"]["student_message"]))
         self.assertNotIn(
             "本轮刚算出的新值覆盖或复用",

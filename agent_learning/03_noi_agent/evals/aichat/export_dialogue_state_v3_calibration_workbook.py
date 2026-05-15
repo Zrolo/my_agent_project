@@ -31,9 +31,27 @@ CALIBRATION_CONTEXTS = [
     "policy_direct_answer_special",
 ]
 
+CALIBRATION_CASE_PREFIXES = [
+    "dialogue_v3_001_",
+    "dialogue_v3_011_",
+    "dialogue_v3_018_",
+    "dialogue_v3_026_",
+    "dialogue_v3_043_",
+    "dialogue_v3_048_",
+]
+
 
 def select_calibration_cases(rows: list[dict]) -> list[dict]:
     """Select one representative row for each case/source review category."""
+    by_prefix = []
+    for prefix in CALIBRATION_CASE_PREFIXES:
+        match = next((row for row in rows if str(row.get("case_id") or "").startswith(prefix)), None)
+        if match is None:
+            break
+        by_prefix.append(match)
+    if len(by_prefix) == len(CALIBRATION_CASE_PREFIXES):
+        return by_prefix
+
     selected = []
     for context_type in CALIBRATION_CONTEXTS:
         match = next((row for row in rows if row.get("context_type") == context_type), None)

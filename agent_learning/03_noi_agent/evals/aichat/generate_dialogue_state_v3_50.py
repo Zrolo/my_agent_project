@@ -385,6 +385,16 @@ def _is_phone_keypress_case(row: dict) -> bool:
     return _problem_source_id(row) == "P1765" or _problem_title_text(row).strip() == "手机"
 
 
+def _is_transition_partial_calibration_case(row: dict, source_index: int) -> bool:
+    return source_index == 11 and _bucket_contains(row, "transition")
+
+
+def _case_context_type(row: dict, source_index: int, context_type: str) -> str:
+    if context_type == "followup_after_correct_short_answer" and _is_transition_partial_calibration_case(row, source_index):
+        return "followup_after_partial_answer"
+    return context_type
+
+
 def _current_small_question(row: dict) -> str:
     bucket = row.get("bridge_bucket") or row.get("category") or ""
     if "implementation" in bucket:
@@ -526,6 +536,20 @@ def _expand_reply_for_bucket(row: dict, context_type: str, reply: str, ordinal: 
                     ]
             return _variant(short_replies.get(context_type, [reply]), ordinal)
         return reply
+
+    if context_type == "followup_after_prerequisite_gap" and _bucket_contains(row, "implementation") and _is_phone_keypress_case(row):
+        if bucket == "medium_short":
+            return f"{reply} 我先想把一个字母和一个空格的按键次数算对。"
+        if bucket == "medium_long":
+            return (
+                f"{reply} 我先想把一个字母和一个空格的按键次数算对，不然循环写了也不知道对不对；"
+                "先别给整段代码。"
+            )
+        if bucket == "long":
+            return (
+                f"{reply} 我先想把一个字母和一个空格的按键次数算对，不然循环写了也不知道对不对；"
+                "先别给整段代码。我可以自己照着这个局部规则去写后面的累计。"
+            )
 
     title = _problem_short_name(row)
     if context_type == "followup_after_correct_short_answer":
@@ -849,14 +873,24 @@ def _reply_for_context(row: dict, context_type: str, ordinal: int) -> tuple[str,
                 ordinal,
             )
         else:
-            reply = _variant(
-                [
-                    "大概是看前面能不能推过来，但我不知道要不要把另一种情况也算进去。",
-                    "我能想到一个来源，但另一种情况是不是也要单独算，我不确定。",
-                    "这一步好像能从前面接过来，可是分支怎么拆我还没想明白。",
-                ],
-                ordinal,
-            )
+            if _bucket_contains(row, "transition"):
+                reply = _variant(
+                    [
+                        "可能从前面状态来，但没对应到具体选择。",
+                        "我能想到一个来源，但没对应到具体题面动作。",
+                        "这一步好像能从前面接过来，可是分支怎么拆我还没想明白。",
+                    ],
+                    ordinal,
+                )
+            else:
+                reply = _variant(
+                    [
+                        "大概是看前面能不能推过来，但我不知道要不要把另一种情况也算进去。",
+                        "我能想到一个来源，但另一种情况是不是也要单独算，我不确定。",
+                        "这一步好像能从前面接过来，可是分支怎么拆我还没想明白。",
+                    ],
+                    ordinal,
+                )
         final_reply = _expand_reply_for_bucket(row, context_type, reply, ordinal)
         return (
             final_reply,
@@ -925,9 +959,9 @@ def _reply_for_context(row: dict, context_type: str, ordinal: int) -> tuple[str,
         if _bucket_contains(row, "implementation"):
             options = (
                 [
-                    "我有点懵，这题里空格和字母要怎么对应到次数？",
-                    "我好像连一个字符该按几次都没懂，后面的循环就更接不上。",
-                    "你说的映射我没太理解，能不能先用题里的一个字符说明要按几次？",
+                    "我这里卡在最基础的地方：空格算几下，字母又怎么数？能先拿一个字母带我核一下吗？",
+                    "我好像连一个字符该按几次都没懂，能先拿一个字母带我核一下吗？",
+                    "空格算几下，字母怎么数？我想先拿一个字符对一下。",
                 ]
                 if _is_phone_keypress_case(row)
                 else [
@@ -1037,9 +1071,12 @@ def _code_excerpt_for_context(row: dict, context_type: str, source_index: int) -
 
 
 def _case_success_criteria(row: dict, context_type: str) -> list[str]:
-    if context_type == "followup_after_correct_short_answer" and _bucket_contains(row, "transition"):
+    if context_type in {"followup_after_correct_short_answer", "followup_after_partial_answer"} and _bucket_contains(
+        row,
+        "transition",
+    ):
         return [
-            "回复先请学生把“已处理完前面部分”具体化成一个前驱来源。",
+            "回复先请学生把“前面某个状态”具体化成一个前驱来源。",
             "回复让学生用题面动作或选择说出当前量从哪里来。",
             "回复不直接写完整递推式。",
         ]
@@ -1051,9 +1088,9 @@ def _case_success_criteria(row: dict, context_type: str) -> list[str]:
         ]
     if _bucket_contains(row, "implementation") and _is_phone_keypress_case(row):
         return [
-            "回复让学生先用一个字符或空格核对对应的按键次数。",
-            "回复把注意力放在字符到次数的局部映射上。",
-            "回复不直接给完整代码补丁或整张字符映射表。",
+            "回复先选一个字符或空格，让学生根据题面数出对应按键次数。",
+            "回复只建立“单字符映射 -> 逐字符累计”的局部关系。",
+            "回复不直接给完整代码、整张字符映射表或整题总做法。",
         ]
     return _as_list(row.get("success_criteria"))
 
@@ -1062,8 +1099,14 @@ def _case_missing_bridge(row: dict) -> str:
     if _bucket_contains(row, "boundary") and _is_knapsack_order_case(row):
         return "缺少把循环方向、上一轮旧值和本轮新值复用风险对应起来的关系。"
     if _bucket_contains(row, "implementation") and _is_phone_keypress_case(row):
-        return "缺少把题面中的字符/空格映射到对应按键次数，并据此逐字符累加的实现桥。"
+        return "缺少把题面中的单个字符（字母或空格）映射到按键次数，并把输入逐字符累计的实现桥。"
     return str(row.get("missing_bridge") or "")
+
+
+def _case_forbidden_content(row: dict) -> list[str]:
+    if _bucket_contains(row, "implementation") and _is_phone_keypress_case(row):
+        return ["no_complete_code_patch", "no_full_solution", "no_full_keypress_mapping_table"]
+    return _as_list(row.get("forbidden_content"))
 
 
 def _override_dialogue_state_labels(
@@ -1079,6 +1122,7 @@ def _override_dialogue_state_labels(
 
 
 def _base_output_row(row: dict, source_index: int, context_type: str) -> dict:
+    context_type = _case_context_type(row, source_index, context_type)
     followability = FOLLOWABILITY_BY_CONTEXT[context_type]
     expected_move = EXPECTED_MOVE_BY_CONTEXT[context_type]
     followability_confidence = CONFIDENCE_BY_CONTEXT[context_type]
@@ -1137,6 +1181,7 @@ def _base_output_row(row: dict, source_index: int, context_type: str) -> dict:
             "recent_dialogue_bucket": _recent_dialogue_bucket(recent_dialogue),
             "context_ai_reply": context_ai_reply,
             "student_code_excerpt": _code_excerpt_for_context(row, context_type, source_index),
+            "forbidden_content": _case_forbidden_content(row),
             "missing_bridge": _case_missing_bridge(row),
             "success_criteria": _case_success_criteria(row, context_type),
             "reference_label_status": "draft_needs_coach_review",
