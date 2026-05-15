@@ -143,6 +143,8 @@ REVIEW_COLUMNS = [
     "issue_type",
     "coach_fix_suggestion",
     "reviewer_confidence",
+    "reviewer_id",
+    "review_round",
 ]
 
 REVIEW_HEADERS_ZH = {
@@ -180,6 +182,8 @@ REVIEW_HEADERS_ZH = {
     "issue_type": "问题类型",
     "coach_fix_suggestion": "教练修改建议",
     "reviewer_confidence": "审核置信度",
+    "reviewer_id": "审核人",
+    "review_round": "审核轮次",
 }
 
 REVIEW_HEADERS_EN = {
@@ -217,6 +221,8 @@ REVIEW_HEADERS_EN = {
     "issue_type": "Issue Type",
     "coach_fix_suggestion": "Coach Fix Suggestion",
     "reviewer_confidence": "Reviewer Confidence",
+    "reviewer_id": "Reviewer ID",
+    "review_round": "Review Round",
 }
 
 REVIEW_VALIDATION_CHOICES = {
@@ -304,9 +310,10 @@ INSTRUCTION_ROWS = [
     ["3. 再看学生当前问题/回复，确认 F1-F4 跟随状态是否合理。"],
     ["4. 再看目标缺失桥梁、禁止内容和成功标准，判断它们是否覆盖当前卡点。"],
     ["5. 如题面、学生回复、近期对话、bridge 标签或 forbidden content 不一致，请在复核备注中标记。"],
-    ["6. 结构化审核列使用固定中文选项，统计脚本会映射为英文 canonical values。例如：接受=accept，修改=revise，丢弃=drop，讨论=discuss。"],
-    ["7. 本表是 case/source 复核，不是 AI 回复盲评；此时不评价任何 condition 的回复质量。"],
-    ["8. context_ai_reply / prior_ai_scaffold 只用于判断学生当前回复是否承接上一轮脚手架，不用于评价该 AI 回复本身好坏。"],
+    ["6. 请优先在各桥梁桶 sheet 中填写审核列；总表用于全局查看。审核结束后由脚本汇总各 bucket sheet 的审核结果。"],
+    ["7. 结构化审核列使用固定中文选项，统计脚本会映射为英文 canonical values。例如：接受=accept，修改=revise，丢弃=drop，讨论=discuss。"],
+    ["8. 本表是 case/source 复核，不是 AI 回复盲评；此时不评价任何 condition 的回复质量。"],
+    ["9. context_ai_reply / prior_ai_scaffold 只用于判断学生当前回复是否承接上一轮脚手架，不用于评价该 AI 回复本身好坏。"],
 ]
 
 INSTRUCTION_ROWS_EN = [
@@ -316,8 +323,10 @@ INSTRUCTION_ROWS_EN = [
     ["3. Then read the current student message/reply and check whether the F1-F4 followability label is reasonable."],
     ["4. Then review the target missing bridge, forbidden content, and success criteria."],
     ["5. If the problem statement, student reply, recent dialogue, bridge label, or forbidden content is inconsistent, mark it in the review notes."],
-    ["6. Structured review columns use fixed English options for aggregation: case_decision is accept / revise / drop / discuss."],
-    ["7. This workbook reviews case/source quality only. It is not an AI-response blind review and should not be used to score condition quality."],
+    ["6. Prefer filling the bucket sheets; the main sheet is for global browsing. The summary script will aggregate structured review fields from bucket sheets."],
+    ["7. Structured review columns use fixed English options for aggregation: case_decision is accept / revise / drop / discuss."],
+    ["8. This workbook reviews case/source quality only. It is not an AI-response blind review and should not be used to score condition quality."],
+    ["9. context_ai_reply / prior_ai_scaffold are only for checking whether the student reply follows the previous scaffold, not for judging that AI reply's quality."],
 ]
 
 
@@ -1113,6 +1122,8 @@ def _style_review_sheet(sheet) -> None:
         "AF": 26,
         "AG": 44,
         "AH": 18,
+        "AI": 18,
+        "AJ": 18,
     }
     for col, width in widths.items():
         sheet.column_dimensions[col].width = width

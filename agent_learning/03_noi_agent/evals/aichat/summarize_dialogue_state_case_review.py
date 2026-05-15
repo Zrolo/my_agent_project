@@ -33,6 +33,9 @@ STRUCTURED_FIELDS = [
     "reviewer_confidence",
 ]
 
+MAIN_SHEET_NAMES = {"总表", "dialogue_state_review"}
+INSTRUCTION_SHEET_NAMES = {"评审说明", "Instructions"}
+
 CHOICE_NORMALIZATION = {
     "是": "yes",
     "部分": "partial",
@@ -79,9 +82,13 @@ def _sheet_for_workbook(workbook, requested: str | None):
     return workbook[workbook.sheetnames[0]]
 
 
-def summarize_workbook(path: Path, *, sheet_name: str | None = None) -> dict:
-    workbook = load_workbook(path)
-    sheet = _sheet_for_workbook(workbook, sheet_name)
+def _sheet_has_structured_fields(sheet) -> bool:
+    machine_headers = [sheet.cell(row=2, column=col).value for col in range(1, sheet.max_column + 1)]
+    header_to_col = {header: index + 1 for index, header in enumerate(machine_headers) if header}
+    return all(field in header_to_col for field in STRUCTURED_FIELDS)
+
+
+def _extract_rows(sheet) -> list[dict]:
     machine_headers = [sheet.cell(row=2, column=col).value for col in range(1, sheet.max_column + 1)]
     header_to_col = {header: index + 1 for index, header in enumerate(machine_headers) if header}
     missing_fields = [field for field in STRUCTURED_FIELDS if field not in header_to_col]
@@ -99,12 +106,49 @@ def summarize_workbook(path: Path, *, sheet_name: str | None = None) -> dict:
                 for field in STRUCTURED_FIELDS
             }
         )
+    return rows
+
+
+def _bucket_sheets(workbook):
+    return [
+        sheet
+        for sheet in workbook.worksheets
+        if sheet.title not in MAIN_SHEET_NAMES
+        and sheet.title not in INSTRUCTION_SHEET_NAMES
+        and _sheet_has_structured_fields(sheet)
+    ]
+
+
+def _reviewed_count(rows: list[dict]) -> int:
+    return sum(1 for row in rows if row["case_decision"] != "blank")
+
+
+def summarize_workbook(path: Path, *, sheet_name: str | None = None) -> dict:
+    workbook = load_workbook(path)
+    if sheet_name:
+        sheet = _sheet_for_workbook(workbook, sheet_name)
+        rows = _extract_rows(sheet)
+        sheet_title = sheet.title
+        source_mode_used = "requested_sheet"
+    else:
+        main_sheet = _sheet_for_workbook(workbook, None)
+        main_rows = _extract_rows(main_sheet)
+        bucket_rows = [row for sheet in _bucket_sheets(workbook) for row in _extract_rows(sheet)]
+        if _reviewed_count(bucket_rows) > 0:
+            rows = bucket_rows
+            sheet_title = "bucket_sheets"
+            source_mode_used = "bucket_sheets"
+        else:
+            rows = main_rows
+            sheet_title = main_sheet.title
+            source_mode_used = "main_sheet"
 
     summary: dict[str, object] = {
         "input_xlsx": str(path),
-        "sheet_name": sheet.title,
+        "sheet_name": sheet_title,
+        "source_mode_used": source_mode_used,
         "row_count": len(rows),
-        "reviewed_count": sum(1 for row in rows if row["case_decision"] != "blank"),
+        "reviewed_count": _reviewed_count(rows),
         "case_decision_counts": dict(Counter(row["case_decision"] for row in rows)),
         "issue_type_counts": dict(Counter(row["issue_type"] for row in rows)),
         "reviewer_confidence_counts": dict(Counter(row["reviewer_confidence"] for row in rows)),

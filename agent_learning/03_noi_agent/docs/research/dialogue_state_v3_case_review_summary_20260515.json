@@ -1,6 +1,7 @@
 {
   "input_xlsx": "docs/research/dialogue_state_v3_50_source_and_case_review.zh.xlsx",
   "sheet_name": "总表",
+  "source_mode_used": "main_sheet",
   "row_count": 50,
   "reviewed_count": 0,
   "case_decision_counts": {

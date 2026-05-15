@@ -278,6 +278,8 @@ class DialogueStateV3GenerationTests(unittest.TestCase):
             for row in range(1, workbook["评审说明"].max_row + 1)
         ]
         self.assertTrue(any("先看原题题面" in str(value or "") for value in instruction_values))
+        self.assertTrue(any("优先在各桥梁桶 sheet 中填写审核列" in str(value or "") for value in instruction_values))
+        self.assertTrue(any("总表用于全局查看" in str(value or "") for value in instruction_values))
         self.assertTrue(any("固定中文选项" in str(value or "") for value in instruction_values))
         self.assertTrue(any("接受=accept" in str(value or "") for value in instruction_values))
         self.assertTrue(any("context_ai_reply" in str(value or "") for value in instruction_values))
@@ -287,6 +289,8 @@ class DialogueStateV3GenerationTests(unittest.TestCase):
             for col in range(1, workbook["状态表示"].max_column + 1)
         ]
         self.assertIn("目标缺失桥梁", bucket_headers)
+        self.assertIn("审核人", bucket_headers)
+        self.assertIn("审核轮次", bucket_headers)
 
     def test_export_review_workbook_can_emit_english_coach_version(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -307,6 +311,7 @@ class DialogueStateV3GenerationTests(unittest.TestCase):
             for row in range(1, workbook["Instructions"].max_row + 1)
         ]
         self.assertTrue(any("Read the problem statement first" in str(value or "") for value in instruction_values))
+        self.assertTrue(any("Prefer filling the bucket sheets" in str(value or "") for value in instruction_values))
         headers = [
             workbook["dialogue_state_review"].cell(row=1, column=col).value
             for col in range(1, workbook["dialogue_state_review"].max_column + 1)
@@ -316,6 +321,8 @@ class DialogueStateV3GenerationTests(unittest.TestCase):
         self.assertIn("Forbidden Content", headers)
         self.assertIn("Case Decision", headers)
         self.assertIn("Coach Fix Suggestion", headers)
+        self.assertIn("Reviewer ID", headers)
+        self.assertIn("Review Round", headers)
 
     def test_main_does_not_overwrite_v2_source(self):
         with tempfile.TemporaryDirectory() as tmpdir:

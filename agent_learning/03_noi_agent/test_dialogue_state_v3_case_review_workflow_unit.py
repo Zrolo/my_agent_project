@@ -128,6 +128,30 @@ class DialogueStateV3CaseReviewWorkflowTests(unittest.TestCase):
         self.assertEqual(1, summary["issue_type_counts"]["context_mismatch"])
         self.assertEqual(1, summary["reviewer_confidence_counts"]["low"])
 
+    def test_case_review_summary_prefers_reviewed_bucket_sheets(self):
+        cases = generate_dialogue_state_v3_50.build_dialogue_state_cases([_v2_case(i) for i in range(1, 51)])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            workbook_path = Path(tmpdir) / "review.zh.xlsx"
+            generate_dialogue_state_v3_50.export_dialogue_state_review_workbook(cases, workbook_path)
+            workbook = load_workbook(workbook_path)
+            bucket_sheet = workbook["判定条件"]
+            machine_headers = [bucket_sheet.cell(row=2, column=col).value for col in range(1, bucket_sheet.max_column + 1)]
+            decision_col = machine_headers.index("case_decision") + 1
+            issue_col = machine_headers.index("issue_type") + 1
+            bucket_sheet.cell(row=3, column=decision_col).value = "接受"
+            bucket_sheet.cell(row=4, column=decision_col).value = "修改"
+            bucket_sheet.cell(row=4, column=issue_col).value = "上下文不一致"
+            workbook.save(workbook_path)
+
+            summary = summarize_dialogue_state_case_review.summarize_workbook(workbook_path)
+
+        self.assertEqual("bucket_sheets", summary["source_mode_used"])
+        self.assertEqual(50, summary["row_count"])
+        self.assertEqual({"accept": 1, "revise": 1, "blank": 48}, summary["case_decision_counts"])
+        self.assertEqual(1, summary["issue_type_counts"]["context_mismatch"])
+        self.assertEqual(1, summary["needs_followup_count"])
+
 
 if __name__ == "__main__":
     unittest.main()
