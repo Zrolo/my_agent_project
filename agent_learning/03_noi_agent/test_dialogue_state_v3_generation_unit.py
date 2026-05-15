@@ -156,6 +156,60 @@ class DialogueStateV3GenerationTests(unittest.TestCase):
         self.assertNotIn("可行性/状态语义", implementation["student_message"])
         self.assertTrue(any(token in implementation["student_message"] for token in ["下标", "字符", "输入"]))
 
+    def test_coach_a_calibration_revisions_are_reflected_in_generated_cases(self):
+        v2_rows = [_v2_case(i) for i in range(1, 51)]
+        overrides = {
+            11: {
+                "bridge_bucket": "transition_recurrence_source",
+                "category": "transition_recurrence_source",
+                "bridge_bucket_zh": "转移/递推来源",
+            },
+            18: {
+                "bridge_bucket": "boundary_update_order",
+                "category": "boundary_update_order",
+                "bridge_bucket_zh": "边界更新/循环方向",
+                "problem_source_id": "P1060",
+                "problem_title": "[NOIP 2006 普及组] 开心的金明",
+                "problem_tags": ["动态规划 DP", "背包 DP"],
+            },
+            43: {
+                "bridge_bucket": "implementation_boundary",
+                "category": "implementation_boundary",
+                "bridge_bucket_zh": "实现边界/初始化/类型",
+                "problem_source_id": "P1765",
+                "problem_title": "手机",
+                "problem_tags": ["模拟", "字符串"],
+                "student_message_length_bucket": "long",
+            },
+        }
+        for index, patch in overrides.items():
+            v2_rows[index - 1].update(patch)
+
+        cases = generate_dialogue_state_v3_50.build_dialogue_state_cases(v2_rows)
+        by_source = {row["source_case_id"]: row for row in cases}
+
+        transition = by_source["heldout_v2_luogu_011"]
+        self.assertEqual("F2", transition["student_scaffold_followability"])
+        self.assertEqual("clarify", transition["expected_tutor_move"])
+        self.assertIn("还没说清", transition["student_message"])
+        self.assertTrue(any("前驱来源" in item for item in transition["success_criteria"]))
+
+        knapsack = by_source["heldout_v2_luogu_018"]
+        self.assertNotIn("哪一边还可能包含答案", knapsack["prior_ai_scaffold"])
+        self.assertIn("旧值", knapsack["prior_ai_scaffold"])
+        self.assertTrue(any(token in knapsack["prior_ai_scaffold"] for token in ["覆盖", "复用"]))
+        self.assertTrue(all("哪一段仍可能包含答案" not in item for item in knapsack["success_criteria"]))
+        self.assertTrue(any("本轮新值" in item or "上一轮" in item for item in knapsack["success_criteria"]))
+
+        phone = by_source["heldout_v2_luogu_043"]
+        self.assertIn("字符", phone["prior_ai_scaffold"])
+        self.assertIn("按键", phone["prior_ai_scaffold"])
+        self.assertNotIn("输入范围", phone["student_message"])
+        self.assertNotIn("下标或输入边界", phone["student_message"])
+        self.assertIn("按键", phone["student_message"])
+        self.assertIn("字符/空格", phone["missing_bridge"])
+        self.assertTrue(any("按键次数" in item for item in phone["success_criteria"]))
+
     def test_generated_cases_pass_heldout_dataset_validator(self):
         target_buckets = ["short"] * 20 + ["medium_short"] * 15 + ["medium_long"] * 10 + ["long"] * 5
         target_recent = ["none"] * 10 + ["short"] * 25 + ["long"] * 15

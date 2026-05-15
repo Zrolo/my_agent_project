@@ -128,15 +128,25 @@ class DialogueStateV3CaseReviewWorkflowTests(unittest.TestCase):
             confidence_col = machine_headers.index("reviewer_confidence") + 1
             sheet.cell(row=3, column=decision_col).value = "接受"
             sheet.cell(row=4, column=decision_col).value = "修改"
-            sheet.cell(row=4, column=issue_col).value = "上下文不一致"
+            sheet.cell(row=4, column=issue_col).value = "上下文"
             sheet.cell(row=4, column=confidence_col).value = "低"
             workbook.save(workbook_path)
 
             summary = summarize_dialogue_state_case_review.summarize_workbook(workbook_path, sheet_name="总表")
 
-        self.assertEqual({"accept": 1, "revise": 1, "blank": 48}, summary["case_decision_counts"])
-        self.assertEqual(1, summary["issue_type_counts"]["context_mismatch"])
-        self.assertEqual(1, summary["reviewer_confidence_counts"]["low"])
+            self.assertEqual({"accept": 1, "revise": 1, "blank": 48}, summary["case_decision_counts"])
+            self.assertEqual(1, summary["issue_type_counts"]["context_mismatch"])
+            self.assertEqual(1, summary["reviewer_confidence_counts"]["low"])
+
+            workbook = load_workbook(workbook_path)
+            sheet = workbook["总表"]
+            machine_headers = [sheet.cell(row=2, column=col).value for col in range(1, sheet.max_column + 1)]
+            issue_col = machine_headers.index("issue_type") + 1
+            sheet.cell(row=4, column=issue_col).value = "跟随状态"
+            workbook.save(workbook_path)
+
+            summary = summarize_dialogue_state_case_review.summarize_workbook(workbook_path, sheet_name="总表")
+            self.assertEqual(1, summary["issue_type_counts"]["followability_issue"])
 
     def test_case_review_summary_prefers_reviewed_bucket_sheets(self):
         cases = generate_dialogue_state_v3_50.build_dialogue_state_cases([_v2_case(i) for i in range(1, 51)])

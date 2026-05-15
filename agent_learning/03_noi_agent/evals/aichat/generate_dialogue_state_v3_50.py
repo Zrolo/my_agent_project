@@ -369,9 +369,28 @@ def _problem_short_name(row: dict) -> str:
     return str(title).replace("luogu_", "").replace("_", " ")[:24]
 
 
+def _problem_source_id(row: dict) -> str:
+    return str(row.get("problem_source_id") or "").strip().upper()
+
+
+def _problem_title_text(row: dict) -> str:
+    return str(row.get("problem_title") or row.get("problem_ref") or "")
+
+
+def _is_knapsack_order_case(row: dict) -> bool:
+    tags = " ".join(str(tag) for tag in _as_list(row.get("problem_tags")))
+    return _problem_source_id(row) == "P1060" or "背包" in tags
+
+
+def _is_phone_keypress_case(row: dict) -> bool:
+    return _problem_source_id(row) == "P1765" or _problem_title_text(row).strip() == "手机"
+
+
 def _current_small_question(row: dict) -> str:
     bucket = row.get("bridge_bucket") or row.get("category") or ""
     if "implementation" in bucket:
+        if _is_phone_keypress_case(row):
+            return "你先拿一个字符或空格，核对它应该对应几次按键。"
         return "你先拿最小样例核对一个边界、初值或变量范围。"
     if "debugging" in bucket:
         return "你先构造一个最小反例，或者指出一个中间变量应该是多少。"
@@ -382,6 +401,8 @@ def _current_small_question(row: dict) -> str:
     if "predicate" in bucket or "check" in bucket:
         return "你先说说 check 返回 true 时，代表候选值是可行还是不可行。"
     if "boundary" in bucket or "order" in bucket:
+        if _is_knapsack_order_case(row):
+            return "你先判断一次更新时，旧值会不会被本轮刚算出的新值覆盖或复用。"
         return "你先判断更新后哪一边还可能包含答案，或者哪个旧值不能被覆盖。"
     if "modeling" in bucket:
         return "你先列一个题面对象，再说它和另一个对象之间有什么关系。"
@@ -622,16 +643,28 @@ def _expand_reply_for_bucket(row: dict, context_type: str, reply: str, ordinal: 
         ]
     elif context_type == "followup_after_prerequisite_gap":
         if _bucket_contains(row, "implementation"):
-            short_additions = [
-                "能先看一个字符吗？",
-                "下标从哪开始我没懂。",
-                "输入怎么读我没对上。",
-            ]
-            additions = [
-                "如果可以的话，能不能先用这题里的一个字符解释该检查哪个下标或输入边界？",
-                f"我现在看《{title}》时连字符、空格和计数范围都没对上，所以代码只能靠猜。",
-                "我可能不是算法不会，而是输入、下标或初值这个基础细节没有搭起来。",
-            ]
+            if _is_phone_keypress_case(row):
+                short_additions = [
+                    "能先看一个字符吗？",
+                    "空格要算几次我没懂。",
+                    "字母次数我没对上。",
+                ]
+                additions = [
+                    "如果可以的话，能不能先用这题里的一个字符或空格解释它该算几次按键？",
+                    f"我现在看《{title}》时连字符、空格和按键次数都没对上，所以代码只能靠猜。",
+                    "我可能不是算法不会，而是字符到按键次数这个基础关系没有搭起来。",
+                ]
+            else:
+                short_additions = [
+                    "能先看一个字符吗？",
+                    "下标从哪开始我没懂。",
+                    "输入怎么读我没对上。",
+                ]
+                additions = [
+                    "如果可以的话，能不能先用这题里的一个字符解释该检查哪个下标或输入边界？",
+                    f"我现在看《{title}》时连字符、空格和计数范围都没对上，所以代码只能靠猜。",
+                    "我可能不是算法不会，而是输入、下标或初值这个基础细节没有搭起来。",
+                ]
         elif _bucket_contains(row, "modeling"):
             short_additions = [
                 "能先解释对象关系吗？",
@@ -727,9 +760,9 @@ def _reply_for_context(row: dict, context_type: str, ordinal: int) -> tuple[str,
         elif _bucket_contains(row, "transition"):
             reply = _variant(
                 [
-                    "我能说出一个来源：它应该从前一个更小阶段的结果接过来。",
-                    "一个来源应该是已经处理完前面部分后的结果。",
-                    "我觉得当前量至少有一个来源，是去掉当前选择后的更小情况。",
+                    "我只知道它应该从前一个更小阶段接过来，但还没说清具体前驱来源。",
+                    "一个来源大概是已经处理完前面部分后的结果，可我还没说清它对应哪个题目动作。",
+                    "我觉得当前量至少有一个来源，但具体是哪类更小情况还没说清。",
                 ],
                 ordinal,
             )
@@ -891,14 +924,20 @@ def _reply_for_context(row: dict, context_type: str, ordinal: int) -> tuple[str,
         )
     if context_type == "followup_after_prerequisite_gap":
         if _bucket_contains(row, "implementation"):
-            reply = _variant(
+            options = (
                 [
+                    "我有点懵，这题里空格和字母要怎么对应到次数？",
+                    "我好像连一个字符该按几次都没懂，后面的循环就更接不上。",
+                    "你说的映射我没太理解，能不能先用题里的一个字符说明要按几次？",
+                ]
+                if _is_phone_keypress_case(row)
+                else [
                     "我有点懵，这题里空格和字母要怎么对应到次数？输入范围我也没对上。",
                     "我好像连一个字符该怎么处理都没懂，后面的循环就更接不上。",
                     "你说的下标和初值我没太理解，能不能先用题里的一个字符说明？",
-                ],
-                ordinal,
+                ]
             )
+            reply = _variant(options, ordinal)
         elif _bucket_contains(row, "modeling"):
             reply = _variant(
                 [
@@ -998,9 +1037,59 @@ def _code_excerpt_for_context(row: dict, context_type: str, source_index: int) -
     )
 
 
+def _case_success_criteria(row: dict, context_type: str) -> list[str]:
+    if context_type == "followup_after_correct_short_answer" and _bucket_contains(row, "transition"):
+        return [
+            "回复先请学生把“已处理完前面部分”具体化成一个前驱来源。",
+            "回复让学生用题面动作或选择说出当前量从哪里来。",
+            "回复不直接写完整递推式。",
+        ]
+    if _bucket_contains(row, "boundary") and _is_knapsack_order_case(row):
+        return [
+            "回复让学生先说清一次更新时哪些旧值必须来自上一轮或上一状态。",
+            "回复用一个很小容量范围检查循环方向是否会复用本轮新值。",
+            "回复不直接给完整背包模板或循环方向结论。",
+        ]
+    if _bucket_contains(row, "implementation") and _is_phone_keypress_case(row):
+        return [
+            "回复让学生先用一个字符或空格核对对应的按键次数。",
+            "回复把注意力放在字符到次数的局部映射上。",
+            "回复不直接给完整代码补丁或整张字符映射表。",
+        ]
+    return _as_list(row.get("success_criteria"))
+
+
+def _case_missing_bridge(row: dict) -> str:
+    if _bucket_contains(row, "boundary") and _is_knapsack_order_case(row):
+        return "缺少把循环方向、上一轮旧值和本轮新值复用风险对应起来的关系。"
+    if _bucket_contains(row, "implementation") and _is_phone_keypress_case(row):
+        return "缺少把题面中的字符/空格映射到对应按键次数，并据此逐字符累加的实现桥。"
+    return str(row.get("missing_bridge") or "")
+
+
+def _override_dialogue_state_labels(
+    row: dict,
+    context_type: str,
+    followability: str,
+    expected_move: str,
+    confidence: str,
+) -> tuple[str, str, str]:
+    if context_type == "followup_after_correct_short_answer" and _bucket_contains(row, "transition"):
+        return "F2", "clarify", "medium"
+    return followability, expected_move, confidence
+
+
 def _base_output_row(row: dict, source_index: int, context_type: str) -> dict:
     followability = FOLLOWABILITY_BY_CONTEXT[context_type]
     expected_move = EXPECTED_MOVE_BY_CONTEXT[context_type]
+    followability_confidence = CONFIDENCE_BY_CONTEXT[context_type]
+    followability, expected_move, followability_confidence = _override_dialogue_state_labels(
+        row,
+        context_type,
+        followability,
+        expected_move,
+        followability_confidence,
+    )
     prior_ai = _prior_ai_scaffold(row)
     reply, evidence, uncertainty = _reply_for_context(row, context_type, source_index)
     turn_position = "initial" if context_type == "initial_question" else "followup"
@@ -1035,7 +1124,7 @@ def _base_output_row(row: dict, source_index: int, context_type: str) -> dict:
             "context_type_zh": CONTEXT_LABEL_ZH[context_type],
             "student_scaffold_followability": followability,
             "student_scaffold_followability_zh": FOLLOWABILITY_LABEL_ZH[followability],
-            "followability_label_confidence": CONFIDENCE_BY_CONTEXT[context_type],
+            "followability_label_confidence": followability_confidence,
             "followability_evidence_quote": evidence,
             "followability_uncertainty_reason": uncertainty,
             "prior_ai_scaffold": prior_ai,
@@ -1049,6 +1138,8 @@ def _base_output_row(row: dict, source_index: int, context_type: str) -> dict:
             "recent_dialogue_bucket": _recent_dialogue_bucket(recent_dialogue),
             "context_ai_reply": context_ai_reply,
             "student_code_excerpt": _code_excerpt_for_context(row, context_type, source_index),
+            "missing_bridge": _case_missing_bridge(row),
+            "success_criteria": _case_success_criteria(row, context_type),
             "reference_label_status": "draft_needs_coach_review",
             "review_notes_for_coach": (
                 f"Dialogue-state v3 draft. 请复核 followability={followability}、"
