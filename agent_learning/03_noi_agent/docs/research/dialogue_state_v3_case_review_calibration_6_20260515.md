@@ -6,7 +6,7 @@ This workbook is for a small coach calibration pass on case/source review fields
 - source_jsonl: `docs/research/bridgebench_cp_dialogue_state_v3_50_draft.jsonl`
 - reference_label_status: `calibration_case_source_review_only`
 - context_type_counts: `{'initial_question': 1, 'followup_after_correct_short_answer': 1, 'followup_after_partial_answer': 1, 'followup_after_wrong_answer': 1, 'followup_after_prerequisite_gap': 1, 'policy_direct_answer_special': 1}`
-- followability_counts: `{'NA': 1, 'F1': 1, 'F2': 1, 'F3': 2, 'F4': 1}`
+- followability_counts: `{'NA': 1, 'F2': 2, 'F3': 2, 'F4': 1}`
 
 ## Case IDs
 

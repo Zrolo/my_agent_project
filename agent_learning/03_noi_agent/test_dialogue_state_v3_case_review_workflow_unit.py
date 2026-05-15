@@ -77,6 +77,50 @@ class DialogueStateV3CaseReviewWorkflowTests(unittest.TestCase):
         self.assertIn("评审说明", zh_book.sheetnames)
         self.assertIn("Instructions", en_book.sheetnames)
 
+    def test_calibration_export_matches_real_dialogue_source_rows(self):
+        source = Path("docs/research/bridgebench_cp_dialogue_state_v3_50_draft.jsonl")
+        source_rows = [
+            json.loads(line)
+            for line in source.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        selected_by_id = {
+            row["case_id"]: row
+            for row in export_dialogue_state_v3_calibration_workbook.select_calibration_cases(source_rows)
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = Path(tmpdir) / "calibration.zh.xlsx"
+            export_dialogue_state_v3_calibration_workbook.main(
+                [
+                    "--source-jsonl",
+                    str(source),
+                    "--output-zh-xlsx",
+                    str(output),
+                    "--output-en-xlsx",
+                    str(Path(tmpdir) / "calibration.en.xlsx"),
+                    "--report-json",
+                    str(Path(tmpdir) / "calibration.json"),
+                    "--report-zh",
+                    str(Path(tmpdir) / "calibration.zh.md"),
+                    "--report-en",
+                    str(Path(tmpdir) / "calibration.md"),
+                ]
+            )
+            workbook = load_workbook(output)
+            sheet = workbook["总表"]
+            headers = [sheet.cell(row=2, column=col).value for col in range(1, sheet.max_column + 1)]
+            case_col = headers.index("case_id") + 1
+            message_col = headers.index("student_message") + 1
+            rows_by_id = {
+                sheet.cell(row=row_index, column=case_col).value: sheet.cell(row=row_index, column=message_col).value
+                for row_index in range(3, sheet.max_row + 1)
+            }
+
+        case_id = "dialogue_v3_011_transition_recurrence_source"
+        self.assertEqual(selected_by_id[case_id]["student_message"], rows_by_id[case_id])
+        self.assertLessEqual(len("".join(rows_by_id[case_id].split())), 30)
+
     def test_case_review_summary_counts_structured_review_fields(self):
         cases = generate_dialogue_state_v3_50.build_dialogue_state_cases([_v2_case(i) for i in range(1, 51)])
 
