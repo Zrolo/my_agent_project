@@ -97,6 +97,17 @@ EXPECTED_MOVE_ZH = {
     "safe_redirect": "安全重定向",
 }
 
+TURN_POSITION_ZH = {
+    "initial": "初始提问",
+    "followup": "后续辅导轮",
+}
+
+CONFIDENCE_ZH = {
+    "high": "高",
+    "medium": "中",
+    "low": "低",
+}
+
 REVIEW_COLUMNS = [
     "case_id",
     "source_case_id",
@@ -231,6 +242,31 @@ REVIEW_VALIDATION_CHOICES = {
         "other",
     ],
     "reviewer_confidence": ["high", "medium", "low"],
+}
+
+REVIEW_VALIDATION_CHOICES_ZH = {
+    "source_ok": ["是", "部分", "否"],
+    "context_coherent": ["是", "部分", "否"],
+    "student_message_realistic": ["是", "部分", "否"],
+    "followability_ok": ["是", "需修改", "否", "不适用"],
+    "missing_bridge_ok": ["是", "需修改", "否"],
+    "forbidden_content_ok": ["是", "过严", "过松", "不清楚"],
+    "success_criteria_ok": ["是", "需修改", "否"],
+    "leakage_boundary_ok": ["是", "需修改", "否", "不清楚"],
+    "case_decision": ["接受", "修改", "丢弃", "讨论"],
+    "issue_type": [
+        "无",
+        "题源问题",
+        "上下文不一致",
+        "学生话术不像真实学生",
+        "跟随状态问题",
+        "桥梁标签问题",
+        "禁止内容问题",
+        "成功标准问题",
+        "泄露边界问题",
+        "其他",
+    ],
+    "reviewer_confidence": ["高", "中", "低"],
 }
 
 BUCKET_SHEET_NAMES = {
@@ -807,10 +843,11 @@ def _style_review_sheet(sheet) -> None:
     sheet.auto_filter.ref = f"A2:{sheet.cell(row=2, column=len(REVIEW_COLUMNS)).coordinate}"
 
 
-def _apply_review_validations(sheet) -> None:
+def _apply_review_validations(sheet, *, language: str) -> None:
     if sheet.max_row < 3:
         return
-    for column_name, choices in REVIEW_VALIDATION_CHOICES.items():
+    validation_choices = REVIEW_VALIDATION_CHOICES if language == "en" else REVIEW_VALIDATION_CHOICES_ZH
+    for column_name, choices in validation_choices.items():
         column_index = REVIEW_COLUMNS.index(column_name) + 1
         column_letter = get_column_letter(column_index)
         formula = '"' + ",".join(choices) + '"'
@@ -827,14 +864,29 @@ def _headers_for_language(language: str) -> dict[str, str]:
     return REVIEW_HEADERS_EN if language == "en" else REVIEW_HEADERS_ZH
 
 
+def _display_cell(row: dict, column: str, *, language: str) -> str:
+    if language == "zh":
+        if column == "turn_position":
+            return TURN_POSITION_ZH.get(str(row.get(column) or ""), _join_cell(row.get(column)))
+        if column == "context_type":
+            return _join_cell(row.get("context_type_zh") or row.get(column))
+        if column == "student_scaffold_followability":
+            return _join_cell(row.get("student_scaffold_followability_zh") or row.get(column))
+        if column == "followability_label_confidence":
+            return CONFIDENCE_ZH.get(str(row.get(column) or ""), _join_cell(row.get(column)))
+        if column == "expected_tutor_move":
+            return _join_cell(row.get("expected_tutor_move_zh") or row.get(column))
+    return _join_cell(row.get(column))
+
+
 def _append_review_rows(sheet, rows: list[dict], *, language: str) -> None:
     headers = _headers_for_language(language)
     sheet.append([headers[column] for column in REVIEW_COLUMNS])
     sheet.append(REVIEW_COLUMNS)
     for row in rows:
-        sheet.append([_join_cell(row.get(column)) for column in REVIEW_COLUMNS])
+        sheet.append([_display_cell(row, column, language=language) for column in REVIEW_COLUMNS])
     _style_review_sheet(sheet)
-    _apply_review_validations(sheet)
+    _apply_review_validations(sheet, language=language)
 
 
 def _create_instruction_sheet(workbook: Workbook, *, language: str) -> None:

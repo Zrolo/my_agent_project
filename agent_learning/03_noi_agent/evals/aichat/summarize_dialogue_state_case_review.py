@@ -33,10 +33,40 @@ STRUCTURED_FIELDS = [
     "reviewer_confidence",
 ]
 
+CHOICE_NORMALIZATION = {
+    "是": "yes",
+    "部分": "partial",
+    "否": "no",
+    "需修改": "revise",
+    "不适用": "not_applicable",
+    "过严": "too_strict",
+    "过松": "too_loose",
+    "不清楚": "unclear",
+    "接受": "accept",
+    "修改": "revise",
+    "丢弃": "drop",
+    "讨论": "discuss",
+    "无": "none",
+    "题源问题": "source_issue",
+    "上下文不一致": "context_mismatch",
+    "学生话术不像真实学生": "student_language_artificial",
+    "跟随状态问题": "followability_issue",
+    "桥梁标签问题": "bridge_label_issue",
+    "禁止内容问题": "forbidden_content_issue",
+    "成功标准问题": "success_criteria_issue",
+    "泄露边界问题": "leakage_boundary_issue",
+    "其他": "other",
+    "高": "high",
+    "中": "medium",
+    "低": "low",
+}
+
 
 def _norm(value) -> str:
     text = str(value or "").strip()
-    return text if text else "blank"
+    if not text:
+        return "blank"
+    return CHOICE_NORMALIZATION.get(text, text)
 
 
 def _sheet_for_workbook(workbook, requested: str | None):

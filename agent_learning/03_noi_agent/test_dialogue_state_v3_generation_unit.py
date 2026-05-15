@@ -199,8 +199,29 @@ class DialogueStateV3GenerationTests(unittest.TestCase):
         self.assertIn(sheet.cell(row=3, column=decision_col).value, {"", None})
         self.assertIn(sheet.cell(row=3, column=confidence_col).value, {"", None})
         validation_formulas = {validation.formula1 for validation in sheet.data_validations.dataValidation}
-        self.assertIn('"accept,revise,drop,discuss"', validation_formulas)
-        self.assertIn('"high,medium,low"', validation_formulas)
+        self.assertIn('"接受,修改,丢弃,讨论"', validation_formulas)
+        self.assertIn('"高,中,低"', validation_formulas)
+
+    def test_chinese_review_workbook_uses_chinese_display_values(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = Path(tmpdir) / "dialogue_review.xlsx"
+            cases = generate_dialogue_state_v3_50.build_dialogue_state_cases([_v2_case(i) for i in range(1, 51)])
+
+            generate_dialogue_state_v3_50.export_dialogue_state_review_workbook(cases, output)
+            workbook = load_workbook(output)
+
+        sheet = workbook["总表"]
+        headers = [sheet.cell(row=1, column=col).value for col in range(1, sheet.max_column + 1)]
+        row3 = {
+            header: sheet.cell(row=3, column=index + 1).value
+            for index, header in enumerate(headers)
+        }
+        self.assertEqual("初始提问", row3["轮次位置"])
+        self.assertEqual("初始提问", row3["上下文类型"])
+        self.assertEqual("不适用", row3["学生跟随状态"])
+        self.assertEqual("拆成更小一步", row3["期望下一步教学动作"])
+        self.assertNotIn("initial_question", row3.values())
+        self.assertNotIn("micro_step", row3.values())
 
     def test_export_review_workbook_has_instruction_and_bridge_bucket_sheets(self):
         with tempfile.TemporaryDirectory() as tmpdir:
