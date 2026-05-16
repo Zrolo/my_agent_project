@@ -217,8 +217,25 @@ test('teacher account lifecycle lives on the account page instead of the student
   assert.match(accountsPage, /创建学生账号/);
   assert.match(accountsPage, /批量创建账号/);
   assert.match(accountsPage, /学生账号状态/);
+  assert.match(accountsPage, /修改学生密码/);
+  assert.match(accountsPage, /新学生密码/);
+  assert.match(accountsPage, /确认学生密码/);
+  assert.match(accountsPage, /passwordEditForm\.password/);
+  assert.match(accountsPage, /password: passwordEditForm\.password\.trim\(\)/);
+  assert.doesNotMatch(accountsPage, /resetTeacherStudentPassword\(auth\.token,\s*student\.user_id,\s*\{\}\s*\)/);
   assert.doesNotMatch(studentsPage, /创建学生账号/);
   assert.doesNotMatch(studentsPage, /批量创建账号/);
+});
+
+test('teacher shell lets teachers change their own password explicitly', () => {
+  assert.match(apiService, /export function changeTeacherPassword/);
+  assert.match(apiService, /\/api\/teacher\/change-password/);
+  assert.match(teacherLayout, /修改密码/);
+  assert.match(teacherLayout, /当前密码/);
+  assert.match(teacherLayout, /新密码/);
+  assert.match(teacherLayout, /确认新密码/);
+  assert.match(teacherLayout, /changeTeacherPassword/);
+  assert.doesNotMatch(teacherLayout, /随机生成/);
 });
 
 test('teacher overview uses learning issue categories instead of raw keyword frequency', () => {
