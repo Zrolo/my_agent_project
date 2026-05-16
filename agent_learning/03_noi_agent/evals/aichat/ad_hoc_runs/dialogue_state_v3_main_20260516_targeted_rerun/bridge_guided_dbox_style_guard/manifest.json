@@ -1,0 +1,35 @@
+{
+  "input_jsonl": "docs/research/bridgebench_cp_dialogue_state_v3_50_reviewed_candidate.jsonl",
+  "output_dir": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/bridge_guided_dbox_style_guard",
+  "case_count": 3,
+  "condition_set": "dialogue_state_v3_main",
+  "condition_count": 1,
+  "conditions": [
+    {
+      "condition_id": "bridge_guided_dbox_style_guard",
+      "tutor_mode": "bridge_guided_dbox_style_tutor",
+      "pipeline_mode": "tutor_plus_guard",
+      "guard_mode": "predicted"
+    }
+  ],
+  "selected_case_ids": [
+    "dialogue_v3_011_transition_recurrence_source",
+    "dialogue_v3_018_boundary_update_order",
+    "dialogue_v3_043_implementation_boundary"
+  ],
+  "selected_condition_ids": [
+    "bridge_guided_dbox_style_guard"
+  ],
+  "condition_outputs": [
+    "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/bridge_guided_dbox_style_guard/bridge_guided_dbox_style_guard.jsonl"
+  ],
+  "combined_row_count": 3,
+  "combined_jsonl": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/bridge_guided_dbox_style_guard/combined_dev_ablation.jsonl",
+  "summary_json": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/bridge_guided_dbox_style_guard/combined_dev_ablation_summary.json",
+  "summary_md": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/bridge_guided_dbox_style_guard/combined_dev_ablation_summary.md",
+  "summary_md_zh": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/bridge_guided_dbox_style_guard/combined_dev_ablation_summary.zh.md",
+  "review_csv": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/bridge_guided_dbox_style_guard/coach_response_review_workbook_dev_ablation.csv",
+  "review_key_csv": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/bridge_guided_dbox_style_guard/coach_response_review_workbook_dev_ablation.key.csv",
+  "review_xlsx": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/bridge_guided_dbox_style_guard/coach_response_review_workbook_dev_ablation.zh.xlsx",
+  "review_row_count": 3
+}

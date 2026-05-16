@@ -239,6 +239,10 @@ export function getTeacherStudents(token) {
   return request('/api/teacher/students', { token });
 }
 
+export function changeTeacherPassword(token, payload) {
+  return request('/api/teacher/change-password', { method: 'POST', token, body: payload });
+}
+
 export function getTeacherStudentFeedback(token, params = {}) {
   const query = new URLSearchParams();
   if (params.limit) query.set('limit', String(params.limit));

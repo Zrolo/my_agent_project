@@ -1,0 +1,2463 @@
+{
+  "category_counts": {
+    "binary_search_boundary": 4,
+    "binary_search_predicate": 5,
+    "data_structure_semantics": 5,
+    "debugging_evidence": 4,
+    "dp_state": 5,
+    "dp_transition": 5,
+    "graph_tree_modeling": 5,
+    "greedy_correctness": 5,
+    "implementation_boundary": 5,
+    "policy_request": 7
+  },
+  "dataset_path": "docs/research/bridgebench_cp_heldout_v1_50_ai_reference_draft_20260513.jsonl",
+  "dev_seed_case_id_count": 50,
+  "dev_seed_paths": [
+    "docs/research/bridgebench_cp_seed_v1.jsonl",
+    "docs/research/bridgebench_cp_seed_v2_gold_20.jsonl",
+    "docs/research/coach_seed_labeling_v2_gold_20.jsonl"
+  ],
+  "error_count": 403,
+  "errors": [
+    {
+      "case_id": "heldout_cp_001",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 1
+    },
+    {
+      "case_id": "heldout_cp_001",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 1
+    },
+    {
+      "case_id": "heldout_cp_001",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 1
+    },
+    {
+      "case_id": "heldout_cp_001",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 1
+    },
+    {
+      "case_id": "heldout_cp_001",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 1
+    },
+    {
+      "case_id": "heldout_cp_001",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 1
+    },
+    {
+      "case_id": "heldout_cp_001",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 1
+    },
+    {
+      "case_id": "heldout_cp_001",
+      "code": "gold_status_not_allowed",
+      "line_number": 1,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_002",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 2
+    },
+    {
+      "case_id": "heldout_cp_002",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 2
+    },
+    {
+      "case_id": "heldout_cp_002",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 2
+    },
+    {
+      "case_id": "heldout_cp_002",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 2
+    },
+    {
+      "case_id": "heldout_cp_002",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 2
+    },
+    {
+      "case_id": "heldout_cp_002",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 2
+    },
+    {
+      "case_id": "heldout_cp_002",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 2
+    },
+    {
+      "case_id": "heldout_cp_002",
+      "code": "gold_status_not_allowed",
+      "line_number": 2,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_003",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 3
+    },
+    {
+      "case_id": "heldout_cp_003",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 3
+    },
+    {
+      "case_id": "heldout_cp_003",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 3
+    },
+    {
+      "case_id": "heldout_cp_003",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 3
+    },
+    {
+      "case_id": "heldout_cp_003",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 3
+    },
+    {
+      "case_id": "heldout_cp_003",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 3
+    },
+    {
+      "case_id": "heldout_cp_003",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 3
+    },
+    {
+      "case_id": "heldout_cp_003",
+      "code": "gold_status_not_allowed",
+      "line_number": 3,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_004",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 4
+    },
+    {
+      "case_id": "heldout_cp_004",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 4
+    },
+    {
+      "case_id": "heldout_cp_004",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 4
+    },
+    {
+      "case_id": "heldout_cp_004",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 4
+    },
+    {
+      "case_id": "heldout_cp_004",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 4
+    },
+    {
+      "case_id": "heldout_cp_004",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 4
+    },
+    {
+      "case_id": "heldout_cp_004",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 4
+    },
+    {
+      "case_id": "heldout_cp_004",
+      "code": "gold_status_not_allowed",
+      "line_number": 4,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_005",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 5
+    },
+    {
+      "case_id": "heldout_cp_005",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 5
+    },
+    {
+      "case_id": "heldout_cp_005",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 5
+    },
+    {
+      "case_id": "heldout_cp_005",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 5
+    },
+    {
+      "case_id": "heldout_cp_005",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 5
+    },
+    {
+      "case_id": "heldout_cp_005",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 5
+    },
+    {
+      "case_id": "heldout_cp_005",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 5
+    },
+    {
+      "case_id": "heldout_cp_005",
+      "code": "gold_status_not_allowed",
+      "line_number": 5,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_006",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 6
+    },
+    {
+      "case_id": "heldout_cp_006",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 6
+    },
+    {
+      "case_id": "heldout_cp_006",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 6
+    },
+    {
+      "case_id": "heldout_cp_006",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 6
+    },
+    {
+      "case_id": "heldout_cp_006",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 6
+    },
+    {
+      "case_id": "heldout_cp_006",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 6
+    },
+    {
+      "case_id": "heldout_cp_006",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 6
+    },
+    {
+      "case_id": "heldout_cp_006",
+      "code": "gold_status_not_allowed",
+      "line_number": 6,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_007",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 7
+    },
+    {
+      "case_id": "heldout_cp_007",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 7
+    },
+    {
+      "case_id": "heldout_cp_007",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 7
+    },
+    {
+      "case_id": "heldout_cp_007",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 7
+    },
+    {
+      "case_id": "heldout_cp_007",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 7
+    },
+    {
+      "case_id": "heldout_cp_007",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 7
+    },
+    {
+      "case_id": "heldout_cp_007",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 7
+    },
+    {
+      "case_id": "heldout_cp_007",
+      "code": "gold_status_not_allowed",
+      "line_number": 7,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_008",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 8
+    },
+    {
+      "case_id": "heldout_cp_008",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 8
+    },
+    {
+      "case_id": "heldout_cp_008",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 8
+    },
+    {
+      "case_id": "heldout_cp_008",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 8
+    },
+    {
+      "case_id": "heldout_cp_008",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 8
+    },
+    {
+      "case_id": "heldout_cp_008",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 8
+    },
+    {
+      "case_id": "heldout_cp_008",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 8
+    },
+    {
+      "case_id": "heldout_cp_008",
+      "code": "gold_status_not_allowed",
+      "line_number": 8,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_009",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 9
+    },
+    {
+      "case_id": "heldout_cp_009",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 9
+    },
+    {
+      "case_id": "heldout_cp_009",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 9
+    },
+    {
+      "case_id": "heldout_cp_009",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 9
+    },
+    {
+      "case_id": "heldout_cp_009",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 9
+    },
+    {
+      "case_id": "heldout_cp_009",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 9
+    },
+    {
+      "case_id": "heldout_cp_009",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 9
+    },
+    {
+      "case_id": "heldout_cp_009",
+      "code": "gold_status_not_allowed",
+      "line_number": 9,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_010",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 10
+    },
+    {
+      "case_id": "heldout_cp_010",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 10
+    },
+    {
+      "case_id": "heldout_cp_010",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 10
+    },
+    {
+      "case_id": "heldout_cp_010",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 10
+    },
+    {
+      "case_id": "heldout_cp_010",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 10
+    },
+    {
+      "case_id": "heldout_cp_010",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 10
+    },
+    {
+      "case_id": "heldout_cp_010",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 10
+    },
+    {
+      "case_id": "heldout_cp_010",
+      "code": "gold_status_not_allowed",
+      "line_number": 10,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_011",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 11
+    },
+    {
+      "case_id": "heldout_cp_011",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 11
+    },
+    {
+      "case_id": "heldout_cp_011",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 11
+    },
+    {
+      "case_id": "heldout_cp_011",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 11
+    },
+    {
+      "case_id": "heldout_cp_011",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 11
+    },
+    {
+      "case_id": "heldout_cp_011",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 11
+    },
+    {
+      "case_id": "heldout_cp_011",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 11
+    },
+    {
+      "case_id": "heldout_cp_011",
+      "code": "gold_status_not_allowed",
+      "line_number": 11,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_012",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 12
+    },
+    {
+      "case_id": "heldout_cp_012",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 12
+    },
+    {
+      "case_id": "heldout_cp_012",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 12
+    },
+    {
+      "case_id": "heldout_cp_012",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 12
+    },
+    {
+      "case_id": "heldout_cp_012",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 12
+    },
+    {
+      "case_id": "heldout_cp_012",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 12
+    },
+    {
+      "case_id": "heldout_cp_012",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 12
+    },
+    {
+      "case_id": "heldout_cp_012",
+      "code": "gold_status_not_allowed",
+      "line_number": 12,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_013",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 13
+    },
+    {
+      "case_id": "heldout_cp_013",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 13
+    },
+    {
+      "case_id": "heldout_cp_013",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 13
+    },
+    {
+      "case_id": "heldout_cp_013",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 13
+    },
+    {
+      "case_id": "heldout_cp_013",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 13
+    },
+    {
+      "case_id": "heldout_cp_013",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 13
+    },
+    {
+      "case_id": "heldout_cp_013",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 13
+    },
+    {
+      "case_id": "heldout_cp_013",
+      "code": "gold_status_not_allowed",
+      "line_number": 13,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_014",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 14
+    },
+    {
+      "case_id": "heldout_cp_014",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 14
+    },
+    {
+      "case_id": "heldout_cp_014",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 14
+    },
+    {
+      "case_id": "heldout_cp_014",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 14
+    },
+    {
+      "case_id": "heldout_cp_014",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 14
+    },
+    {
+      "case_id": "heldout_cp_014",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 14
+    },
+    {
+      "case_id": "heldout_cp_014",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 14
+    },
+    {
+      "case_id": "heldout_cp_014",
+      "code": "gold_status_not_allowed",
+      "line_number": 14,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_015",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 15
+    },
+    {
+      "case_id": "heldout_cp_015",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 15
+    },
+    {
+      "case_id": "heldout_cp_015",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 15
+    },
+    {
+      "case_id": "heldout_cp_015",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 15
+    },
+    {
+      "case_id": "heldout_cp_015",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 15
+    },
+    {
+      "case_id": "heldout_cp_015",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 15
+    },
+    {
+      "case_id": "heldout_cp_015",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 15
+    },
+    {
+      "case_id": "heldout_cp_015",
+      "code": "gold_status_not_allowed",
+      "line_number": 15,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_016",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 16
+    },
+    {
+      "case_id": "heldout_cp_016",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 16
+    },
+    {
+      "case_id": "heldout_cp_016",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 16
+    },
+    {
+      "case_id": "heldout_cp_016",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 16
+    },
+    {
+      "case_id": "heldout_cp_016",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 16
+    },
+    {
+      "case_id": "heldout_cp_016",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 16
+    },
+    {
+      "case_id": "heldout_cp_016",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 16
+    },
+    {
+      "case_id": "heldout_cp_016",
+      "code": "gold_status_not_allowed",
+      "line_number": 16,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_017",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 17
+    },
+    {
+      "case_id": "heldout_cp_017",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 17
+    },
+    {
+      "case_id": "heldout_cp_017",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 17
+    },
+    {
+      "case_id": "heldout_cp_017",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 17
+    },
+    {
+      "case_id": "heldout_cp_017",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 17
+    },
+    {
+      "case_id": "heldout_cp_017",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 17
+    },
+    {
+      "case_id": "heldout_cp_017",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 17
+    },
+    {
+      "case_id": "heldout_cp_017",
+      "code": "gold_status_not_allowed",
+      "line_number": 17,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_018",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 18
+    },
+    {
+      "case_id": "heldout_cp_018",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 18
+    },
+    {
+      "case_id": "heldout_cp_018",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 18
+    },
+    {
+      "case_id": "heldout_cp_018",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 18
+    },
+    {
+      "case_id": "heldout_cp_018",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 18
+    },
+    {
+      "case_id": "heldout_cp_018",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 18
+    },
+    {
+      "case_id": "heldout_cp_018",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 18
+    },
+    {
+      "case_id": "heldout_cp_018",
+      "code": "gold_status_not_allowed",
+      "line_number": 18,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_019",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 19
+    },
+    {
+      "case_id": "heldout_cp_019",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 19
+    },
+    {
+      "case_id": "heldout_cp_019",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 19
+    },
+    {
+      "case_id": "heldout_cp_019",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 19
+    },
+    {
+      "case_id": "heldout_cp_019",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 19
+    },
+    {
+      "case_id": "heldout_cp_019",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 19
+    },
+    {
+      "case_id": "heldout_cp_019",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 19
+    },
+    {
+      "case_id": "heldout_cp_019",
+      "code": "gold_status_not_allowed",
+      "line_number": 19,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_020",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 20
+    },
+    {
+      "case_id": "heldout_cp_020",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 20
+    },
+    {
+      "case_id": "heldout_cp_020",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 20
+    },
+    {
+      "case_id": "heldout_cp_020",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 20
+    },
+    {
+      "case_id": "heldout_cp_020",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 20
+    },
+    {
+      "case_id": "heldout_cp_020",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 20
+    },
+    {
+      "case_id": "heldout_cp_020",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 20
+    },
+    {
+      "case_id": "heldout_cp_020",
+      "code": "gold_status_not_allowed",
+      "line_number": 20,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_021",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 21
+    },
+    {
+      "case_id": "heldout_cp_021",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 21
+    },
+    {
+      "case_id": "heldout_cp_021",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 21
+    },
+    {
+      "case_id": "heldout_cp_021",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 21
+    },
+    {
+      "case_id": "heldout_cp_021",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 21
+    },
+    {
+      "case_id": "heldout_cp_021",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 21
+    },
+    {
+      "case_id": "heldout_cp_021",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 21
+    },
+    {
+      "case_id": "heldout_cp_021",
+      "code": "gold_status_not_allowed",
+      "line_number": 21,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_022",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 22
+    },
+    {
+      "case_id": "heldout_cp_022",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 22
+    },
+    {
+      "case_id": "heldout_cp_022",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 22
+    },
+    {
+      "case_id": "heldout_cp_022",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 22
+    },
+    {
+      "case_id": "heldout_cp_022",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 22
+    },
+    {
+      "case_id": "heldout_cp_022",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 22
+    },
+    {
+      "case_id": "heldout_cp_022",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 22
+    },
+    {
+      "case_id": "heldout_cp_022",
+      "code": "gold_status_not_allowed",
+      "line_number": 22,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_023",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 23
+    },
+    {
+      "case_id": "heldout_cp_023",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 23
+    },
+    {
+      "case_id": "heldout_cp_023",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 23
+    },
+    {
+      "case_id": "heldout_cp_023",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 23
+    },
+    {
+      "case_id": "heldout_cp_023",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 23
+    },
+    {
+      "case_id": "heldout_cp_023",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 23
+    },
+    {
+      "case_id": "heldout_cp_023",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 23
+    },
+    {
+      "case_id": "heldout_cp_023",
+      "code": "gold_status_not_allowed",
+      "line_number": 23,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_024",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 24
+    },
+    {
+      "case_id": "heldout_cp_024",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 24
+    },
+    {
+      "case_id": "heldout_cp_024",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 24
+    },
+    {
+      "case_id": "heldout_cp_024",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 24
+    },
+    {
+      "case_id": "heldout_cp_024",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 24
+    },
+    {
+      "case_id": "heldout_cp_024",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 24
+    },
+    {
+      "case_id": "heldout_cp_024",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 24
+    },
+    {
+      "case_id": "heldout_cp_024",
+      "code": "gold_status_not_allowed",
+      "line_number": 24,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_025",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 25
+    },
+    {
+      "case_id": "heldout_cp_025",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 25
+    },
+    {
+      "case_id": "heldout_cp_025",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 25
+    },
+    {
+      "case_id": "heldout_cp_025",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 25
+    },
+    {
+      "case_id": "heldout_cp_025",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 25
+    },
+    {
+      "case_id": "heldout_cp_025",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 25
+    },
+    {
+      "case_id": "heldout_cp_025",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 25
+    },
+    {
+      "case_id": "heldout_cp_025",
+      "code": "gold_status_not_allowed",
+      "line_number": 25,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_026",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 26
+    },
+    {
+      "case_id": "heldout_cp_026",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 26
+    },
+    {
+      "case_id": "heldout_cp_026",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 26
+    },
+    {
+      "case_id": "heldout_cp_026",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 26
+    },
+    {
+      "case_id": "heldout_cp_026",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 26
+    },
+    {
+      "case_id": "heldout_cp_026",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 26
+    },
+    {
+      "case_id": "heldout_cp_026",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 26
+    },
+    {
+      "case_id": "heldout_cp_026",
+      "code": "gold_status_not_allowed",
+      "line_number": 26,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_027",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 27
+    },
+    {
+      "case_id": "heldout_cp_027",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 27
+    },
+    {
+      "case_id": "heldout_cp_027",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 27
+    },
+    {
+      "case_id": "heldout_cp_027",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 27
+    },
+    {
+      "case_id": "heldout_cp_027",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 27
+    },
+    {
+      "case_id": "heldout_cp_027",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 27
+    },
+    {
+      "case_id": "heldout_cp_027",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 27
+    },
+    {
+      "case_id": "heldout_cp_027",
+      "code": "gold_status_not_allowed",
+      "line_number": 27,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_028",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 28
+    },
+    {
+      "case_id": "heldout_cp_028",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 28
+    },
+    {
+      "case_id": "heldout_cp_028",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 28
+    },
+    {
+      "case_id": "heldout_cp_028",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 28
+    },
+    {
+      "case_id": "heldout_cp_028",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 28
+    },
+    {
+      "case_id": "heldout_cp_028",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 28
+    },
+    {
+      "case_id": "heldout_cp_028",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 28
+    },
+    {
+      "case_id": "heldout_cp_028",
+      "code": "gold_status_not_allowed",
+      "line_number": 28,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_029",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 29
+    },
+    {
+      "case_id": "heldout_cp_029",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 29
+    },
+    {
+      "case_id": "heldout_cp_029",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 29
+    },
+    {
+      "case_id": "heldout_cp_029",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 29
+    },
+    {
+      "case_id": "heldout_cp_029",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 29
+    },
+    {
+      "case_id": "heldout_cp_029",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 29
+    },
+    {
+      "case_id": "heldout_cp_029",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 29
+    },
+    {
+      "case_id": "heldout_cp_029",
+      "code": "gold_status_not_allowed",
+      "line_number": 29,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_030",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 30
+    },
+    {
+      "case_id": "heldout_cp_030",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 30
+    },
+    {
+      "case_id": "heldout_cp_030",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 30
+    },
+    {
+      "case_id": "heldout_cp_030",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 30
+    },
+    {
+      "case_id": "heldout_cp_030",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 30
+    },
+    {
+      "case_id": "heldout_cp_030",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 30
+    },
+    {
+      "case_id": "heldout_cp_030",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 30
+    },
+    {
+      "case_id": "heldout_cp_030",
+      "code": "gold_status_not_allowed",
+      "line_number": 30,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_031",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 31
+    },
+    {
+      "case_id": "heldout_cp_031",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 31
+    },
+    {
+      "case_id": "heldout_cp_031",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 31
+    },
+    {
+      "case_id": "heldout_cp_031",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 31
+    },
+    {
+      "case_id": "heldout_cp_031",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 31
+    },
+    {
+      "case_id": "heldout_cp_031",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 31
+    },
+    {
+      "case_id": "heldout_cp_031",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 31
+    },
+    {
+      "case_id": "heldout_cp_031",
+      "code": "gold_status_not_allowed",
+      "line_number": 31,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_032",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 32
+    },
+    {
+      "case_id": "heldout_cp_032",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 32
+    },
+    {
+      "case_id": "heldout_cp_032",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 32
+    },
+    {
+      "case_id": "heldout_cp_032",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 32
+    },
+    {
+      "case_id": "heldout_cp_032",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 32
+    },
+    {
+      "case_id": "heldout_cp_032",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 32
+    },
+    {
+      "case_id": "heldout_cp_032",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 32
+    },
+    {
+      "case_id": "heldout_cp_032",
+      "code": "gold_status_not_allowed",
+      "line_number": 32,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_033",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 33
+    },
+    {
+      "case_id": "heldout_cp_033",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 33
+    },
+    {
+      "case_id": "heldout_cp_033",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 33
+    },
+    {
+      "case_id": "heldout_cp_033",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 33
+    },
+    {
+      "case_id": "heldout_cp_033",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 33
+    },
+    {
+      "case_id": "heldout_cp_033",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 33
+    },
+    {
+      "case_id": "heldout_cp_033",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 33
+    },
+    {
+      "case_id": "heldout_cp_033",
+      "code": "gold_status_not_allowed",
+      "line_number": 33,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_034",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 34
+    },
+    {
+      "case_id": "heldout_cp_034",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 34
+    },
+    {
+      "case_id": "heldout_cp_034",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 34
+    },
+    {
+      "case_id": "heldout_cp_034",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 34
+    },
+    {
+      "case_id": "heldout_cp_034",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 34
+    },
+    {
+      "case_id": "heldout_cp_034",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 34
+    },
+    {
+      "case_id": "heldout_cp_034",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 34
+    },
+    {
+      "case_id": "heldout_cp_034",
+      "code": "gold_status_not_allowed",
+      "line_number": 34,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_035",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 35
+    },
+    {
+      "case_id": "heldout_cp_035",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 35
+    },
+    {
+      "case_id": "heldout_cp_035",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 35
+    },
+    {
+      "case_id": "heldout_cp_035",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 35
+    },
+    {
+      "case_id": "heldout_cp_035",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 35
+    },
+    {
+      "case_id": "heldout_cp_035",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 35
+    },
+    {
+      "case_id": "heldout_cp_035",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 35
+    },
+    {
+      "case_id": "heldout_cp_035",
+      "code": "gold_status_not_allowed",
+      "line_number": 35,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_036",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 36
+    },
+    {
+      "case_id": "heldout_cp_036",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 36
+    },
+    {
+      "case_id": "heldout_cp_036",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 36
+    },
+    {
+      "case_id": "heldout_cp_036",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 36
+    },
+    {
+      "case_id": "heldout_cp_036",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 36
+    },
+    {
+      "case_id": "heldout_cp_036",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 36
+    },
+    {
+      "case_id": "heldout_cp_036",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 36
+    },
+    {
+      "case_id": "heldout_cp_036",
+      "code": "gold_status_not_allowed",
+      "line_number": 36,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_037",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 37
+    },
+    {
+      "case_id": "heldout_cp_037",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 37
+    },
+    {
+      "case_id": "heldout_cp_037",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 37
+    },
+    {
+      "case_id": "heldout_cp_037",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 37
+    },
+    {
+      "case_id": "heldout_cp_037",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 37
+    },
+    {
+      "case_id": "heldout_cp_037",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 37
+    },
+    {
+      "case_id": "heldout_cp_037",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 37
+    },
+    {
+      "case_id": "heldout_cp_037",
+      "code": "gold_status_not_allowed",
+      "line_number": 37,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_038",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 38
+    },
+    {
+      "case_id": "heldout_cp_038",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 38
+    },
+    {
+      "case_id": "heldout_cp_038",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 38
+    },
+    {
+      "case_id": "heldout_cp_038",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 38
+    },
+    {
+      "case_id": "heldout_cp_038",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 38
+    },
+    {
+      "case_id": "heldout_cp_038",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 38
+    },
+    {
+      "case_id": "heldout_cp_038",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 38
+    },
+    {
+      "case_id": "heldout_cp_038",
+      "code": "gold_status_not_allowed",
+      "line_number": 38,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_039",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 39
+    },
+    {
+      "case_id": "heldout_cp_039",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 39
+    },
+    {
+      "case_id": "heldout_cp_039",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 39
+    },
+    {
+      "case_id": "heldout_cp_039",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 39
+    },
+    {
+      "case_id": "heldout_cp_039",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 39
+    },
+    {
+      "case_id": "heldout_cp_039",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 39
+    },
+    {
+      "case_id": "heldout_cp_039",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 39
+    },
+    {
+      "case_id": "heldout_cp_039",
+      "code": "gold_status_not_allowed",
+      "line_number": 39,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_040",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 40
+    },
+    {
+      "case_id": "heldout_cp_040",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 40
+    },
+    {
+      "case_id": "heldout_cp_040",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 40
+    },
+    {
+      "case_id": "heldout_cp_040",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 40
+    },
+    {
+      "case_id": "heldout_cp_040",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 40
+    },
+    {
+      "case_id": "heldout_cp_040",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 40
+    },
+    {
+      "case_id": "heldout_cp_040",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 40
+    },
+    {
+      "case_id": "heldout_cp_040",
+      "code": "gold_status_not_allowed",
+      "line_number": 40,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_041",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 41
+    },
+    {
+      "case_id": "heldout_cp_041",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 41
+    },
+    {
+      "case_id": "heldout_cp_041",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 41
+    },
+    {
+      "case_id": "heldout_cp_041",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 41
+    },
+    {
+      "case_id": "heldout_cp_041",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 41
+    },
+    {
+      "case_id": "heldout_cp_041",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 41
+    },
+    {
+      "case_id": "heldout_cp_041",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 41
+    },
+    {
+      "case_id": "heldout_cp_041",
+      "code": "gold_status_not_allowed",
+      "line_number": 41,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_042",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 42
+    },
+    {
+      "case_id": "heldout_cp_042",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 42
+    },
+    {
+      "case_id": "heldout_cp_042",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 42
+    },
+    {
+      "case_id": "heldout_cp_042",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 42
+    },
+    {
+      "case_id": "heldout_cp_042",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 42
+    },
+    {
+      "case_id": "heldout_cp_042",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 42
+    },
+    {
+      "case_id": "heldout_cp_042",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 42
+    },
+    {
+      "case_id": "heldout_cp_042",
+      "code": "gold_status_not_allowed",
+      "line_number": 42,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_043",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 43
+    },
+    {
+      "case_id": "heldout_cp_043",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 43
+    },
+    {
+      "case_id": "heldout_cp_043",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 43
+    },
+    {
+      "case_id": "heldout_cp_043",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 43
+    },
+    {
+      "case_id": "heldout_cp_043",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 43
+    },
+    {
+      "case_id": "heldout_cp_043",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 43
+    },
+    {
+      "case_id": "heldout_cp_043",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 43
+    },
+    {
+      "case_id": "heldout_cp_043",
+      "code": "gold_status_not_allowed",
+      "line_number": 43,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_044",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 44
+    },
+    {
+      "case_id": "heldout_cp_044",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 44
+    },
+    {
+      "case_id": "heldout_cp_044",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 44
+    },
+    {
+      "case_id": "heldout_cp_044",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 44
+    },
+    {
+      "case_id": "heldout_cp_044",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 44
+    },
+    {
+      "case_id": "heldout_cp_044",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 44
+    },
+    {
+      "case_id": "heldout_cp_044",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 44
+    },
+    {
+      "case_id": "heldout_cp_044",
+      "code": "gold_status_not_allowed",
+      "line_number": 44,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_045",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 45
+    },
+    {
+      "case_id": "heldout_cp_045",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 45
+    },
+    {
+      "case_id": "heldout_cp_045",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 45
+    },
+    {
+      "case_id": "heldout_cp_045",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 45
+    },
+    {
+      "case_id": "heldout_cp_045",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 45
+    },
+    {
+      "case_id": "heldout_cp_045",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 45
+    },
+    {
+      "case_id": "heldout_cp_045",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 45
+    },
+    {
+      "case_id": "heldout_cp_045",
+      "code": "gold_status_not_allowed",
+      "line_number": 45,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_046",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 46
+    },
+    {
+      "case_id": "heldout_cp_046",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 46
+    },
+    {
+      "case_id": "heldout_cp_046",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 46
+    },
+    {
+      "case_id": "heldout_cp_046",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 46
+    },
+    {
+      "case_id": "heldout_cp_046",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 46
+    },
+    {
+      "case_id": "heldout_cp_046",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 46
+    },
+    {
+      "case_id": "heldout_cp_046",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 46
+    },
+    {
+      "case_id": "heldout_cp_046",
+      "code": "gold_status_not_allowed",
+      "line_number": 46,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_047",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 47
+    },
+    {
+      "case_id": "heldout_cp_047",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 47
+    },
+    {
+      "case_id": "heldout_cp_047",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 47
+    },
+    {
+      "case_id": "heldout_cp_047",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 47
+    },
+    {
+      "case_id": "heldout_cp_047",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 47
+    },
+    {
+      "case_id": "heldout_cp_047",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 47
+    },
+    {
+      "case_id": "heldout_cp_047",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 47
+    },
+    {
+      "case_id": "heldout_cp_047",
+      "code": "gold_status_not_allowed",
+      "line_number": 47,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_048",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 48
+    },
+    {
+      "case_id": "heldout_cp_048",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 48
+    },
+    {
+      "case_id": "heldout_cp_048",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 48
+    },
+    {
+      "case_id": "heldout_cp_048",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 48
+    },
+    {
+      "case_id": "heldout_cp_048",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 48
+    },
+    {
+      "case_id": "heldout_cp_048",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 48
+    },
+    {
+      "case_id": "heldout_cp_048",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 48
+    },
+    {
+      "case_id": "heldout_cp_048",
+      "code": "gold_status_not_allowed",
+      "line_number": 48,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_049",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 49
+    },
+    {
+      "case_id": "heldout_cp_049",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 49
+    },
+    {
+      "case_id": "heldout_cp_049",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 49
+    },
+    {
+      "case_id": "heldout_cp_049",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 49
+    },
+    {
+      "case_id": "heldout_cp_049",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 49
+    },
+    {
+      "case_id": "heldout_cp_049",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 49
+    },
+    {
+      "case_id": "heldout_cp_049",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 49
+    },
+    {
+      "case_id": "heldout_cp_049",
+      "code": "gold_status_not_allowed",
+      "line_number": 49,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "case_id": "heldout_cp_050",
+      "code": "missing_required_field",
+      "field": "problem_source_platform",
+      "line_number": 50
+    },
+    {
+      "case_id": "heldout_cp_050",
+      "code": "missing_required_field",
+      "field": "problem_source_id",
+      "line_number": 50
+    },
+    {
+      "case_id": "heldout_cp_050",
+      "code": "missing_required_field",
+      "field": "problem_source_url",
+      "line_number": 50
+    },
+    {
+      "case_id": "heldout_cp_050",
+      "code": "missing_required_field",
+      "field": "problem_statement",
+      "line_number": 50
+    },
+    {
+      "case_id": "heldout_cp_050",
+      "code": "missing_required_field",
+      "field": "problem_statement_public_summary",
+      "line_number": 50
+    },
+    {
+      "case_id": "heldout_cp_050",
+      "code": "missing_required_field",
+      "field": "problem_statement_rights_note",
+      "line_number": 50
+    },
+    {
+      "case_id": "heldout_cp_050",
+      "code": "missing_required_field",
+      "field": "problem_statement_access_level",
+      "line_number": 50
+    },
+    {
+      "case_id": "heldout_cp_050",
+      "code": "gold_status_not_allowed",
+      "line_number": 50,
+      "reference_label_status": "ai_assisted_draft_reference"
+    },
+    {
+      "actual_count": 10,
+      "bucket": "medium_short",
+      "code": "too_few_student_message_length_bucket",
+      "min_required": 15
+    },
+    {
+      "actual_count": 0,
+      "bucket": "medium_long",
+      "code": "too_few_student_message_length_bucket",
+      "min_required": 10
+    },
+    {
+      "actual_count": 0,
+      "bucket": "long",
+      "code": "too_few_student_message_length_bucket",
+      "min_required": 5
+    }
+  ],
+  "expected_count": 50,
+  "ok": false,
+  "problem_source_platform_counts": {},
+  "problem_statement_access_level_counts": {},
+  "recent_dialogue_distribution": {
+    "long": 15,
+    "none": 10,
+    "short": 25
+  },
+  "require_frozen_status": false,
+  "row_count": 50,
+  "student_code_excerpt_distribution": {
+    "none": 38,
+    "present": 12
+  },
+  "student_message_length_distribution": {
+    "long": 0,
+    "medium_long": 0,
+    "medium_short": 10,
+    "short": 40
+  }
+}

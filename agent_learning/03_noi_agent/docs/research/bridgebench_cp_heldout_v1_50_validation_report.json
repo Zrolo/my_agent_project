@@ -1,0 +1,36 @@
+{
+  "category_counts": {
+    "binary_search_boundary": 4,
+    "binary_search_predicate": 5,
+    "data_structure_semantics": 5,
+    "debugging_evidence": 4,
+    "dp_state": 5,
+    "dp_transition": 5,
+    "graph_tree_modeling": 5,
+    "greedy_correctness": 5,
+    "implementation_boundary": 5,
+    "policy_request": 7
+  },
+  "dataset_path": "docs/research/bridgebench_cp_heldout_v1_50_draft.jsonl",
+  "dev_seed_case_id_count": 50,
+  "dev_seed_paths": [
+    "docs/research/bridgebench_cp_seed_v1.jsonl",
+    "docs/research/bridgebench_cp_seed_v2_gold_20.jsonl",
+    "docs/research/coach_seed_labeling_v2_gold_20.jsonl"
+  ],
+  "error_count": 0,
+  "errors": [],
+  "expected_count": 50,
+  "ok": true,
+  "recent_dialogue_distribution": {
+    "long": 15,
+    "none": 10,
+    "short": 25
+  },
+  "require_frozen_status": false,
+  "row_count": 50,
+  "student_code_excerpt_distribution": {
+    "none": 38,
+    "present": 12
+  }
+}

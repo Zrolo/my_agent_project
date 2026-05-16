@@ -1,0 +1,82 @@
+{
+  "input_xlsx": "/Users/kongyouli/Downloads/dialogue_state_v3_case_review_coach_A_round1_recheck_18_zh_rechecked.xlsx",
+  "sheet_name": "bucket_sheets",
+  "source_mode_used": "bucket_sheets",
+  "row_count": 18,
+  "reviewed_count": 18,
+  "case_decision_counts": {
+    "accept": 15,
+    "revise": 3
+  },
+  "issue_type_counts": {
+    "blank": 15,
+    "problem_bridge_mismatch": 3
+  },
+  "reviewer_confidence_counts": {
+    "high": 14,
+    "medium": 4
+  },
+  "reviewer_id_counts": {
+    "coach_A": 18
+  },
+  "review_round_counts": {
+    "round1": 18
+  },
+  "needs_followup_count": 3,
+  "needs_followup_cases": [
+    {
+      "case_id": "dialogue_v3_035_data_structure_operation_semantics",
+      "sheet_name": "数据结构",
+      "case_decision": "revise",
+      "issue_type": "problem_bridge_mismatch",
+      "reviewer_confidence": "high",
+      "coach_fix_suggestion": "P2672 更像贪心/贡献选择题，当前 update/query 和“节点摘要量”不贴题；建议改成贡献汇总/正确性样本，或换成真有数据结构维护操作的题。"
+    },
+    {
+      "case_id": "dialogue_v3_036_correctness_invariant",
+      "sheet_name": "正确性不变量",
+      "case_decision": "revise",
+      "issue_type": "problem_bridge_mismatch",
+      "reviewer_confidence": "high",
+      "coach_fix_suggestion": "P10709 本质更像“状态表示/转移递推”的相邻限制 DP，不适合用相邻交换证明；建议换成 DP 桥梁桶，或换一题真正需要交换论证的贪心题。"
+    },
+    {
+      "case_id": "dialogue_v3_037_correctness_invariant",
+      "sheet_name": "正确性不变量",
+      "case_decision": "revise",
+      "issue_type": "problem_bridge_mismatch",
+      "reviewer_confidence": "medium",
+      "coach_fix_suggestion": "P10728 更像排序后判断支配关系/维护扫描不变量，不是“两个选择顺序互换”；建议把 missing_bridge 改成支配关系判定，或换贪心交换题。"
+    }
+  ],
+  "source_ok_counts": {
+    "yes": 18
+  },
+  "context_coherent_counts": {
+    "yes": 15,
+    "partial": 3
+  },
+  "student_message_realistic_counts": {
+    "yes": 15,
+    "partial": 3
+  },
+  "followability_ok_counts": {
+    "yes": 15,
+    "revise": 3
+  },
+  "missing_bridge_ok_counts": {
+    "yes": 15,
+    "revise": 3
+  },
+  "forbidden_content_ok_counts": {
+    "yes": 18
+  },
+  "success_criteria_ok_counts": {
+    "yes": 15,
+    "revise": 3
+  },
+  "leakage_boundary_ok_counts": {
+    "yes": 15,
+    "revise": 3
+  }
+}

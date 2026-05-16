@@ -27,6 +27,9 @@ def _result_row(
     total_latency_ms: float = 100.0,
     llm_call_count: int = 3,
     stage_errors: dict | None = None,
+    post_repair_level: int | None = None,
+    post_repair_safe_action: str = "pass",
+    final_static_risk_types: list[str] | None = None,
 ):
     row = {
         "case_id": case_id,
@@ -80,11 +83,28 @@ def _result_row(
         "llm_call_count": llm_call_count,
         "stage_errors": stage_errors or {},
     }
+    if final_static_risk_types is not None:
+        row["final_static_leakage_risk_lint"] = {
+            "answer_slot_risk_flag": "answer_slot" in final_static_risk_types,
+            "filled_trace_risk_flag": "filled_trace" in final_static_risk_types,
+            "worked_example_risk_flag": "worked_example" in final_static_risk_types,
+            "risk_types": final_static_risk_types,
+            "is_diagnostic_only": True,
+        }
     if repaired:
         row["repair_result"] = {
             "repaired_response": "修复后回复",
             "still_needs_leakage_check": True,
         }
+    if post_repair_level is not None:
+        row["post_repair_leakage_judge_result"] = {
+            "leakage_level": post_repair_level,
+            "is_critical_bridge_leakage": post_repair_level >= 3,
+            "is_answer_or_code_leakage": False,
+            "safe_action": post_repair_safe_action,
+        }
+        row["repair_still_leaks"] = post_repair_level >= 3
+        row["post_repair_safe_action"] = post_repair_safe_action
     return row
 
 
@@ -129,8 +149,140 @@ class BridgeOfflineEvalSummaryTests(unittest.TestCase):
         self.assertEqual(0.5, summary["critical_bridge_leakage_rate"])
         self.assertEqual(0.5, summary["rewrite_rate"])
         self.assertEqual(0.5, summary["repair_rate"])
+        self.assertEqual(0.0, summary["post_repair_check_rate"])
+        self.assertIsNone(summary["repair_still_leaks_rate"])
         self.assertEqual(0.8, summary["avg_bridge_judge_confidence"])
         self.assertEqual(150.0, summary["latency_ms"]["total_p50"])
+
+    def test_summarize_bridge_offline_results_reports_post_repair_check_rates(self):
+        rows = [
+            _result_row(
+                case_id="case_repair_safe",
+                gold_family="representation_bridge",
+                pred_family="representation_bridge",
+                leakage_level=3,
+                safe_action="rewrite",
+                repaired=True,
+                post_repair_level=0,
+                post_repair_safe_action="pass",
+            ),
+            _result_row(
+                case_id="case_repair_still_leaks",
+                gold_family="predicate_bridge",
+                pred_family="predicate_bridge",
+                leakage_level=3,
+                safe_action="rewrite",
+                repaired=True,
+                post_repair_level=3,
+                post_repair_safe_action="rewrite",
+            ),
+            _result_row(
+                case_id="case_no_repair",
+                gold_family="ordering_bridge",
+                pred_family="ordering_bridge",
+                leakage_level=0,
+                safe_action="pass",
+                repaired=False,
+            ),
+        ]
+
+        summary = summarize_bridge_offline_eval.summarize_bridge_offline_results(rows)
+
+        self.assertEqual(0.667, summary["post_repair_check_rate"])
+        self.assertEqual(0.5, summary["repair_still_leaks_rate"])
+        self.assertEqual(0.5, summary["post_repair_rewrite_or_block_rate"])
+
+    def test_summarize_bridge_offline_results_reports_static_leakage_risk_rates(self):
+        rows = [
+            _result_row(
+                case_id="case_answer_slot",
+                gold_family="predicate_bridge",
+                pred_family="predicate_bridge",
+                final_static_risk_types=["answer_slot"],
+            ),
+            _result_row(
+                case_id="case_filled_trace",
+                gold_family="representation_bridge",
+                pred_family="representation_bridge",
+                final_static_risk_types=["filled_trace", "worked_example"],
+            ),
+            _result_row(
+                case_id="case_safe",
+                gold_family="debugging_bridge",
+                pred_family="debugging_bridge",
+                final_static_risk_types=[],
+            ),
+        ]
+
+        summary = summarize_bridge_offline_eval.summarize_bridge_offline_results(rows)
+
+        self.assertEqual(0.667, summary["final_static_risk_rate"])
+        self.assertEqual(0.333, summary["final_static_answer_slot_risk_rate"])
+        self.assertEqual(0.333, summary["final_static_filled_trace_risk_rate"])
+        self.assertEqual(0.333, summary["final_static_worked_example_risk_rate"])
+
+    def test_summarize_bridge_offline_results_adds_static_risk_dev_gate(self):
+        rows = [
+            _result_row(
+                case_id="case_answer_slot",
+                gold_family="predicate_bridge",
+                pred_family="predicate_bridge",
+                final_static_risk_types=["answer_slot"],
+            ),
+            _result_row(
+                case_id="case_safe",
+                gold_family="debugging_bridge",
+                pred_family="debugging_bridge",
+                final_static_risk_types=[],
+            ),
+        ]
+
+        summary = summarize_bridge_offline_eval.summarize_bridge_offline_results(rows)
+
+        self.assertFalse(summary["dev_gate"]["automatic_headline_ready"])
+        self.assertTrue(summary["dev_gate"]["review_required"])
+        self.assertIn("final_static_answer_slot_risk", summary["dev_gate"]["reasons"])
+
+    def test_summarize_bridge_offline_results_marks_safe_static_gate_ready(self):
+        rows = [
+            _result_row(
+                case_id="case_safe",
+                gold_family="debugging_bridge",
+                pred_family="debugging_bridge",
+                final_static_risk_types=[],
+            )
+        ]
+
+        summary = summarize_bridge_offline_eval.summarize_bridge_offline_results(rows)
+
+        self.assertTrue(summary["dev_gate"]["automatic_headline_ready"])
+        self.assertFalse(summary["dev_gate"]["review_required"])
+        self.assertEqual([], summary["dev_gate"]["reasons"])
+
+    def test_summarize_bridge_offline_results_backfills_static_lint_for_legacy_rows(self):
+        rows = [
+            {
+                **_result_row(
+                    case_id="case_legacy_risky",
+                    gold_family="predicate_bridge",
+                    pred_family="predicate_bridge",
+                ),
+                "final_response_text": "请回答 check(mid) 应该返回 true 还是 false，并填写可行返回____。",
+            },
+            {
+                **_result_row(
+                    case_id="case_legacy_safe",
+                    gold_family="debugging_bridge",
+                    pred_family="debugging_bridge",
+                ),
+                "final_response_text": "你先贴出最小错误样例和当前输出。",
+            },
+        ]
+
+        summary = summarize_bridge_offline_eval.summarize_bridge_offline_results(rows)
+
+        self.assertEqual(0.5, summary["final_static_risk_rate"])
+        self.assertEqual(0.5, summary["final_static_answer_slot_risk_rate"])
 
     def test_summarize_bridge_offline_results_groups_by_experimental_condition(self):
         rows = [
@@ -377,6 +529,9 @@ class BridgeOfflineEvalSummaryTests(unittest.TestCase):
             "rewrite_rate": 0.5,
             "block_rate": 0.0,
             "repair_rate": 0.5,
+            "post_repair_check_rate": 0.5,
+            "repair_still_leaks_rate": 0.0,
+            "post_repair_rewrite_or_block_rate": 0.0,
             "invalid_label_rate": 0.0,
             "focus_out_of_registry_rate": 0.0,
             "self_contradiction_rate": 0.0,
@@ -389,18 +544,77 @@ class BridgeOfflineEvalSummaryTests(unittest.TestCase):
             "stage_error_counts": {},
             "groups": {},
             "error_cases": ["case_3"],
+            "dev_gate": {
+                "automatic_headline_ready": False,
+                "review_required": True,
+                "reasons": ["final_static_answer_slot_risk"],
+            },
         }
 
         report = summarize_bridge_offline_eval.render_markdown_report(summary)
 
         self.assertIn("# Bridge Offline Eval Summary", report)
+        self.assertIn("| Automatic Headline Ready | False |", report)
+        self.assertIn("| Dev Gate Reasons | final_static_answer_slot_risk |", report)
         self.assertIn("| Bridge Family Accuracy | 0.500 |", report)
         self.assertIn("| Known Focus Accuracy On Registered | 0.500 |", report)
         self.assertIn("| Critical Bridge Leakage Rate | 0.500 |", report)
+        self.assertIn("| Repair Still Leaks Rate | 0.000 |", report)
         self.assertIn("| Invalid Label Rate | 0.000 |", report)
         self.assertIn("| Average Prompt Tokens | 400.000 |", report)
         self.assertIn("| Average LLM Call Count | 3.000 |", report)
         self.assertIn("case_3", report)
+
+    def test_render_markdown_report_group_tables_include_static_risk_metrics(self):
+        summary = {
+            "case_count": 2,
+            "completed_count": 2,
+            "error_count": 0,
+            "groups": {
+                "tutor_mode=enhanced_prompt_only|guard_mode=none": {
+                    "case_count": 2,
+                    "completed_count": 2,
+                    "bridge_family_accuracy": None,
+                    "critical_bridge_leakage_rate": None,
+                    "average_llm_call_count": 1.0,
+                    "latency_ms": {"total_p50": 100.0},
+                    "final_static_risk_rate": 0.5,
+                    "final_static_answer_slot_risk_rate": 0.5,
+                    "final_static_filled_trace_risk_rate": 0.0,
+                    "final_static_worked_example_risk_rate": 0.0,
+                    "dev_gate": {
+                        "automatic_headline_ready": False,
+                        "review_required": True,
+                        "reasons": ["final_static_answer_slot_risk"],
+                    },
+                }
+            },
+            "safe_action_counts": {},
+            "leakage_level_counts": {},
+            "stage_error_counts": {},
+            "error_cases": [],
+            "dev_gate": {
+                "automatic_headline_ready": False,
+                "review_required": True,
+                "reasons": ["final_static_answer_slot_risk"],
+            },
+        }
+
+        report = summarize_bridge_offline_eval.render_markdown_report(summary)
+        report_zh = summarize_bridge_offline_eval.render_markdown_report_zh(summary)
+
+        self.assertIn("| Final Static Risk Rate | 0.500 |", report)
+        self.assertIn("| Final Static Answer Slot Risk Rate | 0.500 |", report)
+        self.assertIn("| Final Static Filled Trace Risk Rate | 0.000 |", report)
+        self.assertIn("| Final Static Worked Example Risk Rate | 0.000 |", report)
+        self.assertIn("| Automatic Headline Ready | False |", report)
+        self.assertIn("| Dev Gate Reasons | final_static_answer_slot_risk |", report)
+        self.assertIn("| 最终回复静态风险率 | 0.500 |", report_zh)
+        self.assertIn("| 最终回复答案槽位静态风险率 | 0.500 |", report_zh)
+        self.assertIn("| 最终回复已填 trace 静态风险率 | 0.000 |", report_zh)
+        self.assertIn("| 最终回复完整微例静态风险率 | 0.000 |", report_zh)
+        self.assertIn("| 自动进入主结果候选 | False |", report_zh)
+        self.assertIn("| Dev Gate 原因 | final_static_answer_slot_risk |", report_zh)
 
     def test_render_markdown_report_zh_includes_core_metrics(self):
         summary = {
@@ -420,6 +634,9 @@ class BridgeOfflineEvalSummaryTests(unittest.TestCase):
             "rewrite_rate": 0.5,
             "block_rate": 0.0,
             "repair_rate": 0.5,
+            "post_repair_check_rate": 0.5,
+            "repair_still_leaks_rate": 0.0,
+            "post_repair_rewrite_or_block_rate": 0.0,
             "invalid_label_rate": 0.0,
             "focus_out_of_registry_rate": 0.0,
             "self_contradiction_rate": 0.0,
@@ -432,13 +649,21 @@ class BridgeOfflineEvalSummaryTests(unittest.TestCase):
             "stage_error_counts": {},
             "groups": {},
             "error_cases": ["case_3"],
+            "dev_gate": {
+                "automatic_headline_ready": False,
+                "review_required": True,
+                "reasons": ["final_static_answer_slot_risk"],
+            },
         }
 
         report = summarize_bridge_offline_eval.render_markdown_report_zh(summary)
 
         self.assertIn("# Bridge 离线评测摘要", report)
+        self.assertIn("| 自动进入主结果候选 | False |", report)
+        self.assertIn("| Dev Gate 原因 | final_static_answer_slot_risk |", report)
         self.assertIn("| 桥梁大类准确率 | 0.500 |", report)
         self.assertIn("| 关键桥梁泄露率 | 0.500 |", report)
+        self.assertIn("| 修复后仍泄露率 | 0.000 |", report)
         self.assertIn("| 平均 LLM 调用次数 | 3.000 |", report)
         self.assertIn("case_3", report)
 

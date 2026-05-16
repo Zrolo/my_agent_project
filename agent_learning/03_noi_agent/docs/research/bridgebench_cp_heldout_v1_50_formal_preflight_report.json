@@ -1,0 +1,337 @@
+{
+  "category_counts": {
+    "binary_search_boundary": 4,
+    "binary_search_predicate": 5,
+    "data_structure_semantics": 5,
+    "debugging_evidence": 4,
+    "dp_state": 5,
+    "dp_transition": 5,
+    "graph_tree_modeling": 5,
+    "greedy_correctness": 5,
+    "implementation_boundary": 5,
+    "policy_request": 7
+  },
+  "dataset_path": "docs/research/bridgebench_cp_heldout_v1_50_draft.jsonl",
+  "dev_seed_case_id_count": 50,
+  "dev_seed_paths": [
+    "docs/research/bridgebench_cp_seed_v1.jsonl",
+    "docs/research/bridgebench_cp_seed_v2_gold_20.jsonl",
+    "docs/research/coach_seed_labeling_v2_gold_20.jsonl"
+  ],
+  "error_count": 50,
+  "errors": [
+    {
+      "case_id": "heldout_cp_001",
+      "code": "frozen_status_required",
+      "line_number": 1,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_002",
+      "code": "frozen_status_required",
+      "line_number": 2,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_003",
+      "code": "frozen_status_required",
+      "line_number": 3,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_004",
+      "code": "frozen_status_required",
+      "line_number": 4,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_005",
+      "code": "frozen_status_required",
+      "line_number": 5,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_006",
+      "code": "frozen_status_required",
+      "line_number": 6,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_007",
+      "code": "frozen_status_required",
+      "line_number": 7,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_008",
+      "code": "frozen_status_required",
+      "line_number": 8,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_009",
+      "code": "frozen_status_required",
+      "line_number": 9,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_010",
+      "code": "frozen_status_required",
+      "line_number": 10,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_011",
+      "code": "frozen_status_required",
+      "line_number": 11,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_012",
+      "code": "frozen_status_required",
+      "line_number": 12,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_013",
+      "code": "frozen_status_required",
+      "line_number": 13,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_014",
+      "code": "frozen_status_required",
+      "line_number": 14,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_015",
+      "code": "frozen_status_required",
+      "line_number": 15,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_016",
+      "code": "frozen_status_required",
+      "line_number": 16,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_017",
+      "code": "frozen_status_required",
+      "line_number": 17,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_018",
+      "code": "frozen_status_required",
+      "line_number": 18,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_019",
+      "code": "frozen_status_required",
+      "line_number": 19,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_020",
+      "code": "frozen_status_required",
+      "line_number": 20,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_021",
+      "code": "frozen_status_required",
+      "line_number": 21,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_022",
+      "code": "frozen_status_required",
+      "line_number": 22,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_023",
+      "code": "frozen_status_required",
+      "line_number": 23,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_024",
+      "code": "frozen_status_required",
+      "line_number": 24,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_025",
+      "code": "frozen_status_required",
+      "line_number": 25,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_026",
+      "code": "frozen_status_required",
+      "line_number": 26,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_027",
+      "code": "frozen_status_required",
+      "line_number": 27,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_028",
+      "code": "frozen_status_required",
+      "line_number": 28,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_029",
+      "code": "frozen_status_required",
+      "line_number": 29,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_030",
+      "code": "frozen_status_required",
+      "line_number": 30,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_031",
+      "code": "frozen_status_required",
+      "line_number": 31,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_032",
+      "code": "frozen_status_required",
+      "line_number": 32,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_033",
+      "code": "frozen_status_required",
+      "line_number": 33,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_034",
+      "code": "frozen_status_required",
+      "line_number": 34,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_035",
+      "code": "frozen_status_required",
+      "line_number": 35,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_036",
+      "code": "frozen_status_required",
+      "line_number": 36,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_037",
+      "code": "frozen_status_required",
+      "line_number": 37,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_038",
+      "code": "frozen_status_required",
+      "line_number": 38,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_039",
+      "code": "frozen_status_required",
+      "line_number": 39,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_040",
+      "code": "frozen_status_required",
+      "line_number": 40,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_041",
+      "code": "frozen_status_required",
+      "line_number": 41,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_042",
+      "code": "frozen_status_required",
+      "line_number": 42,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_043",
+      "code": "frozen_status_required",
+      "line_number": 43,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_044",
+      "code": "frozen_status_required",
+      "line_number": 44,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_045",
+      "code": "frozen_status_required",
+      "line_number": 45,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_046",
+      "code": "frozen_status_required",
+      "line_number": 46,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_047",
+      "code": "frozen_status_required",
+      "line_number": 47,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_048",
+      "code": "frozen_status_required",
+      "line_number": 48,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_049",
+      "code": "frozen_status_required",
+      "line_number": 49,
+      "reference_label_status": "draft_needs_coach_review"
+    },
+    {
+      "case_id": "heldout_cp_050",
+      "code": "frozen_status_required",
+      "line_number": 50,
+      "reference_label_status": "draft_needs_coach_review"
+    }
+  ],
+  "expected_count": 50,
+  "ok": false,
+  "recent_dialogue_distribution": {
+    "long": 15,
+    "none": 10,
+    "short": 25
+  },
+  "require_frozen_status": true,
+  "row_count": 50,
+  "student_code_excerpt_distribution": {
+    "none": 38,
+    "present": 12
+  }
+}

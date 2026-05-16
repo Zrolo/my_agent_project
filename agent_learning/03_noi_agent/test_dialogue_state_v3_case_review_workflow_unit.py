@@ -1,4 +1,5 @@
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -18,8 +19,19 @@ def _write_jsonl(path: Path, rows: list[dict]) -> None:
     )
 
 
+def _forbidden_content_values_from_sheet(workbook, sheet_name: str) -> list[str]:
+    sheet = workbook[sheet_name]
+    headers = [sheet.cell(row=2, column=col).value for col in range(1, sheet.max_column + 1)]
+    forbidden_col = headers.index("forbidden_content") + 1
+    return [
+        sheet.cell(row=row_index, column=forbidden_col).value or ""
+        for row_index in range(3, sheet.max_row + 1)
+        if sheet.cell(row=row_index, column=1).value
+    ]
+
+
 class DialogueStateV3CaseReviewWorkflowTests(unittest.TestCase):
-    def test_select_calibration_cases_covers_review_categories(self):
+    def test_select_calibration_cases_uses_fixed_recheck_prefixes(self):
         cases = generate_dialogue_state_v3_50.build_dialogue_state_cases([_v2_case(i) for i in range(1, 51)])
 
         selected = export_dialogue_state_v3_calibration_workbook.select_calibration_cases(cases)
@@ -29,18 +41,38 @@ class DialogueStateV3CaseReviewWorkflowTests(unittest.TestCase):
             ["dialogue_v3_001_", "dialogue_v3_011_", "dialogue_v3_018_", "dialogue_v3_026_", "dialogue_v3_043_", "dialogue_v3_048_"],
             [row["case_id"][:16] for row in selected],
         )
-        self.assertEqual(
-            {
-                "initial_question",
-                "followup_after_correct_short_answer",
-                "followup_after_partial_answer",
-                "followup_after_wrong_answer",
-                "followup_after_prerequisite_gap",
-                "policy_direct_answer_special",
-            },
-            {row["context_type"] for row in selected},
+
+        report = export_dialogue_state_v3_calibration_workbook.build_report(
+            selected,
+            source_path=Path("dummy.jsonl"),
         )
-        self.assertEqual({"NA", "F1", "F2", "F3", "F4"}, {row["student_scaffold_followability"] for row in selected})
+
+        self.assertEqual("fixed_case_recheck", report["selection_mode"])
+        self.assertTrue(report["case_id_prefix_ok"])
+
+    def test_select_cases_by_prefixes_supports_targeted_recheck(self):
+        cases = generate_dialogue_state_v3_50.build_dialogue_state_cases([_v2_case(i) for i in range(1, 51)])
+        prefixes = [
+            "dialogue_v3_027_",
+            "dialogue_v3_031_",
+            "dialogue_v3_044_",
+        ]
+
+        selected = export_dialogue_state_v3_calibration_workbook.select_cases_by_prefixes(cases, prefixes)
+        report = export_dialogue_state_v3_calibration_workbook.build_report(
+            selected,
+            source_path=Path("dummy.jsonl"),
+            required_case_prefixes=prefixes,
+            reference_label_status="targeted_case_source_recheck_only",
+            selection_label="explicit_case_prefixes",
+        )
+
+        self.assertEqual(3, len(selected))
+        self.assertEqual(prefixes, [row["case_id"][:16] for row in selected])
+        self.assertEqual("explicit_case_prefixes", report["selection_mode"])
+        self.assertEqual("targeted_case_source_recheck_only", report["reference_label_status"])
+        self.assertTrue(report["case_id_prefix_ok"])
+        self.assertTrue(report["ok"])
 
     def test_calibration_export_main_writes_bilingual_workbooks(self):
         cases = generate_dialogue_state_v3_50.build_dialogue_state_cases([_v2_case(i) for i in range(1, 51)])
@@ -80,6 +112,82 @@ class DialogueStateV3CaseReviewWorkflowTests(unittest.TestCase):
         self.assertEqual(8, en_book["dialogue_state_review"].max_row)
         self.assertIn("评审说明", zh_book.sheetnames)
         self.assertIn("Instructions", en_book.sheetnames)
+
+    def test_calibration_export_main_writes_coach_a_round1_recheck_workbooks(self):
+        cases = generate_dialogue_state_v3_50.build_dialogue_state_cases([_v2_case(i) for i in range(1, 51)])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            source = tmp / "dialogue_v3.jsonl"
+            zh = tmp / "coach_a_recheck.zh.xlsx"
+            en = tmp / "coach_a_recheck.en.xlsx"
+            report_json = tmp / "coach_a_recheck.json"
+            report_zh = tmp / "coach_a_recheck.zh.md"
+            report_en = tmp / "coach_a_recheck.md"
+            _write_jsonl(source, cases)
+
+            exit_code = export_dialogue_state_v3_calibration_workbook.main(
+                [
+                    "--source-jsonl",
+                    str(source),
+                    "--output-zh-xlsx",
+                    str(zh),
+                    "--output-en-xlsx",
+                    str(en),
+                    "--report-json",
+                    str(report_json),
+                    "--report-zh",
+                    str(report_zh),
+                    "--report-en",
+                    str(report_en),
+                    "--coach-a-round1-recheck",
+                ]
+            )
+
+            self.assertEqual(0, exit_code)
+            report = json.loads(report_json.read_text(encoding="utf-8"))
+            report_zh_text = report_zh.read_text(encoding="utf-8")
+            report_en_text = report_en.read_text(encoding="utf-8")
+            zh_book = load_workbook(zh)
+            en_book = load_workbook(en)
+
+        self.assertEqual(18, report["row_count"])
+        self.assertEqual("coach_A_round1_targeted_recheck", report["selection_mode"])
+        self.assertEqual("coach_A_round1_targeted_recheck_only", report["reference_label_status"])
+        self.assertIn("Targeted Re-check", report_en_text)
+        self.assertIn("定向复核", report_zh_text)
+        self.assertEqual(20, zh_book["总表"].max_row)
+        self.assertEqual(20, en_book["dialogue_state_review"].max_row)
+
+    def test_calibration_report_matches_real_dialogue_source_recheck_cases(self):
+        source = Path("docs/research/bridgebench_cp_dialogue_state_v3_50_draft.jsonl")
+        source_rows = [
+            json.loads(line)
+            for line in source.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+
+        selected = export_dialogue_state_v3_calibration_workbook.select_calibration_cases(source_rows)
+        report = export_dialogue_state_v3_calibration_workbook.build_report(
+            selected,
+            source_path=source,
+        )
+
+        self.assertTrue(report["ok"])
+        self.assertTrue(report["case_id_prefix_ok"])
+        self.assertEqual("fixed_case_recheck", report["selection_mode"])
+        self.assertFalse(report["context_coverage_ok"])
+        self.assertEqual(
+            {
+                "initial_question": 1,
+                "followup_after_partial_answer": 2,
+                "followup_after_wrong_answer": 1,
+                "followup_after_prerequisite_gap": 1,
+                "policy_direct_answer_special": 1,
+            },
+            report["context_type_counts"],
+        )
+        self.assertEqual({"NA": 1, "F2": 2, "F3": 2, "F4": 1}, report["followability_counts"])
 
     def test_calibration_export_matches_real_dialogue_source_rows(self):
         source = Path("docs/research/bridgebench_cp_dialogue_state_v3_50_draft.jsonl")
@@ -124,6 +232,68 @@ class DialogueStateV3CaseReviewWorkflowTests(unittest.TestCase):
         case_id = "dialogue_v3_011_transition_recurrence_source"
         self.assertEqual(selected_by_id[case_id]["student_message"], rows_by_id[case_id])
         self.assertLessEqual(len("".join(rows_by_id[case_id].split())), 30)
+
+    def test_dialogue_state_seed_labeling_workbook_matches_current_jsonl(self):
+        source = Path("docs/research/bridgebench_cp_dialogue_state_v3_50_draft.jsonl")
+        workbook_path = Path("docs/research/coach_seed_labeling_workbook_dialogue_state_v3_50.zh.xlsx")
+        source_rows = [
+            json.loads(line)
+            for line in source.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        source_by_id = {row["case_id"]: row for row in source_rows}
+
+        workbook = load_workbook(workbook_path, data_only=True)
+        sheet = workbook["标注表"]
+        headers = [sheet.cell(row=2, column=col).value for col in range(1, sheet.max_column + 1)]
+        columns = {header: idx + 1 for idx, header in enumerate(headers)}
+
+        rows_by_id = {}
+        for row_index in range(3, sheet.max_row + 1):
+            case_id = sheet.cell(row=row_index, column=columns["case_id"]).value
+            if case_id:
+                rows_by_id[case_id] = {
+                    field: sheet.cell(row=row_index, column=columns[field]).value
+                    for field in [
+                        "student_message",
+                        "context_type",
+                        "student_scaffold_followability",
+                        "expected_tutor_move",
+                    ]
+                }
+
+        self.assertEqual(set(source_by_id), set(rows_by_id))
+        case_id = "dialogue_v3_011_transition_recurrence_source"
+        self.assertEqual("followup_after_partial_answer", rows_by_id[case_id]["context_type"])
+        self.assertEqual("F2", rows_by_id[case_id]["student_scaffold_followability"])
+        self.assertEqual("clarify", rows_by_id[case_id]["expected_tutor_move"])
+        for case_id, workbook_row in rows_by_id.items():
+            for field, workbook_value in workbook_row.items():
+                self.assertEqual(source_by_id[case_id].get(field) or "", workbook_value or "")
+
+    def test_checked_in_review_workbooks_do_not_expose_forbidden_content_codes(self):
+        checks = [
+            (Path("docs/research/dialogue_state_v3_50_source_and_case_review.zh.xlsx"), "总表", 50),
+            (Path("docs/research/dialogue_state_v3_50_source_and_case_review.en.xlsx"), "dialogue_state_review", 50),
+            (Path("docs/research/dialogue_state_v3_case_review_calibration_6.zh.xlsx"), "总表", 6),
+            (Path("docs/research/dialogue_state_v3_case_review_calibration_6.en.xlsx"), "dialogue_state_review", 6),
+            (Path("docs/research/dialogue_state_v3_case_review_round2_replacement_recheck_3.zh.xlsx"), "总表", 3),
+            (Path("docs/research/dialogue_state_v3_case_review_round2_replacement_recheck_3.en.xlsx"), "dialogue_state_review", 3),
+        ]
+
+        for workbook_path, main_sheet, expected_count in checks:
+            workbook = load_workbook(workbook_path, data_only=True)
+            main_values = _forbidden_content_values_from_sheet(workbook, main_sheet)
+            self.assertEqual(expected_count, len(main_values), str(workbook_path))
+            all_values = list(main_values)
+            for sheet_name in workbook.sheetnames:
+                if sheet_name in {"评审说明", "Instructions", main_sheet}:
+                    continue
+                all_values.extend(_forbidden_content_values_from_sheet(workbook, sheet_name))
+
+            self.assertTrue(all_values, str(workbook_path))
+            for value in all_values:
+                self.assertNotRegex(value, re.compile(r"\bno_[a-z0-9_]+"), str(workbook_path))
 
     def test_case_review_summary_counts_structured_review_fields(self):
         cases = generate_dialogue_state_v3_50.build_dialogue_state_cases([_v2_case(i) for i in range(1, 51)])
@@ -196,6 +366,16 @@ class DialogueStateV3CaseReviewWorkflowTests(unittest.TestCase):
             summary = summarize_dialogue_state_case_review.summarize_workbook(workbook_path, sheet_name="总表")
             self.assertEqual(1, summary["issue_type_counts"]["followability_issue"])
 
+            workbook = load_workbook(workbook_path)
+            sheet = workbook["总表"]
+            machine_headers = [sheet.cell(row=2, column=col).value for col in range(1, sheet.max_column + 1)]
+            issue_col = machine_headers.index("issue_type") + 1
+            sheet.cell(row=4, column=issue_col).value = "题目与桥梁不匹配"
+            workbook.save(workbook_path)
+
+            summary = summarize_dialogue_state_case_review.summarize_workbook(workbook_path, sheet_name="总表")
+            self.assertEqual(1, summary["issue_type_counts"]["problem_bridge_mismatch"])
+
     def test_case_review_summary_prefers_reviewed_bucket_sheets(self):
         cases = generate_dialogue_state_v3_50.build_dialogue_state_cases([_v2_case(i) for i in range(1, 51)])
 
@@ -205,11 +385,15 @@ class DialogueStateV3CaseReviewWorkflowTests(unittest.TestCase):
             workbook = load_workbook(workbook_path)
             bucket_sheet = workbook["判定条件"]
             machine_headers = [bucket_sheet.cell(row=2, column=col).value for col in range(1, bucket_sheet.max_column + 1)]
+            case_col = machine_headers.index("case_id") + 1
             decision_col = machine_headers.index("case_decision") + 1
             issue_col = machine_headers.index("issue_type") + 1
+            suggestion_col = machine_headers.index("coach_fix_suggestion") + 1
             bucket_sheet.cell(row=3, column=decision_col).value = "接受"
             bucket_sheet.cell(row=4, column=decision_col).value = "修改"
             bucket_sheet.cell(row=4, column=issue_col).value = "上下文不一致"
+            bucket_sheet.cell(row=4, column=suggestion_col).value = "让近期对话最后一句对齐当前问题。"
+            expected_case_id = bucket_sheet.cell(row=4, column=case_col).value
             workbook.save(workbook_path)
 
             summary = summarize_dialogue_state_case_review.summarize_workbook(workbook_path)
@@ -219,6 +403,19 @@ class DialogueStateV3CaseReviewWorkflowTests(unittest.TestCase):
         self.assertEqual({"accept": 1, "revise": 1, "blank": 48}, summary["case_decision_counts"])
         self.assertEqual(1, summary["issue_type_counts"]["context_mismatch"])
         self.assertEqual(1, summary["needs_followup_count"])
+        self.assertEqual(
+            [
+                {
+                    "case_id": expected_case_id,
+                    "sheet_name": "判定条件",
+                    "case_decision": "revise",
+                    "issue_type": "context_mismatch",
+                    "reviewer_confidence": "blank",
+                    "coach_fix_suggestion": "让近期对话最后一句对齐当前问题。",
+                }
+            ],
+            summary["needs_followup_cases"],
+        )
 
 
 if __name__ == "__main__":

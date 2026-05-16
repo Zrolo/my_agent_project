@@ -163,6 +163,27 @@ def reset_student_password(user_id: str, password: str = "") -> dict:
     return public_account
 
 
+def change_own_password(user_id: str, current_password: str, new_password: str) -> None:
+    accounts = load_accounts()
+    account = accounts.get(user_id)
+    if not account:
+        raise ValueError("未找到当前账号")
+
+    current_plain = current_password or ""
+    if not verify_password(current_plain, account["password_hash"], account["salt"]):
+        raise ValueError("当前密码不正确")
+
+    new_plain = (new_password or "").strip()
+    if len(new_plain) < 4:
+        raise ValueError("新密码至少需要 4 个字符")
+
+    salt = secrets.token_hex(16)
+    account["password_hash"] = hash_password(new_plain, salt)
+    account["salt"] = salt
+    account["updated_at"] = str(int(time.time()))
+    save_accounts_atomic(accounts)
+
+
 def set_student_active(user_id: str, active: bool) -> dict:
     accounts = load_accounts()
     account = accounts.get(user_id)

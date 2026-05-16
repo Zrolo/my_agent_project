@@ -41,12 +41,73 @@ class LeakageJudgeV1Tests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "leakage_level"):
             _validate_leakage_judge_v1_schema(payload)
 
+    def test_validate_leakage_judge_schema_normalizes_empty_positive_leaked_elements(self):
+        payload = _valid_leakage_payload(level=3, safe_action="rewrite")
+        payload["leaked_elements"] = []
+
+        result = _validate_leakage_judge_v1_schema(payload)
+
+        self.assertEqual(["unknown_leaked_element"], result["leaked_elements"])
+        self.assertEqual([], payload["leaked_elements"])
+
     def test_leakage_judge_prompt_requires_leaked_elements_when_level_is_positive(self):
         system_prompt = _read_leakage_judge_v1_system_prompt()
 
         self.assertIn("leakage_level > 0", system_prompt)
         self.assertIn("leaked_elements 必须非空", system_prompt)
         self.assertIn("如果无法指出泄露了什么，不要把 leakage_level 设为 1-5", system_prompt)
+
+    def test_leakage_judge_prompt_treats_fully_worked_micro_example_as_possible_leakage(self):
+        system_prompt = _read_leakage_judge_v1_system_prompt()
+
+        self.assertIn("完整推演的微型例子", system_prompt)
+        self.assertIn("候选回复完整演示了学生本应推理出的关键关系", system_prompt)
+        self.assertIn("即使没有完整代码或完整题解", system_prompt)
+
+    def test_leakage_judge_prompt_flags_definition_first_bridge_leaks(self):
+        system_prompt = _read_leakage_judge_v1_system_prompt()
+
+        self.assertIn("开头定义句", system_prompt)
+        self.assertIn("直接命名或解释学生正在缺的概念", system_prompt)
+        self.assertIn("再接一个问题", system_prompt)
+
+    def test_leakage_judge_prompt_flags_answer_slot_questions(self):
+        system_prompt = _read_leakage_judge_v1_system_prompt()
+
+        self.assertIn("答案槽位问题", system_prompt)
+        self.assertIn("要求学生填写 forbidden_content 的关键位置、方向、动作或真假语义", system_prompt)
+        self.assertIn("不因为它是问句就自动安全", system_prompt)
+
+    def test_leakage_judge_prompt_distinguishes_upstream_observation_from_answer_slots(self):
+        system_prompt = _read_leakage_judge_v1_system_prompt()
+
+        self.assertIn("上游观察任务", system_prompt)
+        self.assertIn("直接填写当前 missing bridge", system_prompt)
+        self.assertIn("问题句形式不能降低泄露等级", system_prompt)
+        self.assertIn("默认按 critical_bridge leakage 判断", system_prompt)
+        self.assertIn("即使候选回复没有把答案写成陈述句", system_prompt)
+
+    def test_leakage_judge_prompt_flags_internal_field_update_leaks(self):
+        system_prompt = _read_leakage_judge_v1_system_prompt()
+
+        self.assertIn("内部字段更新动作", system_prompt)
+        self.assertIn("关键字段如何变化", system_prompt)
+        self.assertIn("数据结构操作语义", system_prompt)
+
+
+    def test_leakage_judge_prompt_uses_abstract_repair_instructions(self):
+        system_prompt = _read_leakage_judge_v1_system_prompt()
+        section = system_prompt.split("## repair_instruction", 1)[1]
+
+        self.assertIn("按泄露形态写修复指令", section)
+        self.assertIn("完整表示含义", section)
+        self.assertIn("完整关系或公式", section)
+        self.assertIn("完整判定条件", section)
+        self.assertIn("完整代码或模板", section)
+        self.assertIn("不要按具体算法名生成修复指令", section)
+
+        for concrete_term in ["DP", "check", "mid", "二分", "树上差分", "LCA", "lazy"]:
+            self.assertNotIn(concrete_term, section)
 
     def test_build_leakage_judge_user_message_wraps_candidate_and_contract(self):
         user_message = _build_leakage_judge_v1_user_message(

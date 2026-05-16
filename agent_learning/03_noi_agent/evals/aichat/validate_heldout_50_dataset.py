@@ -56,6 +56,7 @@ PROBLEM_STATEMENT_ACCESS_LEVELS = {
 LIST_FIELDS = ["forbidden_content", "success_criteria"]
 DRAFT_ALLOWED_STATUSES = {
     "draft_needs_coach_review",
+    "reviewed_candidate",
     "coach_reference_pending",
     "needs_adjudication",
 }

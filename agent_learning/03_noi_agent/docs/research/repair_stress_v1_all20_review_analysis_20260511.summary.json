@@ -1,0 +1,548 @@
+{
+  "workbook_csv": "/Users/kongyouli/Downloads/coach_response_review_workbook_repair_stress_v1_all20_20260511_zh_filled.xlsx",
+  "key_csv": "docs/research/coach_response_review_workbook_repair_stress_v1_all20_20260511.key.csv",
+  "labels_path": "docs/research/nonexistent_repair_stress_all20_labels.jsonl",
+  "pair_count": 20,
+  "labeled_pair_count": 20,
+  "quality": {
+    "repaired_wins": 14,
+    "ties": 3,
+    "repaired_losses": 3,
+    "average_delta": 1.1
+  },
+  "leakage": {
+    "repaired_improves": 19,
+    "ties": 1,
+    "repaired_worse": 0,
+    "average_severity_delta": -1.85,
+    "candidate_major_or_answer_rate": 1.0,
+    "repaired_major_or_answer_rate": 0.05
+  },
+  "student_ready": {
+    "repaired_improves": 14,
+    "ties": 3,
+    "repaired_worse": 3
+  },
+  "pairs": [
+    {
+      "case_id": "repair_stress_001",
+      "candidate": {
+        "anonymized_response_id": "resp_c929c23858",
+        "overall_quality": "3",
+        "leakage_label": "major_bridge_leakage",
+        "would_show_to_student": "borderline",
+        "preference_rank": "",
+        "notes": "例子本身非常合适，但 AI 已经把 dp[2] 到 dp[4] 的重复使用完整算出来了。正确但泄桥，学生只是在接受结论而不是自己发现。",
+        "review_status": "labeled",
+        "response_excerpt": "正着枚举会重复使用当前物品。比如第一个物品体积 2、价值 5，容量从小到大更新时，dp[2] 先变成 5，随后 dp[4] 会立刻用刚更新的 dp[2] 再加一次 5，变成 10，这等于把同一个物品选了两次。所以 01 背包必须倒着枚举容量。\n\n[LEVEL:L2]"
+      },
+      "repaired": {
+        "anonymized_response_id": "resp_4d39178d36",
+        "overall_quality": "5",
+        "leakage_label": "no_leakage",
+        "would_show_to_student": "yes",
+        "preference_rank": "",
+        "notes": "这个例子选得对，容量 5、体积 2 会让正序时 dp[4] 出现重复选同一物品的现象。让学生先写数组，再比较倒序，桥梁很清楚。",
+        "review_status": "labeled",
+        "response_excerpt": "我们可以用一个小例子手动模拟一下正序枚举下dp数组的变化。假设容量为5，第一件物品体积2价值5。正序枚举容量从1到5，请你写出每次更新时dp数组的值，观察是否存在重复选择的问题？填完后再对照思考：倒序枚举会如何？[LEVEL:L2]"
+      },
+      "quality_delta": 2,
+      "leakage_severity_delta": -2,
+      "student_ready_delta": 1
+    },
+    {
+      "case_id": "repair_stress_002",
+      "candidate": {
+        "anonymized_response_id": "resp_aab6483a28",
+        "overall_quality": "3",
+        "leakage_label": "major_bridge_leakage",
+        "would_show_to_student": "borderline",
+        "preference_rank": "",
+        "notes": "转移式和倒序理由都对，但公式、循环方向、覆盖原因一次性给完，正是学生缺的桥。可作为复习总结，不适合作为当前提示。",
+        "review_status": "labeled",
+        "response_excerpt": "压成一维后写成 for j = V downto w[i]: dp[j] = max(dp[j], dp[j-w[i]] + v[i])。倒序的原因是 dp[j-w[i]] 还停留在上一件物品处理完后的值，正序会用到当前物品刚更新出来的值。\n\n[LEVEL:L2]"
+      },
+      "repaired": {
+        "anonymized_response_id": "resp_fd20999b08",
+        "overall_quality": "2",
+        "leakage_label": "no_leakage",
+        "would_show_to_student": "no",
+        "preference_rank": "",
+        "notes": "思路是用正序小例子暴露覆盖，但选“重量2、容量3”看不出重复使用，dp[3] 用的是 dp[1]，不会出问题。这个例子会把学生带偏，容量至少要到 4 才能看到 dp[4] 用刚更新的 dp[2]。",
+        "review_status": "labeled",
+        "response_excerpt": "压成一维后，容量循环的顺序会决定 dp[j-w[i]] 代表的是上一件物品的值还是当前物品的更新值。你试试看：如果容量从小到大正序循环，用一个小例子（比如只有一件物品，重量2价值3，容量3）手动推一遍，观察 dp[2] 更新完后 dp[3] 会用哪个 dp[1] 的值？这样会有什么问题？ [LEVEL:L2]"
+      },
+      "quality_delta": -1,
+      "leakage_severity_delta": -2,
+      "student_ready_delta": -1
+    },
+    {
+      "case_id": "repair_stress_003",
+      "candidate": {
+        "anonymized_response_id": "resp_a56b27eb38",
+        "overall_quality": "2",
+        "leakage_label": "major_bridge_leakage",
+        "would_show_to_student": "no",
+        "preference_rank": "",
+        "notes": "这条不只泄露，还可能把边差分和点差分公式混在一起：说要统计每条边，却用了 cnt[w]--、cnt[parent[w]]-- 这一套更像点路径计数，边计数常见是 lca 减 2。需要先确认目标，否则不建议给学生看。",
+        "review_status": "labeled",
+        "response_excerpt": "对一条路径 u-v，设 w=lca(u,v)，差分标记就是 cnt[u]++、cnt[v]++、cnt[w]--、cnt[parent[w]]--，最后 DFS 汇总子树贡献。这样每条边被经过的次数就能从子树和里得到。\n\n[LEVEL:L2]"
+      },
+      "repaired": {
+        "anonymized_response_id": "resp_88c7fac44a",
+        "overall_quality": "4",
+        "leakage_label": "no_leakage",
+        "would_show_to_student": "yes",
+        "preference_rank": "",
+        "notes": "小树 1-2-3 和路径 2-3 让学生在很低成本上试端点/LCA 标记，方向对。稍弱的地方是没有提示为什么 DFS 子树和对应边数，后续可能要再追一问。",
+        "review_status": "labeled",
+        "response_excerpt": "我们先用一个小树来试。假设树是 1-2-3，1 是根，路径 2-3。你想象一下，如果我们要统计每条边被经过的次数，你会在哪些节点上做加减标记？具体地，你会在端点 2 和 3 上做什么操作？LCA 呢？试着自己写出来，然后我们对比一下你的结果。 [LEVEL:L2]"
+      },
+      "quality_delta": 2,
+      "leakage_severity_delta": -2,
+      "student_ready_delta": 2
+    },
+    {
+      "case_id": "repair_stress_004",
+      "candidate": {
+        "anonymized_response_id": "resp_85461898c7",
+        "overall_quality": "3",
+        "leakage_label": "major_bridge_leakage",
+        "would_show_to_student": "borderline",
+        "preference_rank": "",
+        "notes": "例子是对题的，但端点 +1、LCA -2、DFS 含义都直接讲出来了，学生卡的“在哪里加减”没有自己推。可保留例子，删掉标记结果，让学生先模拟。",
+        "review_status": "labeled",
+        "response_excerpt": "比如路径 4 到 7 的 LCA 是 2，就在 4 和 7 各加 1，在 2 减 2。之后 DFS 往上累加，某个子树的和就是连接这棵子树到父亲那条边被路径经过的次数。\n\n[LEVEL:L2]"
+      },
+      "repaired": {
+        "anonymized_response_id": "resp_5f65f10f36",
+        "overall_quality": "3",
+        "leakage_label": "major_bridge_leakage",
+        "would_show_to_student": "borderline",
+        "preference_rank": "",
+        "notes": "比上一条多了让学生模拟，所以下一步更明确；但“4、7 加 +1，2 加 -2”已经把核心标记方案说穿了。微型例子有用，不过应先让学生猜端点和 LCA 的符号。",
+        "review_status": "labeled",
+        "response_excerpt": "想象一条路径 4→7，我们只能对端点 4 和 7 做一种标记（比如+1），对它们的 LCA 2 做另一种标记（比如-2）。之后 DFS 累加子树和，你觉得这样的标记会带来什么结果？试着自己在草稿上模拟一下 4 加+1、7 加+1、2 加-2，然后从叶子向上累加，看看每个节点子树和表示什么。[LEVEL:L2]"
+      },
+      "quality_delta": 0,
+      "leakage_severity_delta": 0,
+      "student_ready_delta": 0
+    },
+    {
+      "case_id": "repair_stress_005",
+      "candidate": {
+        "anonymized_response_id": "resp_41ca547597",
+        "overall_quality": "3",
+        "leakage_label": "major_bridge_leakage",
+        "would_show_to_student": "borderline",
+        "preference_rank": "",
+        "notes": "lazy 语义说得准，但把“父节点已生效、孩子未下传”这座桥直接揭开了。作为讲解可以，作为 L2 引导偏强，最好改成问 sum[x] 和子节点 sum 的状态差异。",
+        "review_status": "labeled",
+        "response_excerpt": "lazy[x] 表示当前节点代表的整段已经整体加过了，sum[x] 也已经更新了，但这个加法还没有下传到两个子节点。等以后访问子节点时，再把 lazy[x] 下推给孩子，并清空 lazy[x]。\n\n[LEVEL:L2]"
+      },
+      "repaired": {
+        "anonymized_response_id": "resp_b1a9fd18c5",
+        "overall_quality": "4",
+        "leakage_label": "no_leakage",
+        "would_show_to_student": "yes",
+        "preference_rank": "",
+        "notes": "抓得很准：用当前节点 sum、子节点 sum 的差异逼出 lazy 的语义，没有直接替学生定义。小缺点是没有具体区间例子，弱一点的学生可能还要再追问一次。",
+        "review_status": "labeled",
+        "response_excerpt": "区间加操作后，当前节点的 sum 应该立即更新吗？它的子节点 sum 呢？那 lazy 标记可以记录什么？[LEVEL:L2]"
+      },
+      "quality_delta": 1,
+      "leakage_severity_delta": -2,
+      "student_ready_delta": 1
+    },
+    {
+      "case_id": "repair_stress_006",
+      "candidate": {
+        "anonymized_response_id": "resp_5caee600ea",
+        "overall_quality": "3",
+        "leakage_label": "major_bridge_leakage",
+        "would_show_to_student": "borderline",
+        "preference_rank": "",
+        "notes": "“父节点欠两个儿子的账”这个类比贴切，但后面把 pushdown 要改的 lazy 和 sum 公式全说完了。学生不用再判断欠给谁、怎么还，提示强度偏过。",
+        "review_status": "labeled",
+        "response_excerpt": "lazy 就是父节点欠两个儿子的账。pushdown 时，把 lazy[x] 加到 lazy[left] 和 lazy[right]，同时把 sum[left] 增加 lazy[x] * len(left)，sum[right] 增加 lazy[x] * len(right)，最后 lazy[x]=0。\n\n[LEVEL:L2]"
+      },
+      "repaired": {
+        "anonymized_response_id": "resp_d20bf2d394",
+        "overall_quality": "5",
+        "leakage_label": "no_leakage",
+        "would_show_to_student": "yes",
+        "preference_rank": "",
+        "notes": "把“欠账”类比接到具体区间 [1,4] 和两个孩子上，要求学生说出孩子要改哪两个值，正好引出 pushdown。没有直接写公式，强度很合适。",
+        "review_status": "labeled",
+        "response_excerpt": "你说得对，lazy 就像父节点欠两个孩子的账。但具体欠了什么？如果父节点有一个区间加法的欠账，它应该怎样影响两个孩子？请用你自己的话描述：每个孩子节点需要更新哪两个值？试着用一个简单例子说明，比如父节点代表 [1,4]，lazy 值为 2，两个孩子代表 [1,2] 和 [3,4]，每个孩子长度为 2。你觉得欠账应该怎么分？ [LEVEL:L2]"
+      },
+      "quality_delta": 2,
+      "leakage_severity_delta": -2,
+      "student_ready_delta": 1
+    },
+    {
+      "case_id": "repair_stress_007",
+      "candidate": {
+        "anonymized_response_id": "resp_01d2b76a6d",
+        "overall_quality": "3",
+        "leakage_label": "major_bridge_leakage",
+        "would_show_to_student": "borderline",
+        "preference_rank": "",
+        "notes": "变形和 j->i 都正确，但这正是学生写反的关键桥，已经直接补完。可以作为答案卡，但不适合作为 L2 过程引导。",
+        "review_status": "labeled",
+        "response_excerpt": "把 a[i]-a[j] <= c 变形为 a[i] <= a[j] + c，所以建边 j -> i，边权 c。这样最短路的 relax 正好对应 a[i] 被 a[j]+c 约束住。\n\n[LEVEL:L2]"
+      },
+      "repaired": {
+        "anonymized_response_id": "resp_a4a1cd42dc",
+        "overall_quality": "4",
+        "leakage_label": "minor_bridge_leakage",
+        "would_show_to_student": "yes",
+        "preference_rank": "",
+        "notes": "先让学生把不等式化成 d[v]≤d[u]+w，再自己映射边方向，教学上比直接给 j->i 好。它给了松弛标准形，提示略强，但仍保留了变量对应这一步。",
+        "review_status": "labeled",
+        "response_excerpt": "你的思路是对的，差分约束需要建图。先看这个不等式：a[i] - a[j] <= c。我们想把它变成最短路松弛的条件形式 d[v] <= d[u] + w。你能不能试着把 a[i] - a[j] <= c 变形一下，让它左边只有一个变量，右边是另一个变量加某个数？然后想想要是从谁连向谁，才能让最短路的松弛刚好体现这个不等式？[LEVEL:L2]"
+      },
+      "quality_delta": 1,
+      "leakage_severity_delta": -1,
+      "student_ready_delta": 1
+    },
+    {
+      "case_id": "repair_stress_008",
+      "candidate": {
+        "anonymized_response_id": "resp_505386ceed",
+        "overall_quality": "3",
+        "leakage_label": "major_bridge_leakage",
+        "would_show_to_student": "borderline",
+        "preference_rank": "",
+        "notes": "规则本身清楚，而且能解决问题；但“这题属于前一种，所以用最短路”直接替学生完成判断。若按 L2，应去掉最后一句，让学生自己判断本题是哪一种。",
+        "review_status": "labeled",
+        "response_excerpt": "如果是不等式 x_v <= x_u + w，就建 u -> v 权 w，跑最短路；如果是 x_v >= x_u + w，就建 u -> v 权 w，跑最长路。你这题属于前一种，所以用最短路。\n\n[LEVEL:L2]"
+      },
+      "repaired": {
+        "anonymized_response_id": "resp_039076ac56",
+        "overall_quality": "4",
+        "leakage_label": "no_leakage",
+        "would_show_to_student": "yes",
+        "preference_rank": "",
+        "notes": "方向是好的：先让学生把不等式类型和最短/最长路对应起来，而不是直接宣布用哪个。下一步稍微宽，最好再让他把本题约束改写成 <= 或 >= 的标准形。",
+        "review_status": "labeled",
+        "response_excerpt": "你可以回忆一下，形如 x_v <= x_u + w 的不等式，如果转化成最短路形式，边的方向应该怎么建？反过来 x_v >= x_u + w 呢？  [LEVEL:L1]"
+      },
+      "quality_delta": 1,
+      "leakage_severity_delta": -2,
+      "student_ready_delta": 1
+    },
+    {
+      "case_id": "repair_stress_009",
+      "candidate": {
+        "anonymized_response_id": "resp_8b822335b2",
+        "overall_quality": "3",
+        "leakage_label": "major_bridge_leakage",
+        "would_show_to_student": "borderline",
+        "preference_rank": "",
+        "notes": "first true 的边界更新说对了，但 true 时 r=mid、false 时 l=mid+1 是学生当前要搭的桥，回复直接给完。缺少让他判断“答案在左还是右”的过程。",
+        "review_status": "labeled",
+        "response_excerpt": "如果 check(mid) 为 true，说明答案可能是 mid 或更左边，所以 r = mid；如果 false，说明 mid 和左边都不行，所以 l = mid + 1。循环用 while (l < r)。\n\n[LEVEL:L2]"
+      },
+      "repaired": {
+        "anonymized_response_id": "resp_a27914955b",
+        "overall_quality": "5",
+        "leakage_label": "no_leakage",
+        "would_show_to_student": "yes",
+        "preference_rank": "",
+        "notes": "很好地把规则拆成两个判断，还用 000111 的例子让学生先决定动 l 还是 r。没有把最终收缩式直接替他写死，适合作为 L2。",
+        "review_status": "labeled",
+        "response_excerpt": "假设我们在找第一个满足条件的位置，当前区间是[l, r]。看mid这个位置：如果check(mid)为真，说明mid可能是答案，那么答案可能还在mid左边还是右边？如果check(mid)为假，说明mid肯定不行，那么答案应该在mid的哪一边？试着根据这个思路自己写出收缩规则。或者看这个小例子：数组[0,0,0,1,1,1]，找第一个1的位置，初始l=0,r=5，mid=2时check=false，你该动l还是r？这样的收缩方向和你之前写反的有什么不同？[LEVEL:L2]"
+      },
+      "quality_delta": 2,
+      "leakage_severity_delta": -2,
+      "student_ready_delta": 1
+    },
+    {
+      "case_id": "repair_stress_010",
+      "candidate": {
+        "anonymized_response_id": "resp_32073b46db",
+        "overall_quality": "3",
+        "leakage_label": "major_bridge_leakage",
+        "would_show_to_student": "borderline",
+        "preference_rank": "",
+        "notes": "check 的含义和边界方向都讲对了，但这就是学生卡住的 true/false 语义桥。可以作为最后总结，不宜在这一轮直接给。",
+        "review_status": "labeled",
+        "response_excerpt": "check(mid) 应该返回是否存在一个合法方案让答案至少达到 mid。如果 check(mid)=true，说明 mid 可行，可以尝试更大的 mid；如果 false，就要把上界往小调。\n\n[LEVEL:L2]"
+      },
+      "repaired": {
+        "anonymized_response_id": "resp_221371f2e2",
+        "overall_quality": "3",
+        "leakage_label": "no_leakage",
+        "would_show_to_student": "borderline",
+        "preference_rank": "",
+        "notes": "守住了不直接给 check 的边界，但问题有点抽象，学生可能只是把“可行”两个字重复一遍。最好接一个具体 mid，让他判断 true 后目标值该放大还是缩小。",
+        "review_status": "labeled",
+        "response_excerpt": "能再描述一下 check(mid) 应该判断“mid 是否可行”还是“是否至少可以”之类的问题？如果 mid 可行，你觉得边界应该往哪个方向调整？[LEVEL:L2]"
+      },
+      "quality_delta": 0,
+      "leakage_severity_delta": -2,
+      "student_ready_delta": 0
+    },
+    {
+      "case_id": "repair_stress_011",
+      "candidate": {
+        "anonymized_response_id": "resp_379d22197a",
+        "overall_quality": "3",
+        "leakage_label": "major_bridge_leakage",
+        "would_show_to_student": "borderline",
+        "preference_rank": "",
+        "notes": "堆操作流程是对的，但“小的重量尽量少被重复累加”只是结论，不是学生能验证的桥。最好补一个对比例子或交换论证问题，而不是直接报哈夫曼核心。",
+        "review_status": "labeled",
+        "response_excerpt": "每一步都从小根堆弹出两个最小值 a,b，代价加 a+b，再把 a+b 放回堆。这样能保证小的重量尽量少被重复累加，是哈夫曼贪心的核心。\n\n[LEVEL:L2]"
+      },
+      "repaired": {
+        "anonymized_response_id": "resp_c46334c779",
+        "overall_quality": "2",
+        "leakage_label": "minor_bridge_leakage",
+        "would_show_to_student": "no",
+        "preference_rank": "",
+        "notes": "1,2,3,4 这个例子不太好：顺序合并和每次取最小会走出同样代价，学生算完也看不出为什么顺序合并不行。建议换成能产生明显差异的反例，再引导比较总成本。",
+        "review_status": "labeled",
+        "response_excerpt": "好问题！我们来看一个具体例子：果子重量分别为 1, 2, 3, 4。\n如果直接顺序合并，先合并 1+2=3，得到新序列 [3,3,4]；再合并 3+3=6，得到 [4,6]；最后 4+6=10，总代价 3+6+10=19。\n\n现在请你试试另一种合并方式：每次选择当前最小的两堆合并，你会怎么选？请写出每一步合并的两个重量、合并后的新重量，并计算总代价。最后比较两种方式的结果。\n\n[LEVEL:L2]"
+      },
+      "quality_delta": -1,
+      "leakage_severity_delta": -1,
+      "student_ready_delta": -1
+    },
+    {
+      "case_id": "repair_stress_012",
+      "candidate": {
+        "anonymized_response_id": "resp_668743ca5b",
+        "overall_quality": "3",
+        "leakage_label": "major_bridge_leakage",
+        "would_show_to_student": "borderline",
+        "preference_rank": "",
+        "notes": "复杂度结论是对的，但把学生该自己算出的 n²≈4e10 直接说完了。后面前缀和/树状数组/单调结构三选一偏散，缺少针对原循环里哪一步可维护的引导。",
+        "review_status": "labeled",
+        "response_excerpt": "双重循环是 O(n^2)，n=2e5 时大约 4e10 次操作，肯定过不了。你需要把内层循环换成能快速查询或维护答案的数据结构，比如前缀和、树状数组或单调结构。\n\n[LEVEL:L2]"
+      },
+      "repaired": {
+        "anonymized_response_id": "resp_b0a8cb4046",
+        "overall_quality": "5",
+        "leakage_label": "no_leakage",
+        "would_show_to_student": "yes",
+        "preference_rank": "",
+        "notes": "很对准 TLE 的桥：先让学生把 n² 算出来，再引到“内层能不能维护/预处理”。没有直接报 4e10，也没有乱塞数据结构，下一步比较清楚。",
+        "review_status": "labeled",
+        "response_excerpt": "你提到 n=2e5，那么外层循环 n 次，内层循环 n 次总操作数是多少？这个量级在通常的 1 秒时限内能跑完吗？如果觉得内层循环耗时过多，试着想想：内层循环中有哪些操作是可以提前或不用每次从头计算的？比如能否用一次扫描或某种方式快速得到需要的值？[LEVEL:L2]"
+      },
+      "quality_delta": 2,
+      "leakage_severity_delta": -2,
+      "student_ready_delta": 1
+    },
+    {
+      "case_id": "repair_stress_013",
+      "candidate": {
+        "anonymized_response_id": "resp_9490240bea",
+        "overall_quality": "3",
+        "leakage_label": "major_bridge_leakage",
+        "would_show_to_student": "borderline",
+        "preference_rank": "",
+        "notes": "next 的定义和跳转理由都准确，但把 prefix/suffix 语义和失配跳转桥一次性讲完了。KMP 这种抽象点最好配一个短模式串让学生自己对齐，不然容易只背定义。",
+        "review_status": "labeled",
+        "response_excerpt": "next[j] 表示模式串前 j 个字符中最长的相等真前后缀长度。失配时，前面已经匹配的部分里长度为 next[j] 的前缀仍然能和文本当前位置前的后缀对齐，所以 j 可以直接跳到 next[j]，不用从头比较。\n\n[LEVEL:L2]"
+      },
+      "repaired": {
+        "anonymized_response_id": "resp_fbed75d23f",
+        "overall_quality": "2",
+        "leakage_label": "no_leakage",
+        "would_show_to_student": "no",
+        "preference_rank": "",
+        "notes": "问题方向对，但太空了：只问“next 可能记录什么”基本等于把学生原问题重问一遍。至少要给一个已匹配前缀/后缀的小例子，否则学生很难迈出下一步。",
+        "review_status": "labeled",
+        "response_excerpt": "在对模式串进行匹配时，如果当前字符失配，我们有时可以跳过一些不必要的比较。你觉得这个next数组可能记录了什么信息？为什么失配时可以跳过一些比较呢？[LEVEL:L2]"
+      },
+      "quality_delta": -1,
+      "leakage_severity_delta": -2,
+      "student_ready_delta": -1
+    },
+    {
+      "case_id": "repair_stress_014",
+      "candidate": {
+        "anonymized_response_id": "resp_a5d7b7fc33",
+        "overall_quality": "3",
+        "leakage_label": "major_bridge_leakage",
+        "would_show_to_student": "borderline",
+        "preference_rank": "",
+        "notes": "证明是标准且正确的，但整段交换论证直接给完了。学生的问题是“为什么对”，这条会让他记住结论，却少了自己判断替换安全性的过程。",
+        "review_status": "labeled",
+        "response_excerpt": "证明方法是交换论证：设最优解第一项不是结束最早的活动 a，而是另一个活动 b。因为 a 结束不晚于 b，所以把 b 换成 a 后不会减少后面能选的活动数量，因此仍然是最优解。于是一定存在一个以结束最早活动开头的最优解。\n\n[LEVEL:L2]"
+      },
+      "repaired": {
+        "anonymized_response_id": "resp_a34fc9afa3",
+        "overall_quality": "5",
+        "leakage_label": "no_leakage",
+        "would_show_to_student": "yes",
+        "preference_rank": "",
+        "notes": "很好的交换论证引导：先假设最优解第一个不是最早结束，再让学生判断替换后后续活动是否还能选。关键桥保留给学生完成。",
+        "review_status": "labeled",
+        "response_excerpt": "你的想法很自然。不妨假设最优解第一个活动不是结束最早的，而是另一个活动 b。既然 a 比 b 结束得早，那么如果我们用 a 替换 b，你觉得替换后还能选原本 b 后面的那些活动吗？为什么？[LEVEL:L2]"
+      },
+      "quality_delta": 2,
+      "leakage_severity_delta": -2,
+      "student_ready_delta": 1
+    },
+    {
+      "case_id": "repair_stress_015",
+      "candidate": {
+        "anonymized_response_id": "resp_0d52bf85bb",
+        "overall_quality": "3",
+        "leakage_label": "major_bridge_leakage",
+        "would_show_to_student": "borderline",
+        "preference_rank": "",
+        "notes": "这段把“值不小且位置更靠右→更晚过期→永远支配”完整讲完了，正确但直接说穿了队尾弹出的证明桥。学生读完基本不用自己推。",
+        "review_status": "labeled",
+        "response_excerpt": "如果新元素 i 比队尾 j 更靠右，而且值还不小于 j，那么在之后所有包含 j 的窗口里，i 也会更晚过期且值更大或相等，所以 j 永远不可能成为最大值，可以直接从队尾弹掉。\n\n[LEVEL:L2]"
+      },
+      "repaired": {
+        "anonymized_response_id": "resp_141f2c8f59",
+        "overall_quality": "5",
+        "leakage_label": "no_leakage",
+        "would_show_to_student": "yes",
+        "preference_rank": "",
+        "notes": "小例子能让学生看到“右侧且更大的元素会压掉队尾”，最后追问未来还能不能成为最大值，正好把支配关系引出来。后续最好让学生自己补上“更晚过期”这句话。",
+        "review_status": "labeled",
+        "response_excerpt": "假设你正在处理一个滑动窗口问题，窗口大小为3，当前队列中有元素[5,3,2]，新元素是4。请观察队列中哪些元素会被弹出？对比一下新元素和队尾元素，你觉得队尾元素在未来的窗口里还有可能成为最大值吗？为什么？[LEVEL:L2]"
+      },
+      "quality_delta": 2,
+      "leakage_severity_delta": -2,
+      "student_ready_delta": 1
+    },
+    {
+      "case_id": "repair_stress_016",
+      "candidate": {
+        "anonymized_response_id": "resp_0d4624de1b",
+        "overall_quality": "3",
+        "leakage_label": "major_bridge_leakage",
+        "would_show_to_student": "borderline",
+        "preference_rank": "",
+        "notes": "结论是对的，但 dp[0]=0、其他位置 INF、只从非 INF 转移这些关键点都直接替学生填好了。学生卡的是 base case 和不可达语义，这条更像总结答案。",
+        "review_status": "labeled",
+        "response_excerpt": "如果是求最小代价，dp[0]=0 表示什么都不做代价为 0，其他 dp[i] 都初始化为 INF，表示还不可达。然后转移时只从已经不是 INF 的状态往后更新。\n\n[LEVEL:L2]"
+      },
+      "repaired": {
+        "anonymized_response_id": "resp_8d568ed18a",
+        "overall_quality": "4",
+        "leakage_label": "no_leakage",
+        "would_show_to_student": "yes",
+        "preference_rank": "",
+        "notes": "抓住了 base case 的语义问题，让学生先说 dp[0] 和其他状态各代表什么。略可惜的是没有给一个“还没到达的位置”小提示，基础弱的学生可能会停在抽象层。",
+        "review_status": "labeled",
+        "response_excerpt": "你问到了关键点！对于求最小代价的 DP，你觉得 dp[0] 应该表示什么含义？其他位置的初始值又代表什么意义呢？[LEVEL:L2]"
+      },
+      "quality_delta": 1,
+      "leakage_severity_delta": -2,
+      "student_ready_delta": 1
+    },
+    {
+      "case_id": "repair_stress_017",
+      "candidate": {
+        "anonymized_response_id": "resp_2a82bf96d1",
+        "overall_quality": "2",
+        "leakage_label": "answer_leakage",
+        "would_show_to_student": "no",
+        "preference_rank": "",
+        "notes": "这就是学生要的完整 if 和赋值，能直接抄进代码。虽然含义解释对，但完全跳过了 relax 条件的推理，教学上不该直接给。",
+        "review_status": "labeled",
+        "response_excerpt": "这里直接写 if (dist[v] > dist[u] + w) { dist[v] = dist[u] + w; }。条件含义是从 u 走到 v 能让 v 的当前距离变得更小。\n\n[LEVEL:L2]"
+      },
+      "repaired": {
+        "anonymized_response_id": "resp_69d27d84eb",
+        "overall_quality": "5",
+        "leakage_label": "no_leakage",
+        "would_show_to_student": "yes",
+        "preference_rank": "",
+        "notes": "面对学生要你补 if，这条守住了边界：只问比较哪两个距离、更新谁。下一步很具体，学生还得自己写出条件。",
+        "review_status": "labeled",
+        "response_excerpt": "Relax 操作中，你要比较哪两个距离？如果新路径更短，你需要对 dist[v] 做什么操作？[LEVEL:L1]"
+      },
+      "quality_delta": 3,
+      "leakage_severity_delta": -3,
+      "student_ready_delta": 2
+    },
+    {
+      "case_id": "repair_stress_018",
+      "candidate": {
+        "anonymized_response_id": "resp_93d44a07e3",
+        "overall_quality": "3",
+        "leakage_label": "answer_leakage",
+        "would_show_to_student": "borderline",
+        "preference_rank": "",
+        "notes": "反例本身很清楚，也贴着“每次选价值最大”的错误贪心；但容量、物品和最优解全给了，学生没有练到怎么构造反例。更像直接交答案，不像教他找最小反例。",
+        "review_status": "labeled",
+        "response_excerpt": "反例可以是容量 10，物品 A 重 10 价值 10，物品 B 重 6 价值 7，物品 C 重 4 价值 6。你的贪心会先选 A 得 10，但最优是选 B+C 得 13，所以策略错了。\n\n[LEVEL:L2]"
+      },
+      "repaired": {
+        "anonymized_response_id": "resp_e699e601a0",
+        "overall_quality": "3",
+        "leakage_label": "minor_bridge_leakage",
+        "would_show_to_student": "borderline",
+        "preference_rank": "",
+        "notes": "方向比直接给反例好，能引导学生比较“一个大物品”和“多个小物品”。但填空设计不完整：说了还需要别的物品，却只给 A/B 两个栏位，学生可能不知道要补 C；建议明确留出第三个物品格子。",
+        "review_status": "labeled",
+        "response_excerpt": "想想看，如果容量够，你会选一个很大但只占满容量的物品，还是选多个虽小但总价值更高的物品？试试构造一个容量为10的例子，有两种物品：一种重10值10，另一种重6值7，还有没有其他可能的物品？填一下容量和价值的空位，再看看贪心选了什么，最优选了什么？\n物品A：重___，价值___\n物品B：重___，价值___\n贪心选择：___\n最优选择：___\n\n[LEVEL:L2]"
+      },
+      "quality_delta": 0,
+      "leakage_severity_delta": -2,
+      "student_ready_delta": 0
+    },
+    {
+      "case_id": "repair_stress_019",
+      "candidate": {
+        "anonymized_response_id": "resp_57d7fa489e",
+        "overall_quality": "3",
+        "leakage_label": "major_bridge_leakage",
+        "would_show_to_student": "borderline",
+        "preference_rank": "",
+        "notes": "公式解释正确，但直接把 pre[R] 和 pre[L-1] 的抵消关系说完了。学生卡在下标时，更适合先用 [3,5] 这类小区间让他自己看剩下哪些项。",
+        "review_status": "labeled",
+        "response_excerpt": "因为 pre[R] 包含 1..R 的和，pre[L-1] 包含 1..L-1 的和，二者相减就刚好剩下 L..R，所以区间和就是 pre[R]-pre[L-1]。\n\n[LEVEL:L2]"
+      },
+      "repaired": {
+        "anonymized_response_id": "resp_394c20e882",
+        "overall_quality": "5",
+        "leakage_label": "no_leakage",
+        "would_show_to_student": "yes",
+        "preference_rank": "",
+        "notes": "这个提问很稳：pre[5]、pre[2] 到 [3,5] 的递进能让学生自己看出“减掉左边界前一段”。下一步具体，不容易继续下标混乱。",
+        "review_status": "labeled",
+        "response_excerpt": "先想一下 pre[5] 包含了哪些下标元素的和？那 pre[2] 又包含了哪些？如果我想求区间 [3,5] 的和，能不能从 pre[5] 里去掉 pre[2] 的部分？你看看减法之后剩下什么。 [LEVEL:L2]"
+      },
+      "quality_delta": 2,
+      "leakage_severity_delta": -2,
+      "student_ready_delta": 1
+    },
+    {
+      "case_id": "repair_stress_020",
+      "candidate": {
+        "anonymized_response_id": "resp_3b330b103b",
+        "overall_quality": "3",
+        "leakage_label": "major_bridge_leakage",
+        "would_show_to_student": "borderline",
+        "preference_rank": "",
+        "notes": "方向和复杂度都正确，但直接确认 Dijkstra+堆并给出松弛流程，基本替学生完成了算法选择。若按教练式 L1，应保留“非负边权为什么支持 Dijkstra”这一问。",
+        "review_status": "labeled",
+        "response_excerpt": "是的，这题就是 Dijkstra + 小根堆优化。因为边权非负，所以每次取当前最短的未确定点，然后用它去松弛邻边即可，复杂度 O((n+m)logn)。\n\n[LEVEL:L2]"
+      },
+      "repaired": {
+        "anonymized_response_id": "resp_7d93995f2f",
+        "overall_quality": "5",
+        "leakage_label": "no_leakage",
+        "would_show_to_student": "yes",
+        "preference_rank": "",
+        "notes": "很适合这轮：没有直接盖章 Dijkstra，而是追问非负边权为什么关键。学生下一步就是说明算法条件，强度刚好。",
+        "review_status": "labeled",
+        "response_excerpt": "你提到 Dijkstra 和堆，是什么让你觉得这个方向合适？另外，题目里的边权都是非负的，这个条件在你选算法时有什么作用呢？[LEVEL:L1]"
+      },
+      "quality_delta": 2,
+      "leakage_severity_delta": -2,
+      "student_ready_delta": 1
+    }
+  ]
+}

@@ -20,11 +20,19 @@ const batchAccountText = ref('');
 const batchResult = ref(null);
 const students = ref([]);
 const createdAccount = ref(null);
+const passwordEditStudent = ref(null);
+const passwordEditSaving = ref(false);
+const passwordEditError = ref('');
 
 const accountForm = reactive({
   display_name: '',
   user_id: '',
   password: '',
+});
+
+const passwordEditForm = reactive({
+  password: '',
+  confirm_password: '',
 });
 
 const activeStudents = computed(() => students.value.filter((item) => item.active !== false));
@@ -122,16 +130,46 @@ async function submitBatchAccounts() {
   }
 }
 
-async function resetPassword(student) {
+function resetPasswordEditForm() {
+  passwordEditForm.password = '';
+  passwordEditForm.confirm_password = '';
+  passwordEditError.value = '';
+}
+
+function openPasswordEdit(student) {
   accountMessage.value = '';
   createdAccount.value = null;
+  passwordEditStudent.value = student;
+  resetPasswordEditForm();
+}
+
+function closePasswordEdit() {
+  if (passwordEditSaving.value) return;
+  passwordEditStudent.value = null;
+  resetPasswordEditForm();
+}
+
+async function submitPasswordEdit() {
+  if (!passwordEditStudent.value) return;
+  passwordEditError.value = '';
+  if (passwordEditForm.password.trim() !== passwordEditForm.confirm_password.trim()) {
+    passwordEditError.value = '两次输入的学生密码不一致。';
+    return;
+  }
+  passwordEditSaving.value = true;
   try {
-    const result = await resetTeacherStudentPassword(auth.token, student.user_id, {});
+    const result = await resetTeacherStudentPassword(auth.token, passwordEditStudent.value.user_id, {
+      password: passwordEditForm.password.trim(),
+    });
     createdAccount.value = result.student;
-    accountMessage.value = '密码已重置，请把新密码及时发给学生。';
+    accountMessage.value = '学生密码已修改，请把新密码及时发给学生。';
+    passwordEditSaving.value = false;
+    closePasswordEdit();
     await loadStudents();
   } catch (err) {
-    accountMessage.value = err.message || '重置密码失败';
+    passwordEditError.value = err.message || '修改学生密码失败';
+  } finally {
+    passwordEditSaving.value = false;
   }
 }
 
@@ -171,7 +209,7 @@ onMounted(loadStudents);
         <div>
           <p class="section-eyebrow text-cyan-700">账号</p>
           <h3 class="mt-2 font-display text-2xl font-bold text-slate-900">创建学生账号</h3>
-          <p class="mt-2 text-sm leading-6 text-slate-500">只在创建或重置时显示明文密码，请及时记录给学生。</p>
+          <p class="mt-2 text-sm leading-6 text-slate-500">只在创建或修改密码时显示明文密码，请及时记录给学生。</p>
         </div>
         <button class="button-secondary" type="button" @click="loadStudents">刷新</button>
       </div>
@@ -286,7 +324,7 @@ onMounted(loadStudents);
               </td>
               <td class="px-4 py-3">
                 <div class="flex flex-wrap gap-2">
-                  <button class="button-secondary px-3 py-2 text-xs" type="button" @click="resetPassword(student)">重置密码</button>
+                  <button class="button-secondary px-3 py-2 text-xs" type="button" @click="openPasswordEdit(student)">修改密码</button>
                   <button class="button-secondary px-3 py-2 text-xs" type="button" @click="toggleStudentActive(student)">
                     {{ student.active === false ? '启用' : '停用' }}
                   </button>
@@ -300,5 +338,63 @@ onMounted(loadStudents);
         </div>
       </div>
     </section>
+
+    <div
+      v-if="passwordEditStudent"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="修改学生密码"
+      @click.self="closePasswordEdit"
+    >
+      <form class="w-full max-w-md rounded-[8px] bg-white p-5 shadow-xl" @submit.prevent="submitPasswordEdit">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <p class="section-eyebrow text-cyan-700">学生账号状态</p>
+            <h3 class="mt-2 text-xl font-bold text-slate-900">修改学生密码</h3>
+            <p class="mt-2 text-sm text-slate-500">
+              学生：{{ passwordEditStudent.display_name || passwordEditStudent.user_id }} / {{ passwordEditStudent.user_id }}
+            </p>
+          </div>
+          <button class="button-secondary px-3 py-1 text-sm" type="button" @click="closePasswordEdit">关闭</button>
+        </div>
+
+        <div class="mt-5 space-y-4">
+          <label class="block">
+            <span class="text-sm font-semibold text-slate-700">新学生密码</span>
+            <input
+              v-model="passwordEditForm.password"
+              class="mt-2 w-full rounded-[8px] border border-slate-200 px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-100"
+              type="password"
+              autocomplete="new-password"
+              minlength="4"
+              required
+            >
+          </label>
+          <label class="block">
+            <span class="text-sm font-semibold text-slate-700">确认学生密码</span>
+            <input
+              v-model="passwordEditForm.confirm_password"
+              class="mt-2 w-full rounded-[8px] border border-slate-200 px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-100"
+              type="password"
+              autocomplete="new-password"
+              minlength="4"
+              required
+            >
+          </label>
+        </div>
+
+        <p v-if="passwordEditError" class="mt-4 rounded-[8px] bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">
+          {{ passwordEditError }}
+        </p>
+
+        <div class="mt-5 flex justify-end gap-3">
+          <button class="button-secondary" type="button" :disabled="passwordEditSaving" @click="closePasswordEdit">取消</button>
+          <button class="button-primary" type="submit" :disabled="passwordEditSaving">
+            {{ passwordEditSaving ? '正在修改...' : '保存学生密码' }}
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </template>

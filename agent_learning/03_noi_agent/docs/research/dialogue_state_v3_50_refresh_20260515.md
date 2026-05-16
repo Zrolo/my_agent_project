@@ -10,8 +10,8 @@ Compared with the previous v4 generation-only draft, this version is not only a 
 
 - initial questions: 10 cases;
 - follow-up turns: 40 cases;
-- F1 follows well: 7 cases;
-- F2 partially follows: 18 cases;
+- F1 follows well: 6 cases;
+- F2 partially follows: 19 cases;
 - F3 struggles to follow: 10 cases;
 - F4 prerequisite gap: 5 cases.
 

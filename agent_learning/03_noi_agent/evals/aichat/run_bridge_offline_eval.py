@@ -3,6 +3,7 @@ from contextlib import contextmanager
 import inspect
 import json
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -18,6 +19,7 @@ from noi_agent import (
     bridge_judge_v1,
     chat as noi_agent_chat,
     leakage_judge_v1,
+    parse_level_tag,
     repair_response_v1,
 )
 
@@ -27,6 +29,7 @@ DEFAULT_OUTPUT_PATH = Path("evals/aichat/bridge_offline_eval_results.jsonl")
 DEFAULT_FOCUS_REGISTRY_PATH = Path("docs/research/focus_registry_v1.json")
 PIPELINE_MODES = {
     "diagnosis_only",
+    "deterministic_safe_scaffold",
     "tutor_only",
     "tutor_only_no_diagnosis",
     "tutor_plus_guard",
@@ -40,17 +43,22 @@ JUDGE_SCHEMA_MODES = {
 TUTOR_MODES = {
     "current_system",
     "bridge_contract",
+    "bridge_contract_compact",
+    "bridge_contract_minimal",
+    "bridge_guided_dbox_style_tutor",
     "bridge_inspired_expert_decision_tutor",
     "codehelp_codeaid_no_direct_solution_tutor",
     "enhanced_prompt_only",
     "single_llm_structured",
     "dbox_inspired_decomposition_tutor",
+    "edf_inspired_adaptive_scaffolding_tutor",
     "socratic_no_answer_tutor",
 }
 STANDALONE_NO_DIAGNOSIS_TUTOR_MODES = {
     "current_system",
     "codehelp_codeaid_no_direct_solution_tutor",
     "dbox_inspired_decomposition_tutor",
+    "edf_inspired_adaptive_scaffolding_tutor",
     "enhanced_prompt_only",
     "bridge_inspired_expert_decision_tutor",
     "socratic_no_answer_tutor",
@@ -119,6 +127,7 @@ CONTRACT_HELP_FORMS = [
     "understanding_check",
     "reflection_prompt",
 ]
+INTERNAL_LEVEL_TAG_RE = re.compile(r"\s*\[LEVEL\s*[:：]\s*L[0-4]\]\s*", re.IGNORECASE)
 
 BridgeJudgeFn = Callable[..., dict]
 TutorFn = Callable[[dict, list[dict], dict], dict]
@@ -172,6 +181,8 @@ def _compact_focus_registry(focus_registry: list | None) -> list:
             continue
         if not isinstance(item, dict):
             continue
+        if item.get("status") == "deprecated":
+            continue
         focus_id = item.get("focus_id")
         if not focus_id:
             continue
@@ -204,7 +215,9 @@ def _compact_context_line(label: str, value: str, max_chars: int = 1800) -> str 
     return f"{label}: {text}"
 
 
-def _dialogue_to_text(messages: list | None) -> str:
+def _dialogue_to_text(messages: list | str | None) -> str:
+    if isinstance(messages, str):
+        return messages.strip()
     parts = []
     for item in messages or []:
         if not isinstance(item, dict):
@@ -216,30 +229,163 @@ def _dialogue_to_text(messages: list | None) -> str:
     return "\n".join(parts)
 
 
+def _parse_recent_dialogue_messages(dialogue: str | None) -> list[dict]:
+    text = str(dialogue or "").strip()
+    if not text or text.upper() == "N/A":
+        return []
+    messages = []
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        separator = "：" if "：" in line else ":"
+        if separator not in line:
+            continue
+        role_text, content = line.split(separator, 1)
+        role_key = role_text.strip().lower()
+        content = content.strip()
+        if not content:
+            continue
+        if role_key in {"学生", "student", "user"}:
+            messages.append({"role": "user", "content": content})
+        elif role_key in {"ai", "assistant", "教练", "老师", "助手"}:
+            messages.append({"role": "assistant", "content": content})
+    return messages
+
+
+def _latest_assistant_reply(messages: list | str | None) -> str:
+    if isinstance(messages, str):
+        lines = [line.strip() for line in messages.splitlines() if line.strip()]
+        for line in reversed(lines):
+            lower = line.lower()
+            for prefix in ("assistant:", "ai:", "assistant：", "ai：", "助手：", "系统：", "老师："):
+                if lower.startswith(prefix):
+                    separator = "：" if "：" in prefix else ":"
+                    return line.split(separator, 1)[1].strip()
+        return ""
+    for item in reversed(messages or []):
+        if not isinstance(item, dict):
+            continue
+        if item.get("role") == "assistant":
+            return (item.get("content") or "").strip()
+    return ""
+
+
+def _offline_chat_context_strategy(row: dict) -> list[str]:
+    problem_context = (
+        row.get("problem_context")
+        or row.get("problem_statement")
+        or row.get("problem_statement_public_summary")
+        or ""
+    )
+    has_problem = any(
+        [
+            bool(str(row.get("problem_title") or "").strip()),
+            bool(str(row.get("problem_source_url") or row.get("problem_url") or "").strip()),
+            len(str(problem_context).strip()) >= 10,
+        ]
+    )
+    has_code = bool(str(row.get("student_code") or row.get("student_code_excerpt") or "").strip())
+    if has_problem and has_code:
+        return [
+            "上下文状态：有题目 + 有代码",
+            "回答策略：必须结合题面目标、学生问题和学生代码；先对齐题目目标与代码实现，再定位一个最小可疑位置。",
+            "边界：可以指出可疑行、变量含义或判断条件的不一致，但不要直接给最终代码。",
+        ]
+    if has_problem and not has_code:
+        return [
+            "上下文状态：有题目 + 无代码",
+            "回答策略：苏格拉底提问为主，基于题面证据和学生原话搭台阶；不要突然抛出学生尚未铺垫过的算法术语。",
+            "费曼验证：只在关键小步后让学生用自己的话复述当前小关系，不要展开成长讲解。",
+        ]
+    if not has_problem and has_code:
+        return [
+            "上下文状态：无题目 + 有代码",
+            "回答策略：先说明现在只看到了代码，但不知道题目目标；请学生先补题目链接或题号。",
+            "边界：不要先分析代码，不要猜题意，不能判断算法是否正确。",
+        ]
+    return [
+        "上下文状态：无题目 + 无代码",
+        "回答策略：先索取最小上下文，包括题号/链接、简短题意、学生卡在哪一步。",
+        "边界：不要直接进入算法教学，不要猜题型，不要给通用题解。",
+    ]
+
+
+def _generation_context_source(row: dict) -> str:
+    if row.get("prior_messages"):
+        return "prior_messages"
+    if _parse_recent_dialogue_messages(row.get("recent_dialogue")):
+        return "parsed_recent_dialogue"
+    return "none"
+
+
 def build_messages_from_seed_row(row: dict) -> list[dict]:
     messages = [dict(message) for message in row.get("prior_messages", [])]
+    if not messages:
+        messages = _parse_recent_dialogue_messages(row.get("recent_dialogue"))
+    problem_context_text = (
+        row.get("problem_context")
+        or row.get("problem_statement")
+        or row.get("problem_statement_public_summary")
+        or ""
+    )
     context_lines = [
+        _compact_context_line("题目标题", row.get("problem_title", ""), 200),
+        _compact_context_line("题目链接", row.get("problem_source_url") or row.get("problem_url") or "", 300),
         _compact_context_line("题目编号/链接", row.get("problem_ref", ""), 300),
-        _compact_context_line("题面/题意/约束", row.get("problem_context", ""), 1800),
+        _compact_context_line("同题短摘要记忆", row.get("memory_summary", ""), 1000),
+        _compact_context_line("题面/题意/约束", problem_context_text, 1800),
+        _compact_context_line("学生当前代码", row.get("student_code") or row.get("student_code_excerpt") or "", 1800),
+        _compact_context_line("同题上下文摘要", row.get("chat_context_summary", ""), 800),
     ]
     context_lines = [line for line in context_lines if line]
     student_message = row.get("student_message", "")
-    if context_lines:
-        content = "\n".join(
-            [
-                "[学生原始问题]",
-                student_message,
-                "",
-                "[当前题目上下文：只用于离线研究诊断，不要直接照抄题解]",
-                *context_lines,
-                "",
-                "请围绕学生当前卡点生成或评估渐进脚手架。",
-            ]
-        )
-    else:
-        content = student_message
+    content = "\n".join(
+        [
+            "[学生原始问题]",
+            student_message,
+            "",
+            "[当前上下文状态与回答策略]",
+            *_offline_chat_context_strategy(row),
+            "",
+            "[当前题目上下文：只用于理解学生卡点，不要直接照抄题解]",
+            *context_lines,
+            "",
+            "请优先围绕学生当前问题给渐进提示；即使学生要求完整代码，也不要直接给最终代码；只指出当前最小卡点和下一步验证方式。",
+        ]
+    )
     messages.append({"role": "user", "content": content})
     return messages
+
+
+SOURCE_METADATA_FIELDS = [
+    "problem_source_platform",
+    "problem_source_id",
+    "problem_source_url",
+    "problem_statement",
+    "problem_statement_public_summary",
+    "problem_statement_rights_note",
+    "problem_statement_access_level",
+    "student_message_length_bucket",
+    "turn_position",
+    "context_type",
+    "student_scaffold_followability",
+    "expected_tutor_move",
+    "prior_ai_scaffold",
+    "student_reply_to_prior_scaffold",
+    "followability_label_confidence",
+    "followability_evidence_quote",
+    "followability_uncertainty_reason",
+    "fixed_recent_dialogue_source",
+    "source_case_id",
+    "source_dataset",
+    "bridge_bucket",
+    "bridge_bucket_zh",
+]
+
+
+def _source_metadata_for_result(row: dict) -> dict:
+    return {field: row.get(field, "") for field in SOURCE_METADATA_FIELDS if field in row}
 
 
 def _call_current_system_tutor(row: dict, messages: list[dict], chat_model_provider: str | None = None) -> dict:
@@ -270,14 +416,15 @@ def _enhanced_prompt_message() -> dict:
                 "你正在生成算法竞赛辅导回复，但这一组实验不给你具体 Bridge Contract。",
                 "请遵守以下通用教学规则：",
                 "1. 不要直接给完整题解或完整代码。",
-                "2. 不要直接补完学生当前缺失的关键桥，例如完整状态定义、转移式、check 条件、边界更新、贪心准则或标记公式。",
+                "2. 不要直接补完学生当前缺失的关键桥，例如完整表示含义、完整关系或公式、完整判定条件、完整依赖顺序、完整贡献规则或完整局部代码槽位。",
                 "3. 先根据学生话语判断当前最可能缺的桥，但不要输出内部标签。",
                 "4. 使用 bridge-first, topic-second 原则：先按学生缺失的推理桥决定教学动作，算法名只作为上下文。",
-                "5. 如果使用微型例子，先说明这个例子要观察的桥梁问题；给足够小的例子；只问一个局部问题；最后要求学生抽象成可迁移规则。",
+                "5. 如果使用微型例子，先说明这个例子要观察的桥梁问题；给足够小的例子；只问一个局部观察问题；先完成局部观察，下一轮再抽象迁移规则。",
                 "6. 不要在微型例子里预填关键操作的一半再让学生补另一半。",
                 "7. 只给一个清晰、可回答的下一步问题。",
-                "8. 如果信息不足，先索取题面、代码、错误现象或学生已有尝试。",
-                "9. 回复自然，不输出 JSON、[LEVEL:] 或内部评测字段。",
+                "8. 学生在线回复通常很短，但请使用“最低足够学生努力”原则：优先短生成式回答，让学生用一两个关键词、局部判断或一句短句表达；慎用选择题。不要把当前 missing bridge 本身改写成短答槽位，例如“应该返回什么”“应该在哪里”“分别写什么值”“这个格子应该记录什么”。如果使用选择题，选项不能承载关键桥答案，只能比较非关键现象；学生卡住后再降级为选项，也要要求一个极短理由。下一步应低输入成本，但必须保留认知价值和诊断价值；不要要求长篇解释、不要要求完整表格、不要要求多步推导。",
+                "9. 如果信息不足，先索取题面、代码、错误现象或学生已有尝试。",
+                "10. 回复自然，不输出 JSON、[LEVEL:] 或内部评测字段。",
             ]
         ),
     }
@@ -347,7 +494,7 @@ def _bridge_contract_message(bridge_result: dict) -> dict:
             "1. 先说明这个例子要观察的桥梁问题。",
             "2. 给一个足够小、但仍贴近原题的小例子。",
             "3. 只问一个局部、可回答的问题。",
-            "4. 要求学生把观察抽象成一句可迁移规则。",
+            "4. 先让学生完成局部观察，下一轮再抽象成可迁移规则；不要在同一轮要求完整通用规则。",
         ]
     )
     bridge_first_policy = "\n".join(
@@ -358,6 +505,16 @@ def _bridge_contract_message(bridge_result: dict) -> dict:
             "3. 如果你想使用具体算法例子，必须先确认它服务于当前 bridge family，且不能补完整关键桥。",
         ]
     )
+    current_substep_policy = "\n".join(
+        [
+            "分解式脚手架约束：",
+            "1. 先在内部把 missing_bridge 拆成一个 current_substep，也就是学生当前最小子步骤。",
+            "2. 学生可见回复只围绕这一个 current_substep，不要同时展开多个后续步骤。",
+            "3. 只给第一层提示：可以给观察对象、例子输入、判断问题或空位；不要给完整推导、标准答案或最终规则。",
+            "4. 不要展示完整分解树，不要声称使用交互式分解界面；本实验只是单轮 current_substep 控制。",
+            "5. 学生在线回复通常很短，但请使用“最低足够学生努力”原则：current_substep 应低输入成本，但必须有认知价值和诊断价值。优先短生成式回答，让学生用一两个关键词、局部判断或一句短句表达；慎用选择题。不要把当前 missing bridge 本身改写成短答槽位，例如“应该返回什么”“应该在哪里”“分别写什么值”“这个格子应该记录什么”。如果使用选择题，选项不能承载关键桥答案，只能比较非关键现象；学生卡住后再降级为选项，也要要求一个极短理由。不要要求长篇解释、不要要求完整表格、不要要求多步推导。",
+        ]
+    )
     return {
         "role": "assistant",
         "content": "\n".join(
@@ -366,6 +523,7 @@ def _bridge_contract_message(bridge_result: dict) -> dict:
                 json.dumps(contract, ensure_ascii=False, indent=2),
                 "请下一轮回复严格遵守 allowed_help_level 和 help_form，只补半步，不要出现 forbidden_content。",
                 bridge_first_policy,
+                current_substep_policy,
                 micro_example_policy,
                 "如果学生问的是“为什么/含义/原理”，可以先给一句简短概念解释，再用一个问题引导迁移；不要一次连续抛出多个问题。",
             ]
@@ -373,30 +531,119 @@ def _bridge_contract_message(bridge_result: dict) -> dict:
     }
 
 
+def _bridge_contract_tutor_system_prompt(bridge_result: dict) -> str:
+    bridge_message = _bridge_contract_message(bridge_result)["content"]
+    return "\n".join(
+        [
+            "你是算法竞赛 AI 辅导研究中的 Offline Bridge Contract Tutor。",
+            "这是离线研究 prompt，不是线上 AIChat 主 system prompt；不要使用线上产品提示词、历史兜底文案或算法模板。",
+            "你只根据学生当前消息、题目上下文和下面的 Bridge Contract 生成一条学生可见回复。",
+            "不要输出 JSON，不要输出 Markdown 代码块，不要输出内部标签或评测字段。",
+            "",
+            bridge_message,
+            "",
+            "离线生成约束：",
+            "- 回复必须围绕 Bridge Contract 中的 missing_bridge，不要换到无关题型、无关数据结构或无关算法。",
+            "- 先内部确定一个 current_substep；学生可见回复只围绕这一个当前最小子步骤。",
+            "- 学生可见回复建议形状：一句承接学生当前说法 + 一个很小的观察任务 + 一个可短答的问题；不要像规则清单一样回复，不要连续追问多个问题。",
+            "- 只给 first-level hint：可以给观察对象、例子输入、判断问题或空白栏位；不要给完整推导、标准答案或最终规则。",
+            "- 不要用开头定义句把当前 missing bridge 命名或解释完；尤其是学生问“含义/为什么/说不清”时，先给观察任务，而不是先给标准定义再追问。",
+            "- 状态/表示类桥的第一层提示：不要直接给出表示对象承载的完整语义、目标量、最优性含义或可行性含义；不要把“这个量表示什么”提前替学生说完。先问哪些输入因素、边界对象、历史选择或约束会影响后续决策，让学生先列出影响后续决策的因素。",
+            "- 如果使用微型例子，只提供输入和观察问题，不替学生算完关键中间值，不给完整迁移规则。",
+            "- 不要给候选答案式标记、候选公式、候选边界动作或候选代码行让学生验证；这通常已经把关键桥放进题面了。",
+            "- 不要预填正负号、操作位置、边界方向或最终规则；如果需要表格，只给对象列和空白栏位，让学生自己尝试。",
+            "- 不要把关键符号、方向或位置做成二选一；这会把 forbidden_content 变成选择题选项。",
+            "- 不要在同一轮既替学生判断局部结果，又继续追问后续动作、边界方向或操作位置；这会把两个关键桥连续补完。",
+            "- 对贡献/汇总/判定类桥，先问观察对象和期望计数、期望真假或期望变化，不要直接问关键操作应该是什么。",
+            "- 贡献/汇总类桥的第一层提示：不要引入任何人工标记、正负号或补偿操作；只让学生列出真实受影响对象和期望汇总结果。",
+            "- 不要要求学生直接写完整通用公式或完整规则；只让学生完成一个局部观察，再用一句话描述观察到的现象。",
+            "- 不要把当前 missing bridge 本身改写成短答槽位，例如“应该返回什么”“应该在哪里”“分别写什么值”“这个格子应该记录什么”；这会把泄露换成更短的答案槽。",
+            "- 学生在线回复通常很短，但请使用“最低足够学生努力”原则：下一步要低输入成本，但必须有认知价值和诊断价值。优先短生成式回答，让学生用一两个关键词、局部判断或一句短句表达；慎用选择题。如果使用选择题，选项不能承载关键桥答案，只能比较非关键现象；学生卡住后再降级为选项，也要要求一个极短理由。不要要求长篇解释、不要要求完整表格、不要要求多步推导。",
+            "- 按抽象 bridge shape 修辞：表示含义、关系/公式、判定条件、依赖顺序、贡献/汇总规则、局部代码槽位。",
+            "- 具体算法名只作为题目上下文，不作为生成模板；没有覆盖到的算法也按 bridge shape 处理。",
+            "- 不要输出 [LEVEL]、JSON、judge/repair/report 等内部控制信息；学生可见回复只保留自然语言。",
+        ]
+    )
+
+
+def _bridge_contract_compact_tutor_system_prompt(
+    bridge_result: dict,
+    *,
+    compression_level: str = "compact",
+) -> str:
+    contract = {
+        "missing_bridge": bridge_result.get("missing_bridge", {}),
+        "allowed_help_level": bridge_result.get("allowed_help_level", ""),
+        "help_forms": _bridge_help_forms(bridge_result),
+        "forbidden_content": bridge_result.get("forbidden_content", []),
+        "leakage_risk": bridge_result.get("leakage_risk", ""),
+    }
+    if compression_level == "minimal":
+        constraints = [
+            "只围绕 Bridge Contract；不换题、不换算法、不引入新目标。",
+            "只推进一个当前最小子步骤。",
+            "回复形状：承接一句 + 一个小观察任务 + 一个可短答问题。",
+            "不直接补完整关键桥、完整答案、完整代码、完整规则或完整表示语义。",
+            "不要输出 JSON、Markdown 代码块或内部标签；学生可见回复只保留自然语言。",
+        ]
+    else:
+        compression_level = "compact"
+        constraints = [
+            "只围绕 Bridge Contract 中的 missing_bridge；具体算法名只作上下文，不作模板。",
+            "先内部确定一个当前最小子步骤；学生可见回复只推进这个子步骤。",
+            "学生可见回复形状：一句承接学生当前说法 + 一个小观察任务 + 一个可短答问题。",
+            "使用 first-level scaffold：观察对象、局部判断、微任务或理解检查；不要连续追问多个问题。",
+            "不直接补完整关键桥、完整答案、完整代码、完整推导、完整关系/公式、完整判定条件、完整边界动作、完整贡献规则或完整表示语义。",
+            "表示类桥先问哪些输入因素、边界对象、历史选择或约束会影响后续决策，不替学生定义表示含义。",
+            "如果信息不足，先索取最小必要上下文；不要用保守拒答替代可诊断脚手架。",
+            "不要输出 JSON、Markdown 代码块或内部标签；学生可见回复只保留自然语言。",
+        ]
+    return "\n".join(
+        [
+            "You are an Offline Bridge Contract Tutor for competitive-programming tutoring research.",
+            f"Compression profile: {compression_level}. This prompt is a compact ablation, not the online AIChat prompt.",
+            "Generate one natural student-visible reply. Do not output JSON, Markdown code blocks, or internal labels.",
+            "",
+            "Bridge Contract:",
+            json.dumps(contract, ensure_ascii=False, indent=2),
+            "",
+            "Core constraints:",
+            *[f"- {item}" for item in constraints],
+        ]
+    )
+
+
 def _call_bridge_contract_tutor(
     row: dict,
     messages: list[dict],
     bridge_result: dict,
     chat_model_provider: str | None = None,
+    *,
+    tutor_mode_name: str = "bridge_contract",
+    prompt_compression_level: str | None = None,
 ) -> dict:
-    if messages:
-        contract_messages = [*messages[:-1], _bridge_contract_message(bridge_result), messages[-1]]
+    if prompt_compression_level:
+        system_prompt = _bridge_contract_compact_tutor_system_prompt(
+            bridge_result,
+            compression_level=prompt_compression_level,
+        )
+        baseline_group = f"bridge_contract_tutor_{prompt_compression_level}"
     else:
-        contract_messages = [_bridge_contract_message(bridge_result)]
-    problem_ref = (row.get("problem_ref") or row.get("id") or "unknown_problem").strip()
-    case_id = row.get("id") or problem_ref
-    response_text, history_text, level = noi_agent_chat(
-        contract_messages,
-        "bridge_offline_eval_student",
-        f"{problem_ref}::{case_id}",
-        chat_model_provider=chat_model_provider,
+        system_prompt = _bridge_contract_tutor_system_prompt(bridge_result)
+        baseline_group = "bridge_contract_tutor"
+    response = _chat_completion_create(
+        system_prompt=system_prompt,
+        messages=messages,
+        provider_id=chat_model_provider,
     )
+    raw_text = response.choices[0].message.content or ""
+    level, clean_text = parse_level_tag(raw_text)
     return {
-        "baseline_group": "bridge_contract_tutor",
-        "tutor_mode": "bridge_contract",
+        "baseline_group": baseline_group,
+        "tutor_mode": tutor_mode_name,
         "tutor_model_provider": chat_model_provider or "default",
-        "response_text": response_text,
-        "history_text": history_text,
+        "response_text": clean_text or raw_text.strip(),
+        "history_text": clean_text or raw_text.strip(),
         "level": level,
     }
 
@@ -451,8 +698,8 @@ def _single_llm_structured_system_prompt() -> str:
             "- 先用 primary_bridge_family 决定教学动作：问状态语义、转移来源、判定方向、依赖顺序、贡献汇总、数据结构操作、正确性不变量、复杂度瓶颈、实现边界或调试证据。",
             "- algorithm_topic 只作为轻量上下文，帮助你选择例子语言；不要用算法名覆盖 primary_bridge_family 的控制规则。",
             "- selected_focus_id 只能从 top_k_registered_focus 中选择，用来细化措辞；没有合适候选就写 unknown，不要编造具体算法 focus。",
-            "- 不要试图覆盖所有具体算法，也不要因为 prompt 里出现过 DP、check、LCA 等例子，就把这些例子当作完整算法清单。",
-            "- 具体算法例子只是 regression boundary，不是生成回复的主规则；遇到 KMP、Dijkstra、单调栈、区间 DP、lazy、滚动数组等未列举算法时，也先映射到抽象 bridge family。",
+            "- 具体算法名只作为上下文信号，不是生成模板清单；不要把 prompt 中的示例当作算法清单。",
+            "- 遇到任何未覆盖算法或新题型时，也先映射到抽象 bridge family，再决定教学动作。",
             "",
             "帮助强度校准：",
             "- L0：只澄清或索取证据，不给实质解题提示。适用于信息不足、没有题面、代码调试但没有代码/错误现象、完整代码/完整题解请求。",
@@ -462,11 +709,11 @@ def _single_llm_structured_system_prompt() -> str:
             "- 不要因为保守而把所有可诊断学习轮次都选成 L1；如果一个桥梁导向微型例子能保留关键桥让学生自己抽象，通常应选 L2。",
             "",
             "关键桥泄露校准：",
-            "- 禁止内容不能包装成假设句或选择题答案。例如不要写“如果 dp 数组的格子代表……”，这等于直接给出状态语义。",
+            "- 禁止内容不能包装成假设句或选择题答案。例如不要写“如果这个量/格子/标记代表……”，这等于直接给出表示含义。",
             "- 不要在微型例子里预填关键操作的一半再让学生补另一半；这仍可能泄露关键桥。应先让学生列出观察对象、影响因素或可行性判断，再让他自己提出关系。",
-            "- 状态/表示类卡点：让学生自己说出状态格子应该记什么，可以问“哪些信息会影响后面的选择？”，不要替他定义 dp 含义。",
-            "- 判定/check 类卡点：可以给小数据让学生判断可行性，不要直接告诉 true/false 对应哪一侧边界。",
-            "- 汇总/贡献类卡点：可以问单条路径上哪些位置会贡献，不要直接给端点/LCA 的完整加减公式。",
+            "- 表示类卡点：让学生自己说出某个量、格子、标记或对象应该记录什么，可以问“哪些信息会影响后面的选择？”，不要替他给出精确定义。",
+            "- 判定类卡点：可以给小数据让学生判断候选量是否成立，不要直接告诉 true/false 对应的后续动作。",
+            "- 汇总/贡献类卡点：可以问局部影响最终应该被哪些对象统计到，不要直接给完整加减、抵消或汇总规则。",
             "- 如果 student_response 直接或变相说出了 forbidden_content，self_check 必须标为 medium 或 high，并把命中的内容写入 violated_forbidden_content。",
             "",
             "教学约束：",
@@ -474,6 +721,7 @@ def _single_llm_structured_system_prompt() -> str:
             "- 不要直接补完学生当前缺失的关键桥。",
             "- 如果给微型例子，必须先说明要观察的桥梁问题，再让学生抽象出可迁移规则。",
             "- 只问一个清晰、可回答的问题。",
+            "- 学生在线回复通常很短，但请使用“最低足够学生努力”原则：下一步要低输入成本，但必须有认知价值和诊断价值。优先短生成式回答，让学生用一两个关键词、局部判断或一句短句表达；慎用选择题。不要把当前 missing bridge 本身改写成短答槽位，例如“应该返回什么”“应该在哪里”“分别写什么值”“这个格子应该记录什么”。如果使用选择题，选项不能承载关键桥答案，只能比较非关键现象；学生卡住后再降级为选项，也要要求一个极短理由。不要要求长篇解释、不要要求完整表格、不要要求多步推导。",
             "- `student_response` 中不要出现 [LEVEL:] 或内部评测字段。",
         ]
     )
@@ -587,14 +835,18 @@ def _dbox_inspired_decomposition_system_prompt() -> str:
             "- no reveal code: do not provide code, pseudocode, or implementation templates.",
             "- no full solution / full code.",
             "- no direct critical bridge completion.",
-            "- no full state definition, full recurrence, full check condition, or full boundary update rule.",
+            "- no full representation meaning, full recurrence/relation, full predicate condition, or full boundary/update rule.",
+            "- 不要把经典模板或标准定义搬给学生；do not turn the current substep into a canonical template answer.",
+            "- 不要先给概念定义再追问；ask the student to observe first, then articulate the concept.",
+            "- 不要把 current_substep 写成答案句；it should be a small task the student can complete, not the missing answer.",
             "- do not display a complete step tree answer to the student.",
             "",
             "学生可见回复要求：",
             "- 只围绕当前一个子步骤，不要同时问多个问题。",
             "- 帮学生把当前大问题缩小为一个可回答的小问题。",
             "- 可以给一个很小的 micro-task 或观察问题，但不要替学生完成关键桥。",
-            "- 要让学生自己补完当前 substep，并说出理由或观察。",
+            "- 学生在线回复通常很短，但请使用“最低足够学生努力”原则：让学生用低输入成本完成当前 substep，但必须有认知价值和诊断价值。优先短生成式回答，让学生用一两个关键词、局部判断或一句短句表达；慎用选择题。不要把当前 missing bridge 本身改写成短答槽位，例如“应该返回什么”“应该在哪里”“分别写什么值”“这个格子应该记录什么”。如果使用选择题，选项不能承载关键桥答案，只能比较非关键现象；学生卡住后再降级为选项，也要要求一个极短理由。不要要求长篇解释、不要要求完整表格、不要要求多步推导。",
+            "- 要让学生自己补完当前 substep，并说出一个很短的理由或观察。",
             "- 如果学生直接要完整代码/完整题解，只做澄清或安全引导，不给实质解法。",
             "- 不要说你复现了 DBox；这只是单轮 DBox-inspired baseline。",
         ]
@@ -697,6 +949,198 @@ def _call_dbox_inspired_decomposition_tutor(
     }
 
 
+def _bridge_guided_dbox_style_system_prompt(bridge_result: dict) -> str:
+    bridge_contract = json.dumps(
+        _bridge_contract_message(bridge_result)["content"],
+        ensure_ascii=False,
+        indent=2,
+    )
+    return "\n".join(
+        [
+            "你是算法竞赛 AI 辅导研究中的 Bridge-guided DBox-style tutor。",
+            "This is a single-turn hybrid: Bridge Contract supplies CP-specific diagnosis/control, while DBox-style decomposition supplies the student-facing scaffold. It is not a DBox reproduction.",
+            "目标：不要把 Bridge Contract 原样讲给学生；先定位一个 current substep，再用 first-level question/micro-task 帮学生推进。",
+            "只输出 JSON，不要输出 Markdown 代码块，不要输出额外解释。",
+            "",
+            "Bridge Contract（内部控制信号，不要向学生展示）：",
+            bridge_contract,
+            "",
+            "输出 schema：",
+            "{",
+            '  "baseline_group": "missing_bridge_guided_decomposition",',
+            '  "decomposition_view": [',
+            '    {"step_id": "s1", "step_name": "short step name", "status": "known_or_not_relevant"},',
+            '    {"step_id": "s2", "step_name": "short step name", "status": "current_stuck_step"},',
+            '    {"step_id": "s3", "step_name": "short step name", "status": "defer"}',
+            "  ],",
+            '  "current_substep": "one small substep the student should complete now",',
+            '  "hint_level": "general_question",',
+            '  "student_visible_response": "自然的学生可见回复，不要包含内部标签或 JSON"',
+            "}",
+            "",
+            "Hard constraints:",
+            "- Use the Bridge Contract only to choose the current substep, help level, and forbidden_content.",
+            "- DBox-style scaffold: one compact decomposition view, exactly one current_stuck_step, and one first-level guide.",
+            "- do not reveal substep answer.",
+            "- do not reveal code.",
+            "- no detailed pseudocode.",
+            "- no complete step tree answer.",
+            "- no full solution / full code.",
+            "- no direct critical bridge completion.",
+            "- obey forbidden_content exactly; if it says not to reveal a full representation/relation/predicate/boundary, ask for a neutral observation instead.",
+            "- Do not turn the missing bridge into an answer slot, multiple-choice option, operation-location question, formula blank, or true/false follow-up action.",
+            "- Do not start by defining the missing concept. Let the student observe first.",
+            "- Choose exactly one next student action; keep it low-burden but cognitively useful.",
+            "- Student-visible text must not mention Bridge Contract, DBox, leakage, judge, repair, JSON, or internal labels.",
+        ]
+    )
+
+
+def _validate_bridge_guided_dbox_style_payload(payload: dict) -> dict:
+    if not isinstance(payload, dict):
+        raise ValueError("bridge_guided_dbox_style payload must be an object")
+    if payload.get("baseline_group") != "missing_bridge_guided_decomposition":
+        raise ValueError("baseline_group must be missing_bridge_guided_decomposition")
+    normalized = _validate_dbox_inspired_decomposition_payload(
+        {**payload, "baseline_group": "literature_inspired_decomposition"}
+    )
+    normalized["baseline_group"] = "missing_bridge_guided_decomposition"
+    return normalized
+
+
+def _call_bridge_guided_dbox_style_tutor(
+    row: dict,
+    messages: list[dict],
+    bridge_result: dict,
+    chat_model_provider: str | None = None,
+) -> dict:
+    response = _chat_completion_create(
+        system_prompt=_bridge_guided_dbox_style_system_prompt(bridge_result),
+        messages=messages,
+        provider_id=chat_model_provider,
+        response_format_json=True,
+    )
+    payload = _validate_bridge_guided_dbox_style_payload(
+        _extract_json_object(response.choices[0].message.content)
+    )
+    student_response = payload["student_visible_response"]
+    return {
+        "baseline_group": "missing_bridge_guided_decomposition",
+        "tutor_mode": "bridge_guided_dbox_style_tutor",
+        "tutor_model_provider": chat_model_provider or "default",
+        "response_text": student_response,
+        "history_text": student_response,
+        "level": "L1",
+        "decomposition_view": payload["decomposition_view"],
+        "current_substep": payload["current_substep"],
+        "hint_level": payload["hint_level"],
+        "bridge_guided_dbox_style_result": payload,
+    }
+
+
+def _edf_inspired_adaptive_scaffolding_system_prompt() -> str:
+    return "\n".join(
+        [
+            "你是算法竞赛 AI 辅导研究中的 EDF-inspired adaptive scaffolding baseline。",
+            "This is an EDF-inspired single-turn adaptation, not a reproduction of EDF or Copa.",
+            "你的内部过程是 Evidence -> Decision -> Feedback：先读证据，再做自适应脚手架决策，最后生成学生可见反馈。",
+            "当前 benchmark 是单轮 response-level 离线评测；不要声称使用了 C2STEM、Copa、长期 mastery tracking 或真实课堂日志。",
+            "只输出 JSON，不要输出 Markdown 代码块，不要输出额外解释。",
+            "",
+            "输出 schema：",
+            "{",
+            '  "baseline_group": "literature_inspired_adaptive_scaffolding",',
+            '  "evidence_summary": "what evidence in the student turn/context supports the current learner state",',
+            '  "learner_state": "concise current learner state or gap",',
+            '  "decision": "clarify_context|ask_evidence|light_hint|micro_scaffold|check_understanding|safe_refusal",',
+            '  "scaffold_level": "L0|L1|L2",',
+            '  "feedback_intent": "one sentence describing the instructional intent",',
+            '  "student_visible_response": "自然的学生可见回复，不要包含内部标签或 JSON"',
+            "}",
+            "",
+            "Hard constraints:",
+            "- Evidence -> Decision -> Feedback must stay internal; only student_visible_response is student-facing.",
+            "- first-level adaptive scaffold only: clarify context, request evidence, give a light hint, pose a micro-task, or check understanding.",
+            "- no reveal substep.",
+            "- no reveal code.",
+            "- no detailed pseudocode.",
+            "- no complete step tree answer.",
+            "- no full solution / full code.",
+            "- no direct critical bridge completion.",
+            "- no full representation meaning, full recurrence/relation, full predicate condition, full contribution rule, full dependency order, or full boundary/update rule.",
+            "- do not turn the missing bridge into an answer slot, multiple-choice option, formula blank, operation-location question, or true/false follow-up action.",
+            "- if evidence is insufficient, choose clarify_context or ask_evidence instead of guessing.",
+            "- if the student asks for complete code or a full solution, choose safe_refusal and ask for the current attempt or a minimal error/code fragment.",
+            "- choose exactly one next student action; do not ask multiple questions in one reply.",
+            "- keep the next action low burden but cognitively useful: one short observation, one local judgment, or one sentence.",
+            "- prefer short generated answers over multiple-choice; if choices are used, options must not contain the critical bridge.",
+            "- do not output internal fields, labels, JSON, model names, or reproduction claims in student_visible_response.",
+        ]
+    )
+
+
+def _validate_edf_inspired_adaptive_scaffolding_payload(payload: dict) -> dict:
+    if not isinstance(payload, dict):
+        raise ValueError("edf_inspired_adaptive_scaffolding payload must be an object")
+    if payload.get("baseline_group") != "literature_inspired_adaptive_scaffolding":
+        raise ValueError("baseline_group must be literature_inspired_adaptive_scaffolding")
+    valid_decisions = {
+        "clarify_context",
+        "ask_evidence",
+        "light_hint",
+        "micro_scaffold",
+        "check_understanding",
+        "safe_refusal",
+    }
+    valid_levels = {"L0", "L1", "L2"}
+    normalized = {"baseline_group": "literature_inspired_adaptive_scaffolding"}
+    for key in ["evidence_summary", "learner_state", "feedback_intent", "student_visible_response"]:
+        value = payload.get(key)
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"{key} must be a non-empty string")
+        normalized[key] = value.strip()
+    decision = payload.get("decision")
+    if decision not in valid_decisions:
+        raise ValueError(f"decision must be one of: {', '.join(sorted(valid_decisions))}")
+    scaffold_level = payload.get("scaffold_level")
+    if scaffold_level not in valid_levels:
+        raise ValueError("scaffold_level must be L0, L1, or L2")
+    normalized["decision"] = decision
+    normalized["scaffold_level"] = scaffold_level
+    return normalized
+
+
+def _call_edf_inspired_adaptive_scaffolding_tutor(
+    row: dict,
+    messages: list[dict],
+    bridge_result: dict,
+    chat_model_provider: str | None = None,
+) -> dict:
+    response = _chat_completion_create(
+        system_prompt=_edf_inspired_adaptive_scaffolding_system_prompt(),
+        messages=messages,
+        provider_id=chat_model_provider,
+    )
+    payload = _validate_edf_inspired_adaptive_scaffolding_payload(
+        _extract_json_object(response.choices[0].message.content)
+    )
+    student_response = payload["student_visible_response"]
+    return {
+        "baseline_group": "literature_inspired_adaptive_scaffolding",
+        "tutor_mode": "edf_inspired_adaptive_scaffolding_tutor",
+        "tutor_model_provider": chat_model_provider or "default",
+        "response_text": student_response,
+        "history_text": student_response,
+        "level": payload["scaffold_level"],
+        "evidence_summary": payload["evidence_summary"],
+        "learner_state": payload["learner_state"],
+        "decision": payload["decision"],
+        "scaffold_level": payload["scaffold_level"],
+        "feedback_intent": payload["feedback_intent"],
+        "edf_inspired_adaptive_scaffolding_result": payload,
+    }
+
+
 def _codehelp_codeaid_no_direct_solution_system_prompt() -> str:
     return "\n".join(
         [
@@ -722,8 +1166,8 @@ def _codehelp_codeaid_no_direct_solution_system_prompt() -> str:
             "- no full code.",
             "- no direct algorithm confirmation when the student only asks for the algorithm name.",
             "- do not reveal the critical intermediate reasoning that the student is currently missing.",
-            "- do not complete full state definitions, recurrences, check conditions, boundary update rules, or local code lines.",
-            "- do not ask for exact operations on u/v/LCA, true/false boundary directions, or other answer-bearing slots when that is the missing bridge; ask for an observation from a tiny example instead.",
+            "- do not complete full representation meanings, recurrences/relations, predicate conditions, boundary/update rules, or local code lines.",
+            "- do not ask for exact answer-bearing slots such as operation locations, true/false follow-up actions, or compensation objects when that is the missing bridge; ask for an observation from a tiny example instead.",
             "- provide at most one actionable next step.",
             "- prefer conceptual guidance, debugging direction, evidence requests, or a small question.",
             "- if context is insufficient, ask for the missing problem/code/error evidence instead of guessing.",
@@ -750,11 +1194,11 @@ def _socratic_no_answer_system_prompt() -> str:
             "- no-answer: do not provide the final answer, formula, algorithm confirmation, code, or complete reasoning step.",
             "- one question: ask at most one clear, answerable question.",
             "- do not state the missing bridge; make the student articulate it.",
-            "- no formula-like decomposition: do not state relations such as path = root-path combination, recurrence equations, check direction rules, or contribution formulas.",
-            "- do not mention parent/neighbor of LCA or any equivalent exact compensation node unless the student has already stated it.",
-            "- do not ask for exact operations on u/v/LCA, true/false boundary directions, or other answer-bearing slots when that is the missing bridge; ask for a neutral observation from a tiny example instead.",
-            "- for tree path marking/difference cases, do not pre-fill endpoint marks or ask where to subtract; ask the student to first shade one tiny path and compare which nodes should be counted.",
-            "- for tree path marking/difference cases, do not mention +1/-1, endpoint marks, subtract marks, or any mark location; only ask the student to identify the path nodes and what the final aggregate should count.",
+            "- no formula-like decomposition: do not state root-combination identities, recurrence equations, predicate-direction rules, contribution formulas, or equivalent exact relations.",
+            "- do not mention exact compensation objects or equivalent adjustment positions unless the student has already stated them.",
+            "- do not ask for exact answer-bearing slots such as operation locations, true/false follow-up actions, or compensation objects when that is the missing bridge; ask for a neutral observation from a tiny example instead.",
+            "- for contribution/aggregation cases, do not pre-fill operation marks or ask for exact subtract/add positions; ask the student to first mark a tiny affected region and compare what the final aggregate should count.",
+            "- for contribution/aggregation cases, do not mention concrete operation signs, endpoint marks, subtraction marks, or exact mark locations; only ask the student to identify affected objects and the final aggregate target.",
             "- keep question_intent generic; it must not contain the answer formula, exact forbidden completion, or answer-bearing slot list.",
             "- do not include multiple-choice answers if one option reveals the critical bridge.",
             "- if the student asks for full solution/code, ask for current attempt or evidence instead.",
@@ -876,8 +1320,8 @@ def _bridge_inspired_expert_decision_system_prompt() -> str:
             "- ask at most one focused question or give one next action.",
             "- do not give a full solution or full code.",
             "- do not directly complete the student's current critical reasoning step.",
-            "- no formula-like decomposition: do not state relations such as path = root-path combination, recurrence equations, check direction rules, or contribution formulas.",
-            "- do not mention parent/neighbor of LCA or any equivalent exact compensation node unless the student has already stated it.",
+            "- no formula-like decomposition: do not state root-combination identities, recurrence equations, predicate-direction rules, contribution formulas, or equivalent exact relations.",
+            "- do not mention exact compensation objects or equivalent adjustment positions unless the student has already stated them.",
             "- keep analogies at the observation level; do not turn an analogy into the missing formula.",
             "- if the student asks for algorithm confirmation, avoid direct confirmation and ask for a constraint/attempt signal.",
         ]
@@ -938,6 +1382,24 @@ def _make_tutor_fn(tutor_mode: str, chat_model_provider: str | None) -> TutorFn:
             bridge_result,
             chat_model_provider=chat_model_provider,
         )
+    if tutor_mode == "bridge_contract_compact":
+        return lambda row, messages, bridge_result: _call_bridge_contract_tutor(
+            row,
+            messages,
+            bridge_result,
+            chat_model_provider=chat_model_provider,
+            tutor_mode_name="bridge_contract_compact",
+            prompt_compression_level="compact",
+        )
+    if tutor_mode == "bridge_contract_minimal":
+        return lambda row, messages, bridge_result: _call_bridge_contract_tutor(
+            row,
+            messages,
+            bridge_result,
+            chat_model_provider=chat_model_provider,
+            tutor_mode_name="bridge_contract_minimal",
+            prompt_compression_level="minimal",
+        )
     if tutor_mode == "single_llm_structured":
         return lambda row, messages, bridge_result: _call_single_llm_structured_tutor(
             row,
@@ -954,6 +1416,20 @@ def _make_tutor_fn(tutor_mode: str, chat_model_provider: str | None) -> TutorFn:
         )
     if tutor_mode == "dbox_inspired_decomposition_tutor":
         return lambda row, messages, bridge_result: _call_dbox_inspired_decomposition_tutor(
+            row,
+            messages,
+            bridge_result,
+            chat_model_provider=chat_model_provider,
+        )
+    if tutor_mode == "bridge_guided_dbox_style_tutor":
+        return lambda row, messages, bridge_result: _call_bridge_guided_dbox_style_tutor(
+            row,
+            messages,
+            bridge_result,
+            chat_model_provider=chat_model_provider,
+        )
+    if tutor_mode == "edf_inspired_adaptive_scaffolding_tutor":
+        return lambda row, messages, bridge_result: _call_edf_inspired_adaptive_scaffolding_tutor(
             row,
             messages,
             bridge_result,
@@ -1097,6 +1573,71 @@ def _runtime_bridge_contract_from_result(
     return contract
 
 
+def _deterministic_safe_scaffold_response(row: dict, bridge_result: dict) -> dict:
+    missing_bridge = bridge_result.get("missing_bridge") or {}
+    family = missing_bridge.get("family") or bridge_result.get("primary_bridge_family") or "unknown"
+    leakage_risk = bridge_result.get("leakage_risk") or "unknown"
+    if family == "aggregation_contribution_bridge":
+        response_text = "\n".join(
+            [
+                "这一步先不要急着写辅助规则。我们先只做一个“真实影响”的观察。",
+                "",
+                "请你画一个最小例子，只列两列：",
+                "1. 这次操作实际影响了哪些对象；",
+                "2. 每个对象最终应该被统计几次。",
+                "",
+                "先不要写任何辅助标记、补偿操作或通用规则。你把这张真实结果表写出来，我再帮你检查下一步怎么把观察转成可汇总的信息。",
+                "",
+                "[LEVEL:L1]",
+            ]
+        )
+    elif family == "predicate_condition_bridge":
+        response_text = "\n".join(
+            [
+                "这一步先不要急着写判定规则。我们先只做一个候选量的观察。",
+                "",
+                "请你选一个最小样例，列出：这个候选量要成立，必须同时满足哪些事实；如果不成立，最先被破坏的是哪一个事实。",
+                "",
+                "先不要写真假方向或后续更新动作。你先把这两个事实列出来，我再帮你检查它们能不能组成判定条件。",
+                "",
+                "[LEVEL:L1]",
+            ]
+        )
+    elif family in {"representation_state_bridge", "data_structure_operation_bridge"}:
+        response_text = "\n".join(
+            [
+                "这一步先不要急着给出完整定义。我们先只观察一个位置或一个对象。",
+                "",
+                "请你列出：到这个位置为止，哪些信息会影响后面的选择或操作；哪些信息已经不会再影响。",
+                "",
+                "先不要把它写成完整状态或完整结构规则。你先列两个“必须保留的信息”和一个“可以丢掉的信息”，我再帮你判断够不够。",
+                "",
+                "[LEVEL:L1]",
+            ]
+        )
+    else:
+        response_text = "\n".join(
+            [
+                "这一步先不要急着写完整规则。我们把它缩小成一个只观察事实的小问题。",
+                "",
+                "请你选一个最小例子，先列出：当前步骤实际需要判断或保留哪些事实，以及你希望最后得到什么结果。",
+                "",
+                "先不要写完整公式、完整流程或代码。你把这几个事实列出来，我再帮你检查下一步。",
+                "",
+                "[LEVEL:L1]",
+            ]
+        )
+    return {
+        "baseline_group": "deterministic_safe_scaffold",
+        "tutor_mode": "deterministic_safe_scaffold",
+        "family": family,
+        "leakage_risk": leakage_risk,
+        "response_text": response_text,
+        "history_text": response_text,
+        "level": "L1",
+    }
+
+
 def _bridge_result_from_runtime_contract(contract: dict) -> dict:
     return {
         "turn_type": contract.get("turn_type") or "unknown",
@@ -1121,6 +1662,10 @@ def _bridge_result_from_runtime_contract(contract: dict) -> dict:
 def _estimate_tokens_from_payload(payload: object) -> int:
     text = json.dumps(payload, ensure_ascii=False, sort_keys=True)
     return max(1, round(len(text) / 4))
+
+
+def _strip_internal_level_tags(text: str) -> str:
+    return INTERNAL_LEVEL_TAG_RE.sub("", str(text or "")).strip()
 
 
 def _build_candidate_retrieval(
@@ -1176,6 +1721,12 @@ def _finish_case_result(
     result.setdefault("repair_applied", False)
     result.setdefault("blocked", False)
     result.setdefault("llm_call_count", 0)
+    result["candidate_static_leakage_risk_lint"] = _static_leakage_risk_lint(
+        result.get("candidate_response_text")
+    )
+    result["final_static_leakage_risk_lint"] = _static_leakage_risk_lint(
+        result.get("final_response_text")
+    )
     return result
 
 
@@ -1185,6 +1736,77 @@ def _record_latency(latency_ms: dict[str, float], key: str, start: float) -> Non
 
 def _add_llm_calls(result: dict, count: int = 1) -> None:
     result["llm_call_count"] = int(result.get("llm_call_count") or 0) + count
+
+
+def _static_leakage_risk_lint(response_text: str | None) -> dict:
+    text = response_text or ""
+    compact_text = " ".join(text.split())
+    answer_slot_patterns = [
+        "____",
+        "___",
+        "填成",
+        "填写",
+        "填空",
+        "true 还是 false",
+        "返回 true",
+        "返回 false",
+        "应该返回",
+        "可行返回",
+        "不可行返回",
+        "表示_____",
+        "表示____",
+        "将来要_____",
+        "将来要____",
+        "加到哪些位置",
+        "哪个节点",
+        "哪些点偏差",
+    ]
+    filled_trace_patterns = [
+        "dp[",
+        "= max",
+        "sum",
+        "lazy",
+        "+1",
+        "-1",
+        "标记",
+        "最终累加值",
+        "更新 dp",
+        "递归到节点",
+        "设置了一个",
+    ]
+    worked_example_patterns = [
+        "请计算",
+        "手动模拟",
+        "模拟更新",
+        "依次写出",
+        "最终每个点",
+        "对比",
+        "正序",
+        "倒序",
+    ]
+
+    answer_slot_matches = [pattern for pattern in answer_slot_patterns if pattern in compact_text]
+    filled_trace_matches = [pattern for pattern in filled_trace_patterns if pattern in compact_text]
+    worked_example_matches = [pattern for pattern in worked_example_patterns if pattern in compact_text]
+    risk_types = []
+    if answer_slot_matches:
+        risk_types.append("answer_slot")
+    if filled_trace_matches:
+        risk_types.append("filled_trace")
+    if worked_example_matches:
+        risk_types.append("worked_example")
+    return {
+        "answer_slot_risk_flag": bool(answer_slot_matches),
+        "filled_trace_risk_flag": bool(filled_trace_matches),
+        "worked_example_risk_flag": bool(worked_example_matches),
+        "risk_types": risk_types,
+        "matched_patterns": {
+            "answer_slot": answer_slot_matches[:8],
+            "filled_trace": filled_trace_matches[:8],
+            "worked_example": worked_example_matches[:8],
+        },
+        "is_diagnostic_only": True,
+    }
 
 
 def _effective_chat_thinking_mode(chat_thinking_mode: str | None) -> str:
@@ -1223,6 +1845,7 @@ def _run_one_bridge_offline_case(
     judge_provider: str,
     max_retries: int,
     chat_thinking_mode: str | None,
+    post_repair_fallback_on_leak: bool,
 ) -> dict:
     total_start = time.perf_counter()
     latency_ms: dict[str, float] = {}
@@ -1234,14 +1857,20 @@ def _run_one_bridge_offline_case(
         "summary": row.get("problem_context", ""),
     }
     case_id = row.get("id") or row.get("case_id") or ""
+    prior_dialogue = row.get("prior_messages") or row.get("recent_dialogue")
+    generation_context_source = _generation_context_source(row)
     result = {
         "case_id": case_id,
         "problem_ref": row.get("problem_ref", ""),
         "topic": row.get("topic", ""),
         "student_message": student_message,
         "problem_context": row.get("problem_context", ""),
-        "recent_dialogue": _dialogue_to_text(row.get("prior_messages") or row.get("recent_dialogue")),
+        "recent_dialogue": _dialogue_to_text(prior_dialogue),
+        "context_ai_reply": row.get("context_ai_reply") or _latest_assistant_reply(prior_dialogue),
         "student_code_excerpt": row.get("student_code") or row.get("student_code_excerpt") or "",
+        "generation_context_source": generation_context_source,
+        "generation_message_count": len(messages),
+        **_source_metadata_for_result(row),
         "tutor_mode": tutor_mode,
         "guard_mode": guard_mode,
         "pipeline_mode": pipeline_mode,
@@ -1257,6 +1886,7 @@ def _run_one_bridge_offline_case(
             "pipeline_mode": pipeline_mode,
             "judge_schema_mode": judge_schema_mode,
         },
+        "post_repair_fallback_on_leak": post_repair_fallback_on_leak,
         "gold": _case_gold(row),
         "llm_call_count": 0,
     }
@@ -1337,6 +1967,18 @@ def _run_one_bridge_offline_case(
     if pipeline_mode == "diagnosis_only":
         return _finish_case_result(result, latency_ms=latency_ms, stage_errors=stage_errors, total_start=total_start)
 
+    if pipeline_mode == "deterministic_safe_scaffold":
+        safe_result = _deterministic_safe_scaffold_response(row, bridge_result)
+        response_text = _strip_internal_level_tags(safe_result["response_text"])
+        safe_result["response_text"] = response_text
+        result["baseline_group"] = safe_result["baseline_group"]
+        result["tutor_response"] = safe_result
+        result["safe_fallback_result"] = safe_result
+        result["candidate_response_text"] = response_text
+        result["final_response_text"] = response_text
+        result["final_response_source"] = "safe_fallback"
+        return _finish_case_result(result, latency_ms=latency_ms, stage_errors=stage_errors, total_start=total_start)
+
     stage_start = time.perf_counter()
     tutor_retries = 0
     while True:
@@ -1360,7 +2002,9 @@ def _run_one_bridge_offline_case(
     _record_latency(latency_ms, "tutor_latency_ms", stage_start)
     result["tutor_response"] = tutor_result
     result["baseline_group"] = tutor_result.get("baseline_group", tutor_mode)
-    candidate_response = tutor_result.get("response_text", "")
+    result["level"] = tutor_result.get("level", "")
+    candidate_response = _strip_internal_level_tags(tutor_result.get("response_text", ""))
+    tutor_result["response_text"] = candidate_response
     result["candidate_response_text"] = candidate_response
     result["final_response_text"] = candidate_response
     result["final_response_source"] = "candidate"
@@ -1380,6 +2024,21 @@ def _run_one_bridge_offline_case(
         result["hint_level"] = tutor_result.get("hint_level") or ""
         result["dbox_inspired_decomposition_result"] = (
             tutor_result.get("dbox_inspired_decomposition_result") or {}
+        )
+    if tutor_mode == "bridge_guided_dbox_style_tutor":
+        result["decomposition_view"] = tutor_result.get("decomposition_view") or []
+        result["current_substep"] = tutor_result.get("current_substep") or ""
+        result["hint_level"] = tutor_result.get("hint_level") or ""
+        result["bridge_guided_dbox_style_result"] = (
+            tutor_result.get("bridge_guided_dbox_style_result") or {}
+        )
+    if tutor_mode == "edf_inspired_adaptive_scaffolding_tutor":
+        result["evidence_summary"] = tutor_result.get("evidence_summary") or ""
+        result["learner_state"] = tutor_result.get("learner_state") or ""
+        result["decision"] = tutor_result.get("decision") or ""
+        result["scaffold_level"] = tutor_result.get("scaffold_level") or ""
+        result["edf_inspired_adaptive_scaffolding_result"] = (
+            tutor_result.get("edf_inspired_adaptive_scaffolding_result") or {}
         )
     if tutor_mode == "codehelp_codeaid_no_direct_solution_tutor":
         result["codehelp_codeaid_result"] = tutor_result.get("codehelp_codeaid_result") or {}
@@ -1439,9 +2098,12 @@ def _run_one_bridge_offline_case(
 
     safe_action = leakage_result.get("safe_action")
     if safe_action == "block" and pipeline_mode == "tutor_plus_guard":
-        result["final_response_text"] = ""
-        result["final_response_source"] = "blocked"
-        result["blocked"] = True
+        safe_result = _deterministic_safe_scaffold_response(row, bridge_result)
+        safe_result["response_text"] = _strip_internal_level_tags(safe_result["response_text"])
+        result["safe_fallback_result"] = safe_result
+        result["final_response_text"] = safe_result["response_text"]
+        result["final_response_source"] = "safe_fallback_block"
+        result["blocked"] = False
 
     if (
         pipeline_mode == "tutor_plus_guard_plus_repair"
@@ -1465,12 +2127,73 @@ def _run_one_bridge_offline_case(
             _add_llm_calls(result, 1 + repair_retries)
             result["repair_result"] = repair_result
             result["retry_count"] = result.get("retry_count", 0) + repair_retries
-            repaired_response = repair_result.get("repaired_response")
+            repaired_response = _strip_internal_level_tags(repair_result.get("repaired_response") or "")
+            if repaired_response:
+                repair_result["repaired_response"] = repaired_response
             if repaired_response:
                 result["final_response_text"] = repaired_response
                 result["final_response_source"] = "repair"
                 result["repair_applied"] = True
                 result["blocked"] = False
+                if repair_result.get("still_needs_leakage_check", True):
+                    post_stage_start = time.perf_counter()
+                    try:
+                        post_repair_leakage, post_repair_retries = _call_stage_with_retries(
+                            leakage_judge_fn,
+                            {
+                                "student_message": student_message,
+                                "messages": messages,
+                                "problem_context": problem_context,
+                                "current_missing_bridge": bridge_result.get("missing_bridge", {}),
+                                "allowed_help_level": bridge_result.get("allowed_help_level", ""),
+                                "help_forms": _bridge_help_forms(bridge_result),
+                                "forbidden_content": forbidden_content,
+                                "candidate_response": repaired_response,
+                                "student_already_stated_bridge": bool(row.get("student_already_stated_bridge", False)),
+                            },
+                            judge_provider=judge_provider,
+                            max_retries=max_retries,
+                        )
+                        _add_llm_calls(result, 1 + post_repair_retries)
+                        result["retry_count"] = result.get("retry_count", 0) + post_repair_retries
+                        result["post_repair_leakage_judge_result"] = post_repair_leakage
+                        result["repair_still_leaks"] = bool(
+                            post_repair_leakage.get("leakage_level", 0) >= 3
+                            or post_repair_leakage.get("is_critical_bridge_leakage")
+                            or post_repair_leakage.get("is_answer_or_code_leakage")
+                        )
+                        result["post_repair_safe_action"] = post_repair_leakage.get("safe_action", "")
+                        if (
+                            post_repair_fallback_on_leak
+                            and (
+                                result["repair_still_leaks"]
+                                or result["post_repair_safe_action"] in {"rewrite", "block"}
+                            )
+                            and not post_repair_leakage.get("_failed")
+                        ):
+                            safe_result = _deterministic_safe_scaffold_response(row, bridge_result)
+                            safe_result["response_text"] = _strip_internal_level_tags(
+                                safe_result["response_text"]
+                            )
+                            result["safe_fallback_after_repair_result"] = safe_result
+                            result["final_response_text"] = safe_result["response_text"]
+                            result["final_response_source"] = "safe_fallback_after_repair"
+                            result["blocked"] = False
+                        if post_repair_leakage.get("_failed"):
+                            stage_errors["post_repair_leakage_judge"] = str(
+                                post_repair_leakage.get("_error")
+                                or post_repair_leakage.get("_reason")
+                                or "_failed"
+                            )
+                    except Exception as exc:
+                        _add_llm_calls(result)
+                        stage_errors["post_repair_leakage_judge"] = f"{type(exc).__name__}: {exc}"
+                    finally:
+                        _record_latency(
+                            latency_ms,
+                            "post_repair_leakage_judge_latency_ms",
+                            post_stage_start,
+                        )
             elif safe_action == "block":
                 result["final_response_text"] = ""
                 result["final_response_source"] = "blocked"
@@ -1508,6 +2231,7 @@ def run_bridge_offline_eval_rows(
     focus_registry_path: Path | None = DEFAULT_FOCUS_REGISTRY_PATH,
     limit: int | None = None,
     progress_stream=None,
+    post_repair_fallback_on_leak: bool = False,
 ) -> list[dict]:
     if guard_mode not in {"predicted", "oracle"}:
         raise ValueError(f"Unsupported guard_mode: {guard_mode}")
@@ -1555,6 +2279,7 @@ def run_bridge_offline_eval_rows(
                 judge_provider=judge_provider,
                 max_retries=max_retries,
                 chat_thinking_mode=chat_thinking_mode,
+                post_repair_fallback_on_leak=post_repair_fallback_on_leak,
             )
             _write_progress(progress_stream, "CASE_DONE", index=index, total=total, case_id=case_id)
         except Exception as exc:
@@ -1564,7 +2289,12 @@ def run_bridge_offline_eval_rows(
                 "student_message": row.get("student_message", ""),
                 "problem_context": row.get("problem_context", ""),
                 "recent_dialogue": _dialogue_to_text(row.get("prior_messages") or row.get("recent_dialogue")),
+                "context_ai_reply": row.get("context_ai_reply")
+                or _latest_assistant_reply(row.get("prior_messages") or row.get("recent_dialogue")),
                 "student_code_excerpt": row.get("student_code") or row.get("student_code_excerpt") or "",
+                "generation_context_source": _generation_context_source(row),
+                "generation_message_count": len(build_messages_from_seed_row(row)),
+                **_source_metadata_for_result(row),
                 "tutor_mode": tutor_mode,
                 "guard_mode": guard_mode,
                 "pipeline_mode": pipeline_mode,
@@ -1579,6 +2309,7 @@ def run_bridge_offline_eval_rows(
                     "pipeline_mode": pipeline_mode,
                     "judge_schema_mode": judge_schema_mode,
                 },
+                "post_repair_fallback_on_leak": post_repair_fallback_on_leak,
                 "gold": _case_gold(row),
                 "error": f"{type(exc).__name__}: {exc}",
                 "latency_ms": {},
@@ -1666,6 +2397,14 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         default=DEFAULT_FOCUS_REGISTRY_PATH,
         help="Focus registry JSON used when seed rows do not provide available_known_focus.",
     )
+    parser.add_argument(
+        "--post-repair-fallback-on-leak",
+        action="store_true",
+        help=(
+            "Offline-only ablation: if the post-repair leakage judge still requests rewrite/block, "
+            "use deterministic safe scaffold as final_response_text."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -1683,6 +2422,7 @@ def main(argv: list[str] | None = None) -> int:
         max_retries=args.max_retries,
         chat_thinking_mode=args.chat_thinking_mode,
         focus_registry_path=args.focus_registry,
+        post_repair_fallback_on_leak=args.post_repair_fallback_on_leak,
         progress_stream=sys.stderr,
     )
     write_result_rows(args.output_jsonl, rows)

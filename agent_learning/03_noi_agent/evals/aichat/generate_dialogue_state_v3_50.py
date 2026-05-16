@@ -108,6 +108,44 @@ CONFIDENCE_ZH = {
     "low": "低",
 }
 
+FORBIDDEN_CONTENT_LABELS_ZH = {
+    "no_complete_check_condition": "不要直接给完整 check/判定条件",
+    "no_complete_code_patch": "不要直接替学生改完整代码",
+    "no_complete_exchange_argument": "不要直接给完整交换论证或贪心证明",
+    "no_complete_marking_formula": "不要直接给完整标记/贡献公式",
+    "no_complete_model_mapping": "不要直接给完整建模方案",
+    "no_complete_operation_sequence": "不要直接给完整操作序列或数据结构流程",
+    "no_direct_answer_confirmation": "不要直接确认完整答案、算法或题解路线",
+    "no_direct_bug_fix": "不要直接指出并修完具体 bug",
+    "no_direct_current_bridge": "不要直接补完学生当前缺的关键桥梁",
+    "no_exact_boundary_update_rule": "不要直接给完整边界更新或循环方向结论",
+    "no_exact_recurrence": "不要直接写完整递推式或转移方程",
+    "no_exact_state_definition": "不要直接给完整状态/变量定义",
+    "no_full_code": "不要给完整代码",
+    "no_full_keypress_mapping_table": "不要给完整按键次数映射表",
+    "no_full_proof": "不要给完整正确性证明",
+    "no_full_solution": "不要给完整题解或完整做法",
+}
+
+FORBIDDEN_CONTENT_LABELS_EN = {
+    "no_complete_check_condition": "Do not give the complete check/predicate condition",
+    "no_complete_code_patch": "Do not rewrite the full code for the student",
+    "no_complete_exchange_argument": "Do not give the full exchange argument or greedy proof",
+    "no_complete_marking_formula": "Do not give the complete marking/contribution formula",
+    "no_complete_model_mapping": "Do not give the full modeling mapping",
+    "no_complete_operation_sequence": "Do not give the full operation sequence or data-structure workflow",
+    "no_direct_answer_confirmation": "Do not directly confirm the full answer, algorithm, or solution path",
+    "no_direct_bug_fix": "Do not directly identify and fully fix the bug",
+    "no_direct_current_bridge": "Do not directly complete the student's current missing bridge",
+    "no_exact_boundary_update_rule": "Do not give the exact boundary update or loop-order rule",
+    "no_exact_recurrence": "Do not write the full recurrence or transition equation",
+    "no_exact_state_definition": "Do not give the exact full state/variable definition",
+    "no_full_code": "Do not provide full code",
+    "no_full_keypress_mapping_table": "Do not provide the full keypress mapping table",
+    "no_full_proof": "Do not provide the full correctness proof",
+    "no_full_solution": "Do not provide the full solution",
+}
+
 REVIEW_COLUMNS = [
     "case_id",
     "source_case_id",
@@ -1121,6 +1159,119 @@ def _override_dialogue_state_labels(
     return followability, expected_move, confidence
 
 
+COACH_A_ROUND1_CASE_REVISIONS = {
+    27: {
+        "student_message": "对 [L,R] 加 X 的影响我能看出来，但不知道标记应该落在 L、R 还是抵消位置。这里我经常写成凭感觉加减。",
+        "evidence": "抵消位置",
+    },
+    28: {
+        "student_message": "我能看出一次操作会影响一路上的值，但不知道哪些位置是直接加，哪些位置是为了抵消。这里换一个询问我就乱。",
+        "evidence": "为了抵消",
+    },
+    29: {
+        "student_message": "单个星球或区间的影响我能跟，但要把很多次影响汇总起来时，我不知道应该在哪些位置打标记。",
+        "evidence": "打标记",
+    },
+    30: {
+        "student_message": "路径上的贡献怎么累起来我懂一点，但到前缀汇总或公共点附近时，不知道加减点应该放在哪里。",
+        "evidence": "加减点",
+    },
+    31: {
+        "student_message": "我知道要 update/query，但不知道结构里每个节点到底该存什么摘要，才能回答题目要的数量或最值。",
+        "evidence": "存什么摘要",
+    },
+    32: {
+        "student_message": "一次修改之后，节点里的值要怎么保持正确我没想清。查询时为什么能直接拿这些维护量拼出答案？",
+        "evidence": "维护量",
+    },
+    33: {
+        "student_message": "我写了个小版本，query 输出和手算差一点。我想先知道一次 update 后，结构里哪个摘要量应该发生变化。",
+        "evidence": "摘要量",
+    },
+    34: {
+        "student_message": "我不太明白查询为什么能由这些维护量拼出来。是不是要先确认每个节点维护的对象和合并含义？",
+        "evidence": "合并含义",
+    },
+    35: {
+        "student_message": "更新后结果不稳，我怀疑不是下标问题，而是某个维护量没更新对。应该先检查哪个摘要量？",
+        "evidence": "维护量",
+    },
+    36: {
+        "student_message": "我试着比较两个相邻选择，但不知道要看总目标值还是局部贡献，感觉还没形成交换理由。样例能跟，可是一换顺序我就不知道为什么不会变差，也不知道该先固定哪个局部对象来比较。",
+        "evidence": "交换理由",
+    },
+    37: {
+        "student_message": "如果把这两个选择顺序换一下，我不确定哪个量不会变差。样例能跟，但证明这一步不会写，我想先确认比较的对象到底是哪一个，再判断全局目标有没有受影响。",
+        "evidence": "不会变差",
+    },
+    38: {
+        "student_message": "我能猜到要保持某个不变量，但不知道相邻两步交换后到底保持了什么，为什么答案不会更差。现在我只是凭直觉说贪心可行，换一个样例就说不清理由，也不知道该比较哪两个局部方案。",
+        "evidence": "不变量",
+    },
+    39: {
+        "student_message": "我现在只会说这个贪心看起来对，但说不出局部选择换一下会不会影响全局目标。能不能先让我比较一个很小的相邻交换，看交换前后哪个量没有变差，再决定证明方向？",
+        "evidence": "全局目标",
+    },
+    40: {
+        "student_message": "我想用交换法想这题，但卡在比较两种相邻选择：到底要证明哪个指标不变或不变差？我怕一上来就写证明会变成背模板，所以想先看一个局部比较，再慢慢推广到整体。",
+        "evidence": "不变差",
+    },
+    44: {
+        "student_message": "立体图里一个方块画到字符图上时，我不知道单个字符位置到底对应题面里的哪一格、哪条边或哪个角。样例图我能看，但自己画时坐标就乱了，尤其不知道先核对哪个局部字符。",
+        "evidence": "单个字符位置",
+        "missing_bridge": "缺少把输出图中单个字符位置、题面方块的格子/边/角以及循环坐标对应起来的实现边界桥。",
+        "success_criteria": [
+            "回复先选一个最小方块或一个字符位置，让学生判断它对应题面中的哪一格、哪条边或哪个角。",
+            "回复把注意力放在输出坐标、字符位置和题面对象的局部映射上。",
+            "回复不直接给完整画图代码或完整字符模板。",
+        ],
+    },
+    45: {
+        "student_message": "我知道要调试，但不知道“最小反例”该怎么选。能不能先让我挑一个很小输入，看哪个中间量应该是多少？我现在不是想改完整代码，只想把错误缩小到一步。",
+        "evidence": "最小反例",
+    },
+    46: {
+        "student_message": "这题我样例能跟一点，但不知道该先手算哪一秒、哪个魔法值或距离变量。能先帮我把检查点缩小吗？我现在调试时只会整段跑，看到 WA 也不知道是闪烁、休息还是跑步那一步错了。最好先让我对一个很小时间点写出一个中间值，而不是直接告诉我完整做法。比如只看前两三秒，我也不确定该记录“当前最远距离”还是“剩余魔法”。",
+        "evidence": "检查点",
+    },
+    47: {
+        "student_message": "网络连接这题我不知道该造哪种最小坏地址来查错，也不知道该先检查解析结果还是连接表。比如样例能过，但一遇到前导零、端口范围或重复 Server，我就不知道该打印哪一步。你先别直接改代码，帮我把一个最小坏样例和要看的中间结果定下来。最好只选一种错误类型，让我判断它应该先输出 ERR、FAIL 还是某个编号。",
+        "evidence": "最小坏地址",
+    },
+}
+
+
+def _apply_coach_a_round1_case_revision(output: dict, source_index: int) -> dict:
+    revision = COACH_A_ROUND1_CASE_REVISIONS.get(source_index)
+    if not revision:
+        return output
+    expected_case_id = {
+        **{index: f"dialogue_v3_{index:03d}_aggregation_contribution_summary" for index in range(27, 31)},
+        **{index: f"dialogue_v3_{index:03d}_data_structure_operation_semantics" for index in range(31, 36)},
+        **{index: f"dialogue_v3_{index:03d}_correctness_invariant" for index in range(36, 41)},
+        44: "dialogue_v3_044_implementation_boundary",
+        45: "dialogue_v3_045_debugging_evidence",
+        46: "dialogue_v3_046_debugging_evidence",
+        47: "dialogue_v3_047_debugging_evidence",
+    }[source_index]
+    if output.get("case_id") != expected_case_id:
+        return output
+
+    student_message = revision["student_message"]
+    output["student_message"] = student_message
+    output["student_reply_to_prior_scaffold"] = student_message
+    output["followability_evidence_quote"] = revision["evidence"]
+    output["followability_uncertainty_reason"] = (
+        "Coach A round1 case/source review: revised current student reply to align with the bridge bucket and prior scaffold."
+    )
+    output["student_message_length_bucket"] = _student_message_length_bucket(student_message)
+    if "missing_bridge" in revision:
+        output["missing_bridge"] = revision["missing_bridge"]
+    if "success_criteria" in revision:
+        output["success_criteria"] = revision["success_criteria"]
+    return output
+
+
 def _base_output_row(row: dict, source_index: int, context_type: str) -> dict:
     context_type = _case_context_type(row, source_index, context_type)
     followability = FOLLOWABILITY_BY_CONTEXT[context_type]
@@ -1191,6 +1342,7 @@ def _base_output_row(row: dict, source_index: int, context_type: str) -> dict:
             ),
         }
     )
+    output = _apply_coach_a_round1_case_revision(output, source_index)
     return output
 
 
@@ -1290,6 +1442,8 @@ def _headers_for_language(language: str) -> dict[str, str]:
 
 
 def _display_cell(row: dict, column: str, *, language: str) -> str:
+    if column == "forbidden_content":
+        return _display_forbidden_content(row.get(column), language=language)
     if language == "zh":
         if column == "turn_position":
             return TURN_POSITION_ZH.get(str(row.get(column) or ""), _join_cell(row.get(column)))
@@ -1302,6 +1456,17 @@ def _display_cell(row: dict, column: str, *, language: str) -> str:
         if column == "expected_tutor_move":
             return _join_cell(row.get("expected_tutor_move_zh") or row.get(column))
     return _join_cell(row.get(column))
+
+
+def _display_forbidden_content(value, *, language: str) -> str:
+    labels = FORBIDDEN_CONTENT_LABELS_EN if language == "en" else FORBIDDEN_CONTENT_LABELS_ZH
+    items = _as_list(value)
+    if not items:
+        return ""
+    missing = [item for item in items if item not in labels]
+    if missing:
+        raise ValueError(f"Missing forbidden_content display labels for: {missing}")
+    return "\n".join(labels[item] for item in items)
 
 
 def _append_review_rows(sheet, rows: list[dict], *, language: str) -> None:

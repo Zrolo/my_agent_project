@@ -545,6 +545,7 @@ def _chat_completion_create(
     system_prompt: str,
     messages: list,
     provider_id: str | None = None,
+    response_format_json: bool = False,
 ):
     if provider_id:
         profile = resolve_chat_model_profile(provider_id)
@@ -556,6 +557,8 @@ def _chat_completion_create(
         extra_body = _chat_extra_body_for_profile(profile)
         if extra_body:
             kwargs["extra_body"] = extra_body
+        if response_format_json:
+            kwargs["response_format"] = {"type": "json_object"}
         timeout_seconds = os.environ.get("NOI_CHAT_TIMEOUT_SECONDS", "").strip()
         if timeout_seconds:
             kwargs["timeout"] = float(timeout_seconds)
@@ -574,6 +577,8 @@ def _chat_completion_create(
     extra_body = _chat_extra_body_for_profile(profile)
     if extra_body:
         kwargs["extra_body"] = extra_body
+    if response_format_json:
+        kwargs["response_format"] = {"type": "json_object"}
     timeout_seconds = os.environ.get("NOI_CHAT_TIMEOUT_SECONDS", "").strip()
     if timeout_seconds:
         kwargs["timeout"] = float(timeout_seconds)
@@ -2078,6 +2083,18 @@ _BRIDGE_HELP_FORMS = {
 _BRIDGE_LEAKAGE_RISKS = {"low", "medium", "high", "unknown"}
 _BRIDGE_PROBLEM_STATE_ALIASES = {
     "representation_state_gap": "modeling_representation_gap",
+    "concept_comprehension_gap": "modeling_representation_gap",
+    "transition_recurrence_gap": "method_application_gap",
+    "transition_recurrence_source": "method_application_gap",
+    "transition_recurrence_source_gap": "method_application_gap",
+    "predicate_condition_gap": "method_application_gap",
+    "boundary_update_gap": "implementation_translation_gap",
+    "ordering_dependency_gap": "method_application_gap",
+    "aggregation_contribution_gap": "method_application_gap",
+    "data_structure_operation_gap": "implementation_translation_gap",
+    "correctness_invariant_gap": "correctness_reasoning_gap",
+    "implementation_boundary_gap": "implementation_translation_gap",
+    "debugging_evidence_gap": "debugging_evidence_gap",
 }
 _LEAKAGE_TYPES = {
     "critical_bridge",
@@ -2190,7 +2207,7 @@ def _validate_string_list(payload: dict, key: str, *, enum_values: set[str] | No
 
 
 def _validate_leakage_judge_v1_schema(payload: dict) -> dict:
-    """Validate offline Leakage Judge v1 JSON without mutating or normalizing it."""
+    """Validate offline Leakage Judge v1 JSON and normalize recoverable omissions."""
     if not isinstance(payload, dict):
         raise ValueError("payload must be an object")
 
@@ -2228,12 +2245,14 @@ def _validate_leakage_judge_v1_schema(payload: dict) -> dict:
     if not isinstance(confidence, (int, float)) or isinstance(confidence, bool) or not 0 <= confidence <= 1:
         raise ValueError("confidence must be a number between 0 and 1")
     _require_non_empty_string(payload, "reason")
-    if level > 0 and not payload["leaked_elements"]:
-        raise ValueError("leaked_elements must be non-empty when leakage_level > 0")
     if payload["safe_action"] != "pass" and not payload["repair_instruction"].strip():
         raise ValueError("repair_instruction must be non-empty when safe_action is not pass")
 
-    return payload
+    normalized = dict(payload)
+    if level > 0 and not normalized["leaked_elements"]:
+        normalized["leaked_elements"] = ["unknown_leaked_element"]
+
+    return normalized
 
 
 _REPAIR_INTERNAL_FAILURE_PATTERNS = (
@@ -3695,6 +3714,58 @@ def build_system_prompt(dual_control: dict, remaining: int, student_id: str, pro
     return base_prompt
 
 
+def normalize_aichat_prompt_mode(aichat_prompt_mode: str | None) -> str:
+    """Normalize student-facing answer-style mode without changing model selection."""
+    raw = (aichat_prompt_mode or "").strip()
+    if raw in {"dbox_inspired_clean", "enhanced_prompt_only_clean"}:
+        return "dbox_inspired_clean"
+    return "current_system"
+
+
+def get_aichat_prompt_mode_public_info(aichat_prompt_mode: str | None) -> dict:
+    """Return safe public labels for AIChat answer-style choices."""
+    normalized = normalize_aichat_prompt_mode(aichat_prompt_mode)
+    labels = {
+        "current_system": "简洁提示",
+        "dbox_inspired_clean": "教练引导",
+    }
+    return {
+        "prompt_mode": normalized,
+        "label": labels[normalized],
+    }
+
+
+def _dbox_inspired_clean_online_system_prompt(student_id: str, problem_id: str) -> str:
+    return f"""
+你是信息学竞赛 AIChat 的分解式教练。当前模式借鉴 DBox 的 step-tree-style decomposition 思路，但不是 DBox 复现，也不向学生提 DBox。
+
+你的目标：把学生当前的大问题缩小成一个可以马上回答的当前子步骤，只给 first-level 的分解式脚手架。
+
+回答要求：
+- 先接住学生当前这句话，再只聚焦一个最小可推进点。
+- 内部先想一个小的 step view：哪些已知、当前卡住的一个子步骤是什么、哪些先延后；但不要把完整 step tree 展示给学生。
+- 只使用 general hint / guiding question / micro-task，不 reveal substep，不 reveal code。
+- 优先让学生短生成式回答：一两个关键词、一个局部判断、一个很短理由或一个观察。
+- 不要要求长篇解释、完整表格、多步推导。
+- 如果学生刚短答过，先收拢他的回答，再给半步支架；不要连续纯反问。
+- 不要直接补完整关键桥：不要给完整状态定义、完整转移、完整 check 条件、完整边界更新规则、完整证明、完整题解或完整代码。
+- 不要把当前 missing bridge 改写成答案槽位，例如“应该返回什么”“应该在哪里”“分别写什么值”“这个格子应该记录什么”。
+- 如果需要小例子，例子必须带着观察问题收住，让学生观察“真正变化的对象 / 哪个信息影响后续选择 / 下一步要验证什么关系”。
+- 学生可见回复不要写出内部模式名、JSON、DBox、step tree、judge、repair、leakage 等内部词。
+- 回复最后一行必须是 [LEVEL:L1|L2|L3]。
+
+当前状态：
+学生：{student_id}
+题目：{problem_id}
+"""
+
+
+def apply_aichat_prompt_mode(system_prompt: str, aichat_prompt_mode: str | None) -> tuple[str, str]:
+    """Apply answer-style prompt mode to an already-built AIChat system prompt."""
+    normalized = normalize_aichat_prompt_mode(aichat_prompt_mode)
+    return system_prompt, normalized
+
+
 # ============ 5. 配额管理（保持不变） ============
 
 def load_quota(student_id: str, problem_id: str) -> dict:
@@ -4054,7 +4125,13 @@ def _record_aichat_trace(trace: dict) -> None:
 
 # ============ 7. 主对话逻辑 ============
 
-def chat(messages: list, student_id: str, problem_id: str, chat_model_provider: str | None = None) -> tuple[str, str, str]:
+def chat(
+    messages: list,
+    student_id: str,
+    problem_id: str,
+    chat_model_provider: str | None = None,
+    aichat_prompt_mode: str | None = None,
+) -> tuple[str, str, str]:
     """
     主对话逻辑（双轨版本）：
     1. 代码层分析：产出双轨控制对象（等级轨 + 风险轨）
@@ -4068,6 +4145,9 @@ def chat(messages: list, student_id: str, problem_id: str, chat_model_provider: 
     """
     trace_started_at = time.perf_counter()
     trace = _new_aichat_trace(student_id, problem_id) if _aichat_trace_enabled() else None
+    normalized_prompt_mode = normalize_aichat_prompt_mode(aichat_prompt_mode)
+    if trace is not None:
+        trace["prompt_mode"] = normalized_prompt_mode
 
     # 获取最后一条用户输入
     last_user_msg = ""
@@ -4075,6 +4155,86 @@ def chat(messages: list, student_id: str, problem_id: str, chat_model_provider: 
         if msg.get("role") == "user":
             last_user_msg = msg.get("content", "")
             break
+
+    if normalized_prompt_mode == "dbox_inspired_clean":
+        stage_started_at = time.perf_counter()
+        dual_control = analyze_student_turn(last_user_msg, messages, pedagogical_judgement=None)
+        if trace is not None:
+            trace["rules_latency_ms"] = int((time.perf_counter() - stage_started_at) * 1000)
+            trace["pedagogical_judge_v2_latency_ms"] = int(
+                dual_control.get("pedagogical_judge_v2_latency_ms", 0) or 0
+            )
+        level_control = dual_control["level_control"]
+        risk_control = dual_control["risk_control"]
+
+        policy_override_reply = build_policy_override_reply(dual_control, messages)
+        if policy_override_reply:
+            if trace is not None:
+                trace["route_name"] = "dbox_inspired_clean_policy_override"
+            final_level, clean_reply = parse_level_tag(policy_override_reply)
+            risk_control["learning_phase"] = dual_control.get("tutor_control", {}).get("learning_phase") or {}
+            stage_started_at = time.perf_counter()
+            clean_reply, guard_triggered = enforce_output_guards(
+                clean_reply, level_control, risk_control, messages=messages
+            )
+            if trace is not None:
+                trace["output_guard_latency_ms"] = int((time.perf_counter() - stage_started_at) * 1000)
+            if guard_triggered:
+                final_level = "L2"
+            _finish_aichat_trace(
+                trace,
+                trace_started_at,
+                final_level=final_level,
+                final_route_decision="dbox_inspired_clean_policy_override_return",
+            )
+            return _finalize_chat_reply(clean_reply, final_level)
+
+        max_level = level_control["max_level"]
+        system_prompt = _dbox_inspired_clean_online_system_prompt(student_id, problem_id)
+        if trace is not None:
+            trace["route_name"] = "dbox_inspired_clean_direct"
+            trace["prompt_hashes"]["system_prompt"] = _stable_trace_hash(system_prompt)
+
+        stage_started_at = time.perf_counter()
+        response = _chat_completion_create(
+            system_prompt=system_prompt,
+            messages=messages,
+            provider_id=chat_model_provider,
+        )
+        if trace is not None:
+            trace["main_llm_latency_ms"] = int((time.perf_counter() - stage_started_at) * 1000)
+            trace["llm_call_count"] += 1
+            trace["model_names"]["main_llm"] = chat_model_provider or "default"
+
+        raw_reply = _choice_message_text(response)
+        if not raw_reply.strip():
+            raise RuntimeError("模型没有返回可展示的正文，请稍后重试或切换模型")
+
+        model_level, clean_reply = parse_level_tag(raw_reply)
+        stage_started_at = time.perf_counter()
+        enforced_level, enforced_reply = enforce_level_gate(model_level, max_level, raw_reply)
+        if trace is not None:
+            trace["hard_gate_latency_ms"] = int((time.perf_counter() - stage_started_at) * 1000)
+
+        if enforced_reply != raw_reply:
+            final_level, clean_reply = parse_level_tag(enforced_reply)
+        else:
+            final_level = model_level or max_level
+
+        risk_control["learning_phase"] = dual_control.get("tutor_control", {}).get("learning_phase") or {}
+        stage_started_at = time.perf_counter()
+        clean_reply, guard_triggered = enforce_output_guards(clean_reply, level_control, risk_control, messages=messages)
+        if trace is not None:
+            trace["output_guard_latency_ms"] = int((time.perf_counter() - stage_started_at) * 1000)
+        if guard_triggered:
+            final_level = "L2"
+        _finish_aichat_trace(
+            trace,
+            trace_started_at,
+            final_level=final_level,
+            final_route_decision="dbox_inspired_clean_direct_return",
+        )
+        return _finalize_chat_reply(clean_reply, final_level)
     
     has_problem_context = _has_chat_context_state(messages, "有题目")
     has_student_code = _has_chat_context_state(messages, "有代码")
@@ -4151,6 +4311,9 @@ def chat(messages: list, student_id: str, problem_id: str, chat_model_provider: 
     
     # 构建带双轨控制块的System Prompt
     system_prompt = build_system_prompt(dual_control, 0, student_id, problem_id)
+    system_prompt, normalized_prompt_mode = apply_aichat_prompt_mode(system_prompt, normalized_prompt_mode)
+    if trace is not None:
+        trace["prompt_mode"] = normalized_prompt_mode
     if trace is not None:
         trace["route_name"] = "standard_llm"
         trace["prompt_hashes"]["system_prompt"] = _stable_trace_hash(system_prompt)

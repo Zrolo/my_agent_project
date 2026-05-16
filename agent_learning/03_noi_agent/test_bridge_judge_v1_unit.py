@@ -42,7 +42,7 @@ class BridgeJudgeV1Tests(unittest.TestCase):
         payload["problem_solving_state"] = "method_application_gap"
         payload["missing_bridge"] = dict(payload["missing_bridge"])
         payload["missing_bridge"]["family"] = "aggregation_contribution_bridge"
-        payload["missing_bridge"]["subtype"] = "aggregation.tree_path_difference_marking"
+        payload["missing_bridge"]["subtype"] = "aggregation.path_contribution_marking"
         payload["missing_bridge"]["known_focus"] = "tree_path_difference"
         payload["help_seeking_type"] = "strategy_hint_request"
         payload["allowed_help_level"] = "L0"
@@ -57,6 +57,27 @@ class BridgeJudgeV1Tests(unittest.TestCase):
         validated = _validate_bridge_judge_v1_schema(payload)
 
         self.assertEqual("modeling_representation_gap", validated["problem_solving_state"])
+
+    def test_validate_bridge_judge_schema_normalizes_concept_comprehension_alias(self):
+        payload = _valid_bridge_payload()
+        payload["problem_solving_state"] = "concept_comprehension_gap"
+
+        validated = _validate_bridge_judge_v1_schema(payload)
+
+        self.assertEqual("modeling_representation_gap", validated["problem_solving_state"])
+
+    def test_validate_bridge_judge_schema_normalizes_bridge_family_gap_aliases(self):
+        for alias in (
+            "transition_recurrence_gap",
+            "transition_recurrence_source",
+            "transition_recurrence_source_gap",
+        ):
+            payload = _valid_bridge_payload()
+            payload["problem_solving_state"] = alias
+
+            validated = _validate_bridge_judge_v1_schema(payload)
+
+            self.assertEqual("method_application_gap", validated["problem_solving_state"])
 
     def test_validate_bridge_judge_schema_rejects_empty_evidence(self):
         payload = _valid_bridge_payload()

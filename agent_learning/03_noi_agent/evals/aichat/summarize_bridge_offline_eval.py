@@ -4,6 +4,8 @@ import math
 import sys
 from pathlib import Path
 
+from evals.aichat.run_bridge_offline_eval import _static_leakage_risk_lint
+
 
 DEFAULT_INPUT_PATH = Path("evals/aichat/bridge_offline_eval_results.jsonl")
 DEFAULT_SUMMARY_JSON_PATH = Path("evals/aichat/bridge_offline_eval_summary.json")
@@ -276,6 +278,53 @@ def _average_llm_call_count(rows: list[dict]) -> float | None:
     return _avg(values)
 
 
+def _static_lint_for_row(row: dict, field: str) -> dict | None:
+    existing = row.get(field)
+    if isinstance(existing, dict):
+        return existing
+    if field == "candidate_static_leakage_risk_lint" and row.get("candidate_response_text"):
+        return _static_leakage_risk_lint(row.get("candidate_response_text"))
+    if field == "final_static_leakage_risk_lint" and row.get("final_response_text"):
+        return _static_leakage_risk_lint(row.get("final_response_text"))
+    return None
+
+
+def _static_lint_rate(rows: list[dict], field: str, flag: str | None = None) -> float | None:
+    comparable = [lint for row in rows if (lint := _static_lint_for_row(row, field))]
+    if not comparable:
+        return None
+    if flag is None:
+        count = sum(1 for lint in comparable if bool((lint.get("risk_types") or [])))
+    else:
+        count = sum(1 for lint in comparable if bool(lint.get(flag)))
+    return _round_ratio(count, len(comparable))
+
+
+def _positive_rate(value) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and value > 0
+
+
+def _dev_gate(summary: dict) -> dict:
+    reasons = []
+    if int(summary.get("error_count") or 0) > 0:
+        reasons.append("incomplete_or_error_rows")
+    if _positive_rate(summary.get("critical_bridge_leakage_rate")):
+        reasons.append("critical_bridge_leakage")
+    if _positive_rate(summary.get("repair_still_leaks_rate")):
+        reasons.append("repair_still_leaks")
+    if _positive_rate(summary.get("final_static_answer_slot_risk_rate")):
+        reasons.append("final_static_answer_slot_risk")
+    if _positive_rate(summary.get("final_static_filled_trace_risk_rate")):
+        reasons.append("final_static_filled_trace_risk")
+    if _positive_rate(summary.get("final_static_worked_example_risk_rate")):
+        reasons.append("final_static_worked_example_risk")
+    return {
+        "automatic_headline_ready": not reasons,
+        "review_required": bool(reasons),
+        "reasons": reasons,
+    }
+
+
 def _experimental_group_key(row: dict) -> str:
     models = row.get("models") or {}
     tutor_response = row.get("tutor_response") or {}
@@ -334,6 +383,23 @@ def summarize_bridge_offline_results(rows: list[dict], *, include_groups: bool =
     rewrite_count = sum(1 for row in leakage_rows if row["leakage_judge_result"].get("safe_action") == "rewrite")
     block_count = sum(1 for row in leakage_rows if row["leakage_judge_result"].get("safe_action") == "block")
     repair_count = sum(1 for row in completed if isinstance(row.get("repair_result"), dict))
+    post_repair_rows = [
+        row for row in completed if isinstance(row.get("post_repair_leakage_judge_result"), dict)
+    ]
+    repaired_rows = [row for row in completed if bool(row.get("repair_applied"))]
+    repair_still_leaks_count = sum(
+        1
+        for row in post_repair_rows
+        if bool(row.get("repair_still_leaks"))
+        or bool(row["post_repair_leakage_judge_result"].get("is_critical_bridge_leakage"))
+        or bool(row["post_repair_leakage_judge_result"].get("is_answer_or_code_leakage"))
+        or int(row["post_repair_leakage_judge_result"].get("leakage_level") or 0) >= 3
+    )
+    post_repair_rewrite_or_block_count = sum(
+        1
+        for row in post_repair_rows
+        if row["post_repair_leakage_judge_result"].get("safe_action") in {"rewrite", "block"}
+    )
 
     safe_action_counts: dict[str, int] = {}
     leakage_level_counts: dict[str, int] = {}
@@ -350,7 +416,7 @@ def summarize_bridge_offline_results(rows: list[dict], *, include_groups: bool =
         if isinstance(confidence, (int, float)) and not isinstance(confidence, bool):
             confidences.append(float(confidence))
 
-    return {
+    summary = {
         "case_count": len(rows),
         "completed_count": len(completed),
         "error_count": len(rows) - len(completed),
@@ -367,11 +433,49 @@ def summarize_bridge_offline_results(rows: list[dict], *, include_groups: bool =
         "rewrite_rate": _round_ratio(rewrite_count, len(leakage_rows)),
         "block_rate": _round_ratio(block_count, len(leakage_rows)),
         "repair_rate": _round_ratio(repair_count, len(completed)),
+        "post_repair_check_rate": _round_ratio(len(post_repair_rows), len(completed)),
+        "repair_still_leaks_rate": _round_ratio(repair_still_leaks_count, len(post_repair_rows)),
+        "post_repair_rewrite_or_block_rate": _round_ratio(
+            post_repair_rewrite_or_block_count,
+            len(post_repair_rows),
+        ),
         "invalid_label_rate": _invalid_label_rate(completed),
         "focus_out_of_registry_rate": _focus_out_of_registry_rate(completed),
         "self_contradiction_rate": _self_contradiction_rate(completed),
         "average_prompt_tokens": _average_prompt_tokens(completed),
         "average_llm_call_count": _average_llm_call_count(completed),
+        "candidate_static_risk_rate": _static_lint_rate(completed, "candidate_static_leakage_risk_lint"),
+        "candidate_static_answer_slot_risk_rate": _static_lint_rate(
+            completed,
+            "candidate_static_leakage_risk_lint",
+            "answer_slot_risk_flag",
+        ),
+        "candidate_static_filled_trace_risk_rate": _static_lint_rate(
+            completed,
+            "candidate_static_leakage_risk_lint",
+            "filled_trace_risk_flag",
+        ),
+        "candidate_static_worked_example_risk_rate": _static_lint_rate(
+            completed,
+            "candidate_static_leakage_risk_lint",
+            "worked_example_risk_flag",
+        ),
+        "final_static_risk_rate": _static_lint_rate(completed, "final_static_leakage_risk_lint"),
+        "final_static_answer_slot_risk_rate": _static_lint_rate(
+            completed,
+            "final_static_leakage_risk_lint",
+            "answer_slot_risk_flag",
+        ),
+        "final_static_filled_trace_risk_rate": _static_lint_rate(
+            completed,
+            "final_static_leakage_risk_lint",
+            "filled_trace_risk_flag",
+        ),
+        "final_static_worked_example_risk_rate": _static_lint_rate(
+            completed,
+            "final_static_leakage_risk_lint",
+            "worked_example_risk_flag",
+        ),
         "avg_bridge_judge_confidence": _avg(confidences),
         "latency_ms": _latency_summary(completed),
         "stage_error_counts": _stage_error_counts(rows),
@@ -384,6 +488,8 @@ def summarize_bridge_offline_results(rows: list[dict], *, include_groups: bool =
             if row.get("error") or row.get("bridge_judge_result", {}).get("_failed")
         ],
     }
+    summary["dev_gate"] = _dev_gate(summary)
+    return summary
 
 
 def _fmt(value) -> str:
@@ -394,11 +500,22 @@ def _fmt(value) -> str:
     return str(value)
 
 
+def _dev_gate_reasons_text(summary: dict) -> str:
+    reasons = (summary.get("dev_gate") or {}).get("reasons")
+    if not reasons:
+        return "none"
+    return ", ".join(str(reason) for reason in reasons)
+
+
 def render_markdown_report(summary: dict) -> str:
+    dev_gate = summary.get("dev_gate") or {}
     metrics = [
         ("Case Count", summary.get("case_count")),
         ("Completed Count", summary.get("completed_count")),
         ("Error Count", summary.get("error_count")),
+        ("Automatic Headline Ready", dev_gate.get("automatic_headline_ready")),
+        ("Dev Gate Review Required", dev_gate.get("review_required")),
+        ("Dev Gate Reasons", _dev_gate_reasons_text(summary)),
         ("Student State Accuracy", summary.get("student_state_accuracy")),
         ("Bridge Family Accuracy", summary.get("bridge_family_accuracy")),
         ("Known Focus Accuracy", summary.get("known_focus_accuracy")),
@@ -412,11 +529,22 @@ def render_markdown_report(summary: dict) -> str:
         ("Rewrite Rate", summary.get("rewrite_rate")),
         ("Block Rate", summary.get("block_rate")),
         ("Repair Rate", summary.get("repair_rate")),
+        ("Post Repair Check Rate", summary.get("post_repair_check_rate")),
+        ("Repair Still Leaks Rate", summary.get("repair_still_leaks_rate")),
+        ("Post Repair Rewrite Or Block Rate", summary.get("post_repair_rewrite_or_block_rate")),
         ("Invalid Label Rate", summary.get("invalid_label_rate")),
         ("Focus Out Of Registry Rate", summary.get("focus_out_of_registry_rate")),
         ("Self Contradiction Rate", summary.get("self_contradiction_rate")),
         ("Average Prompt Tokens", summary.get("average_prompt_tokens")),
         ("Average LLM Call Count", summary.get("average_llm_call_count")),
+        ("Candidate Static Risk Rate", summary.get("candidate_static_risk_rate")),
+        ("Candidate Static Answer Slot Risk Rate", summary.get("candidate_static_answer_slot_risk_rate")),
+        ("Candidate Static Filled Trace Risk Rate", summary.get("candidate_static_filled_trace_risk_rate")),
+        ("Candidate Static Worked Example Risk Rate", summary.get("candidate_static_worked_example_risk_rate")),
+        ("Final Static Risk Rate", summary.get("final_static_risk_rate")),
+        ("Final Static Answer Slot Risk Rate", summary.get("final_static_answer_slot_risk_rate")),
+        ("Final Static Filled Trace Risk Rate", summary.get("final_static_filled_trace_risk_rate")),
+        ("Final Static Worked Example Risk Rate", summary.get("final_static_worked_example_risk_rate")),
         ("Avg Bridge Judge Confidence", summary.get("avg_bridge_judge_confidence")),
         ("Total Latency P50 ms", (summary.get("latency_ms") or {}).get("total_p50")),
         ("Total Latency P95 ms", (summary.get("latency_ms") or {}).get("total_p95")),
@@ -465,6 +593,12 @@ def render_markdown_report(summary: dict) -> str:
                     f"| Bridge Family Accuracy | {_fmt(group_summary.get('bridge_family_accuracy'))} |",
                     f"| Critical Bridge Leakage Rate | {_fmt(group_summary.get('critical_bridge_leakage_rate'))} |",
                     f"| Average LLM Call Count | {_fmt(group_summary.get('average_llm_call_count'))} |",
+                    f"| Automatic Headline Ready | {_fmt((group_summary.get('dev_gate') or {}).get('automatic_headline_ready'))} |",
+                    f"| Dev Gate Reasons | {_dev_gate_reasons_text(group_summary)} |",
+                    f"| Final Static Risk Rate | {_fmt(group_summary.get('final_static_risk_rate'))} |",
+                    f"| Final Static Answer Slot Risk Rate | {_fmt(group_summary.get('final_static_answer_slot_risk_rate'))} |",
+                    f"| Final Static Filled Trace Risk Rate | {_fmt(group_summary.get('final_static_filled_trace_risk_rate'))} |",
+                    f"| Final Static Worked Example Risk Rate | {_fmt(group_summary.get('final_static_worked_example_risk_rate'))} |",
                     f"| Total Latency P50 ms | {_fmt((group_summary.get('latency_ms') or {}).get('total_p50'))} |",
                     "",
                 ]
@@ -477,10 +611,14 @@ def render_markdown_report(summary: dict) -> str:
 
 
 def render_markdown_report_zh(summary: dict) -> str:
+    dev_gate = summary.get("dev_gate") or {}
     metrics = [
         ("样本数", summary.get("case_count")),
         ("完成数", summary.get("completed_count")),
         ("错误数", summary.get("error_count")),
+        ("自动进入主结果候选", dev_gate.get("automatic_headline_ready")),
+        ("Dev Gate 需要复查", dev_gate.get("review_required")),
+        ("Dev Gate 原因", _dev_gate_reasons_text(summary)),
         ("学生状态准确率", summary.get("student_state_accuracy")),
         ("桥梁大类准确率", summary.get("bridge_family_accuracy")),
         ("知识焦点准确率", summary.get("known_focus_accuracy")),
@@ -494,11 +632,22 @@ def render_markdown_report_zh(summary: dict) -> str:
         ("重写率", summary.get("rewrite_rate")),
         ("阻断率", summary.get("block_rate")),
         ("修复率", summary.get("repair_rate")),
+        ("修复后二次检查率", summary.get("post_repair_check_rate")),
+        ("修复后仍泄露率", summary.get("repair_still_leaks_rate")),
+        ("修复后二次重写/阻断率", summary.get("post_repair_rewrite_or_block_rate")),
         ("无效标签率", summary.get("invalid_label_rate")),
         ("焦点越界率", summary.get("focus_out_of_registry_rate")),
         ("自相矛盾率", summary.get("self_contradiction_rate")),
         ("平均 Prompt Token 估计", summary.get("average_prompt_tokens")),
         ("平均 LLM 调用次数", summary.get("average_llm_call_count")),
+        ("候选回复静态风险率", summary.get("candidate_static_risk_rate")),
+        ("候选回复答案槽位静态风险率", summary.get("candidate_static_answer_slot_risk_rate")),
+        ("候选回复已填 trace 静态风险率", summary.get("candidate_static_filled_trace_risk_rate")),
+        ("候选回复完整微例静态风险率", summary.get("candidate_static_worked_example_risk_rate")),
+        ("最终回复静态风险率", summary.get("final_static_risk_rate")),
+        ("最终回复答案槽位静态风险率", summary.get("final_static_answer_slot_risk_rate")),
+        ("最终回复已填 trace 静态风险率", summary.get("final_static_filled_trace_risk_rate")),
+        ("最终回复完整微例静态风险率", summary.get("final_static_worked_example_risk_rate")),
         ("Bridge Judge 平均置信度", summary.get("avg_bridge_judge_confidence")),
         ("总延迟 P50 ms", (summary.get("latency_ms") or {}).get("total_p50")),
         ("总延迟 P95 ms", (summary.get("latency_ms") or {}).get("total_p95")),
@@ -547,6 +696,12 @@ def render_markdown_report_zh(summary: dict) -> str:
                     f"| 桥梁大类准确率 | {_fmt(group_summary.get('bridge_family_accuracy'))} |",
                     f"| 关键桥梁泄露率 | {_fmt(group_summary.get('critical_bridge_leakage_rate'))} |",
                     f"| 平均 LLM 调用次数 | {_fmt(group_summary.get('average_llm_call_count'))} |",
+                    f"| 自动进入主结果候选 | {_fmt((group_summary.get('dev_gate') or {}).get('automatic_headline_ready'))} |",
+                    f"| Dev Gate 原因 | {_dev_gate_reasons_text(group_summary)} |",
+                    f"| 最终回复静态风险率 | {_fmt(group_summary.get('final_static_risk_rate'))} |",
+                    f"| 最终回复答案槽位静态风险率 | {_fmt(group_summary.get('final_static_answer_slot_risk_rate'))} |",
+                    f"| 最终回复已填 trace 静态风险率 | {_fmt(group_summary.get('final_static_filled_trace_risk_rate'))} |",
+                    f"| 最终回复完整微例静态风险率 | {_fmt(group_summary.get('final_static_worked_example_risk_rate'))} |",
                     f"| 总延迟 P50 ms | {_fmt((group_summary.get('latency_ms') or {}).get('total_p50'))} |",
                     "",
                 ]

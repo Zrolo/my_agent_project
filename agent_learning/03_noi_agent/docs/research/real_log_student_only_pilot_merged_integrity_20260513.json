@@ -1,0 +1,53 @@
+{
+  "manifest": "evals/aichat/ad_hoc_runs/real_log_student_only_pilot_20260513_merged/manifest.json",
+  "combined_jsonl": "evals/aichat/ad_hoc_runs/real_log_student_only_pilot_20260513_merged/combined_dev_ablation.jsonl",
+  "review_csv": "evals/aichat/ad_hoc_runs/real_log_student_only_pilot_20260513_merged/coach_response_review_workbook_dev_ablation.csv",
+  "case_count": 8,
+  "condition_count": 6,
+  "conditions": [
+    "enhanced_prompt_only_clean",
+    "dbox_inspired_guard",
+    "edf_inspired_clean",
+    "edf_inspired_guard",
+    "bridge_contract_guard",
+    "bridge_contract_guard_repair"
+  ],
+  "expected_row_count": 48,
+  "combined_row_count": 48,
+  "final_response_row_count": 48,
+  "review_row_count": 48,
+  "missing_pairs": [],
+  "duplicate_pairs": [],
+  "empty_final_response_rows": [],
+  "targeted_rerun_pairs": [],
+  "targeted_rerun_commands": [],
+  "stage_warning_rows": [
+    {
+      "case_id": "real_aichat_1293",
+      "condition_id": "dbox_inspired_guard",
+      "stage_errors": {
+        "leakage_judge": "APITimeoutError: Request timed out."
+      }
+    },
+    {
+      "case_id": "real_aichat_247",
+      "condition_id": "edf_inspired_guard",
+      "stage_errors": {
+        "leakage_judge": "APITimeoutError: Request timed out."
+      }
+    },
+    {
+      "case_id": "real_aichat_249",
+      "condition_id": "bridge_contract_guard_repair",
+      "stage_errors": {
+        "leakage_judge": "APITimeoutError: Request timed out."
+      }
+    }
+  ],
+  "blocking_reasons": [],
+  "warning_reasons": [
+    "stage_errors_present"
+  ],
+  "headline_ready": false,
+  "analysis_ready": true
+}

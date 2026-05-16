@@ -1,0 +1,111 @@
+{
+  "case_count": 1,
+  "completed_count": 1,
+  "error_count": 0,
+  "student_state_accuracy": null,
+  "bridge_family_accuracy": null,
+  "known_focus_accuracy": null,
+  "known_focus_accuracy_on_registered": null,
+  "unknown_focus_recall": null,
+  "help_seeking_type_accuracy": null,
+  "allowed_help_level_accuracy": null,
+  "leakage_rate": 0.0,
+  "critical_bridge_leakage_rate": 0.0,
+  "answer_or_code_leakage_rate": 0.0,
+  "rewrite_rate": 0.0,
+  "block_rate": 0.0,
+  "repair_rate": 0.0,
+  "post_repair_check_rate": 0.0,
+  "repair_still_leaks_rate": null,
+  "post_repair_rewrite_or_block_rate": null,
+  "invalid_label_rate": null,
+  "focus_out_of_registry_rate": null,
+  "self_contradiction_rate": null,
+  "average_prompt_tokens": 92.0,
+  "average_llm_call_count": 3.0,
+  "candidate_static_risk_rate": 1.0,
+  "candidate_static_answer_slot_risk_rate": 1.0,
+  "candidate_static_filled_trace_risk_rate": 0.0,
+  "candidate_static_worked_example_risk_rate": 0.0,
+  "final_static_risk_rate": 1.0,
+  "final_static_answer_slot_risk_rate": 1.0,
+  "final_static_filled_trace_risk_rate": 0.0,
+  "final_static_worked_example_risk_rate": 0.0,
+  "avg_bridge_judge_confidence": 0.88,
+  "latency_ms": {
+    "total_p50": 21672.317,
+    "total_p95": 21672.317
+  },
+  "stage_error_counts": {},
+  "groups": {
+    "tutor_mode=bridge_contract_compact|guard_mode=predicted|pipeline_mode=tutor_plus_guard_plus_repair|judge_schema_mode=full_schema_judge|tutor_model_provider=deepseek_flash|chat_thinking_mode=profile_default": {
+      "case_count": 1,
+      "completed_count": 1,
+      "error_count": 0,
+      "student_state_accuracy": null,
+      "bridge_family_accuracy": null,
+      "known_focus_accuracy": null,
+      "known_focus_accuracy_on_registered": null,
+      "unknown_focus_recall": null,
+      "help_seeking_type_accuracy": null,
+      "allowed_help_level_accuracy": null,
+      "leakage_rate": 0.0,
+      "critical_bridge_leakage_rate": 0.0,
+      "answer_or_code_leakage_rate": 0.0,
+      "rewrite_rate": 0.0,
+      "block_rate": 0.0,
+      "repair_rate": 0.0,
+      "post_repair_check_rate": 0.0,
+      "repair_still_leaks_rate": null,
+      "post_repair_rewrite_or_block_rate": null,
+      "invalid_label_rate": null,
+      "focus_out_of_registry_rate": null,
+      "self_contradiction_rate": null,
+      "average_prompt_tokens": 92.0,
+      "average_llm_call_count": 3.0,
+      "candidate_static_risk_rate": 1.0,
+      "candidate_static_answer_slot_risk_rate": 1.0,
+      "candidate_static_filled_trace_risk_rate": 0.0,
+      "candidate_static_worked_example_risk_rate": 0.0,
+      "final_static_risk_rate": 1.0,
+      "final_static_answer_slot_risk_rate": 1.0,
+      "final_static_filled_trace_risk_rate": 0.0,
+      "final_static_worked_example_risk_rate": 0.0,
+      "avg_bridge_judge_confidence": 0.88,
+      "latency_ms": {
+        "total_p50": 21672.317,
+        "total_p95": 21672.317
+      },
+      "stage_error_counts": {},
+      "groups": {},
+      "safe_action_counts": {
+        "pass": 1
+      },
+      "leakage_level_counts": {
+        "0": 1
+      },
+      "error_cases": [],
+      "dev_gate": {
+        "automatic_headline_ready": false,
+        "review_required": true,
+        "reasons": [
+          "final_static_answer_slot_risk"
+        ]
+      }
+    }
+  },
+  "safe_action_counts": {
+    "pass": 1
+  },
+  "leakage_level_counts": {
+    "0": 1
+  },
+  "error_cases": [],
+  "dev_gate": {
+    "automatic_headline_ready": false,
+    "review_required": true,
+    "reasons": [
+      "final_static_answer_slot_risk"
+    ]
+  }
+}

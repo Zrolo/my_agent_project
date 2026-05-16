@@ -1,0 +1,31 @@
+{
+  "manifest": "evals/aichat/ad_hoc_runs/heldout_50_ai_reference_smoke1_20260513/manifest.json",
+  "combined_jsonl": "evals/aichat/ad_hoc_runs/heldout_50_ai_reference_smoke1_20260513/combined_dev_ablation.jsonl",
+  "review_csv": "evals/aichat/ad_hoc_runs/heldout_50_ai_reference_smoke1_20260513/coach_response_review_workbook_dev_ablation.csv",
+  "case_count": 1,
+  "condition_count": 8,
+  "conditions": [
+    "current_system_deployment",
+    "enhanced_prompt_only_clean",
+    "codehelp_codeaid_clean",
+    "dbox_inspired_guard",
+    "bridge_inspired_expert_decision_clean",
+    "single_llm_structured_guard",
+    "bridge_contract_guard",
+    "bridge_contract_guard_repair"
+  ],
+  "expected_row_count": 8,
+  "combined_row_count": 8,
+  "final_response_row_count": 8,
+  "review_row_count": 8,
+  "missing_pairs": [],
+  "duplicate_pairs": [],
+  "empty_final_response_rows": [],
+  "targeted_rerun_pairs": [],
+  "targeted_rerun_commands": [],
+  "stage_warning_rows": [],
+  "blocking_reasons": [],
+  "warning_reasons": [],
+  "headline_ready": true,
+  "analysis_ready": true
+}

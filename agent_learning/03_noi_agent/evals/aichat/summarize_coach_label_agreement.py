@@ -1,6 +1,8 @@
 import argparse
 import json
+import sys
 from pathlib import Path
+from typing import TextIO
 
 
 EXACT_FIELDS = [
@@ -118,22 +120,167 @@ def summarize_agreement(annotator_a_jsonl: Path, annotator_b_jsonl: Path) -> dic
     }
 
 
-def _parse_args() -> argparse.Namespace:
+def _format_rate(value: float | None) -> str:
+    if value is None:
+        return "N/A"
+    return f"{value:.3f}"
+
+
+def _metric_rows(summary: dict) -> list[tuple[str, str, float | None]]:
+    exact = summary.get("exact_agreement") or {}
+    relaxed = summary.get("relaxed_agreement") or {}
+    return [
+        ("student_problem_solving_state", "exact", exact.get("student_problem_solving_state")),
+        ("primary_bridge_family", "exact", exact.get("primary_bridge_family")),
+        ("registered_focus_id", "exact", exact.get("registered_focus_id")),
+        ("max_scaffold_level", "exact", exact.get("max_scaffold_level")),
+        ("leakage_risk", "exact", exact.get("leakage_risk")),
+        (
+            "bridge_family_primary_or_secondary",
+            "relaxed",
+            relaxed.get("bridge_family_primary_or_secondary"),
+        ),
+        ("focus_primary_or_secondary", "relaxed", relaxed.get("focus_primary_or_secondary")),
+    ]
+
+
+def render_report_zh(summary: dict) -> str:
+    lines = [
+        "# Coach Label Agreement Summary",
+        "",
+        "本报告汇总两个教练 reference JSONL 在 overlap case 上的一致性。它用于寻找需要裁决的样本，不代表任何一个教练标签是绝对真值。",
+        "",
+        "## 输入",
+        "",
+        f"- Coach A JSONL: `{summary.get('annotator_a_jsonl', '')}`",
+        f"- Coach B JSONL: `{summary.get('annotator_b_jsonl', '')}`",
+        f"- Coach A rows: {summary.get('annotator_a_count', 0)}",
+        f"- Coach B rows: {summary.get('annotator_b_count', 0)}",
+        f"- Paired overlap rows: {summary.get('paired_count', 0)}",
+        "",
+        "## 一致性指标",
+        "",
+        "| 字段 | 类型 | agreement |",
+        "|---|---|---:|",
+    ]
+    for field, metric_type, value in _metric_rows(summary):
+        lines.append(f"| `{field}` | {metric_type} | {_format_rate(value)} |")
+
+    needs = summary.get("needs_adjudication_case_ids") or []
+    lines.extend(
+        [
+            "",
+            "## 需要裁决的样本",
+            "",
+            f"- needs_adjudication_count: {summary.get('needs_adjudication_count', len(needs))}",
+        ]
+    )
+    if needs:
+        lines.append("- case_ids: " + ", ".join(f"`{case_id}`" for case_id in needs))
+    else:
+        lines.append("- case_ids: none")
+
+    unpaired_a = summary.get("unpaired_a_case_ids") or []
+    unpaired_b = summary.get("unpaired_b_case_ids") or []
+    lines.extend(
+        [
+            "",
+            "## 未配对样本",
+            "",
+            "- Coach A only: " + (", ".join(f"`{case_id}`" for case_id in unpaired_a) if unpaired_a else "none"),
+            "- Coach B only: " + (", ".join(f"`{case_id}`" for case_id in unpaired_b) if unpaired_b else "none"),
+            "",
+            "## 使用边界",
+            "",
+            "- 该报告用于 adjudication planning；",
+            "- 不把 single-coach reference 当作唯一真值；",
+            "- 正式 headline 前应裁决低置信、多桥梁、help level 和 leakage risk 重大分歧。",
+        ]
+    )
+    return "\n".join(lines) + "\n"
+
+
+def render_report_en(summary: dict) -> str:
+    lines = [
+        "# Coach Label Agreement Summary",
+        "",
+        "This report summarizes agreement between two coach-reference JSONL files on overlap cases. It is used to identify cases needing adjudication; it does not treat either coach label as absolute truth.",
+        "",
+        "## Inputs",
+        "",
+        f"- Coach A JSONL: `{summary.get('annotator_a_jsonl', '')}`",
+        f"- Coach B JSONL: `{summary.get('annotator_b_jsonl', '')}`",
+        f"- Coach A rows: {summary.get('annotator_a_count', 0)}",
+        f"- Coach B rows: {summary.get('annotator_b_count', 0)}",
+        f"- Paired overlap rows: {summary.get('paired_count', 0)}",
+        "",
+        "## Agreement Metrics",
+        "",
+        "| Field | Type | agreement |",
+        "|---|---|---:|",
+    ]
+    for field, metric_type, value in _metric_rows(summary):
+        lines.append(f"| `{field}` | {metric_type} | {_format_rate(value)} |")
+
+    needs = summary.get("needs_adjudication_case_ids") or []
+    lines.extend(
+        [
+            "",
+            "## Needs Adjudication",
+            "",
+            f"- needs_adjudication_count: {summary.get('needs_adjudication_count', len(needs))}",
+        ]
+    )
+    if needs:
+        lines.append("- case_ids: " + ", ".join(f"`{case_id}`" for case_id in needs))
+    else:
+        lines.append("- case_ids: none")
+
+    unpaired_a = summary.get("unpaired_a_case_ids") or []
+    unpaired_b = summary.get("unpaired_b_case_ids") or []
+    lines.extend(
+        [
+            "",
+            "## Unpaired Cases",
+            "",
+            "- Coach A only: " + (", ".join(f"`{case_id}`" for case_id in unpaired_a) if unpaired_a else "none"),
+            "- Coach B only: " + (", ".join(f"`{case_id}`" for case_id in unpaired_b) if unpaired_b else "none"),
+            "",
+            "## Boundary",
+            "",
+            "- Use this report for adjudication planning.",
+            "- Do not treat a single-coach reference as the only truth.",
+            "- Before headline claims, adjudicate low-confidence, multi-bridge, help-level, and leakage-risk disagreements.",
+        ]
+    )
+    return "\n".join(lines) + "\n"
+
+
+def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Summarize agreement between two coach v2 JSONL label files.")
     parser.add_argument("--annotator-a-jsonl", type=Path, required=True)
     parser.add_argument("--annotator-b-jsonl", type=Path, required=True)
     parser.add_argument("--output-json", type=Path)
-    return parser.parse_args()
+    parser.add_argument("--output-md-zh", type=Path)
+    parser.add_argument("--output-md", type=Path)
+    return parser.parse_args(argv)
 
 
-def main() -> int:
-    args = _parse_args()
+def main(argv: list[str] | None = None, *, stdout: TextIO | None = None) -> int:
+    args = _parse_args(sys.argv[1:] if argv is None else argv)
     summary = summarize_agreement(args.annotator_a_jsonl, args.annotator_b_jsonl)
     text = json.dumps(summary, ensure_ascii=False, indent=2)
     if args.output_json:
         args.output_json.parent.mkdir(parents=True, exist_ok=True)
         args.output_json.write_text(text + "\n", encoding="utf-8")
-    print(text)
+    if args.output_md_zh:
+        args.output_md_zh.parent.mkdir(parents=True, exist_ok=True)
+        args.output_md_zh.write_text(render_report_zh(summary), encoding="utf-8")
+    if args.output_md:
+        args.output_md.parent.mkdir(parents=True, exist_ok=True)
+        args.output_md.write_text(render_report_en(summary), encoding="utf-8")
+    output = stdout or sys.stdout
+    output.write(text + "\n")
     return 0
 
 

@@ -30,6 +30,7 @@ STRUCTURED_FIELDS = [
     "leakage_boundary_ok",
     "case_decision",
     "issue_type",
+    "coach_fix_suggestion",
     "reviewer_confidence",
     "reviewer_id",
     "review_round",
@@ -62,6 +63,9 @@ CHOICE_NORMALIZATION = {
     "跟随状态": "followability_issue",
     "桥梁标签问题": "bridge_label_issue",
     "桥梁标签": "bridge_label_issue",
+    "题目与桥梁不匹配": "problem_bridge_mismatch",
+    "题目桥梁不匹配": "problem_bridge_mismatch",
+    "题源与桥梁不匹配": "problem_bridge_mismatch",
     "禁止内容问题": "forbidden_content_issue",
     "禁止内容": "forbidden_content_issue",
     "成功标准问题": "success_criteria_issue",
@@ -98,6 +102,10 @@ def _sheet_has_structured_fields(sheet) -> bool:
     return all(field in header_to_col for field in STRUCTURED_FIELDS)
 
 
+def _cell_text(value) -> str:
+    return str(value or "").strip()
+
+
 def _extract_rows(sheet) -> list[dict]:
     machine_headers = [sheet.cell(row=2, column=col).value for col in range(1, sheet.max_column + 1)]
     header_to_col = {header: index + 1 for index, header in enumerate(machine_headers) if header}
@@ -110,12 +118,11 @@ def _extract_rows(sheet) -> list[dict]:
         case_id = sheet.cell(row=row_index, column=header_to_col.get("case_id", 1)).value
         if not str(case_id or "").strip():
             continue
-        rows.append(
-            {
-                field: _norm(sheet.cell(row=row_index, column=header_to_col[field]).value)
-                for field in STRUCTURED_FIELDS
-            }
-        )
+        row = {"case_id": _cell_text(case_id), "sheet_name": sheet.title}
+        for field in STRUCTURED_FIELDS:
+            value = sheet.cell(row=row_index, column=header_to_col[field]).value
+            row[field] = _cell_text(value) if field == "coach_fix_suggestion" else _norm(value)
+        rows.append(row)
     return rows
 
 
@@ -153,6 +160,18 @@ def summarize_workbook(path: Path, *, sheet_name: str | None = None) -> dict:
             sheet_title = main_sheet.title
             source_mode_used = "main_sheet"
 
+    needs_followup_cases = [
+        {
+            "case_id": row["case_id"],
+            "sheet_name": row["sheet_name"],
+            "case_decision": row["case_decision"],
+            "issue_type": row["issue_type"],
+            "reviewer_confidence": row["reviewer_confidence"],
+            "coach_fix_suggestion": row["coach_fix_suggestion"],
+        }
+        for row in rows
+        if row["case_decision"] in {"revise", "drop", "discuss"}
+    ]
     summary: dict[str, object] = {
         "input_xlsx": str(path),
         "sheet_name": sheet_title,
@@ -165,9 +184,10 @@ def summarize_workbook(path: Path, *, sheet_name: str | None = None) -> dict:
         "reviewer_id_counts": dict(Counter(row["reviewer_id"] for row in rows)),
         "review_round_counts": dict(Counter(row["review_round"] for row in rows)),
         "needs_followup_count": sum(1 for row in rows if row["case_decision"] in {"revise", "drop", "discuss"}),
+        "needs_followup_cases": needs_followup_cases,
     }
     for field in STRUCTURED_FIELDS:
-        if field in {"case_decision", "issue_type", "reviewer_confidence", "reviewer_id", "review_round"}:
+        if field in {"case_decision", "issue_type", "coach_fix_suggestion", "reviewer_confidence", "reviewer_id", "review_round"}:
             continue
         summary[f"{field}_counts"] = dict(Counter(row[field] for row in rows))
     return summary
@@ -203,6 +223,23 @@ def _write_markdown(summary: dict, path: Path, *, language: str) -> None:
         "",
         f"`{summary['reviewer_confidence_counts']}`",
     ]
+    if summary["needs_followup_cases"]:
+        lines.extend(
+            [
+                "",
+                "## Cases Needing Follow-up" if not is_zh else "## 需要后续处理的样本",
+                "",
+                "| case_id | sheet | decision | issue | confidence | suggestion |"
+                if not is_zh
+                else "| case_id | sheet | 决定 | 问题类型 | 置信度 | 修改建议 |",
+                "|---|---|---|---|---|---|",
+            ]
+        )
+        for case in summary["needs_followup_cases"]:
+            suggestion = str(case["coach_fix_suggestion"]).replace("|", "/")
+            lines.append(
+                f"| `{case['case_id']}` | {case['sheet_name']} | {case['case_decision']} | {case['issue_type']} | {case['reviewer_confidence']} | {suggestion} |"
+            )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 

@@ -101,6 +101,11 @@ class RepairStressEvalRunnerTests(unittest.TestCase):
         )
 
         self.assertEqual("repair", result["final_response_source"])
+        self.assertEqual("修复后：先别急着写状态，你先说容量变化时要保留哪些信息。", result["final_response_text"])
+        self.assertEqual(
+            "修复后：先别急着写状态，你先说容量变化时要保留哪些信息。",
+            result["repair_result"]["repaired_response"],
+        )
         self.assertTrue(result["repair_applied"])
         self.assertFalse(result["blocked"])
         self.assertEqual(2, calls["leakage"])

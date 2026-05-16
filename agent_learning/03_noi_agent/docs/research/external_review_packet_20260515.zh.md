@@ -91,7 +91,7 @@
 | 学生问题长度 | short 20 / medium_short 15 / medium_long 10 / long 5 |
 | 近期对话 | none 10 / short 25 / long 15 |
 | 初始提问 vs 后续辅导轮 | initial 10 / followup 40 |
-| 学生跟随状态 | F1 7 / F2 18 / F3 10 / F4 5 / N/A 10 |
+| 学生跟随状态 | F1 6 / F2 19 / F3 10 / F4 5 / N/A 10 |
 | 代码或错误代码场景 | 至少 10，当前约 17 |
 
 桥梁桶配额：

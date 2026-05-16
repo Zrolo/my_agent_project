@@ -20,6 +20,7 @@ from evals.aichat.run_bridge_offline_eval import (
     _bridge_help_forms,
     _bridge_result_from_runtime_contract,
     _call_stage_with_retries,
+    _strip_internal_level_tags,
 )
 
 
@@ -188,6 +189,9 @@ def run_one_repair_stress_case(
             stage_errors["repair"] = _stage_error(repair_result)
 
         repaired_response = repair_result.get("repaired_response") if isinstance(repair_result, dict) else ""
+        repaired_response = _strip_internal_level_tags(repaired_response)
+        if repaired_response and isinstance(repair_result, dict):
+            repair_result["repaired_response"] = repaired_response
         if repaired_response:
             result["final_response_text"] = repaired_response
             result["final_response_source"] = "repair"

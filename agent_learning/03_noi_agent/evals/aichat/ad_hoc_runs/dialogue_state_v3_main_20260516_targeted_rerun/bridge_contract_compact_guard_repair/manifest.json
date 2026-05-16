@@ -1,0 +1,33 @@
+{
+  "input_jsonl": "docs/research/bridgebench_cp_dialogue_state_v3_50_reviewed_candidate.jsonl",
+  "output_dir": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/bridge_contract_compact_guard_repair",
+  "case_count": 1,
+  "condition_set": "dialogue_state_v3_main",
+  "condition_count": 1,
+  "conditions": [
+    {
+      "condition_id": "bridge_contract_compact_guard_repair",
+      "tutor_mode": "bridge_contract_compact",
+      "pipeline_mode": "tutor_plus_guard_plus_repair",
+      "guard_mode": "predicted"
+    }
+  ],
+  "selected_case_ids": [
+    "dialogue_v3_014_predicate_check_semantics"
+  ],
+  "selected_condition_ids": [
+    "bridge_contract_compact_guard_repair"
+  ],
+  "condition_outputs": [
+    "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/bridge_contract_compact_guard_repair/bridge_contract_compact_guard_repair.jsonl"
+  ],
+  "combined_row_count": 1,
+  "combined_jsonl": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/bridge_contract_compact_guard_repair/combined_dev_ablation.jsonl",
+  "summary_json": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/bridge_contract_compact_guard_repair/combined_dev_ablation_summary.json",
+  "summary_md": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/bridge_contract_compact_guard_repair/combined_dev_ablation_summary.md",
+  "summary_md_zh": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/bridge_contract_compact_guard_repair/combined_dev_ablation_summary.zh.md",
+  "review_csv": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/bridge_contract_compact_guard_repair/coach_response_review_workbook_dev_ablation.csv",
+  "review_key_csv": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/bridge_contract_compact_guard_repair/coach_response_review_workbook_dev_ablation.key.csv",
+  "review_xlsx": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/bridge_contract_compact_guard_repair/coach_response_review_workbook_dev_ablation.zh.xlsx",
+  "review_row_count": 1
+}

@@ -1,0 +1,22 @@
+﻿case_id,anonymized_response_id,problem_ref,problem_source_platform,problem_source_id,problem_source_url,problem_statement,problem_statement_public_summary,problem_statement_rights_note,problem_statement_access_level,student_message,student_message_length_bucket,problem_context,recent_dialogue,context_ai_reply,context_alignment_flag,success_criteria,forbidden_content,critical_bridge_boundary,acceptable_reveal,expected_student_next_action,turn_position,context_type,student_scaffold_followability,expected_tutor_move,prior_ai_scaffold,student_reply_to_prior_scaffold,response_text,coach_overall_quality_score,coach_would_show_to_student,coach_leakage_label,coach_bridge_reveal_justification,coach_scaffold_sufficiency_score,coach_student_response_burden,coach_bridge_identification_score,coach_groundedness_score,coach_scaffold_appropriateness_score,coach_next_step_clarity_score,coach_single_focus_coherence_score,coach_micro_example_applicability,coach_bridge_oriented_micro_example_score,coach_bridge_leakage_control_score,coach_preference_rank,coach_reviewer_confidence,coach_needs_discussion,coach_notes,review_status
+dialogue_v3_014_predicate_check_semantics,resp_15d39148b4,luogu_p3718_predicate_check_semantics,luogu,P3718,https://www.luogu.com.cn/problem/P3718,"题目：[AHOI2017初中组] alter
+来源：洛谷 P3718
+题意摘录：有 $n$ 盏灯排成一列，其中有些灯开着，有些灯关着。小可可希望灯是错落有致的，他定义一列灯的状态的不优美度为这些灯中最长的连续的开着或关着的灯的个数。小可可最多可以按开关 $k$ 次，每次操作可以使该盏灯的状态取反：原来开着的就关着，反之开着。现在给出这些灯的状态，求操作后最小的不优美度。
+输入格式摘录：第一行两个整数 $n,k$。
+
+第二行是一个长度为 $n$ 的字符串，其中有两种字符：`N` 和 `F`。其中 `N` 表示该灯开着，`F` 表示该灯关着。
+输出格式摘录：最小的不优美度。
+样例输入：8 1
+NNNFFNNN
+样例输出：3
+数据范围/提示摘录：$30\%$ 的数据：$1\le k \le n\le20$；
+
+$50\%$ 的数据：$1\le k \le n\le300$；
+
+另有 $15\%$ 的数据：$1\le k \le n\le 10^5$，字符串为全 `N` 或全 `F`；
+
+$100\%$ 的数据：$1\le k \le n\le 10^5$。
+
+本题已经加入 hack 数据。",洛谷 P3718《[AHOI2017初中组] alter》：有 $n$ 盏灯排成一列，其中有些灯开着，有些灯关着。小可可希望灯是错落有致的，他定义一列灯的状态的不优美度为这些灯中最长的连续的开着或关着的灯的个数。小可可最多可以按开关 $k$ 次，每次操作可以使该盏灯的状态取反：原来开着的就关着，反之开着。现在给出这些灯的状态，求操作后最小的不优美度。,本地教练复核使用必要题面片段；公开论文/仓库材料应优先保留洛谷链接、题号和改写摘要，不要转载完整原题面。,local_review_only,我理解 true 应该是当前候选能过限制。,short,洛谷 P3718《[AHOI2017初中组] alter》：有 $n$ 盏灯排成一列，其中有些灯开着，有些灯关着。小可可希望灯是错落有致的，他定义一列灯的状态的不优美度为这些灯中最长的连续的开着或关着的灯的个数。小可可最多可以按开关 $k$ 次，每次操作可以使该盏灯的状态取反：原来开着的就关着，反之开着。现在给出这些灯的状态，求操作后最小的不优美度。,"学生：这里二分的是啥？
+AI：先别急着要完整做法。围绕《[AHOI2017初中组] alter》，我们只拆当前一小步：你先说说 check 返回 true 时，代表候选值是可行还是不可行。",先别急着要完整做法。围绕《[AHOI2017初中组] alter》，我们只拆当前一小步：你先说说 check 返回 true 时，代表候选值是可行还是不可行。,aligned_prior_context_ends_with_assistant,,,,,,followup,followup_after_correct_short_answer,F1,advance,先别急着要完整做法。围绕《[AHOI2017初中组] alter》，我们只拆当前一小步：你先说说 check 返回 true 时，代表候选值是可行还是不可行。,我理解 true 应该是当前候选能过限制。,"你理解得对：check 返回 true 表示当前候选值可行。  
+现在考虑二分的方向：如果 mid 可行，为了找到**最小**的不优美度，下一步应该把搜索范围往更小的值移动还是往更大的值移动？试着用自己的话解释一下原因。",,,,,,,,,,,,,,,,,,,unlabeled

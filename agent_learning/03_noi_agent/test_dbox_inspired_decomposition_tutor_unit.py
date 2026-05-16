@@ -34,7 +34,7 @@ def _bridge_result(**overrides):
         "turn_type": "diagnosable_learning_turn",
         "missing_bridge": {
             "family": "representation_state_bridge",
-            "subtype": "state.lazy_tag_semantics",
+            "subtype": "state.deferred_update_semantics",
             "known_focus": "segment_tree.lazy_semantics",
             "description": "学生不知道 lazy 标记表示子节点尚未下推的增量。",
         },

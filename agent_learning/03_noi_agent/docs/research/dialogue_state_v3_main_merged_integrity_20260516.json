@@ -1,0 +1,30 @@
+{
+  "manifest": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/manifest.json",
+  "combined_jsonl": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/combined_dev_ablation.jsonl",
+  "review_csv": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/coach_response_review_workbook_dev_ablation.csv",
+  "case_count": 50,
+  "condition_count": 7,
+  "conditions": [
+    "enhanced_prompt_only_clean",
+    "codehelp_codeaid_clean",
+    "dbox_inspired_clean",
+    "dbox_inspired_guard",
+    "bridge_guided_dbox_style_guard",
+    "bridge_contract_compact_guard",
+    "bridge_contract_compact_guard_repair"
+  ],
+  "expected_row_count": 350,
+  "combined_row_count": 350,
+  "final_response_row_count": 350,
+  "review_row_count": 350,
+  "missing_pairs": [],
+  "duplicate_pairs": [],
+  "empty_final_response_rows": [],
+  "targeted_rerun_pairs": [],
+  "targeted_rerun_commands": [],
+  "stage_warning_rows": [],
+  "blocking_reasons": [],
+  "warning_reasons": [],
+  "headline_ready": true,
+  "analysis_ready": true
+}

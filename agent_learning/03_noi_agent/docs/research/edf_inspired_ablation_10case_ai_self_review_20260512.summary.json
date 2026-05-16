@@ -1,0 +1,2585 @@
+{
+  "bridge_reveal_justification_counts": {
+    "borderline": 19,
+    "no_reveal": 33,
+    "unjustified": 8
+  },
+  "case_count": 10,
+  "overall_leakage_counts": {
+    "major_bridge_leakage": 8,
+    "minor_bridge_leakage": 19,
+    "no_leakage": 33
+  },
+  "overall_show_counts": {
+    "borderline": 27,
+    "no": 8,
+    "yes": 25
+  },
+  "paired_comparisons": {
+    "bridge_contract_guard__vs__bridge_contract_guard_repair": {
+      "bootstrap_ci95": [
+        -0.4,
+        0.2
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -1.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": -1.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 1.0
+      },
+      "losses": 2,
+      "mean_diff": -0.1,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard",
+      "system_b": "bridge_contract_guard_repair",
+      "ties": 7,
+      "wins": 1
+    },
+    "bridge_contract_guard__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        -0.3,
+        0.3
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": -1.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 1.0
+      },
+      "losses": 1,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard",
+      "system_b": "dbox_inspired_guard",
+      "ties": 8,
+      "wins": 1
+    },
+    "bridge_contract_guard__vs__edf_inspired_clean": {
+      "bootstrap_ci95": [
+        -0.1,
+        0.7
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 1.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 1.0,
+        "cp_bridge_006": 1.0,
+        "cp_bridge_007": -1.0,
+        "cp_bridge_008": 1.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 1,
+      "mean_diff": 0.3,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard",
+      "system_b": "edf_inspired_clean",
+      "ties": 5,
+      "wins": 4
+    },
+    "bridge_contract_guard__vs__edf_inspired_guard": {
+      "bootstrap_ci95": [
+        0.1,
+        0.9
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 1.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 1.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 1.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": -1.0,
+        "cp_bridge_008": 1.0,
+        "cp_bridge_009": 1.0,
+        "cp_bridge_010": 1.0
+      },
+      "losses": 1,
+      "mean_diff": 0.5,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard",
+      "system_b": "edf_inspired_guard",
+      "ties": 3,
+      "wins": 6
+    },
+    "bridge_contract_guard__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        -0.3,
+        0.3
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.0,
+        "cp_bridge_002": 1.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": -1.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 1,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 8,
+      "wins": 1
+    },
+    "bridge_contract_guard_repair__vs__bridge_contract_guard": {
+      "bootstrap_ci95": [
+        -0.2,
+        0.4
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 1.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 1.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": -1.0
+      },
+      "losses": 1,
+      "mean_diff": 0.1,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard_repair",
+      "system_b": "bridge_contract_guard",
+      "ties": 7,
+      "wins": 2
+    },
+    "bridge_contract_guard_repair__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.3
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 1.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 0,
+      "mean_diff": 0.1,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard_repair",
+      "system_b": "dbox_inspired_guard",
+      "ties": 9,
+      "wins": 1
+    },
+    "bridge_contract_guard_repair__vs__edf_inspired_clean": {
+      "bootstrap_ci95": [
+        -0.1,
+        0.9
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 2.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 1.0,
+        "cp_bridge_006": 1.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 1.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": -1.0
+      },
+      "losses": 1,
+      "mean_diff": 0.4,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard_repair",
+      "system_b": "edf_inspired_clean",
+      "ties": 5,
+      "wins": 4
+    },
+    "bridge_contract_guard_repair__vs__edf_inspired_guard": {
+      "bootstrap_ci95": [
+        0.2,
+        1.0
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 2.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 1.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 1.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 1.0,
+        "cp_bridge_009": 1.0,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 0,
+      "mean_diff": 0.6,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard_repair",
+      "system_b": "edf_inspired_guard",
+      "ties": 5,
+      "wins": 5
+    },
+    "bridge_contract_guard_repair__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        -0.2,
+        0.4
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 1.0,
+        "cp_bridge_002": 1.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": -1.0
+      },
+      "losses": 1,
+      "mean_diff": 0.1,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard_repair",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 7,
+      "wins": 2
+    },
+    "dbox_inspired_guard__vs__bridge_contract_guard": {
+      "bootstrap_ci95": [
+        -0.3,
+        0.3
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 1.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": -1.0
+      },
+      "losses": 1,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "bridge_contract_guard",
+      "ties": 8,
+      "wins": 1
+    },
+    "dbox_inspired_guard__vs__bridge_contract_guard_repair": {
+      "bootstrap_ci95": [
+        -0.3,
+        0.0
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -1.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 1,
+      "mean_diff": -0.1,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "bridge_contract_guard_repair",
+      "ties": 9,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__edf_inspired_clean": {
+      "bootstrap_ci95": [
+        -0.1,
+        0.7
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 1.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 1.0,
+        "cp_bridge_006": 1.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 1.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": -1.0
+      },
+      "losses": 1,
+      "mean_diff": 0.3,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "edf_inspired_clean",
+      "ties": 5,
+      "wins": 4
+    },
+    "dbox_inspired_guard__vs__edf_inspired_guard": {
+      "bootstrap_ci95": [
+        0.2,
+        0.8
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 1.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 1.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 1.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 1.0,
+        "cp_bridge_009": 1.0,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 0,
+      "mean_diff": 0.5,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "edf_inspired_guard",
+      "ties": 5,
+      "wins": 5
+    },
+    "dbox_inspired_guard__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        -0.3,
+        0.3
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.0,
+        "cp_bridge_002": 1.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": -1.0
+      },
+      "losses": 1,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 8,
+      "wins": 1
+    },
+    "edf_inspired_clean__vs__bridge_contract_guard": {
+      "bootstrap_ci95": [
+        -0.7,
+        0.1
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -1.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": -1.0,
+        "cp_bridge_006": -1.0,
+        "cp_bridge_007": 1.0,
+        "cp_bridge_008": -1.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 4,
+      "mean_diff": -0.3,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_clean",
+      "system_b": "bridge_contract_guard",
+      "ties": 5,
+      "wins": 1
+    },
+    "edf_inspired_clean__vs__bridge_contract_guard_repair": {
+      "bootstrap_ci95": [
+        -0.9,
+        0.1
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -2.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": -1.0,
+        "cp_bridge_006": -1.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": -1.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 1.0
+      },
+      "losses": 4,
+      "mean_diff": -0.4,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_clean",
+      "system_b": "bridge_contract_guard_repair",
+      "ties": 5,
+      "wins": 1
+    },
+    "edf_inspired_clean__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        -0.7,
+        0.1
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -1.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": -1.0,
+        "cp_bridge_006": -1.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": -1.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 1.0
+      },
+      "losses": 4,
+      "mean_diff": -0.3,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_clean",
+      "system_b": "dbox_inspired_guard",
+      "ties": 5,
+      "wins": 1
+    },
+    "edf_inspired_clean__vs__edf_inspired_guard": {
+      "bootstrap_ci95": [
+        -0.2,
+        0.6
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 1.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": -1.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 1.0,
+        "cp_bridge_010": 1.0
+      },
+      "losses": 1,
+      "mean_diff": 0.2,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_clean",
+      "system_b": "edf_inspired_guard",
+      "ties": 6,
+      "wins": 3
+    },
+    "edf_inspired_clean__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        -0.7,
+        0.1
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -1.0,
+        "cp_bridge_002": 1.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": -1.0,
+        "cp_bridge_006": -1.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": -1.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 4,
+      "mean_diff": -0.3,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_clean",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 5,
+      "wins": 1
+    },
+    "edf_inspired_guard__vs__bridge_contract_guard": {
+      "bootstrap_ci95": [
+        -0.9,
+        -0.1
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -1.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": -1.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": -1.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 1.0,
+        "cp_bridge_008": -1.0,
+        "cp_bridge_009": -1.0,
+        "cp_bridge_010": -1.0
+      },
+      "losses": 6,
+      "mean_diff": -0.5,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_guard",
+      "system_b": "bridge_contract_guard",
+      "ties": 3,
+      "wins": 1
+    },
+    "edf_inspired_guard__vs__bridge_contract_guard_repair": {
+      "bootstrap_ci95": [
+        -1.0,
+        -0.2
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -2.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": -1.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": -1.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": -1.0,
+        "cp_bridge_009": -1.0,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 5,
+      "mean_diff": -0.6,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_guard",
+      "system_b": "bridge_contract_guard_repair",
+      "ties": 5,
+      "wins": 0
+    },
+    "edf_inspired_guard__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        -0.8,
+        -0.2
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -1.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": -1.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": -1.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": -1.0,
+        "cp_bridge_009": -1.0,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 5,
+      "mean_diff": -0.5,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_guard",
+      "system_b": "dbox_inspired_guard",
+      "ties": 5,
+      "wins": 0
+    },
+    "edf_inspired_guard__vs__edf_inspired_clean": {
+      "bootstrap_ci95": [
+        -0.6,
+        0.2
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": -1.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 1.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": -1.0,
+        "cp_bridge_010": -1.0
+      },
+      "losses": 3,
+      "mean_diff": -0.2,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_guard",
+      "system_b": "edf_inspired_clean",
+      "ties": 6,
+      "wins": 1
+    },
+    "edf_inspired_guard__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        -0.9,
+        0.0
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -1.0,
+        "cp_bridge_002": 1.0,
+        "cp_bridge_003": -1.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": -1.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": -1.0,
+        "cp_bridge_009": -1.0,
+        "cp_bridge_010": -1.0
+      },
+      "losses": 6,
+      "mean_diff": -0.5,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_guard",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 3,
+      "wins": 1
+    },
+    "enhanced_prompt_only_clean__vs__bridge_contract_guard": {
+      "bootstrap_ci95": [
+        -0.3,
+        0.3
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.0,
+        "cp_bridge_002": -1.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 1.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 1,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "bridge_contract_guard",
+      "ties": 8,
+      "wins": 1
+    },
+    "enhanced_prompt_only_clean__vs__bridge_contract_guard_repair": {
+      "bootstrap_ci95": [
+        -0.4,
+        0.2
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -1.0,
+        "cp_bridge_002": -1.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 1.0
+      },
+      "losses": 2,
+      "mean_diff": -0.1,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "bridge_contract_guard_repair",
+      "ties": 7,
+      "wins": 1
+    },
+    "enhanced_prompt_only_clean__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        -0.3,
+        0.3
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.0,
+        "cp_bridge_002": -1.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 1.0
+      },
+      "losses": 1,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "dbox_inspired_guard",
+      "ties": 8,
+      "wins": 1
+    },
+    "enhanced_prompt_only_clean__vs__edf_inspired_clean": {
+      "bootstrap_ci95": [
+        -0.1,
+        0.7
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 1.0,
+        "cp_bridge_002": -1.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 1.0,
+        "cp_bridge_006": 1.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 1.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 1,
+      "mean_diff": 0.3,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "edf_inspired_clean",
+      "ties": 5,
+      "wins": 4
+    },
+    "enhanced_prompt_only_clean__vs__edf_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.9
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 1.0,
+        "cp_bridge_002": -1.0,
+        "cp_bridge_003": 1.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 1.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 1.0,
+        "cp_bridge_009": 1.0,
+        "cp_bridge_010": 1.0
+      },
+      "losses": 1,
+      "mean_diff": 0.5,
+      "metric": "overall_quality_score",
+      "paired_cases": 10,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "edf_inspired_guard",
+      "ties": 3,
+      "wins": 6
+    }
+  },
+  "paired_comparisons_core6": {
+    "bridge_contract_guard__vs__bridge_contract_guard_repair": {
+      "bootstrap_ci95": [
+        -0.1167,
+        0.0833
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -0.1667,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": -0.3333,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.3333
+      },
+      "losses": 2,
+      "mean_diff": -0.0167,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard",
+      "system_b": "bridge_contract_guard_repair",
+      "ties": 7,
+      "wins": 1
+    },
+    "bridge_contract_guard__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        -0.1,
+        0.1
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": -0.3333,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.3333
+      },
+      "losses": 1,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard",
+      "system_b": "dbox_inspired_guard",
+      "ties": 8,
+      "wins": 1
+    },
+    "bridge_contract_guard__vs__edf_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0167,
+        0.2666
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.3333,
+        "cp_bridge_002": 0.3333,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.1666,
+        "cp_bridge_005": 0.3333,
+        "cp_bridge_006": 0.3333,
+        "cp_bridge_007": -0.3333,
+        "cp_bridge_008": 0.3333,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 1,
+      "mean_diff": 0.15,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard",
+      "system_b": "edf_inspired_clean",
+      "ties": 3,
+      "wins": 6
+    },
+    "bridge_contract_guard__vs__edf_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0833,
+        0.35
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.3333,
+        "cp_bridge_002": 0.3333,
+        "cp_bridge_003": 0.3333,
+        "cp_bridge_004": 0.1666,
+        "cp_bridge_005": 0.3333,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": -0.3333,
+        "cp_bridge_008": 0.3333,
+        "cp_bridge_009": 0.3333,
+        "cp_bridge_010": 0.5
+      },
+      "losses": 1,
+      "mean_diff": 0.2333,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard",
+      "system_b": "edf_inspired_guard",
+      "ties": 1,
+      "wins": 8
+    },
+    "bridge_contract_guard__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        -0.1,
+        0.1
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.0,
+        "cp_bridge_002": 0.3333,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": -0.3333,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 1,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 8,
+      "wins": 1
+    },
+    "bridge_contract_guard_repair__vs__bridge_contract_guard": {
+      "bootstrap_ci95": [
+        -0.0833,
+        0.1167
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.1667,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.3333,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": -0.3333
+      },
+      "losses": 1,
+      "mean_diff": 0.0167,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard_repair",
+      "system_b": "bridge_contract_guard",
+      "ties": 7,
+      "wins": 2
+    },
+    "bridge_contract_guard_repair__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.05
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.1667,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 0,
+      "mean_diff": 0.0167,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard_repair",
+      "system_b": "dbox_inspired_guard",
+      "ties": 9,
+      "wins": 1
+    },
+    "bridge_contract_guard_repair__vs__edf_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.3
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.5,
+        "cp_bridge_002": 0.3333,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.1666,
+        "cp_bridge_005": 0.3333,
+        "cp_bridge_006": 0.3333,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.3333,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": -0.3333
+      },
+      "losses": 1,
+      "mean_diff": 0.1666,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard_repair",
+      "system_b": "edf_inspired_clean",
+      "ties": 3,
+      "wins": 6
+    },
+    "bridge_contract_guard_repair__vs__edf_inspired_guard": {
+      "bootstrap_ci95": [
+        0.15,
+        0.3333
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.5,
+        "cp_bridge_002": 0.3333,
+        "cp_bridge_003": 0.3333,
+        "cp_bridge_004": 0.1666,
+        "cp_bridge_005": 0.3333,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.3333,
+        "cp_bridge_009": 0.3333,
+        "cp_bridge_010": 0.1667
+      },
+      "losses": 0,
+      "mean_diff": 0.25,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard_repair",
+      "system_b": "edf_inspired_guard",
+      "ties": 2,
+      "wins": 8
+    },
+    "bridge_contract_guard_repair__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        -0.0833,
+        0.1167
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.1667,
+        "cp_bridge_002": 0.3333,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": -0.3333
+      },
+      "losses": 1,
+      "mean_diff": 0.0167,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard_repair",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 7,
+      "wins": 2
+    },
+    "dbox_inspired_guard__vs__bridge_contract_guard": {
+      "bootstrap_ci95": [
+        -0.1,
+        0.1
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.3333,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": -0.3333
+      },
+      "losses": 1,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "bridge_contract_guard",
+      "ties": 8,
+      "wins": 1
+    },
+    "dbox_inspired_guard__vs__bridge_contract_guard_repair": {
+      "bootstrap_ci95": [
+        -0.05,
+        0.0
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -0.1667,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 1,
+      "mean_diff": -0.0167,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "bridge_contract_guard_repair",
+      "ties": 9,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__edf_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.2833
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.3333,
+        "cp_bridge_002": 0.3333,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.1666,
+        "cp_bridge_005": 0.3333,
+        "cp_bridge_006": 0.3333,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.3333,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": -0.3333
+      },
+      "losses": 1,
+      "mean_diff": 0.15,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "edf_inspired_clean",
+      "ties": 3,
+      "wins": 6
+    },
+    "dbox_inspired_guard__vs__edf_inspired_guard": {
+      "bootstrap_ci95": [
+        0.15,
+        0.3
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.3333,
+        "cp_bridge_002": 0.3333,
+        "cp_bridge_003": 0.3333,
+        "cp_bridge_004": 0.1666,
+        "cp_bridge_005": 0.3333,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.3333,
+        "cp_bridge_009": 0.3333,
+        "cp_bridge_010": 0.1667
+      },
+      "losses": 0,
+      "mean_diff": 0.2333,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "edf_inspired_guard",
+      "ties": 2,
+      "wins": 8
+    },
+    "dbox_inspired_guard__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        -0.1,
+        0.1
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.0,
+        "cp_bridge_002": 0.3333,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": -0.3333
+      },
+      "losses": 1,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 8,
+      "wins": 1
+    },
+    "edf_inspired_clean__vs__bridge_contract_guard": {
+      "bootstrap_ci95": [
+        -0.2833,
+        -0.0167
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -0.3333,
+        "cp_bridge_002": -0.3333,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": -0.1666,
+        "cp_bridge_005": -0.3333,
+        "cp_bridge_006": -0.3333,
+        "cp_bridge_007": 0.3333,
+        "cp_bridge_008": -0.3333,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 6,
+      "mean_diff": -0.15,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_clean",
+      "system_b": "bridge_contract_guard",
+      "ties": 3,
+      "wins": 1
+    },
+    "edf_inspired_clean__vs__bridge_contract_guard_repair": {
+      "bootstrap_ci95": [
+        -0.3,
+        0.0
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -0.5,
+        "cp_bridge_002": -0.3333,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": -0.1666,
+        "cp_bridge_005": -0.3333,
+        "cp_bridge_006": -0.3333,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": -0.3333,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.3333
+      },
+      "losses": 6,
+      "mean_diff": -0.1666,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_clean",
+      "system_b": "bridge_contract_guard_repair",
+      "ties": 3,
+      "wins": 1
+    },
+    "edf_inspired_clean__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        -0.2833,
+        0.0
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -0.3333,
+        "cp_bridge_002": -0.3333,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": -0.1666,
+        "cp_bridge_005": -0.3333,
+        "cp_bridge_006": -0.3333,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": -0.3333,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.3333
+      },
+      "losses": 6,
+      "mean_diff": -0.15,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_clean",
+      "system_b": "dbox_inspired_guard",
+      "ties": 3,
+      "wins": 1
+    },
+    "edf_inspired_clean__vs__edf_inspired_guard": {
+      "bootstrap_ci95": [
+        -0.0667,
+        0.2167
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.3333,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": -0.3333,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.3333,
+        "cp_bridge_010": 0.5
+      },
+      "losses": 1,
+      "mean_diff": 0.0833,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_clean",
+      "system_b": "edf_inspired_guard",
+      "ties": 6,
+      "wins": 3
+    },
+    "edf_inspired_clean__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        -0.25,
+        -0.05
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -0.3333,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": -0.1666,
+        "cp_bridge_005": -0.3333,
+        "cp_bridge_006": -0.3333,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": -0.3333,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 5,
+      "mean_diff": -0.15,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_clean",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 5,
+      "wins": 0
+    },
+    "edf_inspired_guard__vs__bridge_contract_guard": {
+      "bootstrap_ci95": [
+        -0.35,
+        -0.0833
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -0.3333,
+        "cp_bridge_002": -0.3333,
+        "cp_bridge_003": -0.3333,
+        "cp_bridge_004": -0.1666,
+        "cp_bridge_005": -0.3333,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.3333,
+        "cp_bridge_008": -0.3333,
+        "cp_bridge_009": -0.3333,
+        "cp_bridge_010": -0.5
+      },
+      "losses": 8,
+      "mean_diff": -0.2333,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_guard",
+      "system_b": "bridge_contract_guard",
+      "ties": 1,
+      "wins": 1
+    },
+    "edf_inspired_guard__vs__bridge_contract_guard_repair": {
+      "bootstrap_ci95": [
+        -0.3333,
+        -0.15
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -0.5,
+        "cp_bridge_002": -0.3333,
+        "cp_bridge_003": -0.3333,
+        "cp_bridge_004": -0.1666,
+        "cp_bridge_005": -0.3333,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": -0.3333,
+        "cp_bridge_009": -0.3333,
+        "cp_bridge_010": -0.1667
+      },
+      "losses": 8,
+      "mean_diff": -0.25,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_guard",
+      "system_b": "bridge_contract_guard_repair",
+      "ties": 2,
+      "wins": 0
+    },
+    "edf_inspired_guard__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        -0.3,
+        -0.15
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -0.3333,
+        "cp_bridge_002": -0.3333,
+        "cp_bridge_003": -0.3333,
+        "cp_bridge_004": -0.1666,
+        "cp_bridge_005": -0.3333,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": -0.3333,
+        "cp_bridge_009": -0.3333,
+        "cp_bridge_010": -0.1667
+      },
+      "losses": 8,
+      "mean_diff": -0.2333,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_guard",
+      "system_b": "dbox_inspired_guard",
+      "ties": 2,
+      "wins": 0
+    },
+    "edf_inspired_guard__vs__edf_inspired_clean": {
+      "bootstrap_ci95": [
+        -0.2333,
+        0.0667
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": -0.3333,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.3333,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": -0.3333,
+        "cp_bridge_010": -0.5
+      },
+      "losses": 3,
+      "mean_diff": -0.0833,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_guard",
+      "system_b": "edf_inspired_clean",
+      "ties": 6,
+      "wins": 1
+    },
+    "edf_inspired_guard__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        -0.3333,
+        -0.1333
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -0.3333,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": -0.3333,
+        "cp_bridge_004": -0.1666,
+        "cp_bridge_005": -0.3333,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": -0.3333,
+        "cp_bridge_009": -0.3333,
+        "cp_bridge_010": -0.5
+      },
+      "losses": 7,
+      "mean_diff": -0.2333,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_guard",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 3,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__bridge_contract_guard": {
+      "bootstrap_ci95": [
+        -0.1,
+        0.1
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.0,
+        "cp_bridge_002": -0.3333,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.3333,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 1,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "bridge_contract_guard",
+      "ties": 8,
+      "wins": 1
+    },
+    "enhanced_prompt_only_clean__vs__bridge_contract_guard_repair": {
+      "bootstrap_ci95": [
+        -0.1167,
+        0.0833
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -0.1667,
+        "cp_bridge_002": -0.3333,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.3333
+      },
+      "losses": 2,
+      "mean_diff": -0.0167,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "bridge_contract_guard_repair",
+      "ties": 7,
+      "wins": 1
+    },
+    "enhanced_prompt_only_clean__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        -0.1,
+        0.1
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.0,
+        "cp_bridge_002": -0.3333,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.3333
+      },
+      "losses": 1,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "dbox_inspired_guard",
+      "ties": 8,
+      "wins": 1
+    },
+    "enhanced_prompt_only_clean__vs__edf_inspired_clean": {
+      "bootstrap_ci95": [
+        0.05,
+        0.25
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.3333,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.1666,
+        "cp_bridge_005": 0.3333,
+        "cp_bridge_006": 0.3333,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.3333,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 0,
+      "mean_diff": 0.15,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "edf_inspired_clean",
+      "ties": 5,
+      "wins": 5
+    },
+    "enhanced_prompt_only_clean__vs__edf_inspired_guard": {
+      "bootstrap_ci95": [
+        0.1333,
+        0.3333
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.3333,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.3333,
+        "cp_bridge_004": 0.1666,
+        "cp_bridge_005": 0.3333,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.3333,
+        "cp_bridge_009": 0.3333,
+        "cp_bridge_010": 0.5
+      },
+      "losses": 0,
+      "mean_diff": 0.2333,
+      "metric": "core6_mean",
+      "paired_cases": 10,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "edf_inspired_guard",
+      "ties": 3,
+      "wins": 7
+    }
+  },
+  "paired_comparisons_micro7": {
+    "bridge_contract_guard__vs__bridge_contract_guard_repair": {
+      "bootstrap_ci95": [
+        -0.1,
+        0.1143
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -0.1428,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": -0.2857,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.4286
+      },
+      "losses": 2,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard",
+      "system_b": "bridge_contract_guard_repair",
+      "ties": 7,
+      "wins": 1
+    },
+    "bridge_contract_guard__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        -0.0429,
+        0.1714
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.1429,
+        "cp_bridge_005": 0.1429,
+        "cp_bridge_006": 0.1428,
+        "cp_bridge_007": -0.2857,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.4286
+      },
+      "losses": 1,
+      "mean_diff": 0.0571,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard",
+      "system_b": "dbox_inspired_guard",
+      "ties": 5,
+      "wins": 4
+    },
+    "bridge_contract_guard__vs__edf_inspired_clean": {
+      "bootstrap_ci95": [
+        0.1,
+        0.3714
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.4286,
+        "cp_bridge_002": 0.4286,
+        "cp_bridge_003": 0.1428,
+        "cp_bridge_004": 0.2857,
+        "cp_bridge_005": 0.4286,
+        "cp_bridge_006": 0.4285,
+        "cp_bridge_007": -0.2857,
+        "cp_bridge_008": 0.4285,
+        "cp_bridge_009": 0.1428,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 1,
+      "mean_diff": 0.2428,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard",
+      "system_b": "edf_inspired_clean",
+      "ties": 1,
+      "wins": 8
+    },
+    "bridge_contract_guard__vs__edf_inspired_guard": {
+      "bootstrap_ci95": [
+        0.1571,
+        0.4286
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.4286,
+        "cp_bridge_002": 0.4286,
+        "cp_bridge_003": 0.4285,
+        "cp_bridge_004": 0.2857,
+        "cp_bridge_005": 0.4286,
+        "cp_bridge_006": 0.1428,
+        "cp_bridge_007": -0.2857,
+        "cp_bridge_008": 0.4285,
+        "cp_bridge_009": 0.2857,
+        "cp_bridge_010": 0.5714
+      },
+      "losses": 1,
+      "mean_diff": 0.3143,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard",
+      "system_b": "edf_inspired_guard",
+      "ties": 0,
+      "wins": 9
+    },
+    "bridge_contract_guard__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        -0.0857,
+        0.1286
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.0,
+        "cp_bridge_002": 0.4286,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": -0.2857,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 1,
+      "mean_diff": 0.0143,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 8,
+      "wins": 1
+    },
+    "bridge_contract_guard_repair__vs__bridge_contract_guard": {
+      "bootstrap_ci95": [
+        -0.1143,
+        0.1
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.1428,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.2857,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": -0.4286
+      },
+      "losses": 1,
+      "mean_diff": -0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard_repair",
+      "system_b": "bridge_contract_guard",
+      "ties": 7,
+      "wins": 2
+    },
+    "bridge_contract_guard_repair__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0143,
+        0.1
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.1428,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.1429,
+        "cp_bridge_005": 0.1429,
+        "cp_bridge_006": 0.1428,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 0,
+      "mean_diff": 0.0571,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard_repair",
+      "system_b": "dbox_inspired_guard",
+      "ties": 6,
+      "wins": 4
+    },
+    "bridge_contract_guard_repair__vs__edf_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0428,
+        0.4
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.5714,
+        "cp_bridge_002": 0.4286,
+        "cp_bridge_003": 0.1428,
+        "cp_bridge_004": 0.2857,
+        "cp_bridge_005": 0.4286,
+        "cp_bridge_006": 0.4285,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.4285,
+        "cp_bridge_009": 0.1428,
+        "cp_bridge_010": -0.4286
+      },
+      "losses": 1,
+      "mean_diff": 0.2428,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard_repair",
+      "system_b": "edf_inspired_clean",
+      "ties": 1,
+      "wins": 8
+    },
+    "bridge_contract_guard_repair__vs__edf_inspired_guard": {
+      "bootstrap_ci95": [
+        0.2142,
+        0.4143
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.5714,
+        "cp_bridge_002": 0.4286,
+        "cp_bridge_003": 0.4285,
+        "cp_bridge_004": 0.2857,
+        "cp_bridge_005": 0.4286,
+        "cp_bridge_006": 0.1428,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.4285,
+        "cp_bridge_009": 0.2857,
+        "cp_bridge_010": 0.1428
+      },
+      "losses": 0,
+      "mean_diff": 0.3143,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard_repair",
+      "system_b": "edf_inspired_guard",
+      "ties": 1,
+      "wins": 9
+    },
+    "bridge_contract_guard_repair__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        -0.1143,
+        0.1429
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.1428,
+        "cp_bridge_002": 0.4286,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": -0.4286
+      },
+      "losses": 1,
+      "mean_diff": 0.0143,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "bridge_contract_guard_repair",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 7,
+      "wins": 2
+    },
+    "dbox_inspired_guard__vs__bridge_contract_guard": {
+      "bootstrap_ci95": [
+        -0.1714,
+        0.0429
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": -0.1429,
+        "cp_bridge_005": -0.1429,
+        "cp_bridge_006": -0.1428,
+        "cp_bridge_007": 0.2857,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": -0.4286
+      },
+      "losses": 4,
+      "mean_diff": -0.0571,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "bridge_contract_guard",
+      "ties": 5,
+      "wins": 1
+    },
+    "dbox_inspired_guard__vs__bridge_contract_guard_repair": {
+      "bootstrap_ci95": [
+        -0.1,
+        -0.0143
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -0.1428,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": -0.1429,
+        "cp_bridge_005": -0.1429,
+        "cp_bridge_006": -0.1428,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 4,
+      "mean_diff": -0.0571,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "bridge_contract_guard_repair",
+      "ties": 6,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__edf_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0143,
+        0.3286
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.4286,
+        "cp_bridge_002": 0.4286,
+        "cp_bridge_003": 0.1428,
+        "cp_bridge_004": 0.1428,
+        "cp_bridge_005": 0.2857,
+        "cp_bridge_006": 0.2857,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.4285,
+        "cp_bridge_009": 0.1428,
+        "cp_bridge_010": -0.4286
+      },
+      "losses": 1,
+      "mean_diff": 0.1857,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "edf_inspired_clean",
+      "ties": 1,
+      "wins": 8
+    },
+    "dbox_inspired_guard__vs__edf_inspired_guard": {
+      "bootstrap_ci95": [
+        0.1571,
+        0.3429
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.4286,
+        "cp_bridge_002": 0.4286,
+        "cp_bridge_003": 0.4285,
+        "cp_bridge_004": 0.1428,
+        "cp_bridge_005": 0.2857,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.4285,
+        "cp_bridge_009": 0.2857,
+        "cp_bridge_010": 0.1428
+      },
+      "losses": 0,
+      "mean_diff": 0.2571,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "edf_inspired_guard",
+      "ties": 2,
+      "wins": 8
+    },
+    "dbox_inspired_guard__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        -0.1714,
+        0.0857
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.0,
+        "cp_bridge_002": 0.4286,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": -0.1429,
+        "cp_bridge_005": -0.1429,
+        "cp_bridge_006": -0.1428,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": -0.4286
+      },
+      "losses": 4,
+      "mean_diff": -0.0429,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 5,
+      "wins": 1
+    },
+    "edf_inspired_clean__vs__bridge_contract_guard": {
+      "bootstrap_ci95": [
+        -0.3714,
+        -0.1
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -0.4286,
+        "cp_bridge_002": -0.4286,
+        "cp_bridge_003": -0.1428,
+        "cp_bridge_004": -0.2857,
+        "cp_bridge_005": -0.4286,
+        "cp_bridge_006": -0.4285,
+        "cp_bridge_007": 0.2857,
+        "cp_bridge_008": -0.4285,
+        "cp_bridge_009": -0.1428,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 8,
+      "mean_diff": -0.2428,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_clean",
+      "system_b": "bridge_contract_guard",
+      "ties": 1,
+      "wins": 1
+    },
+    "edf_inspired_clean__vs__bridge_contract_guard_repair": {
+      "bootstrap_ci95": [
+        -0.4,
+        -0.0428
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -0.5714,
+        "cp_bridge_002": -0.4286,
+        "cp_bridge_003": -0.1428,
+        "cp_bridge_004": -0.2857,
+        "cp_bridge_005": -0.4286,
+        "cp_bridge_006": -0.4285,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": -0.4285,
+        "cp_bridge_009": -0.1428,
+        "cp_bridge_010": 0.4286
+      },
+      "losses": 8,
+      "mean_diff": -0.2428,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_clean",
+      "system_b": "bridge_contract_guard_repair",
+      "ties": 1,
+      "wins": 1
+    },
+    "edf_inspired_clean__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        -0.3286,
+        -0.0143
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -0.4286,
+        "cp_bridge_002": -0.4286,
+        "cp_bridge_003": -0.1428,
+        "cp_bridge_004": -0.1428,
+        "cp_bridge_005": -0.2857,
+        "cp_bridge_006": -0.2857,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": -0.4285,
+        "cp_bridge_009": -0.1428,
+        "cp_bridge_010": 0.4286
+      },
+      "losses": 8,
+      "mean_diff": -0.1857,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_clean",
+      "system_b": "dbox_inspired_guard",
+      "ties": 1,
+      "wins": 1
+    },
+    "edf_inspired_clean__vs__edf_inspired_guard": {
+      "bootstrap_ci95": [
+        -0.0571,
+        0.2143
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.2857,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": -0.2857,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.1429,
+        "cp_bridge_010": 0.5714
+      },
+      "losses": 1,
+      "mean_diff": 0.0714,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_clean",
+      "system_b": "edf_inspired_guard",
+      "ties": 6,
+      "wins": 3
+    },
+    "edf_inspired_clean__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        -0.3428,
+        -0.1143
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -0.4286,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": -0.1428,
+        "cp_bridge_004": -0.2857,
+        "cp_bridge_005": -0.4286,
+        "cp_bridge_006": -0.4285,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": -0.4285,
+        "cp_bridge_009": -0.1428,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 7,
+      "mean_diff": -0.2285,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_clean",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 3,
+      "wins": 0
+    },
+    "edf_inspired_guard__vs__bridge_contract_guard": {
+      "bootstrap_ci95": [
+        -0.4286,
+        -0.1571
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -0.4286,
+        "cp_bridge_002": -0.4286,
+        "cp_bridge_003": -0.4285,
+        "cp_bridge_004": -0.2857,
+        "cp_bridge_005": -0.4286,
+        "cp_bridge_006": -0.1428,
+        "cp_bridge_007": 0.2857,
+        "cp_bridge_008": -0.4285,
+        "cp_bridge_009": -0.2857,
+        "cp_bridge_010": -0.5714
+      },
+      "losses": 9,
+      "mean_diff": -0.3143,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_guard",
+      "system_b": "bridge_contract_guard",
+      "ties": 0,
+      "wins": 1
+    },
+    "edf_inspired_guard__vs__bridge_contract_guard_repair": {
+      "bootstrap_ci95": [
+        -0.4143,
+        -0.2142
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -0.5714,
+        "cp_bridge_002": -0.4286,
+        "cp_bridge_003": -0.4285,
+        "cp_bridge_004": -0.2857,
+        "cp_bridge_005": -0.4286,
+        "cp_bridge_006": -0.1428,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": -0.4285,
+        "cp_bridge_009": -0.2857,
+        "cp_bridge_010": -0.1428
+      },
+      "losses": 9,
+      "mean_diff": -0.3143,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_guard",
+      "system_b": "bridge_contract_guard_repair",
+      "ties": 1,
+      "wins": 0
+    },
+    "edf_inspired_guard__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        -0.3429,
+        -0.1571
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -0.4286,
+        "cp_bridge_002": -0.4286,
+        "cp_bridge_003": -0.4285,
+        "cp_bridge_004": -0.1428,
+        "cp_bridge_005": -0.2857,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": -0.4285,
+        "cp_bridge_009": -0.2857,
+        "cp_bridge_010": -0.1428
+      },
+      "losses": 8,
+      "mean_diff": -0.2571,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_guard",
+      "system_b": "dbox_inspired_guard",
+      "ties": 2,
+      "wins": 0
+    },
+    "edf_inspired_guard__vs__edf_inspired_clean": {
+      "bootstrap_ci95": [
+        -0.2143,
+        0.0571
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.0,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": -0.2857,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.2857,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": -0.1429,
+        "cp_bridge_010": -0.5714
+      },
+      "losses": 3,
+      "mean_diff": -0.0714,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_guard",
+      "system_b": "edf_inspired_clean",
+      "ties": 6,
+      "wins": 1
+    },
+    "edf_inspired_guard__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        -0.4,
+        -0.1857
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -0.4286,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": -0.4285,
+        "cp_bridge_004": -0.2857,
+        "cp_bridge_005": -0.4286,
+        "cp_bridge_006": -0.1428,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": -0.4285,
+        "cp_bridge_009": -0.2857,
+        "cp_bridge_010": -0.5714
+      },
+      "losses": 8,
+      "mean_diff": -0.3,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "edf_inspired_guard",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 2,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__bridge_contract_guard": {
+      "bootstrap_ci95": [
+        -0.1286,
+        0.0857
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.0,
+        "cp_bridge_002": -0.4286,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.2857,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 1,
+      "mean_diff": -0.0143,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "bridge_contract_guard",
+      "ties": 8,
+      "wins": 1
+    },
+    "enhanced_prompt_only_clean__vs__bridge_contract_guard_repair": {
+      "bootstrap_ci95": [
+        -0.1429,
+        0.1143
+      ],
+      "case_diffs": {
+        "cp_bridge_001": -0.1428,
+        "cp_bridge_002": -0.4286,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.0,
+        "cp_bridge_005": 0.0,
+        "cp_bridge_006": 0.0,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.4286
+      },
+      "losses": 2,
+      "mean_diff": -0.0143,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "bridge_contract_guard_repair",
+      "ties": 7,
+      "wins": 1
+    },
+    "enhanced_prompt_only_clean__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        -0.0857,
+        0.1572
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.0,
+        "cp_bridge_002": -0.4286,
+        "cp_bridge_003": 0.0,
+        "cp_bridge_004": 0.1429,
+        "cp_bridge_005": 0.1429,
+        "cp_bridge_006": 0.1428,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.0,
+        "cp_bridge_009": 0.0,
+        "cp_bridge_010": 0.4286
+      },
+      "losses": 1,
+      "mean_diff": 0.0429,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "dbox_inspired_guard",
+      "ties": 5,
+      "wins": 4
+    },
+    "enhanced_prompt_only_clean__vs__edf_inspired_clean": {
+      "bootstrap_ci95": [
+        0.1143,
+        0.3428
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.4286,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.1428,
+        "cp_bridge_004": 0.2857,
+        "cp_bridge_005": 0.4286,
+        "cp_bridge_006": 0.4285,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.4285,
+        "cp_bridge_009": 0.1428,
+        "cp_bridge_010": 0.0
+      },
+      "losses": 0,
+      "mean_diff": 0.2285,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "edf_inspired_clean",
+      "ties": 3,
+      "wins": 7
+    },
+    "enhanced_prompt_only_clean__vs__edf_inspired_guard": {
+      "bootstrap_ci95": [
+        0.1857,
+        0.4
+      ],
+      "case_diffs": {
+        "cp_bridge_001": 0.4286,
+        "cp_bridge_002": 0.0,
+        "cp_bridge_003": 0.4285,
+        "cp_bridge_004": 0.2857,
+        "cp_bridge_005": 0.4286,
+        "cp_bridge_006": 0.1428,
+        "cp_bridge_007": 0.0,
+        "cp_bridge_008": 0.4285,
+        "cp_bridge_009": 0.2857,
+        "cp_bridge_010": 0.5714
+      },
+      "losses": 0,
+      "mean_diff": 0.3,
+      "metric": "with_micro7_mean",
+      "paired_cases": 10,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "edf_inspired_guard",
+      "ties": 2,
+      "wins": 8
+    }
+  },
+  "rank1_by_case": {
+    "cp_bridge_001": [],
+    "cp_bridge_002": [],
+    "cp_bridge_003": [],
+    "cp_bridge_004": [],
+    "cp_bridge_005": [],
+    "cp_bridge_006": [],
+    "cp_bridge_007": [],
+    "cp_bridge_008": [],
+    "cp_bridge_009": [],
+    "cp_bridge_010": []
+  },
+  "row_count": 60,
+  "row_count_by_system": {
+    "bridge_contract_guard": 10,
+    "bridge_contract_guard_repair": 10,
+    "dbox_inspired_guard": 10,
+    "edf_inspired_clean": 10,
+    "edf_inspired_guard": 10,
+    "enhanced_prompt_only_clean": 10
+  },
+  "student_response_burden_counts": {
+    "high": 1,
+    "low": 59
+  },
+  "system_summary": {
+    "bridge_contract_guard": {
+      "answer_leakage_count": 0,
+      "blocked_count": 0,
+      "borderline_reveal_count": 5,
+      "core6_mean": 1.8833,
+      "major_bridge_leakage_count": 0,
+      "major_or_answer_leakage_count": 0,
+      "micro_applicable_count": 9,
+      "micro_applicable_mean": 1.0,
+      "minor_bridge_leakage_count": 5,
+      "n": 10,
+      "needs_discussion_count": 0,
+      "no_leakage_count": 5,
+      "no_reveal_count": 5,
+      "notes_count": 10,
+      "overall_quality_mean": 3.4,
+      "pedagogically_justified_reveal_count": 0,
+      "rank1_count": 0,
+      "rank_mean": 0.0,
+      "repair_applied_count": 0,
+      "student_ready_pass_count": 4,
+      "student_ready_safe_pass_count": 4,
+      "student_response_burden_high_count": 1,
+      "student_response_burden_low_count": 9,
+      "student_response_burden_medium_count": 0,
+      "unjustified_reveal_count": 0,
+      "with_micro7_mean": 1.7429,
+      "would_show_borderline_count": 6,
+      "would_show_no_count": 0,
+      "would_show_yes_count": 4
+    },
+    "bridge_contract_guard_repair": {
+      "answer_leakage_count": 0,
+      "blocked_count": 0,
+      "borderline_reveal_count": 3,
+      "core6_mean": 1.9,
+      "major_bridge_leakage_count": 1,
+      "major_or_answer_leakage_count": 1,
+      "micro_applicable_count": 9,
+      "micro_applicable_mean": 0.8889,
+      "minor_bridge_leakage_count": 3,
+      "n": 10,
+      "needs_discussion_count": 1,
+      "no_leakage_count": 6,
+      "no_reveal_count": 6,
+      "notes_count": 10,
+      "overall_quality_mean": 3.5,
+      "pedagogically_justified_reveal_count": 0,
+      "rank1_count": 0,
+      "rank_mean": 0.0,
+      "repair_applied_count": 1,
+      "student_ready_pass_count": 6,
+      "student_ready_safe_pass_count": 6,
+      "student_response_burden_high_count": 0,
+      "student_response_burden_low_count": 10,
+      "student_response_burden_medium_count": 0,
+      "unjustified_reveal_count": 1,
+      "with_micro7_mean": 1.7428,
+      "would_show_borderline_count": 3,
+      "would_show_no_count": 1,
+      "would_show_yes_count": 6
+    },
+    "dbox_inspired_guard": {
+      "answer_leakage_count": 0,
+      "blocked_count": 0,
+      "borderline_reveal_count": 4,
+      "core6_mean": 1.8833,
+      "major_bridge_leakage_count": 1,
+      "major_or_answer_leakage_count": 1,
+      "micro_applicable_count": 5,
+      "micro_applicable_mean": 1.0,
+      "minor_bridge_leakage_count": 4,
+      "n": 10,
+      "needs_discussion_count": 1,
+      "no_leakage_count": 5,
+      "no_reveal_count": 5,
+      "notes_count": 10,
+      "overall_quality_mean": 3.4,
+      "pedagogically_justified_reveal_count": 0,
+      "rank1_count": 0,
+      "rank_mean": 0.0,
+      "repair_applied_count": 0,
+      "student_ready_pass_count": 5,
+      "student_ready_safe_pass_count": 5,
+      "student_response_burden_high_count": 0,
+      "student_response_burden_low_count": 10,
+      "student_response_burden_medium_count": 0,
+      "unjustified_reveal_count": 1,
+      "with_micro7_mean": 1.6857,
+      "would_show_borderline_count": 4,
+      "would_show_no_count": 1,
+      "would_show_yes_count": 5
+    },
+    "edf_inspired_clean": {
+      "answer_leakage_count": 0,
+      "blocked_count": 0,
+      "borderline_reveal_count": 2,
+      "core6_mean": 1.7333,
+      "major_bridge_leakage_count": 2,
+      "major_or_answer_leakage_count": 2,
+      "micro_applicable_count": 1,
+      "micro_applicable_mean": 1.0,
+      "minor_bridge_leakage_count": 2,
+      "n": 10,
+      "needs_discussion_count": 2,
+      "no_leakage_count": 6,
+      "no_reveal_count": 6,
+      "notes_count": 10,
+      "overall_quality_mean": 3.1,
+      "pedagogically_justified_reveal_count": 0,
+      "rank1_count": 0,
+      "rank_mean": 0.0,
+      "repair_applied_count": 0,
+      "student_ready_pass_count": 3,
+      "student_ready_safe_pass_count": 3,
+      "student_response_burden_high_count": 0,
+      "student_response_burden_low_count": 10,
+      "student_response_burden_medium_count": 0,
+      "unjustified_reveal_count": 2,
+      "with_micro7_mean": 1.5,
+      "would_show_borderline_count": 5,
+      "would_show_no_count": 2,
+      "would_show_yes_count": 3
+    },
+    "edf_inspired_guard": {
+      "answer_leakage_count": 0,
+      "blocked_count": 0,
+      "borderline_reveal_count": 1,
+      "core6_mean": 1.65,
+      "major_bridge_leakage_count": 3,
+      "major_or_answer_leakage_count": 3,
+      "micro_applicable_count": 2,
+      "micro_applicable_mean": 0.5,
+      "minor_bridge_leakage_count": 1,
+      "n": 10,
+      "needs_discussion_count": 3,
+      "no_leakage_count": 6,
+      "no_reveal_count": 6,
+      "notes_count": 10,
+      "overall_quality_mean": 2.9,
+      "pedagogically_justified_reveal_count": 0,
+      "rank1_count": 0,
+      "rank_mean": 0.0,
+      "repair_applied_count": 0,
+      "student_ready_pass_count": 2,
+      "student_ready_safe_pass_count": 2,
+      "student_response_burden_high_count": 0,
+      "student_response_burden_low_count": 10,
+      "student_response_burden_medium_count": 0,
+      "unjustified_reveal_count": 3,
+      "with_micro7_mean": 1.4286,
+      "would_show_borderline_count": 5,
+      "would_show_no_count": 3,
+      "would_show_yes_count": 2
+    },
+    "enhanced_prompt_only_clean": {
+      "answer_leakage_count": 0,
+      "blocked_count": 0,
+      "borderline_reveal_count": 4,
+      "core6_mean": 1.8833,
+      "major_bridge_leakage_count": 1,
+      "major_or_answer_leakage_count": 1,
+      "micro_applicable_count": 9,
+      "micro_applicable_mean": 0.8889,
+      "minor_bridge_leakage_count": 4,
+      "n": 10,
+      "needs_discussion_count": 1,
+      "no_leakage_count": 5,
+      "no_reveal_count": 5,
+      "notes_count": 10,
+      "overall_quality_mean": 3.4,
+      "pedagogically_justified_reveal_count": 0,
+      "rank1_count": 0,
+      "rank_mean": 0.0,
+      "repair_applied_count": 0,
+      "student_ready_pass_count": 5,
+      "student_ready_safe_pass_count": 5,
+      "student_response_burden_high_count": 0,
+      "student_response_burden_low_count": 10,
+      "student_response_burden_medium_count": 0,
+      "unjustified_reveal_count": 1,
+      "with_micro7_mean": 1.7286,
+      "would_show_borderline_count": 4,
+      "would_show_no_count": 1,
+      "would_show_yes_count": 5
+    }
+  },
+  "systems": [
+    "enhanced_prompt_only_clean",
+    "dbox_inspired_guard",
+    "edf_inspired_clean",
+    "edf_inspired_guard",
+    "bridge_contract_guard",
+    "bridge_contract_guard_repair"
+  ]
+}

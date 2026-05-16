@@ -272,6 +272,8 @@ For `single_llm_structured`, `tutor_only` means one LLM call only; Bridge Judge 
 
 The default is `tutor_plus_guard_plus_repair` for backward compatibility with earlier smoke runs. Report `pipeline_mode` in every baseline table, because it changes both response quality and latency.
 
+For repair-specific safety ablations, add `--post-repair-fallback-on-leak`. This is offline-only and does not affect online AIChat. When Repair produces a response and the post-repair Leakage Judge still returns rewrite/block or marks critical/answer leakage, the runner keeps the repair trace but switches `final_response_text` to deterministic safe scaffold and sets `final_response_source=safe_fallback_after_repair`. This tests the safer deployment policy "repair once, then fallback if still unsafe" without changing the default historical comparisons.
+
 Use `--judge-schema-mode` to isolate Judge label-load ablations:
 
 | Mode | Meaning | Primary use |
@@ -301,9 +303,13 @@ Each output row keeps the seed gold labels and appends:
 - `baseline_group`, the high-level baseline family for grouping response-review results
 - `leakage_judge_result`
 - `repair_result` when the Leakage Judge requests `rewrite` or `block`
+- `post_repair_leakage_judge_result` when a repaired response is checked again
+- `repair_still_leaks` and `post_repair_safe_action` for measuring whether Repair actually removed the critical leak
+- `safe_fallback_after_repair_result` when `--post-repair-fallback-on-leak` switches an unsafe repaired response to deterministic fallback
+- `candidate_static_leakage_risk_lint` and `final_static_leakage_risk_lint`, deterministic diagnostic-only flags for answer-slot, filled-trace, and worked-example risk
 - `candidate_response_text`, the original tutor reply before guard or repair
 - `final_response_text`, the response that should be used for coach response review
-- `final_response_source`, one of `candidate`, `repair`, `blocked`, or `none`
+- `final_response_source`, one of `candidate`, `repair`, `safe_fallback`, `safe_fallback_after_repair`, `blocked`, or `none`
 - `repair_applied` and `blocked`
 - `guard_contract`, including `guard_mode` and the actual forbidden content passed to Leakage Judge
 - `runtime_bridge_contract` when `judge_schema_mode` is compact or retrieval-augmented compact
@@ -327,12 +333,18 @@ The summary report includes:
 - allowed help level and help-seeking type accuracy;
 - leakage rate, critical bridge leakage rate, answer/code leakage rate;
 - rewrite / block / repair rates;
+- post-repair check rate, repair-still-leaks rate, and post-repair rewrite/block rate;
+- diagnostic-only static risk rates for candidate/final responses, including answer-slot, filled-trace, and worked-example risk;
 - invalid label rate, focus out-of-registry rate, self-contradiction rate, and average prompt-token estimate for compact contract runs;
 - average LLM call count;
 - p50 / p95 total latency;
 - stage error counts;
 - groups by `tutor_mode`, `guard_mode`, `pipeline_mode`, `judge_schema_mode`, and `tutor_model_provider`;
+- each group table also reports final-response static risk rates, split into answer-slot, filled-trace, and worked-example risk, so dev comparisons do not hide static leakage warnings behind average quality or latency;
+- an automatic dev gate (`dev_gate`) that marks a condition as not ready for headline use when incomplete rows, critical leakage, repair-still-leaks, or final-response static risk signals appear. This gate is a high-recall review trigger, not a coach reference label or final safety judgment;
 - error cases for manual inspection.
+
+For legacy JSONL files generated before `candidate_static_leakage_risk_lint` / `final_static_leakage_risk_lint` existed, the summary script backfills these diagnostic-only fields from `candidate_response_text` and `final_response_text`. This lets old dev ablation outputs be reanalyzed without rerunning model calls. Treat the backfilled lint as a high-recall risk signal, not a coach reference label.
 
 This runner is for offline research only. It should be used to build baseline tables and manual review packs before any Bridge Judge or Leakage Judge logic is promoted to shadow or active runtime.
 

@@ -350,7 +350,7 @@ def render_markdown_zh(result: dict) -> str:
         [
             "## 解释口径",
             "",
-            "- 质量变化：`good=2, okay=1, bad=0`，修复后减去候选回复。",
+            "- 质量变化：修复后质量分减去候选回复质量分；新盲评表使用 `1-5` 分，旧标签文件仍兼容 `good=2, okay=1, bad=0`。",
             "- 关键桥梁泄露严重度变化：`no=0, minor=1, major=2, answer=3`，修复后减去候选回复；负数代表泄露减轻。",
             "- 这份报告仍然是单教练盲评分析，不应写成唯一 gold truth。",
         ]
@@ -410,7 +410,7 @@ def render_markdown(result: dict) -> str:
         [
             "## Interpretation",
             "",
-            "- Quality delta maps `good=2, okay=1, bad=0` and subtracts candidate from repaired.",
+            "- Quality delta subtracts candidate quality from repaired quality; new review workbooks use `1-5` scores, while old label files remain compatible with `good=2, okay=1, bad=0`.",
             "- Leakage severity delta maps `no=0, minor=1, major=2, answer=3` and subtracts candidate from repaired; negative means reduced leakage.",
             "- This is a single-coach blind-review analysis, not an absolute gold label.",
         ]

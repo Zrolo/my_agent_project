@@ -58,6 +58,7 @@ RESPONSE_REVIEW_DATASETS = [
 
 from auth import (
     authenticate_user,
+    change_own_password,
     create_student_account,
     create_token,
     get_current_user,
@@ -77,6 +78,7 @@ from noi_agent import (
     _chat_completion_create,
     _extract_json_object,
     generate_understanding_check,
+    get_aichat_prompt_mode_public_info,
     get_chat_model_public_info,
     grade_understanding_check,
     get_remaining_quota,
@@ -630,7 +632,15 @@ def fetch_luogu_problem(raw_url: str) -> dict:
         raise ValueError("未读取到洛谷题目信息")
 
     pid = problem.get("pid") or extract_luogu_pid(normalized_url)
-    title = (problem.get("title") or "").strip()
+    content_title = problem.get("content") if isinstance(problem.get("content"), dict) else {}
+    contenu_title = problem.get("contenu") if isinstance(problem.get("contenu"), dict) else {}
+    title = (
+        problem.get("title")
+        or problem.get("name")
+        or content_title.get("name")
+        or contenu_title.get("name")
+        or ""
+    ).strip()
     if not title:
         raise ValueError("未读取到题目标题")
 
@@ -843,6 +853,7 @@ class ChatRequest(BaseModel):
     student_code: str = Field(default="", description="学生当前相关代码片段")
     chat_context_summary: str = Field(default="", description="同题上下文摘要")
     chat_model_provider: str = Field(default="", description="AIChat 模型提供方")
+    aichat_prompt_mode: str = Field(default="current_system", description="AIChat 回答方式")
 
 
 class ChatResponse(BaseModel):
@@ -854,6 +865,8 @@ class ChatResponse(BaseModel):
     understanding_evidence: List[str] = Field(default_factory=list)
     chat_model_provider: str = ""
     chat_model_label: str = ""
+    aichat_prompt_mode: str = "current_system"
+    aichat_prompt_mode_label: str = "简洁提示"
 
 
 class BridgeResearchAnnotationRequest(BaseModel):
@@ -1198,6 +1211,12 @@ class TeacherStudentBulkCreateRequest(BaseModel):
 
 class TeacherStudentPasswordResetRequest(BaseModel):
     password: str = Field(default="", description="新密码，留空则自动生成")
+
+
+class TeacherChangePasswordRequest(BaseModel):
+    current_password: str = Field(..., min_length=1, description="当前密码")
+    new_password: str = Field(..., min_length=4, description="教师自己输入的新密码")
+    confirm_password: str = Field(..., min_length=4, description="再次输入新密码")
 
 
 class TeacherStudentStatusRequest(BaseModel):
@@ -2138,19 +2157,19 @@ def chat_endpoint(
 
     try:
         selected_provider = request.chat_model_provider.strip()
+        prompt_mode = request.aichat_prompt_mode.strip() or "current_system"
         if selected_provider:
-            reply_for_display, reply_for_history, final_level = chat(
-                messages,
-                user["user_id"],
-                request.problem_id,
-                selected_provider,
-            )
+            chat_kwargs = {"chat_model_provider": selected_provider}
         else:
-            reply_for_display, reply_for_history, final_level = chat(
-                messages,
-                user["user_id"],
-                request.problem_id,
-            )
+            chat_kwargs = {}
+        if prompt_mode in {"enhanced_prompt_only_clean", "dbox_inspired_clean"}:
+            chat_kwargs["aichat_prompt_mode"] = prompt_mode
+        reply_for_display, reply_for_history, final_level = chat(
+            messages,
+            user["user_id"],
+            request.problem_id,
+            **chat_kwargs,
+        )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Chat failed: {exc}") from exc
 
@@ -2226,6 +2245,7 @@ def chat_endpoint(
 
     # final_level 是 chat() 返回的真实最终等级（已经过硬闸门限制）
     chat_model_info = get_chat_model_public_info(request.chat_model_provider)
+    prompt_mode_info = get_aichat_prompt_mode_public_info(request.aichat_prompt_mode)
     understanding = evaluate_understanding_evidence(full_history)
     if (
         understanding.get("understanding_state") == "evidence_seen"
@@ -2256,6 +2276,8 @@ def chat_endpoint(
         understanding_evidence=understanding["evidence_types"],
         chat_model_provider=chat_model_info.get("provider_id", ""),
         chat_model_label=chat_model_info.get("label", ""),
+        aichat_prompt_mode=prompt_mode_info.get("prompt_mode", "current_system"),
+        aichat_prompt_mode_label=prompt_mode_info.get("label", "简洁提示"),
     )
 
 
@@ -3834,6 +3856,24 @@ def list_teacher_students_endpoint(
 ):
     del user
     return {"students": list_student_accounts()}
+
+
+@app.post("/api/teacher/change-password")
+def change_teacher_password_endpoint(
+    request: TeacherChangePasswordRequest,
+    user: dict = Depends(require_teacher),
+):
+    if request.new_password != request.confirm_password:
+        raise HTTPException(status_code=400, detail={"message": "两次输入的新密码不一致"})
+    try:
+        change_own_password(
+            user_id=user["user_id"],
+            current_password=request.current_password,
+            new_password=request.new_password,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail={"message": str(exc)}) from exc
+    return {"status": "ok", "message": "密码已修改，请妥善保存新密码"}
 
 
 @app.post("/api/teacher/students")

@@ -1,0 +1,509 @@
+{
+  "case_count": 350,
+  "completed_count": 340,
+  "error_count": 10,
+  "student_state_accuracy": null,
+  "bridge_family_accuracy": null,
+  "known_focus_accuracy": null,
+  "known_focus_accuracy_on_registered": null,
+  "unknown_focus_recall": null,
+  "help_seeking_type_accuracy": null,
+  "allowed_help_level_accuracy": null,
+  "leakage_rate": 0.349,
+  "critical_bridge_leakage_rate": 0.118,
+  "answer_or_code_leakage_rate": 0.0,
+  "rewrite_rate": 0.323,
+  "block_rate": 0.0,
+  "repair_rate": 0.038,
+  "post_repair_check_rate": 0.035,
+  "repair_still_leaks_rate": 0.083,
+  "post_repair_rewrite_or_block_rate": 0.167,
+  "invalid_label_rate": null,
+  "focus_out_of_registry_rate": null,
+  "self_contradiction_rate": null,
+  "average_prompt_tokens": 101.903,
+  "average_llm_call_count": 2.294,
+  "candidate_static_risk_rate": 0.362,
+  "candidate_static_answer_slot_risk_rate": 0.091,
+  "candidate_static_filled_trace_risk_rate": 0.197,
+  "candidate_static_worked_example_risk_rate": 0.106,
+  "final_static_risk_rate": 0.359,
+  "final_static_answer_slot_risk_rate": 0.091,
+  "final_static_filled_trace_risk_rate": 0.194,
+  "final_static_worked_example_risk_rate": 0.106,
+  "avg_bridge_judge_confidence": 0.848,
+  "latency_ms": {
+    "total_p50": 19157.898,
+    "total_p95": 42791.17
+  },
+  "stage_error_counts": {
+    "bridge_judge": 2,
+    "tutor": 8
+  },
+  "groups": {
+    "tutor_mode=bridge_contract_compact|guard_mode=predicted|pipeline_mode=tutor_plus_guard_plus_repair|judge_schema_mode=full_schema_judge|tutor_model_provider=deepseek_flash|chat_thinking_mode=profile_default": {
+      "case_count": 50,
+      "completed_count": 50,
+      "error_count": 0,
+      "student_state_accuracy": null,
+      "bridge_family_accuracy": null,
+      "known_focus_accuracy": null,
+      "known_focus_accuracy_on_registered": null,
+      "unknown_focus_recall": null,
+      "help_seeking_type_accuracy": null,
+      "allowed_help_level_accuracy": null,
+      "leakage_rate": 0.26,
+      "critical_bridge_leakage_rate": 0.08,
+      "answer_or_code_leakage_rate": 0.0,
+      "rewrite_rate": 0.26,
+      "block_rate": 0.0,
+      "repair_rate": 0.26,
+      "post_repair_check_rate": 0.24,
+      "repair_still_leaks_rate": 0.083,
+      "post_repair_rewrite_or_block_rate": 0.167,
+      "invalid_label_rate": null,
+      "focus_out_of_registry_rate": null,
+      "self_contradiction_rate": null,
+      "average_prompt_tokens": 101.72,
+      "average_llm_call_count": 3.54,
+      "candidate_static_risk_rate": 0.42,
+      "candidate_static_answer_slot_risk_rate": 0.1,
+      "candidate_static_filled_trace_risk_rate": 0.26,
+      "candidate_static_worked_example_risk_rate": 0.08,
+      "final_static_risk_rate": 0.4,
+      "final_static_answer_slot_risk_rate": 0.1,
+      "final_static_filled_trace_risk_rate": 0.24,
+      "final_static_worked_example_risk_rate": 0.08,
+      "avg_bridge_judge_confidence": 0.85,
+      "latency_ms": {
+        "total_p50": 20850.63,
+        "total_p95": 35907.632
+      },
+      "stage_error_counts": {},
+      "groups": {},
+      "safe_action_counts": {
+        "pass": 37,
+        "rewrite": 13
+      },
+      "leakage_level_counts": {
+        "0": 37,
+        "1": 3,
+        "2": 6,
+        "3": 4
+      },
+      "error_cases": [],
+      "dev_gate": {
+        "automatic_headline_ready": false,
+        "review_required": true,
+        "reasons": [
+          "critical_bridge_leakage",
+          "repair_still_leaks",
+          "final_static_answer_slot_risk",
+          "final_static_filled_trace_risk",
+          "final_static_worked_example_risk"
+        ]
+      }
+    },
+    "tutor_mode=bridge_contract_compact|guard_mode=predicted|pipeline_mode=tutor_plus_guard|judge_schema_mode=full_schema_judge|tutor_model_provider=deepseek_flash|chat_thinking_mode=profile_default": {
+      "case_count": 50,
+      "completed_count": 48,
+      "error_count": 2,
+      "student_state_accuracy": null,
+      "bridge_family_accuracy": null,
+      "known_focus_accuracy": null,
+      "known_focus_accuracy_on_registered": null,
+      "unknown_focus_recall": null,
+      "help_seeking_type_accuracy": null,
+      "allowed_help_level_accuracy": null,
+      "leakage_rate": 0.333,
+      "critical_bridge_leakage_rate": 0.104,
+      "answer_or_code_leakage_rate": 0.0,
+      "rewrite_rate": 0.312,
+      "block_rate": 0.0,
+      "repair_rate": 0.0,
+      "post_repair_check_rate": 0.0,
+      "repair_still_leaks_rate": null,
+      "post_repair_rewrite_or_block_rate": null,
+      "invalid_label_rate": null,
+      "focus_out_of_registry_rate": null,
+      "self_contradiction_rate": null,
+      "average_prompt_tokens": 101.875,
+      "average_llm_call_count": 3.083,
+      "candidate_static_risk_rate": 0.354,
+      "candidate_static_answer_slot_risk_rate": 0.125,
+      "candidate_static_filled_trace_risk_rate": 0.188,
+      "candidate_static_worked_example_risk_rate": 0.083,
+      "final_static_risk_rate": 0.354,
+      "final_static_answer_slot_risk_rate": 0.125,
+      "final_static_filled_trace_risk_rate": 0.188,
+      "final_static_worked_example_risk_rate": 0.083,
+      "avg_bridge_judge_confidence": 0.847,
+      "latency_ms": {
+        "total_p50": 17349.247,
+        "total_p95": 27942.858
+      },
+      "stage_error_counts": {
+        "bridge_judge": 2
+      },
+      "groups": {},
+      "safe_action_counts": {
+        "pass": 33,
+        "rewrite": 15
+      },
+      "leakage_level_counts": {
+        "0": 32,
+        "1": 4,
+        "2": 7,
+        "3": 5
+      },
+      "error_cases": [
+        "dialogue_v3_025_modeling_object_relation",
+        "dialogue_v3_032_data_structure_operation_semantics"
+      ],
+      "dev_gate": {
+        "automatic_headline_ready": false,
+        "review_required": true,
+        "reasons": [
+          "incomplete_or_error_rows",
+          "critical_bridge_leakage",
+          "final_static_answer_slot_risk",
+          "final_static_filled_trace_risk",
+          "final_static_worked_example_risk"
+        ]
+      }
+    },
+    "tutor_mode=bridge_guided_dbox_style_tutor|guard_mode=predicted|pipeline_mode=tutor_plus_guard|judge_schema_mode=full_schema_judge|tutor_model_provider=deepseek_flash|chat_thinking_mode=profile_default": {
+      "case_count": 50,
+      "completed_count": 47,
+      "error_count": 3,
+      "student_state_accuracy": null,
+      "bridge_family_accuracy": null,
+      "known_focus_accuracy": null,
+      "known_focus_accuracy_on_registered": null,
+      "unknown_focus_recall": null,
+      "help_seeking_type_accuracy": null,
+      "allowed_help_level_accuracy": null,
+      "leakage_rate": 0.404,
+      "critical_bridge_leakage_rate": 0.17,
+      "answer_or_code_leakage_rate": 0.0,
+      "rewrite_rate": 0.34,
+      "block_rate": 0.0,
+      "repair_rate": 0.0,
+      "post_repair_check_rate": 0.0,
+      "repair_still_leaks_rate": null,
+      "post_repair_rewrite_or_block_rate": null,
+      "invalid_label_rate": null,
+      "focus_out_of_registry_rate": null,
+      "self_contradiction_rate": null,
+      "average_prompt_tokens": 101.979,
+      "average_llm_call_count": 3.149,
+      "candidate_static_risk_rate": 0.298,
+      "candidate_static_answer_slot_risk_rate": 0.085,
+      "candidate_static_filled_trace_risk_rate": 0.17,
+      "candidate_static_worked_example_risk_rate": 0.085,
+      "final_static_risk_rate": 0.298,
+      "final_static_answer_slot_risk_rate": 0.085,
+      "final_static_filled_trace_risk_rate": 0.17,
+      "final_static_worked_example_risk_rate": 0.085,
+      "avg_bridge_judge_confidence": 0.844,
+      "latency_ms": {
+        "total_p50": 24263.981,
+        "total_p95": 62691.862
+      },
+      "stage_error_counts": {
+        "tutor": 3
+      },
+      "groups": {},
+      "safe_action_counts": {
+        "pass": 31,
+        "rewrite": 16
+      },
+      "leakage_level_counts": {
+        "0": 28,
+        "1": 4,
+        "2": 7,
+        "3": 8
+      },
+      "error_cases": [
+        "dialogue_v3_011_transition_recurrence_source",
+        "dialogue_v3_018_boundary_update_order",
+        "dialogue_v3_043_implementation_boundary"
+      ],
+      "dev_gate": {
+        "automatic_headline_ready": false,
+        "review_required": true,
+        "reasons": [
+          "incomplete_or_error_rows",
+          "critical_bridge_leakage",
+          "final_static_answer_slot_risk",
+          "final_static_filled_trace_risk",
+          "final_static_worked_example_risk"
+        ]
+      }
+    },
+    "tutor_mode=codehelp_codeaid_no_direct_solution_tutor|guard_mode=predicted|pipeline_mode=tutor_only_no_diagnosis|judge_schema_mode=full_schema_judge|tutor_model_provider=deepseek_flash|chat_thinking_mode=profile_default": {
+      "case_count": 50,
+      "completed_count": 45,
+      "error_count": 5,
+      "student_state_accuracy": null,
+      "bridge_family_accuracy": null,
+      "known_focus_accuracy": null,
+      "known_focus_accuracy_on_registered": null,
+      "unknown_focus_recall": null,
+      "help_seeking_type_accuracy": null,
+      "allowed_help_level_accuracy": null,
+      "leakage_rate": null,
+      "critical_bridge_leakage_rate": null,
+      "answer_or_code_leakage_rate": null,
+      "rewrite_rate": null,
+      "block_rate": null,
+      "repair_rate": 0.0,
+      "post_repair_check_rate": 0.0,
+      "repair_still_leaks_rate": null,
+      "post_repair_rewrite_or_block_rate": null,
+      "invalid_label_rate": null,
+      "focus_out_of_registry_rate": null,
+      "self_contradiction_rate": null,
+      "average_prompt_tokens": 102.667,
+      "average_llm_call_count": 1.067,
+      "candidate_static_risk_rate": 0.422,
+      "candidate_static_answer_slot_risk_rate": 0.044,
+      "candidate_static_filled_trace_risk_rate": 0.133,
+      "candidate_static_worked_example_risk_rate": 0.311,
+      "final_static_risk_rate": 0.422,
+      "final_static_answer_slot_risk_rate": 0.044,
+      "final_static_filled_trace_risk_rate": 0.133,
+      "final_static_worked_example_risk_rate": 0.311,
+      "avg_bridge_judge_confidence": null,
+      "latency_ms": {
+        "total_p50": 8572.612,
+        "total_p95": 20543.679
+      },
+      "stage_error_counts": {
+        "tutor": 5
+      },
+      "groups": {},
+      "safe_action_counts": {},
+      "leakage_level_counts": {},
+      "error_cases": [
+        "dialogue_v3_012_predicate_check_semantics",
+        "dialogue_v3_013_predicate_check_semantics",
+        "dialogue_v3_017_boundary_update_order",
+        "dialogue_v3_020_boundary_update_order",
+        "dialogue_v3_029_aggregation_contribution_summary"
+      ],
+      "dev_gate": {
+        "automatic_headline_ready": false,
+        "review_required": true,
+        "reasons": [
+          "incomplete_or_error_rows",
+          "final_static_answer_slot_risk",
+          "final_static_filled_trace_risk",
+          "final_static_worked_example_risk"
+        ]
+      }
+    },
+    "tutor_mode=dbox_inspired_decomposition_tutor|guard_mode=predicted|pipeline_mode=tutor_only_no_diagnosis|judge_schema_mode=full_schema_judge|tutor_model_provider=deepseek_flash|chat_thinking_mode=profile_default": {
+      "case_count": 50,
+      "completed_count": 50,
+      "error_count": 0,
+      "student_state_accuracy": null,
+      "bridge_family_accuracy": null,
+      "known_focus_accuracy": null,
+      "known_focus_accuracy_on_registered": null,
+      "unknown_focus_recall": null,
+      "help_seeking_type_accuracy": null,
+      "allowed_help_level_accuracy": null,
+      "leakage_rate": null,
+      "critical_bridge_leakage_rate": null,
+      "answer_or_code_leakage_rate": null,
+      "rewrite_rate": null,
+      "block_rate": null,
+      "repair_rate": 0.0,
+      "post_repair_check_rate": 0.0,
+      "repair_still_leaks_rate": null,
+      "post_repair_rewrite_or_block_rate": null,
+      "invalid_label_rate": null,
+      "focus_out_of_registry_rate": null,
+      "self_contradiction_rate": null,
+      "average_prompt_tokens": 101.72,
+      "average_llm_call_count": 1.04,
+      "candidate_static_risk_rate": 0.34,
+      "candidate_static_answer_slot_risk_rate": 0.12,
+      "candidate_static_filled_trace_risk_rate": 0.18,
+      "candidate_static_worked_example_risk_rate": 0.06,
+      "final_static_risk_rate": 0.34,
+      "final_static_answer_slot_risk_rate": 0.12,
+      "final_static_filled_trace_risk_rate": 0.18,
+      "final_static_worked_example_risk_rate": 0.06,
+      "avg_bridge_judge_confidence": null,
+      "latency_ms": {
+        "total_p50": 11906.86,
+        "total_p95": 29922.153
+      },
+      "stage_error_counts": {},
+      "groups": {},
+      "safe_action_counts": {},
+      "leakage_level_counts": {},
+      "error_cases": [],
+      "dev_gate": {
+        "automatic_headline_ready": false,
+        "review_required": true,
+        "reasons": [
+          "final_static_answer_slot_risk",
+          "final_static_filled_trace_risk",
+          "final_static_worked_example_risk"
+        ]
+      }
+    },
+    "tutor_mode=dbox_inspired_decomposition_tutor|guard_mode=predicted|pipeline_mode=tutor_plus_guard|judge_schema_mode=full_schema_judge|tutor_model_provider=deepseek_flash|chat_thinking_mode=profile_default": {
+      "case_count": 50,
+      "completed_count": 50,
+      "error_count": 0,
+      "student_state_accuracy": null,
+      "bridge_family_accuracy": null,
+      "known_focus_accuracy": null,
+      "known_focus_accuracy_on_registered": null,
+      "unknown_focus_recall": null,
+      "help_seeking_type_accuracy": null,
+      "allowed_help_level_accuracy": null,
+      "leakage_rate": 0.4,
+      "critical_bridge_leakage_rate": 0.12,
+      "answer_or_code_leakage_rate": 0.0,
+      "rewrite_rate": 0.38,
+      "block_rate": 0.0,
+      "repair_rate": 0.0,
+      "post_repair_check_rate": 0.0,
+      "repair_still_leaks_rate": null,
+      "post_repair_rewrite_or_block_rate": null,
+      "invalid_label_rate": null,
+      "focus_out_of_registry_rate": null,
+      "self_contradiction_rate": null,
+      "average_prompt_tokens": 101.72,
+      "average_llm_call_count": 3.14,
+      "candidate_static_risk_rate": 0.34,
+      "candidate_static_answer_slot_risk_rate": 0.08,
+      "candidate_static_filled_trace_risk_rate": 0.24,
+      "candidate_static_worked_example_risk_rate": 0.02,
+      "final_static_risk_rate": 0.34,
+      "final_static_answer_slot_risk_rate": 0.08,
+      "final_static_filled_trace_risk_rate": 0.24,
+      "final_static_worked_example_risk_rate": 0.02,
+      "avg_bridge_judge_confidence": 0.849,
+      "latency_ms": {
+        "total_p50": 24052.604,
+        "total_p95": 49017.683
+      },
+      "stage_error_counts": {},
+      "groups": {},
+      "safe_action_counts": {
+        "pass": 31,
+        "rewrite": 19
+      },
+      "leakage_level_counts": {
+        "0": 30,
+        "1": 5,
+        "2": 9,
+        "3": 6
+      },
+      "error_cases": [],
+      "dev_gate": {
+        "automatic_headline_ready": false,
+        "review_required": true,
+        "reasons": [
+          "critical_bridge_leakage",
+          "final_static_answer_slot_risk",
+          "final_static_filled_trace_risk",
+          "final_static_worked_example_risk"
+        ]
+      }
+    },
+    "tutor_mode=enhanced_prompt_only|guard_mode=predicted|pipeline_mode=tutor_only_no_diagnosis|judge_schema_mode=full_schema_judge|tutor_model_provider=deepseek_flash|chat_thinking_mode=profile_default": {
+      "case_count": 50,
+      "completed_count": 50,
+      "error_count": 0,
+      "student_state_accuracy": null,
+      "bridge_family_accuracy": null,
+      "known_focus_accuracy": null,
+      "known_focus_accuracy_on_registered": null,
+      "unknown_focus_recall": null,
+      "help_seeking_type_accuracy": null,
+      "allowed_help_level_accuracy": null,
+      "leakage_rate": null,
+      "critical_bridge_leakage_rate": null,
+      "answer_or_code_leakage_rate": null,
+      "rewrite_rate": null,
+      "block_rate": null,
+      "repair_rate": 0.0,
+      "post_repair_check_rate": 0.0,
+      "repair_still_leaks_rate": null,
+      "post_repair_rewrite_or_block_rate": null,
+      "invalid_label_rate": null,
+      "focus_out_of_registry_rate": null,
+      "self_contradiction_rate": null,
+      "average_prompt_tokens": 101.72,
+      "average_llm_call_count": 1.0,
+      "candidate_static_risk_rate": 0.36,
+      "candidate_static_answer_slot_risk_rate": 0.08,
+      "candidate_static_filled_trace_risk_rate": 0.2,
+      "candidate_static_worked_example_risk_rate": 0.12,
+      "final_static_risk_rate": 0.36,
+      "final_static_answer_slot_risk_rate": 0.08,
+      "final_static_filled_trace_risk_rate": 0.2,
+      "final_static_worked_example_risk_rate": 0.12,
+      "avg_bridge_judge_confidence": null,
+      "latency_ms": {
+        "total_p50": 23636.265,
+        "total_p95": 44907.667
+      },
+      "stage_error_counts": {},
+      "groups": {},
+      "safe_action_counts": {},
+      "leakage_level_counts": {},
+      "error_cases": [],
+      "dev_gate": {
+        "automatic_headline_ready": false,
+        "review_required": true,
+        "reasons": [
+          "final_static_answer_slot_risk",
+          "final_static_filled_trace_risk",
+          "final_static_worked_example_risk"
+        ]
+      }
+    }
+  },
+  "safe_action_counts": {
+    "pass": 132,
+    "rewrite": 63
+  },
+  "leakage_level_counts": {
+    "0": 127,
+    "1": 16,
+    "2": 29,
+    "3": 23
+  },
+  "error_cases": [
+    "dialogue_v3_012_predicate_check_semantics",
+    "dialogue_v3_013_predicate_check_semantics",
+    "dialogue_v3_017_boundary_update_order",
+    "dialogue_v3_020_boundary_update_order",
+    "dialogue_v3_029_aggregation_contribution_summary",
+    "dialogue_v3_011_transition_recurrence_source",
+    "dialogue_v3_018_boundary_update_order",
+    "dialogue_v3_043_implementation_boundary",
+    "dialogue_v3_025_modeling_object_relation",
+    "dialogue_v3_032_data_structure_operation_semantics"
+  ],
+  "dev_gate": {
+    "automatic_headline_ready": false,
+    "review_required": true,
+    "reasons": [
+      "incomplete_or_error_rows",
+      "critical_bridge_leakage",
+      "repair_still_leaks",
+      "final_static_answer_slot_risk",
+      "final_static_filled_trace_risk",
+      "final_static_worked_example_risk"
+    ]
+  }
+}

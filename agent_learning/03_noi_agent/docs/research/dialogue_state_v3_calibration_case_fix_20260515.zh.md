@@ -11,7 +11,7 @@
 - `dialogue_v3_018`：边界/顺序类 follow-up 不再生成“分支怎么拆”式学生回复，改为围绕“旧值、覆盖、顺序”表达卡点。
 - `dialogue_v3_026`：建模/对象关系类 follow-up 不再生成二分 `true/false` 或边界方向话术，改为围绕“对象、关系、覆盖/依赖”表达卡点。
 - `dialogue_v3_043`：实现边界类前置概念缺口不再生成“可行性/状态语义”话术，改为围绕“字符、输入、下标、初值/范围”表达卡点。
-- `dialogue_v3_011`：转移/递推来源类 follow-up 已显式包含“来源”线索，减少 F1 样本过于泛泛的问题。该样本仍建议教练在正式 50-case review 中复核 `F1/advance` 是否过于乐观。
+- `dialogue_v3_011`：转移/递推来源类 follow-up 已改成“部分跟上”的学生回复，修订后的预期状态为 `F2/clarify`，早先偏乐观的标签已废弃。该样本现在要求教练重点复核：学生是否已经把“前驱/来源”关系具体对应到题面动作。
 
 ## 生成规则改动
 
@@ -21,10 +21,10 @@
 
 ## 验证
 
-- 新增并通过回归测试：`test_followup_replies_match_bridge_bucket`。
-- 相关 dialogue-state、审核表、校验器与双语文档测试通过：43 个测试全部通过。
+- 已加入并通过 bucket-aware follow-up 与固定 calibration case 导出的回归覆盖。
+- 相关 dialogue-state、审核表、校验器、held-out 风格校验、上下文审计与双语文档测试通过：47 个测试全部通过。
 - 已重新生成 dialogue-state v3 JSONL、中英文 50-case review workbook 与 6-case calibration workbook。
 
 ## 后续使用建议
 
-下一步仍应先做 5-6 条 calibration re-check，再进入完整 50-case case/source review。`dialogue_v3_011` 建议作为重点复核样本，确认是否需要从 `F1/advance` 改为 `F2/clarify`。
+下一步仍应先做 5-6 条 calibration re-check，再进入完整 50-case case/source review。`dialogue_v3_011` 仍是重点复核样本，但当前预期状态已经是 `F2/clarify`；需要确认的是这条修订后的链条是否已经足够连贯、可接受。

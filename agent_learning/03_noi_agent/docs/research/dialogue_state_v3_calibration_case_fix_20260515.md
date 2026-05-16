@@ -11,7 +11,7 @@ Among the six calibration cases, `dialogue_v3_001` and `dialogue_v3_048` were ac
 - `dialogue_v3_018`: Boundary/order follow-up replies no longer use generic branching language. They now focus on old values, overwriting, and update order.
 - `dialogue_v3_026`: Modeling/object-relation follow-up replies no longer use binary-search `true/false` or boundary-direction wording. They now focus on objects, relations, coverage, and dependencies.
 - `dialogue_v3_043`: Implementation-boundary prerequisite-gap replies no longer use generic feasibility/state-semantics wording. They now focus on characters, input parsing, indices, initialization, and ranges.
-- `dialogue_v3_011`: Transition-source follow-up replies now explicitly include source cues. This reduces the overly generic F1 reply issue, but the case should still be reviewed for whether `F1/advance` remains too optimistic.
+- `dialogue_v3_011`: Transition-source follow-up replies now use a partial-following student message and the revised intent is `F2/clarify`. The earlier optimistic label has been retired. The case now asks the coach to check whether the student has concretized the predecessor/source relation from the problem statement.
 
 ## Generator Changes
 
@@ -21,10 +21,10 @@ Among the six calibration cases, `dialogue_v3_001` and `dialogue_v3_048` were ac
 
 ## Verification
 
-- Added and passed the regression test `test_followup_replies_match_bridge_bucket`.
-- Dialogue-state generation, review workbook, validation, and bilingual-document tests passed: 43 tests total.
+- Added and passed regression coverage for bucket-aware follow-up replies and fixed calibration-case export.
+- Dialogue-state generation, review workbook, validation, held-out-style, context-audit, and bilingual-document tests passed: 47 tests total.
 - Regenerated the dialogue-state v3 JSONL, Chinese/English 50-case review workbooks, and 6-case calibration workbooks.
 
 ## Recommended Next Step
 
-Run a short 5-6 case calibration re-check before the full 50-case case/source review. `dialogue_v3_011` should remain a focus item to decide whether it should stay `F1/advance` or be revised to `F2/clarify`.
+Run a short 5-6 case calibration re-check before the full 50-case case/source review. `dialogue_v3_011` should remain a focus item, but its current intended state is already `F2/clarify`; the review question is whether that revised chain is coherent enough to accept.

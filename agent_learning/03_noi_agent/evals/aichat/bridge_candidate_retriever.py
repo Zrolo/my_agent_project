@@ -99,6 +99,7 @@ FOCUS_DIRECT_HINTS = {
     "union_find_operation_mapping": ["并查集", "合并", "集合", "代表元", "union", "unite", "find", "连通"],
     "heap_push_pop_mapping": ["堆", "优先队列", "push", "pop", "取当前最小", "取最小", "合并"],
     "topological_zero_indegree_reason": ["拓扑", "入度为 0", "入度为0", "入度", "前置", "先做", "依赖"],
+    "obsolete_candidate_guard": ["旧项", "旧距离", "过期", "失效", "重复入队", "优先队列", "dist 不一致"],
 }
 
 
@@ -192,6 +193,8 @@ def retrieve_focus_candidates(
     candidates = []
     for item in focus_registry or []:
         if not isinstance(item, dict) or not item.get("focus_id"):
+            continue
+        if item.get("status") == "deprecated":
             continue
         focus_terms = [
             str(item.get("focus_id", "")).replace("_", " "),

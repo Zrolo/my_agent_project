@@ -26,7 +26,7 @@ class FocusRegistryExpansionTests(unittest.TestCase):
             "kmp_prefix_function_semantics",
             "combinatorial_recurrence",
             "segment_tree_pushup",
-            "dijkstra_stale_entry",
+            "obsolete_candidate_guard",
             "local_condition_completion",
             "direct_answer_request_policy",
             "constraint_to_graph_edge",
@@ -49,6 +49,13 @@ class FocusRegistryExpansionTests(unittest.TestCase):
         self.assertTrue(expected.issubset(set(focus_ids)))
         self.assertEqual(len(focus_ids), len(set(focus_ids)))
         self.assertFalse([item["focus_id"] for item in data["focuses"] if not item.get("bridge_family_v2")])
+
+        deprecated = {
+            item["focus_id"]: item
+            for item in data["focuses"]
+            if item.get("status") == "deprecated"
+        }
+        self.assertEqual("obsolete_candidate_guard", deprecated["dijkstra_stale_entry"]["replaced_by"])
 
 
 if __name__ == "__main__":

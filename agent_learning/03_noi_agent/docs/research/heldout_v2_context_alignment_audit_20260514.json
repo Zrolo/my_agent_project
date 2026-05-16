@@ -1,0 +1,24 @@
+{
+  "v2_dataset_path": "/Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/docs/research/bridgebench_cp_heldout_v2_50_draft.jsonl",
+  "v2_row_count": 50,
+  "v2_alignment_counts": {
+    "no_recent_dialogue": 10,
+    "recent_dialogue_last_student_mismatch": 40
+  },
+  "v3_dataset_path": "/Users/kongyouli/Downloads/my_agent_project/agent_learning/03_noi_agent/docs/research/bridgebench_cp_heldout_v3_50_draft.jsonl",
+  "v3_row_count": 50,
+  "v3_alignment_counts": {
+    "no_recent_dialogue": 10,
+    "aligned_prior_context_ends_with_assistant": 40
+  },
+  "review_workbook": {
+    "path": "/Users/kongyouli/Downloads/coach_response_review_workbook_dev_ablation_zh5_filled.xlsx",
+    "row_count": 537,
+    "alignment_counts": {
+      "no_recent_dialogue": 136,
+      "unparseable_recent_dialogue": 1,
+      "recent_dialogue_last_student_mismatch": 400
+    },
+    "student_visible_level_tag_rows": 48
+  }
+}

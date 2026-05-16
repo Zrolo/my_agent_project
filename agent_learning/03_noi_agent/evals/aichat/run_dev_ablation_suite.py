@@ -95,6 +95,325 @@ DEFAULT_CONDITIONS = [
     },
 ]
 
+EDF_CORE_CONDITIONS = [
+    {
+        "condition_id": "enhanced_prompt_only_clean",
+        "tutor_mode": "enhanced_prompt_only",
+        "pipeline_mode": "tutor_only_no_diagnosis",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "dbox_inspired_guard",
+        "tutor_mode": "dbox_inspired_decomposition_tutor",
+        "pipeline_mode": "tutor_plus_guard",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "edf_inspired_clean",
+        "tutor_mode": "edf_inspired_adaptive_scaffolding_tutor",
+        "pipeline_mode": "tutor_only_no_diagnosis",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "edf_inspired_guard",
+        "tutor_mode": "edf_inspired_adaptive_scaffolding_tutor",
+        "pipeline_mode": "tutor_plus_guard",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "bridge_contract_guard",
+        "tutor_mode": "bridge_contract",
+        "pipeline_mode": "tutor_plus_guard",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "bridge_contract_guard_repair",
+        "tutor_mode": "bridge_contract",
+        "pipeline_mode": "tutor_plus_guard_plus_repair",
+        "guard_mode": "predicted",
+    },
+]
+
+PROMPT_COMPRESSION_CONDITIONS = [
+    {
+        "condition_id": "dbox_inspired_guard",
+        "tutor_mode": "dbox_inspired_decomposition_tutor",
+        "pipeline_mode": "tutor_plus_guard",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "bridge_contract_guard",
+        "tutor_mode": "bridge_contract",
+        "pipeline_mode": "tutor_plus_guard",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "bridge_contract_compact_guard",
+        "tutor_mode": "bridge_contract_compact",
+        "pipeline_mode": "tutor_plus_guard",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "bridge_contract_minimal_guard",
+        "tutor_mode": "bridge_contract_minimal",
+        "pipeline_mode": "tutor_plus_guard",
+        "guard_mode": "predicted",
+    },
+]
+
+DBOX_BRIDGE_HYBRID_CONDITIONS = [
+    {
+        "condition_id": "enhanced_prompt_only_clean",
+        "tutor_mode": "enhanced_prompt_only",
+        "pipeline_mode": "tutor_only_no_diagnosis",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "dbox_inspired_clean",
+        "tutor_mode": "dbox_inspired_decomposition_tutor",
+        "pipeline_mode": "tutor_only_no_diagnosis",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "dbox_inspired_guard",
+        "tutor_mode": "dbox_inspired_decomposition_tutor",
+        "pipeline_mode": "tutor_plus_guard",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "bridge_contract_compact_guard",
+        "tutor_mode": "bridge_contract_compact",
+        "pipeline_mode": "tutor_plus_guard",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "bridge_guided_dbox_style_guard",
+        "tutor_mode": "bridge_guided_dbox_style_tutor",
+        "pipeline_mode": "tutor_plus_guard",
+        "guard_mode": "predicted",
+    },
+]
+
+GUARD_REPAIR_FAIRNESS_ADDON_CONDITIONS = [
+    {
+        "condition_id": "enhanced_prompt_only_guard",
+        "tutor_mode": "enhanced_prompt_only",
+        "pipeline_mode": "tutor_plus_guard",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "enhanced_prompt_only_guard_repair",
+        "tutor_mode": "enhanced_prompt_only",
+        "pipeline_mode": "tutor_plus_guard_plus_repair",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "dbox_inspired_guard_repair",
+        "tutor_mode": "dbox_inspired_decomposition_tutor",
+        "pipeline_mode": "tutor_plus_guard_plus_repair",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "bridge_contract_compact_clean",
+        "tutor_mode": "bridge_contract_compact",
+        "pipeline_mode": "tutor_only",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "bridge_contract_compact_guard_repair",
+        "tutor_mode": "bridge_contract_compact",
+        "pipeline_mode": "tutor_plus_guard_plus_repair",
+        "guard_mode": "predicted",
+    },
+]
+
+DIALOGUE_STATE_V3_MAIN_CONDITIONS = [
+    {
+        "condition_id": "enhanced_prompt_only_clean",
+        "tutor_mode": "enhanced_prompt_only",
+        "pipeline_mode": "tutor_only_no_diagnosis",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "codehelp_codeaid_clean",
+        "tutor_mode": "codehelp_codeaid_no_direct_solution_tutor",
+        "pipeline_mode": "tutor_only_no_diagnosis",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "dbox_inspired_clean",
+        "tutor_mode": "dbox_inspired_decomposition_tutor",
+        "pipeline_mode": "tutor_only_no_diagnosis",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "dbox_inspired_guard",
+        "tutor_mode": "dbox_inspired_decomposition_tutor",
+        "pipeline_mode": "tutor_plus_guard",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "bridge_guided_dbox_style_guard",
+        "tutor_mode": "bridge_guided_dbox_style_tutor",
+        "pipeline_mode": "tutor_plus_guard",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "bridge_contract_compact_guard",
+        "tutor_mode": "bridge_contract_compact",
+        "pipeline_mode": "tutor_plus_guard",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "bridge_contract_compact_guard_repair",
+        "tutor_mode": "bridge_contract_compact",
+        "pipeline_mode": "tutor_plus_guard_plus_repair",
+        "guard_mode": "predicted",
+    },
+]
+
+DIALOGUE_STATE_V3_REPAIR_FAIRNESS_ADDON_CONDITIONS = [
+    {
+        "condition_id": "dbox_inspired_guard_repair",
+        "tutor_mode": "dbox_inspired_decomposition_tutor",
+        "pipeline_mode": "tutor_plus_guard_plus_repair",
+        "guard_mode": "predicted",
+    },
+]
+
+HELDOUT_MAIN_CONDITIONS = [
+    {
+        "condition_id": "current_system_deployment",
+        "tutor_mode": "current_system",
+        "pipeline_mode": "tutor_only_no_diagnosis",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "enhanced_prompt_only_clean",
+        "tutor_mode": "enhanced_prompt_only",
+        "pipeline_mode": "tutor_only_no_diagnosis",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "codehelp_codeaid_clean",
+        "tutor_mode": "codehelp_codeaid_no_direct_solution_tutor",
+        "pipeline_mode": "tutor_only_no_diagnosis",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "dbox_inspired_guard",
+        "tutor_mode": "dbox_inspired_decomposition_tutor",
+        "pipeline_mode": "tutor_plus_guard",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "bridge_inspired_expert_decision_clean",
+        "tutor_mode": "bridge_inspired_expert_decision_tutor",
+        "pipeline_mode": "tutor_only_no_diagnosis",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "single_llm_structured_guard",
+        "tutor_mode": "single_llm_structured",
+        "pipeline_mode": "tutor_plus_guard",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "bridge_contract_guard",
+        "tutor_mode": "bridge_contract",
+        "pipeline_mode": "tutor_plus_guard",
+        "guard_mode": "predicted",
+    },
+    {
+        "condition_id": "bridge_contract_guard_repair",
+        "tutor_mode": "bridge_contract",
+        "pipeline_mode": "tutor_plus_guard_plus_repair",
+        "guard_mode": "predicted",
+    },
+]
+
+SAFE_SCAFFOLD_APPENDIX_CONDITION = {
+    "condition_id": "bridge_contract_safe_scaffold",
+    "tutor_mode": "bridge_contract",
+    "pipeline_mode": "deterministic_safe_scaffold",
+    "guard_mode": "predicted",
+}
+
+
+def build_conditions(
+    *,
+    condition_set: str = "default",
+    include_safe_scaffold: bool = False,
+) -> list[dict]:
+    if condition_set == "default":
+        source_conditions = DEFAULT_CONDITIONS
+    elif condition_set == "edf_core":
+        source_conditions = EDF_CORE_CONDITIONS
+    elif condition_set == "prompt_compression":
+        source_conditions = PROMPT_COMPRESSION_CONDITIONS
+    elif condition_set == "dbox_bridge_hybrid":
+        source_conditions = DBOX_BRIDGE_HYBRID_CONDITIONS
+    elif condition_set == "guard_repair_fairness_addon":
+        source_conditions = GUARD_REPAIR_FAIRNESS_ADDON_CONDITIONS
+    elif condition_set == "dialogue_state_v3_main":
+        source_conditions = DIALOGUE_STATE_V3_MAIN_CONDITIONS
+    elif condition_set == "dialogue_state_v3_repair_fairness_addon":
+        source_conditions = DIALOGUE_STATE_V3_REPAIR_FAIRNESS_ADDON_CONDITIONS
+    elif condition_set == "heldout_main":
+        source_conditions = HELDOUT_MAIN_CONDITIONS
+    elif condition_set == "custom":
+        source_conditions = []
+    else:
+        raise ValueError(f"Unsupported condition_set: {condition_set}")
+    conditions = [dict(condition) for condition in source_conditions]
+    if include_safe_scaffold:
+        conditions.append(dict(SAFE_SCAFFOLD_APPENDIX_CONDITION))
+    return conditions
+
+
+def build_default_conditions(*, include_safe_scaffold: bool = False) -> list[dict]:
+    return build_conditions(condition_set="default", include_safe_scaffold=include_safe_scaffold)
+
+
+def _normalize_filter_ids(values: list[str] | None) -> list[str]:
+    if not values:
+        return []
+    normalized: list[str] = []
+    for value in values:
+        for item in str(value).split(","):
+            item = item.strip()
+            if item:
+                normalized.append(item)
+    return normalized
+
+
+def _seed_case_id(row: dict, fallback_index: int) -> str:
+    return str(row.get("id") or row.get("case_id") or f"case_{fallback_index}")
+
+
+def filter_rows_by_case_ids(rows: list[dict], case_ids: list[str] | None) -> list[dict]:
+    requested = _normalize_filter_ids(case_ids)
+    if not requested:
+        return rows
+    available = {_seed_case_id(row, index) for index, row in enumerate(rows, 1)}
+    missing = [case_id for case_id in requested if case_id not in available]
+    if missing:
+        raise ValueError(f"Unknown case_id(s): {', '.join(missing)}")
+    requested_set = set(requested)
+    return [row for index, row in enumerate(rows, 1) if _seed_case_id(row, index) in requested_set]
+
+
+def filter_conditions_by_ids(conditions: list[dict], condition_ids: list[str] | None) -> list[dict]:
+    requested = _normalize_filter_ids(condition_ids)
+    if not requested:
+        return conditions
+    available = {str(condition.get("condition_id") or "") for condition in conditions}
+    missing = [condition_id for condition_id in requested if condition_id not in available]
+    if missing:
+        raise ValueError(f"Unknown condition_id(s): {', '.join(missing)}")
+    requested_set = set(requested)
+    return [condition for condition in conditions if str(condition.get("condition_id") or "") in requested_set]
+
 
 def _write_jsonl(path: Path, rows: list[dict]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -123,11 +442,15 @@ def run_dev_ablation_suite(
     input_jsonl: Path = DEFAULT_INPUT_JSONL,
     output_dir: Path = DEFAULT_OUTPUT_DIR,
     conditions: list[dict] | None = None,
+    condition_set: str = "default",
+    condition_ids: list[str] | None = None,
+    case_ids: list[str] | None = None,
     limit: int | None = None,
     chat_model_provider: str | None = "deepseek_flash",
     judge_provider: str = "deepseek",
     chat_thinking_mode: str | None = None,
     max_retries: int = 0,
+    include_safe_scaffold: bool = False,
     shuffle_seed: int = 17,
     run_condition_fn: Callable = _run_condition,
     summarize_fn: Callable = summarize_bridge_offline_results,
@@ -136,8 +459,13 @@ def run_dev_ablation_suite(
     export_xlsx_fn: Callable = export_xlsx,
     progress_stream=None,
 ) -> dict:
-    conditions = conditions or DEFAULT_CONDITIONS
+    conditions = conditions or build_conditions(
+        condition_set=condition_set,
+        include_safe_scaffold=include_safe_scaffold,
+    )
+    conditions = filter_conditions_by_ids(conditions, condition_ids)
     rows = load_seed_rows(input_jsonl)
+    rows = filter_rows_by_case_ids(rows, case_ids)
     if limit is not None:
         rows = rows[:limit]
     if not rows:
@@ -190,8 +518,11 @@ def run_dev_ablation_suite(
         "input_jsonl": str(input_jsonl),
         "output_dir": str(output_dir),
         "case_count": len(rows),
+        "condition_set": condition_set,
         "condition_count": len(conditions),
         "conditions": conditions,
+        "selected_case_ids": [_seed_case_id(row, index) for index, row in enumerate(rows, 1)],
+        "selected_condition_ids": [condition["condition_id"] for condition in conditions],
         "condition_outputs": condition_outputs,
         "combined_row_count": len(combined_rows),
         "combined_jsonl": str(combined_jsonl),
@@ -218,6 +549,41 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--judge-provider", default="deepseek")
     parser.add_argument("--chat-thinking-mode", choices=["enabled", "disabled"])
     parser.add_argument("--max-retries", type=int, default=0)
+    parser.add_argument(
+        "--condition-id",
+        action="append",
+        dest="condition_ids",
+        help="Run only this condition id. Repeat or pass comma-separated ids for targeted reruns.",
+    )
+    parser.add_argument(
+        "--case-id",
+        action="append",
+        dest="case_ids",
+        help="Run only this case id. Repeat or pass comma-separated ids for targeted reruns.",
+    )
+    parser.add_argument(
+        "--condition-set",
+        choices=[
+            "default",
+            "edf_core",
+            "heldout_main",
+            "dialogue_state_v3_main",
+            "dialogue_state_v3_repair_fairness_addon",
+            "prompt_compression",
+            "dbox_bridge_hybrid",
+            "guard_repair_fairness_addon",
+        ],
+        default="default",
+        help=(
+            "Named condition set. Use dialogue_state_v3_main for the reviewed-candidate "
+            "50-case response generation table; heldout_main is the earlier 8-condition matrix."
+        ),
+    )
+    parser.add_argument(
+        "--include-safe-scaffold",
+        action="store_true",
+        help="Append the dev-only deterministic safe scaffold appendix condition.",
+    )
     parser.add_argument("--shuffle-seed", type=int, default=17)
     return parser.parse_args(argv)
 
@@ -232,6 +598,10 @@ def main(argv: list[str] | None = None) -> int:
         judge_provider=args.judge_provider,
         chat_thinking_mode=args.chat_thinking_mode,
         max_retries=args.max_retries,
+        condition_set=args.condition_set,
+        condition_ids=args.condition_ids,
+        case_ids=args.case_ids,
+        include_safe_scaffold=args.include_safe_scaffold,
         shuffle_seed=args.shuffle_seed,
         progress_stream=sys.stderr,
     )

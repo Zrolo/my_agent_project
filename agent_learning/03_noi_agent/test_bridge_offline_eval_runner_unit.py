@@ -5,6 +5,7 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from evals.aichat import run_bridge_offline_eval
@@ -45,6 +46,87 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
         self.assertIn("[学生原始问题]", messages[-1]["content"])
         self.assertIn("题目编号/链接: P3128", messages[-1]["content"])
         self.assertIn("树上多条路径统计", messages[-1]["content"])
+
+    def test_build_messages_from_seed_row_parses_recent_dialogue_like_online_history(self):
+        row = {
+            "id": "cp_bridge_context",
+            "problem_ref": "P3948",
+            "problem_title": "数据结构",
+            "problem_source_url": "https://www.luogu.com.cn/problem/P3948",
+            "student_message": "区间影响怎么转成加减标记？",
+            "problem_context": "多次区间影响，最后统一统计。",
+            "recent_dialogue": "学生：我看懂一次操作会影响一段。\nAI：先只看这一段里哪些位置真的变了。",
+            "student_code_excerpt": "diff[l] += x;\n// r 这里不确定",
+        }
+
+        messages = run_bridge_offline_eval.build_messages_from_seed_row(row)
+
+        self.assertEqual(
+            [
+                {"role": "user", "content": "我看懂一次操作会影响一段。"},
+                {"role": "assistant", "content": "先只看这一段里哪些位置真的变了。"},
+            ],
+            messages[:-1],
+        )
+        self.assertEqual("user", messages[-1]["role"])
+        self.assertIn("[学生原始问题]", messages[-1]["content"])
+        self.assertIn("区间影响怎么转成加减标记？", messages[-1]["content"])
+        self.assertIn("[当前上下文状态与回答策略]", messages[-1]["content"])
+        self.assertIn("题目标题: 数据结构", messages[-1]["content"])
+        self.assertIn("题目链接: https://www.luogu.com.cn/problem/P3948", messages[-1]["content"])
+        self.assertIn("题面/题意/约束: 多次区间影响，最后统一统计。", messages[-1]["content"])
+        self.assertIn("学生当前代码: diff[l] += x;", messages[-1]["content"])
+        self.assertNotIn("recent_dialogue", messages[-1]["content"])
+
+    def test_latest_assistant_reply_accepts_chinese_ai_role_prefix(self):
+        dialogue = "学生：顺序总写反。\nAI：你先判断哪一边还可能包含答案。\n学生：我觉得是左边。"
+
+        reply = run_bridge_offline_eval._latest_assistant_reply(dialogue)
+
+        self.assertEqual("你先判断哪一边还可能包含答案。", reply)
+
+    def test_result_rows_preserve_dialogue_state_metadata_for_review_workbook(self):
+        rows = [
+            {
+                "id": "dialogue_v3_case",
+                "case_id": "dialogue_v3_case",
+                "problem_ref": "P1049",
+                "problem_source_platform": "luogu",
+                "problem_source_url": "https://www.luogu.com.cn/problem/P1049",
+                "problem_statement": "题面摘要。",
+                "problem_statement_public_summary": "公开摘要。",
+                "student_message": "我觉得是从前面推，但还是乱。",
+                "problem_context": "01 背包。",
+                "recent_dialogue": "学生：顺序总写反。\nAI：你先判断哪一边还可能包含答案。",
+                "turn_position": "followup",
+                "context_type": "followup_after_partial_answer",
+                "student_scaffold_followability": "F2",
+                "expected_tutor_move": "clarify",
+                "prior_ai_scaffold": "你先判断哪一边还可能包含答案。",
+                "student_reply_to_prior_scaffold": "我觉得是左边，但不确定。",
+            }
+        ]
+
+        def fake_chat(messages, student_id, problem_id, chat_model_provider=None):
+            return "回复", "回复", "L2"
+
+        with patch.object(run_bridge_offline_eval, "noi_agent_chat", side_effect=fake_chat):
+            result_rows = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+                rows,
+                tutor_mode="current_system",
+                pipeline_mode="tutor_only_no_diagnosis",
+            )
+
+        result = result_rows[0]
+        self.assertEqual("https://www.luogu.com.cn/problem/P1049", result["problem_source_url"])
+        self.assertEqual("题面摘要。", result["problem_statement"])
+        self.assertEqual("parsed_recent_dialogue", result["generation_context_source"])
+        self.assertEqual(3, result["generation_message_count"])
+        self.assertEqual("followup", result["turn_position"])
+        self.assertEqual("F2", result["student_scaffold_followability"])
+        self.assertEqual("clarify", result["expected_tutor_move"])
+        self.assertEqual("你先判断哪一边还可能包含答案。", result["context_ai_reply"])
+        self.assertEqual("你先判断哪一边还可能包含答案。", result["prior_ai_scaffold"])
 
     def test_run_bridge_offline_eval_rows_runs_bridge_leakage_and_repair(self):
         rows = [
@@ -90,8 +172,24 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
                 "level": "L2",
             }
 
+        leakage_calls = []
+
         def fake_leakage(**kwargs):
+            leakage_calls.append(kwargs["candidate_response"])
             calls.append(("leakage", kwargs["candidate_response"]))
+            if "先别把状态写死" in kwargs["candidate_response"]:
+                return {
+                    "leakage_level": 0,
+                    "leakage_types": [],
+                    "leaked_elements": [],
+                    "violated_forbidden_content": [],
+                    "is_critical_bridge_leakage": False,
+                    "is_answer_or_code_leakage": False,
+                    "safe_action": "pass",
+                    "repair_instruction": "",
+                    "confidence": 0.88,
+                    "reason": "unit test post repair pass",
+                }
             return {
                 "leakage_level": 3,
                 "leakage_types": ["critical_bridge"],
@@ -133,12 +231,21 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
         self.assertEqual("representation_bridge", result["bridge_judge_result"]["missing_bridge"]["family"])
         self.assertEqual("rewrite", result["leakage_judge_result"]["safe_action"])
         self.assertIn("repaired_response", result["repair_result"])
-        self.assertEqual("状态设 dp[j] 表示时间 j 内的最大价值。\n\n[LEVEL:L2]", result["candidate_response_text"])
-        self.assertEqual("先别把状态写死。你想一想：时间变化后，至少要保留哪一个量？\n\n[LEVEL:L2]", result["final_response_text"])
+        self.assertEqual(
+            [
+                "状态设 dp[j] 表示时间 j 内的最大价值。",
+                "先别把状态写死。你想一想：时间变化后，至少要保留哪一个量？",
+            ],
+            leakage_calls,
+        )
+        self.assertEqual("状态设 dp[j] 表示时间 j 内的最大价值。", result["candidate_response_text"])
+        self.assertEqual("先别把状态写死。你想一想：时间变化后，至少要保留哪一个量？", result["final_response_text"])
         self.assertEqual("repair", result["final_response_source"])
         self.assertTrue(result["repair_applied"])
+        self.assertIn("post_repair_leakage_judge_result", result)
+        self.assertFalse(result["repair_still_leaks"])
         self.assertFalse(result["blocked"])
-        self.assertEqual(4, result["llm_call_count"])
+        self.assertEqual(5, result["llm_call_count"])
         self.assertIn("CASE_DONE index=1 total=1 case_id=case_1", progress.getvalue())
 
     def test_diagnosis_only_pipeline_skips_tutor_leakage_and_repair(self):
@@ -191,6 +298,216 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
         self.assertEqual("none", result["final_response_source"])
         self.assertEqual(1, result["llm_call_count"])
 
+    def test_post_repair_leakage_check_marks_repair_still_leaks(self):
+        rows = [{"id": "case_repair_leak", "student_message": "我知道要 DP，但状态怎么设？"}]
+
+        def fake_bridge_judge(**kwargs):
+            return {
+                "problem_solving_state": "problem_representation_unclear",
+                "missing_bridge": {
+                    "family": "representation_bridge",
+                    "subtype": "state_design",
+                    "description": "状态含义缺失。",
+                    "evidence": ["学生问状态怎么设"],
+                    "known_focus": "state_design",
+                    "needs_new_focus": False,
+                },
+                "help_seeking_type": "instrumental_help",
+                "allowed_help_level": "L2",
+                "help_form": "question",
+                "forbidden_content": ["不能直接给完整状态定义。"],
+                "leakage_risk": "high",
+                "confidence": 0.9,
+                "reason": "unit test",
+            }
+
+        def fake_tutor(row, messages, bridge_result):
+            return {"response_text": "状态设 dp[j] 表示容量 j 的最大价值。", "level": "L2"}
+
+        def fake_leakage(**kwargs):
+            if kwargs["candidate_response"].startswith("修复后仍然"):
+                return {
+                    "leakage_level": 3,
+                    "leakage_types": ["critical_bridge"],
+                    "leaked_elements": ["修复后仍然给出完整状态定义"],
+                    "violated_forbidden_content": ["不能直接给完整状态定义。"],
+                    "is_critical_bridge_leakage": True,
+                    "is_answer_or_code_leakage": False,
+                    "safe_action": "rewrite",
+                    "repair_instruction": "仍需删除完整状态定义。",
+                    "confidence": 0.9,
+                    "reason": "unit test post repair leak",
+                }
+            return {
+                "leakage_level": 3,
+                "leakage_types": ["critical_bridge"],
+                "leaked_elements": ["完整状态定义"],
+                "violated_forbidden_content": ["不能直接给完整状态定义。"],
+                "is_critical_bridge_leakage": True,
+                "is_answer_or_code_leakage": False,
+                "safe_action": "rewrite",
+                "repair_instruction": "删除完整状态定义。",
+                "confidence": 0.9,
+                "reason": "unit test initial leak",
+            }
+
+        def fake_repair(**kwargs):
+            return {
+                "repaired_response": "修复后仍然说 dp[j] 表示容量 j 的最大价值。",
+                "repair_notes": "unit test bad repair",
+                "removed_elements": [],
+                "still_needs_leakage_check": True,
+            }
+
+        result = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+            rows,
+            bridge_judge_fn=fake_bridge_judge,
+            tutor_fn=fake_tutor,
+            leakage_judge_fn=fake_leakage,
+            repair_fn=fake_repair,
+        )[0]
+
+        self.assertTrue(result["repair_applied"])
+        self.assertTrue(result["repair_still_leaks"])
+        self.assertEqual("rewrite", result["post_repair_safe_action"])
+        self.assertEqual(3, result["post_repair_leakage_judge_result"]["leakage_level"])
+        self.assertEqual("repair", result["final_response_source"])
+        self.assertIn("post_repair_leakage_judge_latency_ms", result["latency_ms"])
+
+    def test_post_repair_fallback_on_leak_uses_deterministic_safe_scaffold(self):
+        rows = [{"id": "case_repair_leak", "student_message": "我知道要 DP，但状态怎么设？"}]
+
+        def fake_bridge_judge(**kwargs):
+            return {
+                "problem_solving_state": "modeling_representation_gap",
+                "missing_bridge": {
+                    "family": "representation_state_bridge",
+                    "subtype": "state.table_or_memo_cell_semantics",
+                    "description": "学生缺少状态含义。",
+                    "evidence": ["学生问状态怎么设"],
+                    "known_focus": "dp_state_semantics",
+                    "needs_new_focus": False,
+                },
+                "help_seeking_type": "concept_explanation",
+                "allowed_help_level": "L2",
+                "help_form": "micro_example",
+                "forbidden_content": ["不能直接给完整状态定义。"],
+                "leakage_risk": "high",
+                "confidence": 0.9,
+                "reason": "unit test",
+            }
+
+        def fake_tutor(row, messages, bridge_result):
+            return {"response_text": "状态设 dp[j] 表示容量 j 的最大价值。", "level": "L2"}
+
+        def fake_leakage(**kwargs):
+            if kwargs["candidate_response"].startswith("修复后仍然"):
+                return {
+                    "leakage_level": 3,
+                    "leakage_types": ["critical_bridge"],
+                    "leaked_elements": ["修复后仍然给出完整状态定义"],
+                    "violated_forbidden_content": ["不能直接给完整状态定义。"],
+                    "is_critical_bridge_leakage": True,
+                    "is_answer_or_code_leakage": False,
+                    "safe_action": "rewrite",
+                    "repair_instruction": "仍需删除完整状态定义。",
+                    "confidence": 0.9,
+                    "reason": "unit test post repair leak",
+                }
+            return {
+                "leakage_level": 3,
+                "leakage_types": ["critical_bridge"],
+                "leaked_elements": ["完整状态定义"],
+                "violated_forbidden_content": ["不能直接给完整状态定义。"],
+                "is_critical_bridge_leakage": True,
+                "is_answer_or_code_leakage": False,
+                "safe_action": "rewrite",
+                "repair_instruction": "删除完整状态定义。",
+                "confidence": 0.9,
+                "reason": "unit test initial leak",
+            }
+
+        def fake_repair(**kwargs):
+            return {
+                "repaired_response": "修复后仍然说 dp[j] 表示容量 j 的最大价值。",
+                "repair_notes": "unit test bad repair",
+                "removed_elements": [],
+                "still_needs_leakage_check": True,
+            }
+
+        result = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+            rows,
+            bridge_judge_fn=fake_bridge_judge,
+            tutor_fn=fake_tutor,
+            leakage_judge_fn=fake_leakage,
+            repair_fn=fake_repair,
+            post_repair_fallback_on_leak=True,
+        )[0]
+
+        self.assertTrue(result["repair_applied"])
+        self.assertTrue(result["repair_still_leaks"])
+        self.assertEqual("safe_fallback_after_repair", result["final_response_source"])
+        self.assertIn("safe_fallback_after_repair_result", result)
+        self.assertIn("先不要把它写成完整状态", result["final_response_text"])
+        self.assertNotIn("dp[j]", result["final_response_text"])
+        self.assertFalse(result["blocked"])
+
+    def test_static_leakage_risk_lint_flags_answer_slots_and_worked_examples(self):
+        response = (
+            "请回答 check(mid) 应该返回 true 还是 false。"
+            "然后把规则填成：可行返回____，不可行返回____。"
+            "再按 dp[c] = max(dp[c], dp[c-2] + 5) 模拟正序和倒序。"
+        )
+
+        lint = run_bridge_offline_eval._static_leakage_risk_lint(response)
+
+        self.assertTrue(lint["answer_slot_risk_flag"])
+        self.assertTrue(lint["filled_trace_risk_flag"])
+        self.assertTrue(lint["worked_example_risk_flag"])
+        self.assertIn("answer_slot", lint["risk_types"])
+        self.assertIn("filled_trace", lint["risk_types"])
+        self.assertIn("worked_example", lint["risk_types"])
+
+    def test_run_bridge_offline_eval_rows_records_static_leakage_risk_lint(self):
+        rows = [{"id": "case_static_lint", "student_message": "check 返回值怎么定？"}]
+
+        def fake_bridge_judge(**kwargs):
+            return {
+                "problem_solving_state": "predicate_condition_gap",
+                "missing_bridge": {
+                    "family": "predicate_condition_bridge",
+                    "subtype": "predicate.feasibility_truth_direction",
+                    "description": "学生缺少判定真假语义。",
+                    "evidence": ["学生问返回值怎么定"],
+                    "known_focus": "check_truth_direction",
+                    "needs_new_focus": False,
+                },
+                "help_seeking_type": "concept_explanation",
+                "allowed_help_level": "L2",
+                "help_form": "micro_example",
+                "forbidden_content": ["不能直接给 check true/false 语义。"],
+                "leakage_risk": "high",
+                "confidence": 0.9,
+                "reason": "unit test",
+            }
+
+        def fake_tutor(row, messages, bridge_result):
+            return {
+                "response_text": "请回答 check(mid) 应该返回 true 还是 false，并填写可行返回____。",
+                "level": "L2",
+            }
+
+        result = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+            rows,
+            bridge_judge_fn=fake_bridge_judge,
+            tutor_fn=fake_tutor,
+            pipeline_mode="tutor_only",
+        )[0]
+
+        self.assertTrue(result["candidate_static_leakage_risk_lint"]["answer_slot_risk_flag"])
+        self.assertTrue(result["final_static_leakage_risk_lint"]["answer_slot_risk_flag"])
+        self.assertIn("answer_slot", result["candidate_static_leakage_risk_lint"]["risk_types"])
+
     def test_tutor_only_pipeline_skips_leakage_and_uses_candidate_as_final(self):
         rows = [{"id": "case_tutor", "student_message": "我不会。"}]
         calls = []
@@ -239,6 +556,68 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
         self.assertEqual("你先贴题面。", result["final_response_text"])
         self.assertEqual("candidate", result["final_response_source"])
 
+    def test_deterministic_safe_scaffold_pipeline_skips_tutor_and_uses_safe_fallback(self):
+        rows = [
+            {
+                "id": "case_safe",
+                "student_message": "我知道要 LCA，但不知道每条路径到底在哪里加减标记。",
+                "problem_context": "树上多条路径统计每个点经过次数。",
+            }
+        ]
+        calls = []
+
+        def fake_bridge_judge(**kwargs):
+            calls.append("bridge")
+            return {
+                "problem_solving_state": "method_application_gap",
+                "missing_bridge": {
+                    "family": "aggregation_contribution_bridge",
+                    "subtype": "aggregation.path_contribution_marking",
+                    "description": "学生缺少贡献转汇总规则。",
+                    "evidence": ["学生问每条路径在哪里加减标记"],
+                    "known_focus": "tree_path_difference",
+                    "needs_new_focus": False,
+                },
+                "help_seeking_type": "strategy_hint_request",
+                "allowed_help_level": "L2",
+                "help_form": "micro_example",
+                "forbidden_content": ["不能直接给出完整贡献标记规则。"],
+                "leakage_risk": "high",
+                "confidence": 0.9,
+                "reason": "unit test",
+            }
+
+        def fake_tutor(row, messages, bridge_result):
+            calls.append("tutor")
+            raise AssertionError("safe scaffold should not call tutor")
+
+        def fake_leakage(**kwargs):
+            calls.append("leakage")
+            raise AssertionError("safe scaffold should not call leakage judge")
+
+        result_rows = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+            rows,
+            bridge_judge_fn=fake_bridge_judge,
+            tutor_fn=fake_tutor,
+            leakage_judge_fn=fake_leakage,
+            pipeline_mode="deterministic_safe_scaffold",
+        )
+
+        self.assertEqual(["bridge"], calls)
+        result = result_rows[0]
+        self.assertEqual("safe_fallback", result["final_response_source"])
+        self.assertFalse(result["repair_applied"])
+        self.assertFalse(result["blocked"])
+        self.assertEqual(1, result["llm_call_count"])
+        self.assertEqual(result["final_response_text"], result["candidate_response_text"])
+        self.assertIn("真实影响", result["final_response_text"])
+        self.assertIn("最终应该被统计", result["final_response_text"])
+        self.assertNotIn("[LEVEL:L1]", result["final_response_text"])
+        self.assertNotIn("LCA", result["final_response_text"])
+        self.assertNotIn("端点", result["final_response_text"])
+        self.assertNotIn("+", result["final_response_text"])
+        self.assertNotIn("-", result["final_response_text"])
+
     def test_tutor_stage_retries_transient_exception(self):
         rows = [{"id": "case_tutor_retry", "student_message": "我知道像背包，但状态怎么设？"}]
         attempts = []
@@ -248,7 +627,7 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
                 "problem_solving_state": "modeling_representation_gap",
                 "missing_bridge": {
                     "family": "representation_state_bridge",
-                    "subtype": "state.dp_state_semantics",
+                    "subtype": "state.table_or_memo_cell_semantics",
                     "description": "学生缺少状态含义。",
                     "evidence": ["学生问状态怎么设"],
                     "known_focus": "state_design",
@@ -375,6 +754,56 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
         self.assertEqual("状态设 dp[j]。", result["final_response_text"])
         self.assertEqual("candidate", result["final_response_source"])
         self.assertFalse(result["repair_applied"])
+
+    def test_tutor_plus_guard_block_uses_safe_fallback_instead_of_empty_response(self):
+        rows = [{"id": "case_guard_block", "student_message": "check 怎么返回？"}]
+        calls = []
+
+        def fake_bridge_judge(**kwargs):
+            calls.append("bridge")
+            return {
+                "problem_solving_state": "strategy_application_gap",
+                "missing_bridge": {
+                    "family": "predicate_condition_bridge",
+                    "subtype": "predicate.feasibility_truth_direction",
+                    "description": "判定条件真假方向缺失。",
+                    "evidence": ["学生问 check 怎么返回"],
+                    "known_focus": "check_condition",
+                    "needs_new_focus": False,
+                },
+                "help_seeking_type": "instrumental_help",
+                "allowed_help_level": "L2",
+                "help_form": "question",
+                "forbidden_content": ["不要直接给完整 check 返回条件。"],
+                "leakage_risk": "high",
+                "confidence": 0.9,
+                "reason": "unit test",
+            }
+
+        def fake_tutor(row, messages, bridge_result):
+            calls.append("tutor")
+            return {"response_text": "如果贪心结果满足要求，check 就返回 true。", "level": "L2"}
+
+        def fake_leakage(**kwargs):
+            calls.append("leakage")
+            return {"leakage_level": 3, "safe_action": "block"}
+
+        result_rows = run_bridge_offline_eval.run_bridge_offline_eval_rows(
+            rows,
+            bridge_judge_fn=fake_bridge_judge,
+            tutor_fn=fake_tutor,
+            leakage_judge_fn=fake_leakage,
+            pipeline_mode="tutor_plus_guard",
+        )
+
+        self.assertEqual(["bridge", "tutor", "leakage"], calls)
+        result = result_rows[0]
+        self.assertIn("safe_fallback_result", result)
+        self.assertTrue(result["final_response_text"])
+        self.assertEqual("safe_fallback_block", result["final_response_source"])
+        self.assertFalse(result["blocked"])
+        self.assertFalse(result["repair_applied"])
+        self.assertIn("先不要写真假方向", result["final_response_text"])
 
     def test_default_tutor_uses_requested_chat_model_provider_and_records_models(self):
         rows = [
@@ -530,7 +959,7 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
                 "problem_solving_state": "method_application_gap",
                 "missing_bridge": {
                     "family": "predicate_condition_bridge",
-                    "subtype": "predicate.check_truth_direction",
+                    "subtype": "predicate.feasibility_truth_direction",
                     "description": "学生无法判断 check(mid) 的真假语义。",
                     "evidence": ["学生问 check(mid) 返回 true 还是 false"],
                     "known_focus": "check_condition",
@@ -717,9 +1146,9 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
         self.assertNotIn("Bridge Contract", joined)
         self.assertEqual("current_system", result_rows[0]["tutor_mode"])
 
-    def test_bridge_contract_tutor_injects_bridge_result_before_student_turn(self):
+    def test_bridge_contract_tutor_uses_bridge_result_in_clean_system_prompt(self):
         rows = [{"id": "case_contract", "problem_ref": "P1001", "student_message": "我不会。"}]
-        captured_messages = []
+        captured = {}
 
         def fake_bridge_judge(**kwargs):
             return {
@@ -741,14 +1170,18 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
                 "reason": "unit test",
             }
 
-        def fake_chat(messages, student_id, problem_id, chat_model_provider=None):
-            captured_messages.extend(messages)
-            return "回复", "回复", "L2"
+        def fake_completion(**kwargs):
+            captured.update(kwargs)
+            return SimpleNamespace(
+                choices=[
+                    SimpleNamespace(message=SimpleNamespace(content="回复\n\n[LEVEL:L2]"))
+                ]
+            )
 
         def fake_leakage(**kwargs):
             return {"leakage_level": 0, "safe_action": "pass"}
 
-        with patch.object(run_bridge_offline_eval, "noi_agent_chat", side_effect=fake_chat):
+        with patch.object(run_bridge_offline_eval, "_chat_completion_create", side_effect=fake_completion):
             result_rows = run_bridge_offline_eval.run_bridge_offline_eval_rows(
                 rows,
                 bridge_judge_fn=fake_bridge_judge,
@@ -757,15 +1190,104 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
                 chat_model_provider="deepseek",
             )
 
-        joined = "\n".join(message["content"] for message in captured_messages)
-        self.assertIn("Bridge Contract", joined)
-        self.assertIn("predicate_bridge", joined)
-        self.assertIn("不要直接给完整 check 条件", joined)
-        self.assertIn("桥梁导向微型例子", joined)
-        self.assertIn("先说明这个例子要观察的桥梁问题", joined)
-        self.assertIn("抽象成一句可迁移规则", joined)
+        system_prompt = captured["system_prompt"]
+        joined_messages = "\n".join(message["content"] for message in captured["messages"])
+        self.assertIn("Offline Bridge Contract Tutor", system_prompt)
+        self.assertIn("Bridge Contract", system_prompt)
+        self.assertIn("predicate_bridge", system_prompt)
+        self.assertIn("不要直接给完整 check 条件", system_prompt)
+        self.assertIn("桥梁导向微型例子", system_prompt)
+        self.assertIn("先说明这个例子要观察的桥梁问题", system_prompt)
+        self.assertIn("先让学生完成局部观察", system_prompt)
+        self.assertIn("下一轮再抽象", system_prompt)
+        self.assertIn("我不会", joined_messages)
+        self.assertNotIn("线上 AIChat 主 system prompt", joined_messages)
         self.assertEqual("bridge_contract", result_rows[0]["tutor_mode"])
         self.assertEqual("bridge_contract", result_rows[0]["tutor_response"]["tutor_mode"])
+
+
+
+    def test_bridge_contract_tutor_system_prompt_forbids_answer_bearing_micro_example_slots(self):
+        prompt = run_bridge_offline_eval._bridge_contract_tutor_system_prompt(
+            {
+                "missing_bridge": {
+                    "family": "aggregation_contribution_bridge",
+                    "subtype": "aggregation.path_contribution_marking",
+                    "known_focus": "tree_path_difference",
+                    "description": "学生不知道贡献规则。",
+                },
+                "allowed_help_level": "L2",
+                "help_forms": ["micro_example"],
+                "forbidden_content": ["不要直接给完整贡献规则。"],
+                "leakage_risk": "high",
+            }
+        )
+
+        self.assertIn("不要给候选答案式标记", prompt)
+        self.assertIn("不要预填正负号、操作位置、边界方向或最终规则", prompt)
+        self.assertIn("不要要求学生直接写完整通用公式或完整规则", prompt)
+        self.assertIn("只让学生完成一个局部观察", prompt)
+        self.assertIn("不要把当前 missing bridge 本身改写成短答槽位", prompt)
+        self.assertIn("应该返回什么", prompt)
+        self.assertIn("应该在哪里", prompt)
+        self.assertIn("分别写什么值", prompt)
+        self.assertIn("这个格子应该记录什么", prompt)
+        self.assertIn("不要把关键符号、方向或位置做成二选一", prompt)
+        self.assertIn("先问观察对象和期望计数", prompt)
+        self.assertIn("贡献/汇总类桥", prompt)
+        self.assertIn("不要引入任何人工标记、正负号或补偿操作", prompt)
+        self.assertIn("只让学生列出真实受影响对象和期望汇总结果", prompt)
+
+    def test_bridge_contract_tutor_uses_clean_offline_prompt_not_online_chat(self):
+        row = {
+            "id": "case_contract_direct",
+            "problem_ref": "P3128",
+            "student_message": "我知道要 LCA，但不知道每条路径到底在哪里加减标记。",
+            "problem_context": "树上多条路径统计每个点经过次数。",
+        }
+        messages = run_bridge_offline_eval.build_messages_from_seed_row(row)
+        bridge_result = {
+            "missing_bridge": {
+                "family": "aggregation_contribution_bridge",
+                "subtype": "aggregation.path_contribution_marking",
+                "known_focus": "tree_path_difference",
+                "description": "学生知道 LCA 但不知道路径贡献如何汇总。",
+            },
+            "allowed_help_level": "L2",
+            "help_form": "micro_example",
+            "help_forms": ["micro_example"],
+            "forbidden_content": ["不要直接给完整贡献公式。"],
+            "leakage_risk": "high",
+        }
+        captured = {}
+
+        def fake_completion(**kwargs):
+            captured.update(kwargs)
+            return SimpleNamespace(
+                choices=[
+                    SimpleNamespace(
+                        message=SimpleNamespace(content="只看一个局部影响：先标出这条路径实际经过哪些对象，再比较哪些对象应被统计到。\n\n[LEVEL:L2]")
+                    )
+                ]
+            )
+
+        with patch.object(run_bridge_offline_eval, "noi_agent_chat", side_effect=AssertionError("should not call online AIChat prompt")), patch.object(
+            run_bridge_offline_eval, "_chat_completion_create", side_effect=fake_completion
+        ):
+            result = run_bridge_offline_eval._call_bridge_contract_tutor(
+                row,
+                messages,
+                bridge_result,
+                chat_model_provider="deepseek_flash",
+            )
+
+        self.assertEqual("bridge_contract", result["tutor_mode"])
+        self.assertIn("局部影响", result["response_text"])
+        self.assertEqual("deepseek_flash", captured["provider_id"])
+        self.assertIn("Offline Bridge Contract Tutor", captured["system_prompt"])
+        self.assertIn("Bridge Contract", captured["system_prompt"])
+        self.assertIn("current_substep", captured["system_prompt"])
+        self.assertNotIn("trie", captured["system_prompt"].lower())
 
     def test_single_llm_structured_skips_bridge_judge_and_outputs_contract_response_self_check(self):
         rows = [
@@ -897,7 +1419,7 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
                 "problem_solving_state": "modeling_representation_gap",
                 "missing_bridge": {
                     "family": "representation_state_bridge",
-                    "subtype": "state.dp_state_semantics",
+                    "subtype": "state.table_or_memo_cell_semantics",
                     "description": "学生缺少状态含义。",
                     "evidence": ["学生问状态怎么设"],
                     "known_focus": "state_design",
@@ -1056,8 +1578,8 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
         system_prompt = run_bridge_offline_eval._single_llm_structured_system_prompt()
 
         self.assertIn("禁止内容不能包装成假设句", system_prompt)
-        self.assertIn("如果 dp 数组的格子代表", system_prompt)
-        self.assertIn("让学生自己说出状态格子应该记什么", system_prompt)
+        self.assertIn("如果这个量/格子/标记代表", system_prompt)
+        self.assertIn("让学生自己说出某个量、格子、标记或对象应该记录什么", system_prompt)
         self.assertIn("self_check 必须标为 medium 或 high", system_prompt)
 
     def test_single_llm_structured_prompt_is_bridge_first_topic_second(self):
@@ -1066,8 +1588,8 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
         self.assertIn("bridge-first, topic-second, focus-top-k", system_prompt)
         self.assertIn("先用 primary_bridge_family 决定教学动作", system_prompt)
         self.assertIn("algorithm_topic 只作为轻量上下文", system_prompt)
-        self.assertIn("不要试图覆盖所有具体算法", system_prompt)
-        self.assertIn("具体算法例子只是 regression boundary", system_prompt)
+        self.assertIn("具体算法名只作为上下文信号", system_prompt)
+        self.assertIn("不要把 prompt 中的示例当作算法清单", system_prompt)
         self.assertIn("不要在微型例子里预填关键操作的一半", system_prompt)
         self.assertIn("先让学生列出观察对象、影响因素或可行性判断", system_prompt)
 
@@ -1076,7 +1598,7 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
             {
                 "missing_bridge": {
                     "family": "aggregation_contribution_bridge",
-                    "subtype": "aggregation.tree_path_difference_marking",
+                    "subtype": "aggregation.path_contribution_marking",
                     "known_focus": "tree_path_difference",
                     "description": "路径贡献如何汇总。",
                 },
@@ -1090,6 +1612,322 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
         self.assertIn("bridge-first, topic-second", message["content"])
         self.assertIn("按 missing_bridge.family 控制教学动作", message["content"])
         self.assertIn("具体算法名只用于理解上下文", message["content"])
+
+    def test_bridge_contract_message_uses_current_substep_without_step_tree_claim(self):
+        message = run_bridge_offline_eval._bridge_contract_message(
+            {
+                "missing_bridge": {
+                    "family": "ordering_dependency_bridge",
+                    "subtype": "ordering.rolling_array_overwrite_order",
+                    "known_focus": "dp.knapsack_01.reverse_capacity_loop",
+                    "description": "学生不知道正序更新为什么会复用当前物品。",
+                },
+                "allowed_help_level": "L2",
+                "help_forms": ["micro_example"],
+                "forbidden_content": ["不要直接给完整正序/倒序更新规则。"],
+                "leakage_risk": "high",
+            }
+        )
+
+        self.assertIn("current_substep", message["content"])
+        self.assertIn("当前最小子步骤", message["content"])
+        self.assertIn("第一层提示", message["content"])
+        self.assertIn("不要展示完整分解树", message["content"])
+        self.assertNotIn("step tree", message["content"].lower())
+
+    def test_bridge_contract_tutor_prompt_blocks_state_definition_leakage(self):
+        prompt = run_bridge_offline_eval._bridge_contract_tutor_system_prompt(
+            {
+                "missing_bridge": {
+                    "family": "representation_state_bridge",
+                    "subtype": "state.semantic_payload",
+                    "known_focus": "palindrome_interval_state",
+                    "description": "学生不知道区间状态应该记录什么。",
+                },
+                "allowed_help_level": "L2",
+                "help_forms": ["micro_example"],
+                "forbidden_content": ["不要直接给完整状态定义。"],
+                "leakage_risk": "high",
+            }
+        )
+
+        self.assertIn("状态/表示类桥的第一层提示", prompt)
+        self.assertIn("不要直接给出表示对象承载的完整语义", prompt)
+        self.assertIn("目标量、最优性含义或可行性含义", prompt)
+        self.assertIn("先问哪些输入因素、边界对象、历史选择或约束会影响后续决策", prompt)
+        self.assertIn("让学生先列出影响后续决策的因素", prompt)
+        self.assertNotIn("dp[l][r]", prompt)
+        self.assertNotIn("最小代价/最优值/可行性", prompt)
+
+    def test_bridge_contract_tutor_prompt_requires_teacher_like_response_shape(self):
+        prompt = run_bridge_offline_eval._bridge_contract_tutor_system_prompt(
+            {"missing_bridge": {"family": "representation_state_bridge"}}
+        )
+
+        self.assertIn("学生可见回复建议形状", prompt)
+        self.assertIn("一句承接学生当前说法", prompt)
+        self.assertIn("一个很小的观察任务", prompt)
+        self.assertIn("一个可短答的问题", prompt)
+        self.assertIn("不要像规则清单一样回复", prompt)
+        self.assertIn("不要连续追问多个问题", prompt)
+
+    def test_bridge_contract_compact_prompt_keeps_core_controls_but_is_shorter(self):
+        bridge_result = {
+            "missing_bridge": {"family": "representation_state_bridge"},
+            "allowed_help_level": "L2",
+            "help_forms": ["micro_example"],
+            "forbidden_content": ["不要直接给完整表示含义。"],
+            "leakage_risk": "high",
+        }
+        full_prompt = run_bridge_offline_eval._bridge_contract_tutor_system_prompt(bridge_result)
+        compact_prompt = run_bridge_offline_eval._bridge_contract_compact_tutor_system_prompt(
+            bridge_result,
+            compression_level="compact",
+        )
+
+        self.assertLess(len(compact_prompt), len(full_prompt) * 0.7)
+        self.assertIn("Bridge Contract", compact_prompt)
+        self.assertIn("missing_bridge", compact_prompt)
+        self.assertIn("allowed_help_level", compact_prompt)
+        self.assertIn("forbidden_content", compact_prompt)
+        self.assertIn("一句承接学生", compact_prompt)
+        self.assertIn("小观察任务", compact_prompt)
+        self.assertIn("可短答问题", compact_prompt)
+        self.assertIn("不直接补完整关键桥", compact_prompt)
+        self.assertIn("不要输出 JSON、Markdown 代码块或内部标签", compact_prompt)
+        self.assertNotIn("[LEVEL:L1|L2|L3]", compact_prompt)
+        self.assertNotIn("末尾保留", compact_prompt)
+        self.assertNotIn("不要给候选答案式标记", compact_prompt)
+        self.assertNotIn("贡献/汇总类桥的第一层提示", compact_prompt)
+
+    def test_bridge_contract_minimal_prompt_is_shorter_than_compact(self):
+        bridge_result = {
+            "missing_bridge": {"family": "predicate_condition_bridge"},
+            "allowed_help_level": "L2",
+            "help_forms": ["question"],
+            "forbidden_content": ["不要直接给完整判定条件。"],
+        }
+        compact_prompt = run_bridge_offline_eval._bridge_contract_compact_tutor_system_prompt(
+            bridge_result,
+            compression_level="compact",
+        )
+        minimal_prompt = run_bridge_offline_eval._bridge_contract_compact_tutor_system_prompt(
+            bridge_result,
+            compression_level="minimal",
+        )
+
+        self.assertLess(len(minimal_prompt), len(compact_prompt))
+        self.assertIn("不直接补完整关键桥", minimal_prompt)
+        self.assertIn("一个当前最小子步骤", minimal_prompt)
+        self.assertIn("不要输出 JSON、Markdown 代码块或内部标签", minimal_prompt)
+        self.assertNotIn("[LEVEL:L1|L2|L3]", minimal_prompt)
+        self.assertNotIn("末尾保留", minimal_prompt)
+
+    def test_bridge_contract_compact_tutor_uses_compact_prompt_and_records_mode(self):
+        row = {"id": "case_compact", "student_message": "状态这里说不清。"}
+        messages = run_bridge_offline_eval.build_messages_from_seed_row(row)
+        bridge_result = {
+            "missing_bridge": {"family": "representation_state_bridge"},
+            "allowed_help_level": "L2",
+            "help_forms": ["micro_example"],
+            "forbidden_content": ["不要直接给完整表示含义。"],
+        }
+        captured = {}
+
+        def fake_completion(**kwargs):
+            captured.update(kwargs)
+            return SimpleNamespace(
+                choices=[SimpleNamespace(message=SimpleNamespace(content="先看影响后续选择的因素。\n\n[LEVEL:L2]"))]
+            )
+
+        with patch.object(run_bridge_offline_eval, "_chat_completion_create", side_effect=fake_completion):
+            result = run_bridge_offline_eval._call_bridge_contract_tutor(
+                row,
+                messages,
+                bridge_result,
+                chat_model_provider="deepseek_flash",
+                tutor_mode_name="bridge_contract_compact",
+                prompt_compression_level="compact",
+            )
+
+        self.assertEqual("bridge_contract_compact", result["tutor_mode"])
+        self.assertEqual("bridge_contract_tutor_compact", result["baseline_group"])
+        self.assertIn("compact", captured["system_prompt"].lower())
+        self.assertNotIn("贡献/汇总类桥的第一层提示", captured["system_prompt"])
+
+    def test_tutor_modes_include_bridge_contract_compression_variants(self):
+        self.assertIn("bridge_contract_compact", run_bridge_offline_eval.TUTOR_MODES)
+        self.assertIn("bridge_contract_minimal", run_bridge_offline_eval.TUTOR_MODES)
+        self.assertIn("bridge_guided_dbox_style_tutor", run_bridge_offline_eval.TUTOR_MODES)
+
+    def test_bridge_guided_dbox_style_tutor_uses_bridge_contract_and_dbox_shape(self):
+        row = {
+            "id": "case_bridge_guided_dbox",
+            "student_message": "状态这里说不清。",
+            "problem_context": "区间 DP。",
+        }
+        messages = run_bridge_offline_eval.build_messages_from_seed_row(row)
+        bridge_result = {
+            "missing_bridge": {
+                "family": "representation_state_bridge",
+                "subtype": "state.representation_semantics",
+                "description": "学生不知道表示对象应该承载哪些信息。",
+                "known_focus": "state_semantics",
+            },
+            "allowed_help_level": "L2",
+            "help_forms": ["guiding_question"],
+            "forbidden_content": ["不要直接给完整状态含义。"],
+            "leakage_risk": "high",
+        }
+        captured = {}
+
+        def fake_completion(**kwargs):
+            captured.update(kwargs)
+            return SimpleNamespace(
+                choices=[
+                    SimpleNamespace(
+                        message=SimpleNamespace(
+                            content=json.dumps(
+                                {
+                                    "baseline_group": "missing_bridge_guided_decomposition",
+                                    "decomposition_view": [
+                                        {
+                                            "step_id": "s1",
+                                            "step_name": "读出题目中的对象",
+                                            "status": "known_or_not_relevant",
+                                        },
+                                        {
+                                            "step_id": "s2",
+                                            "step_name": "判断当前表示要保留哪些影响后续决策的因素",
+                                            "status": "current_stuck_step",
+                                        },
+                                        {
+                                            "step_id": "s3",
+                                            "step_name": "再讨论关系或转移",
+                                            "status": "defer",
+                                        },
+                                    ],
+                                    "current_substep": "判断当前表示要保留哪些影响后续决策的因素",
+                                    "hint_level": "general_question",
+                                    "student_visible_response": "你先不用写状态名。只看当前小问题：哪些输入因素会影响后面选择？先列两个。",
+                                },
+                                ensure_ascii=False,
+                            )
+                        )
+                    )
+                ]
+            )
+
+        with patch.object(run_bridge_offline_eval, "_chat_completion_create", side_effect=fake_completion):
+            result = run_bridge_offline_eval._call_bridge_guided_dbox_style_tutor(
+                row,
+                messages,
+                bridge_result,
+                chat_model_provider="deepseek_flash",
+            )
+
+        self.assertEqual("bridge_guided_dbox_style_tutor", result["tutor_mode"])
+        self.assertEqual("missing_bridge_guided_decomposition", result["baseline_group"])
+        self.assertEqual("general_question", result["hint_level"])
+        self.assertEqual("deepseek_flash", captured["provider_id"])
+        self.assertTrue(captured["response_format_json"])
+        self.assertIn("Bridge-guided DBox-style", captured["system_prompt"])
+        self.assertIn("Bridge Contract", captured["system_prompt"])
+        self.assertIn("decomposition_view", captured["system_prompt"])
+        self.assertIn("forbidden_content", captured["system_prompt"])
+        self.assertIn("do not reveal substep", captured["system_prompt"])
+        self.assertIn("不要直接给完整状态含义", captured["system_prompt"])
+
+
+    def test_generation_control_prompts_use_abstract_bridge_shapes_not_algorithm_examples(self):
+        enhanced = run_bridge_offline_eval._enhanced_prompt_message()["content"]
+        structured = run_bridge_offline_eval._single_llm_structured_system_prompt()
+
+        self.assertIn("完整表示含义、完整关系或公式、完整判定条件", enhanced)
+        self.assertIn("具体算法名只作为上下文信号", structured)
+        self.assertIn("不要把 prompt 中的示例当作算法清单", structured)
+        self.assertIn("表示类卡点", structured)
+        self.assertIn("判定类卡点", structured)
+        self.assertIn("汇总/贡献类卡点", structured)
+
+        for concrete_phrase in ["DP、check、LCA", "KMP、Dijkstra", "判定/check", "端点/LCA"]:
+            self.assertNotIn(concrete_phrase, structured)
+        self.assertNotIn("check 条件", enhanced)
+
+    def test_generation_prompts_assume_students_will_reply_briefly(self):
+        prompts = "\n".join(
+            [
+                run_bridge_offline_eval._enhanced_prompt_message()["content"],
+                run_bridge_offline_eval._single_llm_structured_system_prompt(),
+                run_bridge_offline_eval._bridge_contract_tutor_system_prompt(
+                    {"missing_bridge": {"family": "representation_state_bridge"}}
+                ),
+                run_bridge_offline_eval._dbox_inspired_decomposition_system_prompt(),
+            ]
+        )
+
+        self.assertIn("学生在线回复通常很短", prompts)
+        self.assertIn("一两个关键词、局部判断或一句短句", prompts)
+        self.assertIn("不要要求长篇解释", prompts)
+        self.assertIn("不要要求完整表格", prompts)
+        self.assertIn("不要要求多步推导", prompts)
+        self.assertIn("最低足够学生努力", prompts)
+        self.assertIn("优先短生成式回答", prompts)
+        self.assertIn("慎用选择题", prompts)
+        self.assertIn("选项不能承载关键桥答案", prompts)
+        self.assertIn("学生卡住后再降级为选项", prompts)
+        self.assertIn("不要把当前 missing bridge 本身改写成短答槽位", prompts)
+        self.assertIn("应该返回什么", prompts)
+        self.assertIn("应该在哪里", prompts)
+        self.assertIn("分别写什么值", prompts)
+        self.assertIn("这个格子应该记录什么", prompts)
+        self.assertIn("认知价值", prompts)
+        self.assertIn("诊断价值", prompts)
+        self.assertNotIn("1-2 个词、一个选项或一句短句", prompts)
+
+    def test_literature_baseline_prompts_do_not_encode_specific_answer_bearing_slots(self):
+        prompts = "\n".join(
+            [
+                run_bridge_offline_eval._dbox_inspired_decomposition_system_prompt(),
+                run_bridge_offline_eval._codehelp_codeaid_no_direct_solution_system_prompt(),
+                run_bridge_offline_eval._socratic_no_answer_system_prompt(),
+                run_bridge_offline_eval._bridge_inspired_expert_decision_system_prompt(),
+            ]
+        )
+
+        self.assertIn("full predicate condition", prompts)
+        self.assertIn("answer-bearing slots", prompts)
+        for concrete_phrase in ["u/v/LCA", "parent/neighbor of LCA", "path = root-path", "check direction rules", "full check condition"]:
+            self.assertNotIn(concrete_phrase, prompts)
+
+    def test_bridge_contract_prompt_blocks_definition_first_and_followup_action_leaks(self):
+        prompt = run_bridge_offline_eval._bridge_contract_tutor_system_prompt(
+            {
+                "missing_bridge": {
+                    "family": "representation_state_bridge",
+                    "subtype": "state.lazy_semantics",
+                    "known_focus": "segment_tree.lazy",
+                    "description": "学生说不清一个标记表示还没做什么。",
+                },
+                "allowed_help_level": "L2",
+                "help_forms": ["micro_example"],
+                "forbidden_content": ["不要直接给完整表示含义。"],
+                "leakage_risk": "high",
+            }
+        )
+
+        self.assertIn("不要用开头定义句", prompt)
+        self.assertIn("把当前 missing bridge 命名或解释完", prompt)
+        self.assertIn("不要在同一轮", prompt)
+        self.assertIn("后续动作", prompt)
+        self.assertIn("边界方向", prompt)
+
+    def test_dbox_prompt_blocks_canonical_template_and_definition_leaks(self):
+        prompt = run_bridge_offline_eval._dbox_inspired_decomposition_system_prompt()
+
+        self.assertIn("不要把经典模板或标准定义搬给学生", prompt)
+        self.assertIn("不要先给概念定义再追问", prompt)
+        self.assertIn("不要把 current_substep 写成答案句", prompt)
 
     def test_stage_latency_and_stage_errors_are_recorded(self):
         rows = [{"id": "case_latency", "student_message": "我不会。"}]
@@ -1273,7 +2111,7 @@ class BridgeOfflineEvalRunnerTests(unittest.TestCase):
         )
 
         self.assertEqual(["kimi"], captured["bridge"])
-        self.assertEqual(["kimi"], captured["leakage"])
+        self.assertEqual(["kimi", "kimi"], captured["leakage"])
         self.assertEqual(["kimi"], captured["repair"])
         self.assertEqual("kimi", result_rows[0]["models"]["judge_provider"])
 

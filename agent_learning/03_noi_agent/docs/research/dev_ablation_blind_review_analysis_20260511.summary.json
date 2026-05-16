@@ -1,0 +1,393 @@
+{
+  "workbook": "/Users/kongyouli/Downloads/coach_response_review_workbook_dev_ablation_zh_reviewed.xlsx",
+  "key_csv": "evals/aichat/ad_hoc_runs/dev_ablation_20260511_limit10/coach_response_review_workbook_dev_ablation.key.csv",
+  "row_count": 110,
+  "case_count": 10,
+  "system_count": 11,
+  "field_fill": {
+    "coach_bridge_identification_score": 110,
+    "coach_groundedness_score": 110,
+    "coach_scaffold_appropriateness_score": 110,
+    "coach_bridge_leakage_control_score": 110,
+    "coach_next_step_clarity_score": 110,
+    "coach_single_focus_coherence_score": 110,
+    "coach_bridge_oriented_micro_example_score": 65,
+    "coach_micro_example_applicability": 110,
+    "coach_leakage_label": 110,
+    "coach_preference_rank": 110,
+    "coach_overall_quality_score": 110,
+    "coach_would_show_to_student": 110,
+    "coach_reviewer_confidence": 110,
+    "coach_needs_discussion": 110,
+    "coach_notes": 110,
+    "review_status": 110
+  },
+  "system_summary": {
+    "enhanced_prompt_only": {
+      "n": 10,
+      "overall_quality_mean": 3.4,
+      "core_available_mean": 1.533,
+      "micro_example_mean_on_scored": 0.889,
+      "would_show_yes_count": 4,
+      "would_show_no_count": 3,
+      "student_ready_pass_count": 4,
+      "student_ready_safe_pass_count": 1,
+      "no_leakage_count": 1,
+      "minor_bridge_leakage_count": 5,
+      "major_or_answer_leakage_count": 4,
+      "rank1_count": 1,
+      "rank_mean": 6.4,
+      "repair_applied_count": 0
+    },
+    "socratic_no_answer": {
+      "n": 10,
+      "overall_quality_mean": 2.7,
+      "core_available_mean": 1.367,
+      "micro_example_mean_on_scored": 0.333,
+      "would_show_yes_count": 6,
+      "would_show_no_count": 0,
+      "student_ready_pass_count": 0,
+      "student_ready_safe_pass_count": 0,
+      "no_leakage_count": 10,
+      "minor_bridge_leakage_count": 0,
+      "major_or_answer_leakage_count": 0,
+      "rank1_count": 0,
+      "rank_mean": 8.6,
+      "repair_applied_count": 0
+    },
+    "codehelp_codeaid": {
+      "n": 10,
+      "overall_quality_mean": 3.3,
+      "core_available_mean": 1.55,
+      "micro_example_mean_on_scored": 1.0,
+      "would_show_yes_count": 8,
+      "would_show_no_count": 1,
+      "student_ready_pass_count": 4,
+      "student_ready_safe_pass_count": 0,
+      "no_leakage_count": 4,
+      "minor_bridge_leakage_count": 6,
+      "major_or_answer_leakage_count": 0,
+      "rank1_count": 0,
+      "rank_mean": 6.3,
+      "repair_applied_count": 0
+    },
+    "dbox_inspired": {
+      "n": 10,
+      "overall_quality_mean": 3.4,
+      "core_available_mean": 1.567,
+      "micro_example_mean_on_scored": 0.5,
+      "would_show_yes_count": 6,
+      "would_show_no_count": 1,
+      "student_ready_pass_count": 5,
+      "student_ready_safe_pass_count": 0,
+      "no_leakage_count": 2,
+      "minor_bridge_leakage_count": 5,
+      "major_or_answer_leakage_count": 3,
+      "rank1_count": 0,
+      "rank_mean": 7.5,
+      "repair_applied_count": 0
+    },
+    "dbox_inspired+guard": {
+      "n": 10,
+      "overall_quality_mean": 3.7,
+      "core_available_mean": 1.567,
+      "micro_example_mean_on_scored": 1.25,
+      "would_show_yes_count": 7,
+      "would_show_no_count": 0,
+      "student_ready_pass_count": 6,
+      "student_ready_safe_pass_count": 0,
+      "no_leakage_count": 3,
+      "minor_bridge_leakage_count": 7,
+      "major_or_answer_leakage_count": 0,
+      "rank1_count": 0,
+      "rank_mean": 5.9,
+      "repair_applied_count": 0
+    },
+    "bridge_inspired": {
+      "n": 10,
+      "overall_quality_mean": 3.7,
+      "core_available_mean": 1.65,
+      "micro_example_mean_on_scored": 1.0,
+      "would_show_yes_count": 9,
+      "would_show_no_count": 0,
+      "student_ready_pass_count": 6,
+      "student_ready_safe_pass_count": 2,
+      "no_leakage_count": 6,
+      "minor_bridge_leakage_count": 4,
+      "major_or_answer_leakage_count": 0,
+      "rank1_count": 0,
+      "rank_mean": 5.7,
+      "repair_applied_count": 0
+    },
+    "single_llm": {
+      "n": 10,
+      "overall_quality_mean": 3.6,
+      "core_available_mean": 1.667,
+      "micro_example_mean_on_scored": 1.333,
+      "would_show_yes_count": 9,
+      "would_show_no_count": 0,
+      "student_ready_pass_count": 6,
+      "student_ready_safe_pass_count": 1,
+      "no_leakage_count": 5,
+      "minor_bridge_leakage_count": 5,
+      "major_or_answer_leakage_count": 0,
+      "rank1_count": 0,
+      "rank_mean": 5.6,
+      "repair_applied_count": 0
+    },
+    "single_llm+guard": {
+      "n": 10,
+      "overall_quality_mean": 3.4,
+      "core_available_mean": 1.533,
+      "micro_example_mean_on_scored": 0.8,
+      "would_show_yes_count": 6,
+      "would_show_no_count": 0,
+      "student_ready_pass_count": 5,
+      "student_ready_safe_pass_count": 1,
+      "no_leakage_count": 4,
+      "minor_bridge_leakage_count": 4,
+      "major_or_answer_leakage_count": 2,
+      "rank1_count": 1,
+      "rank_mean": 6.1,
+      "repair_applied_count": 0
+    },
+    "bridge_contract": {
+      "n": 10,
+      "overall_quality_mean": 4.3,
+      "core_available_mean": 1.683,
+      "micro_example_mean_on_scored": 1.6,
+      "would_show_yes_count": 6,
+      "would_show_no_count": 1,
+      "student_ready_pass_count": 6,
+      "student_ready_safe_pass_count": 0,
+      "no_leakage_count": 0,
+      "minor_bridge_leakage_count": 7,
+      "major_or_answer_leakage_count": 3,
+      "rank1_count": 4,
+      "rank_mean": 3.7,
+      "repair_applied_count": 0
+    },
+    "bridge_contract+guard": {
+      "n": 10,
+      "overall_quality_mean": 4.0,
+      "core_available_mean": 1.667,
+      "micro_example_mean_on_scored": 1.444,
+      "would_show_yes_count": 7,
+      "would_show_no_count": 1,
+      "student_ready_pass_count": 7,
+      "student_ready_safe_pass_count": 1,
+      "no_leakage_count": 1,
+      "minor_bridge_leakage_count": 7,
+      "major_or_answer_leakage_count": 2,
+      "rank1_count": 2,
+      "rank_mean": 4.8,
+      "repair_applied_count": 0
+    },
+    "bridge_contract+guard+repair": {
+      "n": 10,
+      "overall_quality_mean": 3.5,
+      "core_available_mean": 1.533,
+      "micro_example_mean_on_scored": 1.667,
+      "would_show_yes_count": 7,
+      "would_show_no_count": 2,
+      "student_ready_pass_count": 6,
+      "student_ready_safe_pass_count": 3,
+      "no_leakage_count": 6,
+      "minor_bridge_leakage_count": 3,
+      "major_or_answer_leakage_count": 1,
+      "rank1_count": 2,
+      "rank_mean": 5.4,
+      "repair_applied_count": 1
+    }
+  },
+  "rank1_by_case": [
+    {
+      "case_id": "cp_bridge_001",
+      "rank1_systems": [
+        "enhanced_prompt_only"
+      ]
+    },
+    {
+      "case_id": "cp_bridge_002",
+      "rank1_systems": [
+        "bridge_contract+guard+repair"
+      ]
+    },
+    {
+      "case_id": "cp_bridge_003",
+      "rank1_systems": [
+        "bridge_contract+guard"
+      ]
+    },
+    {
+      "case_id": "cp_bridge_004",
+      "rank1_systems": [
+        "bridge_contract"
+      ]
+    },
+    {
+      "case_id": "cp_bridge_005",
+      "rank1_systems": [
+        "bridge_contract"
+      ]
+    },
+    {
+      "case_id": "cp_bridge_006",
+      "rank1_systems": [
+        "bridge_contract+guard"
+      ]
+    },
+    {
+      "case_id": "cp_bridge_007",
+      "rank1_systems": [
+        "bridge_contract"
+      ]
+    },
+    {
+      "case_id": "cp_bridge_008",
+      "rank1_systems": [
+        "single_llm+guard"
+      ]
+    },
+    {
+      "case_id": "cp_bridge_009",
+      "rank1_systems": [
+        "bridge_contract"
+      ]
+    },
+    {
+      "case_id": "cp_bridge_010",
+      "rank1_systems": [
+        "bridge_contract+guard+repair"
+      ]
+    }
+  ],
+  "paired_comparisons": [
+    {
+      "a": "bridge_contract+guard+repair",
+      "b": "dbox_inspired+guard",
+      "paired_cases": 10,
+      "mean_diff": -0.2,
+      "wins": 3,
+      "ties": 5,
+      "losses": 2,
+      "case_diffs": [
+        1.0,
+        -3.0,
+        1.0,
+        0.0,
+        -3.0,
+        0.0,
+        0.0,
+        2.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "a": "bridge_contract+guard",
+      "b": "dbox_inspired+guard",
+      "paired_cases": 10,
+      "mean_diff": 0.3,
+      "wins": 6,
+      "ties": 1,
+      "losses": 3,
+      "case_diffs": [
+        0.0,
+        1.0,
+        1.0,
+        -3.0,
+        1.0,
+        1.0,
+        2.0,
+        -1.0,
+        2.0,
+        -1.0
+      ]
+    },
+    {
+      "a": "bridge_contract",
+      "b": "dbox_inspired",
+      "paired_cases": 10,
+      "mean_diff": 0.9,
+      "wins": 7,
+      "ties": 2,
+      "losses": 1,
+      "case_diffs": [
+        1.0,
+        0.0,
+        2.0,
+        2.0,
+        1.0,
+        1.0,
+        -1.0,
+        2.0,
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "a": "bridge_contract+guard+repair",
+      "b": "enhanced_prompt_only",
+      "paired_cases": 10,
+      "mean_diff": 0.1,
+      "wins": 5,
+      "ties": 1,
+      "losses": 4,
+      "case_diffs": [
+        3.0,
+        -4.0,
+        2.0,
+        1.0,
+        -2.0,
+        0.0,
+        -1.0,
+        2.0,
+        -2.0,
+        2.0
+      ]
+    },
+    {
+      "a": "dbox_inspired+guard",
+      "b": "enhanced_prompt_only",
+      "paired_cases": 10,
+      "mean_diff": 0.3,
+      "wins": 5,
+      "ties": 2,
+      "losses": 3,
+      "case_diffs": [
+        2.0,
+        -1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        -1.0,
+        0.0,
+        -2.0,
+        2.0
+      ]
+    },
+    {
+      "a": "bridge_contract+guard+repair",
+      "b": "single_llm+guard",
+      "paired_cases": 10,
+      "mean_diff": 0.1,
+      "wins": 5,
+      "ties": 1,
+      "losses": 4,
+      "case_diffs": [
+        3.0,
+        -3.0,
+        -1.0,
+        2.0,
+        -3.0,
+        2.0,
+        0.0,
+        1.0,
+        1.0,
+        -1.0
+      ]
+    }
+  ]
+}

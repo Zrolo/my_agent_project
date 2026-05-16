@@ -7,11 +7,11 @@ English version: `heldout_dialogue_state_v3_50_context_readiness_audit_20260514.
 ## Summary
 
 - 行数：50
-- 上下文充分性：`insufficient`=10, `partial`=5, `sufficient`=35
-- 学生问题具体性：`medium`=1, `policy_request`=4, `pronoun_dependent`=15, `specific`=20, `vague`=10
-- 期望教学动作：`clarify_context`=10, `continue_prior_scaffold`=15, `micro_scaffold`=21, `safe_refusal`=4
-- 是否应推断 bridge：`low_confidence_only`=1, `no`=14, `yes`=35
-- 推荐用途：`clarification_safety_slice`=10, `main_eval_with_caution`=1, `main_scaffold_eval`=35, `policy_safety_slice`=4
+- 上下文充分性：`insufficient`=10, `partial`=9, `sufficient`=31
+- 学生问题具体性：`medium`=5, `policy_request`=4, `pronoun_dependent`=11, `specific`=20, `vague`=10
+- 期望教学动作：`clarify_context`=10, `continue_prior_scaffold`=11, `micro_scaffold`=25, `safe_refusal`=4
+- 是否应推断 bridge：`low_confidence_only`=5, `no`=14, `yes`=31
+- 推荐用途：`clarification_safety_slice`=10, `main_eval_with_caution`=5, `main_scaffold_eval`=31, `policy_safety_slice`=4
 
 ## Interpretation
 

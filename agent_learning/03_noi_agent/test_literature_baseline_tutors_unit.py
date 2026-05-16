@@ -39,7 +39,8 @@ class LiteratureBaselineTutorsTests(unittest.TestCase):
         self.assertIn("no full solution", prompt)
         self.assertIn("no full code", prompt)
         self.assertIn("do not reveal the critical intermediate reasoning", prompt)
-        self.assertIn("do not ask for exact operations on u/v/LCA", prompt)
+        self.assertIn("do not ask for exact answer-bearing slots", prompt)
+        self.assertIn("compensation objects", prompt)
 
     def test_bridge_inspired_prompt_has_expert_decision_fields(self):
         prompt = runner._bridge_inspired_expert_decision_system_prompt()
@@ -51,7 +52,7 @@ class LiteratureBaselineTutorsTests(unittest.TestCase):
         self.assertIn("student_visible_response", prompt)
         self.assertIn("not a CP-specific Bridge Contract", prompt)
         self.assertIn("no formula-like decomposition", prompt)
-        self.assertIn("do not mention parent/neighbor of LCA", prompt)
+        self.assertIn("exact compensation objects", prompt)
 
     def test_socratic_no_answer_prompt_has_solution_withholding_constraints(self):
         prompt = runner._socratic_no_answer_system_prompt()
@@ -61,10 +62,28 @@ class LiteratureBaselineTutorsTests(unittest.TestCase):
         self.assertIn("one question", prompt)
         self.assertIn("do not state the missing bridge", prompt)
         self.assertIn("no formula-like decomposition", prompt)
-        self.assertIn("do not mention parent/neighbor of LCA", prompt)
-        self.assertIn("do not ask for exact operations on u/v/LCA", prompt)
-        self.assertIn("do not pre-fill endpoint marks", prompt)
-        self.assertIn("do not mention +1/-1", prompt)
+        self.assertIn("exact compensation objects", prompt)
+        self.assertIn("do not ask for exact answer-bearing slots", prompt)
+        self.assertIn("do not pre-fill operation marks", prompt)
+        self.assertIn("do not mention concrete operation signs", prompt)
+
+    def test_edf_inspired_prompt_has_adaptive_scaffolding_constraints(self):
+        prompt = runner._edf_inspired_adaptive_scaffolding_system_prompt()
+
+        self.assertIn("EDF-inspired", prompt)
+        self.assertIn("not a reproduction of EDF or Copa", prompt)
+        self.assertIn("Evidence -> Decision -> Feedback", prompt)
+        self.assertIn("evidence_summary", prompt)
+        self.assertIn("learner_state", prompt)
+        self.assertIn("decision", prompt)
+        self.assertIn("scaffold_level", prompt)
+        self.assertIn("feedback_intent", prompt)
+        self.assertIn("student_visible_response", prompt)
+        self.assertIn("first-level adaptive scaffold", prompt)
+        self.assertIn("no reveal substep", prompt)
+        self.assertIn("no reveal code", prompt)
+        self.assertIn("no full solution", prompt)
+        self.assertIn("no direct critical bridge completion", prompt)
 
     def test_validate_codehelp_codeaid_payload(self):
         payload = runner._validate_codehelp_codeaid_payload(
@@ -109,6 +128,24 @@ class LiteratureBaselineTutorsTests(unittest.TestCase):
 
         self.assertEqual("literature_inspired_socratic", payload["baseline_group"])
         self.assertIn("check", payload["student_visible_response"])
+
+    def test_validate_edf_inspired_payload(self):
+        payload = runner._validate_edf_inspired_adaptive_scaffolding_payload(
+            {
+                "baseline_group": "literature_inspired_adaptive_scaffolding",
+                "evidence_summary": "学生明确说 check 真假方向总写反。",
+                "learner_state": "学生知道要二分答案，但谓词语义不稳定。",
+                "decision": "micro_scaffold",
+                "scaffold_level": "L2",
+                "feedback_intent": "让学生先用一个候选 mid 表达可行性判断。",
+                "student_visible_response": "先只看一个候选 mid：它满足限制时，你会用一句什么话描述这个事实？",
+            }
+        )
+
+        self.assertEqual("literature_inspired_adaptive_scaffolding", payload["baseline_group"])
+        self.assertEqual("micro_scaffold", payload["decision"])
+        self.assertEqual("L2", payload["scaffold_level"])
+        self.assertIn("候选 mid", payload["student_visible_response"])
 
     def test_runner_supports_codehelp_codeaid_tutor_without_bridge_diagnosis(self):
         rows = self._run_with_fake_chat(
@@ -162,6 +199,28 @@ class LiteratureBaselineTutorsTests(unittest.TestCase):
         self.assertEqual("literature_inspired_expert_decision", rows[0]["baseline_group"])
         self.assertIn("student_error_or_gap", rows[0]["expert_decision_result"])
         self.assertIn("给定 mid", rows[0]["final_response_text"])
+        self.assertEqual(1, rows[0]["llm_call_count"])
+
+    def test_runner_supports_edf_inspired_tutor_without_bridge_diagnosis(self):
+        rows = self._run_with_fake_chat(
+            tutor_mode="edf_inspired_adaptive_scaffolding_tutor",
+            payload={
+                "baseline_group": "literature_inspired_adaptive_scaffolding",
+                "evidence_summary": "学生知道要二分答案，但 check 语义不稳定。",
+                "learner_state": "需要把候选 mid 的可行性先说清楚。",
+                "decision": "micro_scaffold",
+                "scaffold_level": "L2",
+                "feedback_intent": "用一个低负担小问题校准谓词含义。",
+                "student_visible_response": "先只看一个候选 mid：如果它满足限制，请你用一句短句描述 check 应表达的事实。",
+            },
+        )
+
+        self.assertEqual("edf_inspired_adaptive_scaffolding_tutor", rows[0]["tutor_mode"])
+        self.assertEqual("literature_inspired_adaptive_scaffolding", rows[0]["baseline_group"])
+        self.assertIn("evidence_summary", rows[0]["edf_inspired_adaptive_scaffolding_result"])
+        self.assertEqual("micro_scaffold", rows[0]["decision"])
+        self.assertEqual("L2", rows[0]["level"])
+        self.assertIn("候选 mid", rows[0]["final_response_text"])
         self.assertEqual(1, rows[0]["llm_call_count"])
 
     def _run_with_fake_chat(self, *, tutor_mode, payload):

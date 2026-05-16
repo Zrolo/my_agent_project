@@ -1,0 +1,46 @@
+{
+  "manifest": "evals/aichat/ad_hoc_runs/heldout_50_ai_reference_dev_20260513/manifest.json",
+  "combined_jsonl": "evals/aichat/ad_hoc_runs/heldout_50_ai_reference_dev_20260513/combined_dev_ablation.jsonl",
+  "review_csv": "evals/aichat/ad_hoc_runs/heldout_50_ai_reference_dev_20260513/coach_response_review_workbook_dev_ablation.csv",
+  "case_count": 50,
+  "condition_count": 8,
+  "conditions": [
+    "current_system_deployment",
+    "enhanced_prompt_only_clean",
+    "codehelp_codeaid_clean",
+    "dbox_inspired_guard",
+    "bridge_inspired_expert_decision_clean",
+    "single_llm_structured_guard",
+    "bridge_contract_guard",
+    "bridge_contract_guard_repair"
+  ],
+  "expected_row_count": 400,
+  "combined_row_count": 400,
+  "final_response_row_count": 399,
+  "review_row_count": 400,
+  "missing_pairs": [],
+  "duplicate_pairs": [],
+  "empty_final_response_rows": [
+    {
+      "case_id": "heldout_cp_015",
+      "condition_id": "bridge_contract_guard"
+    }
+  ],
+  "targeted_rerun_pairs": [
+    {
+      "case_id": "heldout_cp_015",
+      "condition_id": "bridge_contract_guard"
+    }
+  ],
+  "targeted_rerun_commands": [
+    "python3 -m evals.aichat.run_dev_ablation_suite --input-jsonl docs/research/bridgebench_cp_heldout_v1_50_ai_reference_draft_20260513.jsonl --output-dir evals/aichat/ad_hoc_runs/heldout_50_ai_reference_dev_20260513_targeted_rerun/bridge_contract_guard --condition-set heldout_main --condition-id bridge_contract_guard --case-id heldout_cp_015"
+  ],
+  "stage_warning_rows": [],
+  "blocking_reasons": [
+    "empty_final_response_rows",
+    "review_row_count_mismatch"
+  ],
+  "warning_reasons": [],
+  "headline_ready": false,
+  "analysis_ready": false
+}

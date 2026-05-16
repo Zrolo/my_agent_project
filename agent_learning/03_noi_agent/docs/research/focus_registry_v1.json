@@ -275,12 +275,22 @@
       "example_student_utterances": ["修改叶子以后为什么还要一路更新父节点？"]
     },
     {
+      "focus_id": "obsolete_candidate_guard",
+      "bridge_family": "predicate_bridge",
+      "bridge_family_v2": "predicate_condition_bridge",
+      "description": "多候选结构中，弹出或取出的候选可能已经不是当前状态，需要判断是否过期、失效或应跳过。",
+      "aliases": ["过期候选", "旧项判断", "失效候选", "priority_queue", "dist 不一致", "重复入队"],
+      "example_student_utterances": ["优先队列里同一个点会出现多次，那旧的要不要跳过？"]
+    },
+    {
       "focus_id": "dijkstra_stale_entry",
       "bridge_family": "predicate_bridge",
       "bridge_family_v2": "predicate_condition_bridge",
-      "description": "Dijkstra 使用优先队列时，同一节点可能有旧距离入队，弹出后需要判断是否已经过期。",
+      "description": "兼容旧标注：Dijkstra 优先队列旧距离判断。新标注请使用更抽象的 obsolete_candidate_guard。",
       "aliases": ["Dijkstra 旧距离", "过期队列项", "priority_queue", "dist 不一致"],
-      "example_student_utterances": ["优先队列里同一个点会出现多次，那旧的要不要跳过？"]
+      "example_student_utterances": ["优先队列里同一个点会出现多次，那旧的要不要跳过？"],
+      "status": "deprecated",
+      "replaced_by": "obsolete_candidate_guard"
     },
     {
       "focus_id": "local_condition_completion",

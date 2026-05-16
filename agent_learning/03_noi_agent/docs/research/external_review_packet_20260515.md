@@ -91,7 +91,7 @@ Current design constraints:
 | Student message length | short 20 / medium_short 15 / medium_long 10 / long 5 |
 | Recent dialogue | none 10 / short 25 / long 15 |
 | Initial vs follow-up turns | initial 10 / follow-up 40 |
-| Student followability state | F1 7 / F2 18 / F3 10 / F4 5 / N/A 10 |
+| Student followability state | F1 6 / F2 19 / F3 10 / F4 5 / N/A 10 |
 | Code/error-code scenarios | at least 10, currently about 17 |
 
 Bridge bucket quotas:

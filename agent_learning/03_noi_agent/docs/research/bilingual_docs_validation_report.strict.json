@@ -1,0 +1,102 @@
+{
+  "root": "docs/research",
+  "checked_count": 129,
+  "unpaired_count": 23,
+  "legacy_unpaired_count": 0,
+  "policy": "New docs/research Markdown files must have both English *.md and Chinese *.zh.md companions.",
+  "unpaired_docs": [
+    {
+      "file": "aichat_current_flow_v1.md",
+      "expected_pair": "aichat_current_flow_v1.zh.md"
+    },
+    {
+      "file": "aichat_risk_routing_policy_v1.md",
+      "expected_pair": "aichat_risk_routing_policy_v1.zh.md"
+    },
+    {
+      "file": "annotation_reliability_protocol_v1.md",
+      "expected_pair": "annotation_reliability_protocol_v1.zh.md"
+    },
+    {
+      "file": "bridge_judge_offline_eval_v1.md",
+      "expected_pair": "bridge_judge_offline_eval_v1.zh.md"
+    },
+    {
+      "file": "bridge_schema_annotation_guide_v1.md",
+      "expected_pair": "bridge_schema_annotation_guide_v1.zh.md"
+    },
+    {
+      "file": "bridge_tutor_rubric_v1.md",
+      "expected_pair": "bridge_tutor_rubric_v1.zh.md"
+    },
+    {
+      "file": "coach_seed_labeling_guide_v1.md",
+      "expected_pair": "coach_seed_labeling_guide_v1.zh.md"
+    },
+    {
+      "file": "coach_seed_labeling_workbook_v1.md",
+      "expected_pair": "coach_seed_labeling_workbook_v1.zh.md"
+    },
+    {
+      "file": "coach_seed_labeling_workbook_v2.md",
+      "expected_pair": "coach_seed_labeling_workbook_v2.zh.md"
+    },
+    {
+      "file": "control_harness_policy_v1.md",
+      "expected_pair": "control_harness_policy_v1.zh.md"
+    },
+    {
+      "file": "dev_ablation_bridge_contract_cases_20260511.zh.md",
+      "expected_pair": "dev_ablation_bridge_contract_cases_20260511.md"
+    },
+    {
+      "file": "field_usage_registry_v1.md",
+      "expected_pair": "field_usage_registry_v1.zh.md"
+    },
+    {
+      "file": "index.md",
+      "expected_pair": "index.zh.md"
+    },
+    {
+      "file": "judge_prompt_patch_log.md",
+      "expected_pair": "judge_prompt_patch_log.zh.md"
+    },
+    {
+      "file": "judge_schema_smoke_report_20260509.md",
+      "expected_pair": "judge_schema_smoke_report_20260509.zh.md"
+    },
+    {
+      "file": "llm_judge_calibration_protocol_v1.zh.md",
+      "expected_pair": "llm_judge_calibration_protocol_v1.md"
+    },
+    {
+      "file": "paper_scope_v2.zh.md",
+      "expected_pair": "paper_scope_v2.md"
+    },
+    {
+      "file": "prompt_patch_log.md",
+      "expected_pair": "prompt_patch_log.zh.md"
+    },
+    {
+      "file": "research_schema_v1.md",
+      "expected_pair": "research_schema_v1.zh.md"
+    },
+    {
+      "file": "research_v1_external_review_plan_20260511.zh.md",
+      "expected_pair": "research_v1_external_review_plan_20260511.md"
+    },
+    {
+      "file": "research_v1_scope_lock.md",
+      "expected_pair": "research_v1_scope_lock.zh.md"
+    },
+    {
+      "file": "response_ablation_smoke_report_20260509.md",
+      "expected_pair": "response_ablation_smoke_report_20260509.zh.md"
+    },
+    {
+      "file": "schema_mapping_human_to_runtime_v1.md",
+      "expected_pair": "schema_mapping_human_to_runtime_v1.zh.md"
+    }
+  ],
+  "legacy_unpaired_docs": []
+}

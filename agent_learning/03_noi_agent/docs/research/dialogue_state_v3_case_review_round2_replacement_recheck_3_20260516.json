@@ -1,0 +1,30 @@
+{
+  "source_jsonl": "docs/research/bridgebench_cp_dialogue_state_v3_50_draft.jsonl",
+  "row_count": 3,
+  "case_ids": [
+    "dialogue_v3_035_data_structure_operation_semantics",
+    "dialogue_v3_036_correctness_invariant",
+    "dialogue_v3_037_correctness_invariant"
+  ],
+  "required_case_prefixes": [
+    "dialogue_v3_035_",
+    "dialogue_v3_036_",
+    "dialogue_v3_037_"
+  ],
+  "selected_fixed_prefixes": [
+    "dialogue_v3_035_",
+    "dialogue_v3_036_",
+    "dialogue_v3_037_"
+  ],
+  "case_id_prefix_ok": true,
+  "selection_mode": "explicit_case_prefixes",
+  "context_coverage_ok": false,
+  "context_type_counts": {
+    "followup_after_code_attempt": 3
+  },
+  "followability_counts": {
+    "F2": 3
+  },
+  "reference_label_status": "targeted_case_source_recheck_only",
+  "ok": true
+}

@@ -77,6 +77,20 @@ const CHAT_MODEL_FALLBACK_LABELS = {
   deepseek_pro: '专业',
   deepseek: '专业',
 };
+const CHAT_PROMPT_MODE_STORAGE_KEY = 'noi-agent-chat-prompt-mode';
+const storedChatPromptMode = window.localStorage.getItem(CHAT_PROMPT_MODE_STORAGE_KEY);
+const CHAT_PROMPT_MODE_OPTIONS = [
+  {
+    value: 'current_system',
+    label: '简洁提示',
+    description: '沿用当前回答方式，适合小问题和局部确认。',
+  },
+  {
+    value: 'dbox_inspired_clean',
+    label: '教练引导',
+    description: '分解成一个当前小步骤，适合真正卡住时使用。',
+  },
+];
 const QUIZ_BOTTLENECK_LABELS = {
   problem_translation: '题意翻译',
   concept_boundary: '概念边界',
@@ -102,6 +116,11 @@ const QUIZ_FORMAT_LABELS = {
 };
 const chatModels = ref([]);
 const selectedChatModel = ref(window.localStorage.getItem(CHAT_MODEL_STORAGE_KEY) || '');
+const selectedChatPromptMode = ref(
+  storedChatPromptMode === 'enhanced_prompt_only_clean'
+    ? 'dbox_inspired_clean'
+    : storedChatPromptMode || 'current_system',
+);
 const chatModelsLoading = ref(false);
 const understandingState = ref('not_ready');
 const understandingEvidence = ref([]);
@@ -748,6 +767,13 @@ function selectChatModel(providerId) {
   window.localStorage.setItem(CHAT_MODEL_STORAGE_KEY, providerId);
 }
 
+function selectChatPromptMode(promptMode) {
+  const option = CHAT_PROMPT_MODE_OPTIONS.find((item) => item.value === promptMode);
+  if (!option) return;
+  selectedChatPromptMode.value = promptMode;
+  window.localStorage.setItem(CHAT_PROMPT_MODE_STORAGE_KEY, promptMode);
+}
+
 async function loadChatModels() {
   chatModelsLoading.value = true;
   try {
@@ -927,6 +953,7 @@ async function submitMessage() {
       problem_context: problemContext.value.trim(),
       student_code: includeCodeInNextMessage.value ? studentCode.value.trim() : '',
       chat_model_provider: selectedChatModel.value,
+      aichat_prompt_mode: selectedChatPromptMode.value,
     });
     includeCodeInNextMessage.value = false;
     const thinkingIndex = messages.value.findIndex((item) => item?.isThinking);
@@ -1223,6 +1250,28 @@ onBeforeUnmount(() => {
               <span v-if="chatModelsLoading" class="text-slate-400">加载中...</span>
               <span v-else-if="selectedChatModelInfo" class="text-slate-400">当前：{{ selectedChatModelInfo.label }}</span>
             </div>
+            <div v-if="!chatFloating" class="mt-2 flex flex-wrap items-center gap-2 text-xs font-semibold">
+              <span class="text-slate-500">回答方式</span>
+              <button
+                v-for="option in CHAT_PROMPT_MODE_OPTIONS"
+                :key="option.value"
+                type="button"
+                :title="option.description"
+                :class="[
+                  'rounded-lg border px-3 py-1.5 transition',
+                  selectedChatPromptMode === option.value
+                    ? 'border-emerald-500 bg-emerald-500 text-white'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:text-emerald-700',
+                ]"
+                @pointerdown.stop
+                @click="selectChatPromptMode(option.value)"
+              >
+                {{ option.label }}
+              </button>
+              <span class="basis-full text-[11px] font-medium leading-5 text-slate-400 sm:basis-auto">
+                教练引导会把当前问题拆成一个小步骤，适合真正卡住时使用。
+              </span>
+            </div>
             <div v-if="chatFloating" class="floating-model-switcher mt-2 flex flex-wrap items-center gap-2 text-xs font-semibold" @pointerdown.stop>
               <span class="text-slate-500">当前模型</span>
               <select
@@ -1237,6 +1286,20 @@ onBeforeUnmount(() => {
                   :disabled="!option.available"
                 >
                   {{ chatModelShortLabel(option) }}
+                </option>
+              </select>
+              <span class="text-slate-500">回答方式</span>
+              <select
+                v-model="selectedChatPromptMode"
+                class="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 outline-none transition focus:border-emerald-400"
+                @change="selectChatPromptMode(selectedChatPromptMode)"
+              >
+                <option
+                  v-for="option in CHAT_PROMPT_MODE_OPTIONS"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
                 </option>
               </select>
             </div>

@@ -1,0 +1,127 @@
+{
+  "manifest": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516/manifest.json",
+  "combined_jsonl": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516/combined_dev_ablation.jsonl",
+  "review_csv": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516/coach_response_review_workbook_dev_ablation.csv",
+  "case_count": 50,
+  "condition_count": 7,
+  "conditions": [
+    "enhanced_prompt_only_clean",
+    "codehelp_codeaid_clean",
+    "dbox_inspired_clean",
+    "dbox_inspired_guard",
+    "bridge_guided_dbox_style_guard",
+    "bridge_contract_compact_guard",
+    "bridge_contract_compact_guard_repair"
+  ],
+  "expected_row_count": 350,
+  "combined_row_count": 350,
+  "final_response_row_count": 339,
+  "review_row_count": 339,
+  "missing_pairs": [],
+  "duplicate_pairs": [],
+  "empty_final_response_rows": [
+    {
+      "case_id": "dialogue_v3_012_predicate_check_semantics",
+      "condition_id": "codehelp_codeaid_clean"
+    },
+    {
+      "case_id": "dialogue_v3_013_predicate_check_semantics",
+      "condition_id": "codehelp_codeaid_clean"
+    },
+    {
+      "case_id": "dialogue_v3_017_boundary_update_order",
+      "condition_id": "codehelp_codeaid_clean"
+    },
+    {
+      "case_id": "dialogue_v3_020_boundary_update_order",
+      "condition_id": "codehelp_codeaid_clean"
+    },
+    {
+      "case_id": "dialogue_v3_029_aggregation_contribution_summary",
+      "condition_id": "codehelp_codeaid_clean"
+    },
+    {
+      "case_id": "dialogue_v3_011_transition_recurrence_source",
+      "condition_id": "bridge_guided_dbox_style_guard"
+    },
+    {
+      "case_id": "dialogue_v3_018_boundary_update_order",
+      "condition_id": "bridge_guided_dbox_style_guard"
+    },
+    {
+      "case_id": "dialogue_v3_043_implementation_boundary",
+      "condition_id": "bridge_guided_dbox_style_guard"
+    },
+    {
+      "case_id": "dialogue_v3_025_modeling_object_relation",
+      "condition_id": "bridge_contract_compact_guard"
+    },
+    {
+      "case_id": "dialogue_v3_032_data_structure_operation_semantics",
+      "condition_id": "bridge_contract_compact_guard"
+    },
+    {
+      "case_id": "dialogue_v3_014_predicate_check_semantics",
+      "condition_id": "bridge_contract_compact_guard_repair"
+    }
+  ],
+  "targeted_rerun_pairs": [
+    {
+      "case_id": "dialogue_v3_012_predicate_check_semantics",
+      "condition_id": "codehelp_codeaid_clean"
+    },
+    {
+      "case_id": "dialogue_v3_013_predicate_check_semantics",
+      "condition_id": "codehelp_codeaid_clean"
+    },
+    {
+      "case_id": "dialogue_v3_017_boundary_update_order",
+      "condition_id": "codehelp_codeaid_clean"
+    },
+    {
+      "case_id": "dialogue_v3_020_boundary_update_order",
+      "condition_id": "codehelp_codeaid_clean"
+    },
+    {
+      "case_id": "dialogue_v3_029_aggregation_contribution_summary",
+      "condition_id": "codehelp_codeaid_clean"
+    },
+    {
+      "case_id": "dialogue_v3_011_transition_recurrence_source",
+      "condition_id": "bridge_guided_dbox_style_guard"
+    },
+    {
+      "case_id": "dialogue_v3_018_boundary_update_order",
+      "condition_id": "bridge_guided_dbox_style_guard"
+    },
+    {
+      "case_id": "dialogue_v3_043_implementation_boundary",
+      "condition_id": "bridge_guided_dbox_style_guard"
+    },
+    {
+      "case_id": "dialogue_v3_025_modeling_object_relation",
+      "condition_id": "bridge_contract_compact_guard"
+    },
+    {
+      "case_id": "dialogue_v3_032_data_structure_operation_semantics",
+      "condition_id": "bridge_contract_compact_guard"
+    },
+    {
+      "case_id": "dialogue_v3_014_predicate_check_semantics",
+      "condition_id": "bridge_contract_compact_guard_repair"
+    }
+  ],
+  "targeted_rerun_commands": [
+    "python3 -m evals.aichat.run_dev_ablation_suite --input-jsonl docs/research/bridgebench_cp_dialogue_state_v3_50_reviewed_candidate.jsonl --output-dir evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/bridge_contract_compact_guard --condition-set dialogue_state_v3_main --condition-id bridge_contract_compact_guard --case-id dialogue_v3_025_modeling_object_relation --case-id dialogue_v3_032_data_structure_operation_semantics",
+    "python3 -m evals.aichat.run_dev_ablation_suite --input-jsonl docs/research/bridgebench_cp_dialogue_state_v3_50_reviewed_candidate.jsonl --output-dir evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/bridge_contract_compact_guard_repair --condition-set dialogue_state_v3_main --condition-id bridge_contract_compact_guard_repair --case-id dialogue_v3_014_predicate_check_semantics",
+    "python3 -m evals.aichat.run_dev_ablation_suite --input-jsonl docs/research/bridgebench_cp_dialogue_state_v3_50_reviewed_candidate.jsonl --output-dir evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/bridge_guided_dbox_style_guard --condition-set dialogue_state_v3_main --condition-id bridge_guided_dbox_style_guard --case-id dialogue_v3_011_transition_recurrence_source --case-id dialogue_v3_018_boundary_update_order --case-id dialogue_v3_043_implementation_boundary",
+    "python3 -m evals.aichat.run_dev_ablation_suite --input-jsonl docs/research/bridgebench_cp_dialogue_state_v3_50_reviewed_candidate.jsonl --output-dir evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/codehelp_codeaid_clean --condition-set dialogue_state_v3_main --condition-id codehelp_codeaid_clean --case-id dialogue_v3_012_predicate_check_semantics --case-id dialogue_v3_013_predicate_check_semantics --case-id dialogue_v3_017_boundary_update_order --case-id dialogue_v3_020_boundary_update_order --case-id dialogue_v3_029_aggregation_contribution_summary"
+  ],
+  "stage_warning_rows": [],
+  "blocking_reasons": [
+    "empty_final_response_rows"
+  ],
+  "warning_reasons": [],
+  "headline_ready": false,
+  "analysis_ready": false
+}

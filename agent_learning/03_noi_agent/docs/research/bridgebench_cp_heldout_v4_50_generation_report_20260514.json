@@ -1,0 +1,38 @@
+{
+  "row_count": 50,
+  "context_enrichment_status_counts": {
+    "synthetic_followup_context_added": 10,
+    "context_preserved": 40
+  },
+  "context_readiness_summary": {
+    "row_count": 50,
+    "context_sufficiency_counts": {
+      "sufficient": 45,
+      "partial": 5
+    },
+    "question_specificity_counts": {
+      "pronoun_dependent": 27,
+      "specific": 17,
+      "medium": 4,
+      "policy_request": 2
+    },
+    "expected_tutor_move_counts": {
+      "continue_prior_scaffold": 27,
+      "micro_scaffold": 21,
+      "safe_refusal": 2
+    },
+    "model_should_infer_bridge_counts": {
+      "yes": 45,
+      "low_confidence_only": 3,
+      "no": 2
+    },
+    "recommended_use_counts": {
+      "main_scaffold_eval": 45,
+      "main_eval_with_caution": 3,
+      "policy_safety_slice": 2
+    },
+    "recent_dialogue_status_counts": {
+      "recent_dialogue_ends_with_assistant": 50
+    }
+  }
+}

@@ -7,11 +7,11 @@ This is a deterministic data audit. It does not call an LLM and does not modify 
 ## Summary
 
 - Rows: 50
-- Context sufficiency: `insufficient`=10, `partial`=5, `sufficient`=35
-- Question specificity: `medium`=1, `policy_request`=4, `pronoun_dependent`=15, `specific`=20, `vague`=10
-- Expected tutor move: `clarify_context`=10, `continue_prior_scaffold`=15, `micro_scaffold`=21, `safe_refusal`=4
-- Should infer bridge: `low_confidence_only`=1, `no`=14, `yes`=35
-- Recommended use: `clarification_safety_slice`=10, `main_eval_with_caution`=1, `main_scaffold_eval`=35, `policy_safety_slice`=4
+- Context sufficiency: `insufficient`=10, `partial`=9, `sufficient`=31
+- Question specificity: `medium`=5, `policy_request`=4, `pronoun_dependent`=11, `specific`=20, `vague`=10
+- Expected tutor move: `clarify_context`=10, `continue_prior_scaffold`=11, `micro_scaffold`=25, `safe_refusal`=4
+- Should infer bridge: `low_confidence_only`=5, `no`=14, `yes`=31
+- Recommended use: `clarification_safety_slice`=10, `main_eval_with_caution`=5, `main_scaffold_eval`=31, `policy_safety_slice`=4
 
 ## Interpretation
 

@@ -99,6 +99,58 @@ class RepairResponseV1Tests(unittest.TestCase):
         self.assertIn("不要给出计算结果", combined)
         self.assertIn("只给例子输入", combined)
 
+    def test_repair_prompt_requires_concrete_valid_micro_task(self):
+        system_prompt = _read_repair_response_v1_system_prompt()
+
+        self.assertIn("不得修成空泛追问", system_prompt)
+        self.assertIn("数值例子必须先自检", system_prompt)
+        self.assertIn("填空栏位必须完整", system_prompt)
+        self.assertNotIn("mid", system_prompt)
+        self.assertNotIn("dp[", system_prompt)
+
+    def test_repair_prompt_uses_abstract_leakage_shapes_not_algorithm_specific_recipes(self):
+        system_prompt = _read_repair_response_v1_system_prompt()
+        section = system_prompt.split("## 常见修复方式", 1)[1].split("## 输出 JSON", 1)[0]
+
+        self.assertIn("先识别泄露形态", section)
+        self.assertIn("完整表示含义", section)
+        self.assertIn("完整关系或公式", section)
+        self.assertIn("完整判定条件", section)
+        self.assertIn("完整流程或策略结论", section)
+        self.assertIn("不要按具体算法名套修复模板", section)
+
+        for concrete_term in ["DP", "check", "mid", "二分", "树上差分", "LCA", "lazy"]:
+            self.assertNotIn(concrete_term, section)
+
+    def test_repair_prompt_does_not_request_internal_level_tags(self):
+        system_prompt = _read_repair_response_v1_system_prompt()
+
+        self.assertIn("repaired_response 不要包含 [LEVEL]", system_prompt)
+        self.assertIn("学生可见回复不要输出内部标签", system_prompt)
+        self.assertNotIn("末尾带 [LEVEL", system_prompt)
+        self.assertNotIn("最后保留一个 `[LEVEL", system_prompt)
+
+    def test_repair_prompt_removes_definition_first_leaks(self):
+        system_prompt = _read_repair_response_v1_system_prompt()
+
+        self.assertIn("开头定义句", system_prompt)
+        self.assertIn("删除定义句", system_prompt)
+        self.assertIn("改成观察任务", system_prompt)
+
+    def test_repair_prompt_does_not_turn_leaks_into_answer_slot_questions(self):
+        system_prompt = _read_repair_response_v1_system_prompt()
+
+        self.assertIn("答案槽位问题", system_prompt)
+        self.assertIn("不要把泄露内容改写成让学生填写关键位置", system_prompt)
+        self.assertIn("向上游移动", system_prompt)
+
+    def test_repair_prompt_removes_filled_critical_tables_from_candidate(self):
+        system_prompt = _read_repair_response_v1_system_prompt()
+
+        self.assertIn("不要复制原候选回复中已经填好的关键数值表", system_prompt)
+        self.assertIn("关键字段值", system_prompt)
+        self.assertIn("改成空表", system_prompt)
+
     def test_repair_dp_state_leak_to_information_prompt(self):
         payload = _repair_payload("这一步先别急着把状态写死。你用样例想一想：走到第 i 个位置时，至少要保留哪两个信息，后面才不会算丢？\n\n[LEVEL:L2]")
         captured = {}

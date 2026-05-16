@@ -269,6 +269,17 @@ class Heldout50DatasetValidatorTests(unittest.TestCase):
         self.assertIn("missing_required_field", error_codes)
         self.assertIn("gold_status_not_allowed", error_codes)
 
+    def test_reviewed_candidate_is_allowed_before_formal_frozen_preflight(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dataset = Path(tmp) / "heldout.jsonl"
+            reviewed = _valid_row("heldout_cp_001", "dp_state")
+            reviewed["reference_label_status"] = "reviewed_candidate"
+            _write_jsonl(dataset, [reviewed])
+
+            result = validate_heldout_50_dataset.validate_dataset(dataset, expected_count=1)
+
+        self.assertTrue(result["ok"], result["errors"])
+
     def test_formal_preflight_requires_frozen_reference_status(self):
         with tempfile.TemporaryDirectory() as tmp:
             dataset = Path(tmp) / "heldout.jsonl"

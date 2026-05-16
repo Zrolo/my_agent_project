@@ -20,6 +20,7 @@
     "blank": 50
   },
   "needs_followup_count": 0,
+  "needs_followup_cases": [],
   "source_ok_counts": {
     "blank": 50
   },

@@ -51,52 +51,116 @@
       "examples": ["学生不知道该往 DP、图、贪心还是二分想。"]
     },
     {
+      "subtype_id": "method.monotone_answer_search_signal",
+      "family": "method_selection_bridge",
+      "description": "单调候选答案搜索信号。",
+      "examples": ["学生不知道为什么某个候选答案可以通过可行性方向不断缩小范围。"]
+    },
+    {
       "subtype_id": "method.binary_search_answer_signal",
       "family": "method_selection_bridge",
-      "description": "二分答案的可行性/单调性信号。",
-      "examples": ["学生不知道为什么可以二分答案。"]
+      "description": "兼容旧标注：二分答案的可行性/单调性信号。新标注请使用更抽象的 method.monotone_answer_search_signal。",
+      "examples": ["学生不知道为什么可以二分答案。"],
+      "status": "deprecated",
+      "replaced_by": "method.monotone_answer_search_signal"
+    },
+    {
+      "subtype_id": "method.stateful_subproblem_signal",
+      "family": "method_selection_bridge",
+      "description": "状态化子问题信号。",
+      "examples": ["学生不知道哪些历史信息、资源限制或子问题边界要被保留。"]
     },
     {
       "subtype_id": "method.dp_state_candidate_signal",
       "family": "method_selection_bridge",
-      "description": "DP 状态候选信号。",
-      "examples": ["学生不知道哪些量可能要被放进状态。"]
+      "description": "兼容旧标注：DP 状态候选信号。新标注请使用更抽象的 method.stateful_subproblem_signal。",
+      "examples": ["学生不知道哪些量可能要被放进状态。"],
+      "status": "deprecated",
+      "replaced_by": "method.stateful_subproblem_signal"
+    },
+    {
+      "subtype_id": "method.local_choice_rule_signal",
+      "family": "method_selection_bridge",
+      "description": "局部选择规则信号。",
+      "examples": ["学生不知道哪里体现出排序、交换、支配或局部选择可能成立。"]
     },
     {
       "subtype_id": "method.greedy_candidate_signal",
       "family": "method_selection_bridge",
-      "description": "贪心候选信号。",
-      "examples": ["学生不知道哪里体现出局部选择可能成立。"]
+      "description": "兼容旧标注：贪心候选信号。新标注请使用更抽象的 method.local_choice_rule_signal。",
+      "examples": ["学生不知道哪里体现出局部选择可能成立。"],
+      "status": "deprecated",
+      "replaced_by": "method.local_choice_rule_signal"
+    },
+    {
+      "subtype_id": "state.table_or_memo_cell_semantics",
+      "family": "representation_state_bridge",
+      "description": "表格、数组或记忆化单元的下标和值含义。",
+      "examples": ["学生不知道一个表格格子里的值代表哪类最优目标或子问题结果。"]
     },
     {
       "subtype_id": "state.dp_state_semantics",
       "family": "representation_state_bridge",
-      "description": "DP 状态语义。",
-      "examples": ["学生不知道 dp[j] 表示什么。"]
+      "description": "兼容旧标注：DP 状态语义。新标注请使用更抽象的 state.table_or_memo_cell_semantics。",
+      "examples": ["学生不知道 dp[j] 表示什么。"],
+      "status": "deprecated",
+      "replaced_by": "state.table_or_memo_cell_semantics"
+    },
+    {
+      "subtype_id": "state.encoded_set_semantics",
+      "family": "representation_state_bridge",
+      "description": "编码集合、压缩字段或位状态语义。",
+      "examples": ["学生不知道某一位、某个编码字段表示已选、可用、访问过还是资源状态。"]
     },
     {
       "subtype_id": "state.mask_semantics",
       "family": "representation_state_bridge",
-      "description": "mask/压缩状态语义。",
-      "examples": ["学生不知道二进制位表示已选还是未选。"]
+      "description": "兼容旧标注：mask/压缩状态语义。新标注请使用更抽象的 state.encoded_set_semantics。",
+      "examples": ["学生不知道二进制位表示已选还是未选。"],
+      "status": "deprecated",
+      "replaced_by": "state.encoded_set_semantics"
+    },
+    {
+      "subtype_id": "state.deferred_update_semantics",
+      "family": "representation_state_bridge",
+      "description": "延迟更新、缓存或待处理字段语义。",
+      "examples": ["学生不知道某个标记保存了哪些已作用于当前层、但还没传播到下一层的信息。"]
     },
     {
       "subtype_id": "state.lazy_tag_semantics",
       "family": "representation_state_bridge",
-      "description": "lazy 标记语义。",
-      "examples": ["学生不知道 lazy 表示还没做什么。"]
+      "description": "兼容旧标注：lazy 标记语义。新标注请使用更抽象的 state.deferred_update_semantics。",
+      "examples": ["学生不知道 lazy 表示还没做什么。"],
+      "status": "deprecated",
+      "replaced_by": "state.deferred_update_semantics"
+    },
+    {
+      "subtype_id": "state.augmented_process_state",
+      "family": "representation_state_bridge",
+      "description": "扩展过程状态。",
+      "examples": ["学生不知道除位置外还要携带资源、权限、阶段或历史信息。"]
     },
     {
       "subtype_id": "state.search_augmented_state",
       "family": "representation_state_bridge",
-      "description": "搜索/BFS 扩展状态。",
-      "examples": ["学生不知道 BFS 队列里还要带钥匙状态。"]
+      "description": "兼容旧标注：搜索/BFS 扩展状态。新标注请使用更抽象的 state.augmented_process_state。",
+      "examples": ["学生不知道 BFS 队列里还要带钥匙状态。"],
+      "status": "deprecated",
+      "replaced_by": "state.augmented_process_state"
+    },
+    {
+      "subtype_id": "state.failure_link_or_prefix_semantics",
+      "family": "representation_state_bridge",
+      "description": "回退、前缀或共享历史信息在辅助数组/状态中的语义。",
+      "examples": ["学生不知道失配后回退数组里的数字代表什么。", "学生不知道公共前缀状态保存了什么历史信息。"]
     },
     {
       "subtype_id": "state.kmp_prefix_function_semantics",
       "family": "representation_state_bridge",
-      "description": "KMP next/prefix function 语义。",
-      "examples": ["学生不知道 next 数组里的数字代表什么。"]
+      "description": "兼容旧标注：KMP next/prefix function 语义。新标注请使用更抽象的 state.failure_link_or_prefix_semantics。",
+      "examples": ["学生不知道 next 数组里的数字代表什么。"],
+      "status": "deprecated",
+      "replaced_by": "state.failure_link_or_prefix_semantics"
     },
     {
       "subtype_id": "transition.take_or_skip_cases",
@@ -117,28 +181,60 @@
       "examples": ["学生不知道 C(n,k) 为什么来自两个上方状态。"]
     },
     {
+      "subtype_id": "predicate.feasibility_truth_direction",
+      "family": "predicate_condition_bridge",
+      "description": "可行性、合法性或局部判断的 true/false 方向。",
+      "examples": ["学生不知道一个候选、状态或局部条件成立时应该代表可行还是不可行。"]
+    },
+    {
       "subtype_id": "predicate.check_truth_direction",
       "family": "predicate_condition_bridge",
-      "description": "check true/false 方向。",
-      "examples": ["学生不知道 check(mid) 返回 true 还是 false。"]
+      "description": "兼容旧标注：check true/false 方向。新标注请使用更抽象的 predicate.feasibility_truth_direction。",
+      "examples": ["学生不知道 check(mid) 返回 true 还是 false。"],
+      "status": "deprecated",
+      "replaced_by": "predicate.feasibility_truth_direction"
+    },
+    {
+      "subtype_id": "predicate.boundary_update_direction",
+      "family": "predicate_condition_bridge",
+      "description": "边界推进、收缩或保留方向。",
+      "examples": ["学生根据一次判定结果不知道下一步保留哪一侧候选范围。"]
     },
     {
       "subtype_id": "predicate.binary_search_bound_update",
       "family": "predicate_condition_bridge",
-      "description": "二分边界更新。",
-      "examples": ["学生找到可行答案后不知道收左边还是右边。"]
+      "description": "兼容旧标注：二分边界更新。新标注请使用更抽象的 predicate.boundary_update_direction。",
+      "examples": ["学生找到可行答案后不知道收左边还是右边。"],
+      "status": "deprecated",
+      "replaced_by": "predicate.boundary_update_direction"
+    },
+    {
+      "subtype_id": "predicate.improvement_update_condition",
+      "family": "predicate_condition_bridge",
+      "description": "候选、边、转移或局部结果是否能改进当前值的更新条件。",
+      "examples": ["学生不知道什么时候一个新候选可以替换当前记录。"]
     },
     {
       "subtype_id": "predicate.relax_condition",
       "family": "predicate_condition_bridge",
-      "description": "最短路 relax 条件。",
-      "examples": ["学生不知道 dist[v] > dist[u] + w 在判断什么。"]
+      "description": "兼容旧标注：最短路 relax 条件。新标注请使用更抽象的 predicate.improvement_update_condition。",
+      "examples": ["学生不知道 dist[v] > dist[u] + w 在判断什么。"],
+      "status": "deprecated",
+      "replaced_by": "predicate.improvement_update_condition"
+    },
+    {
+      "subtype_id": "predicate.obsolete_candidate_guard",
+      "family": "predicate_condition_bridge",
+      "description": "多候选结构中，弹出或取出的候选是否仍与当前状态一致，是否应跳过。",
+      "examples": ["学生不知道优先队列里的旧候选要不要跳过。", "学生不知道队列/堆里重复入队的状态是否仍有效。"]
     },
     {
       "subtype_id": "predicate.dijkstra_stale_entry_guard",
       "family": "predicate_condition_bridge",
-      "description": "Dijkstra 旧距离跳过条件。",
-      "examples": ["学生不知道优先队列里的旧距离要不要跳过。"]
+      "description": "兼容旧标注：Dijkstra 旧距离跳过条件。新标注请使用更抽象的 predicate.obsolete_candidate_guard。",
+      "examples": ["学生不知道优先队列里的旧距离要不要跳过。"],
+      "status": "deprecated",
+      "replaced_by": "predicate.obsolete_candidate_guard"
     },
     {
       "subtype_id": "predicate.local_if_boundary_condition",
@@ -147,10 +243,18 @@
       "examples": ["学生要求 AI 直接补 if 条件。"]
     },
     {
+      "subtype_id": "ordering.single_use_update_order",
+      "family": "ordering_dependency_bridge",
+      "description": "同一轮更新中，如何安排读取/写入顺序以避免刚写出的状态被再次使用。",
+      "examples": ["学生不知道为什么某类单次选择更新需要避免本轮重复读取。", "学生不知道原状态和新状态在一维压缩后如何隔离。"]
+    },
+    {
       "subtype_id": "ordering.reverse_capacity_loop",
       "family": "ordering_dependency_bridge",
-      "description": "背包容量倒序循环。",
-      "examples": ["学生不知道 0/1 背包为什么容量要倒序。"]
+      "description": "兼容旧标注：0/1 背包容量倒序循环。新标注请使用更抽象的 ordering.single_use_update_order。",
+      "examples": ["学生不知道 0/1 背包为什么容量要倒序。"],
+      "status": "deprecated",
+      "replaced_by": "ordering.single_use_update_order"
     },
     {
       "subtype_id": "ordering.rolling_array_overwrite_order",
@@ -159,10 +263,18 @@
       "examples": ["学生不知道压成一维后如何避免覆盖上一轮状态。"]
     },
     {
+      "subtype_id": "ordering.subproblem_size_dependency_order",
+      "family": "ordering_dependency_bridge",
+      "description": "按子问题规模、长度、层数或前置依赖安排计算顺序。",
+      "examples": ["学生不知道为什么必须先算更小、更短或更基础的子问题。"]
+    },
+    {
       "subtype_id": "ordering.interval_dp_order",
       "family": "ordering_dependency_bridge",
-      "description": "区间 DP 先长度后端点。",
-      "examples": ["学生不知道为什么区间 DP 外层先枚举长度。"]
+      "description": "兼容旧标注：区间 DP 先长度后端点。新标注请使用更抽象的 ordering.subproblem_size_dependency_order。",
+      "examples": ["学生不知道为什么区间 DP 外层先枚举长度。"],
+      "status": "deprecated",
+      "replaced_by": "ordering.subproblem_size_dependency_order"
     },
     {
       "subtype_id": "ordering.topological_dependency",
@@ -171,46 +283,102 @@
       "examples": ["学生不知道 DAG DP 为什么要拓扑序。"]
     },
     {
+      "subtype_id": "aggregation.path_contribution_marking",
+      "family": "aggregation_contribution_bridge",
+      "description": "把路径、区间或多次影响压缩到少量边界/节点标记，再通过汇总还原贡献。",
+      "examples": ["学生不知道路径贡献应该先标在哪里再统一汇总。", "学生不知道区间影响为什么能只在边界处记录。"]
+    },
+    {
       "subtype_id": "aggregation.tree_path_difference_marking",
       "family": "aggregation_contribution_bridge",
-      "description": "树上路径差分端点标记。",
-      "examples": ["学生不知道路径贡献在哪里加减标记。"]
+      "description": "兼容旧标注：树上路径差分端点标记。新标注请使用更抽象的 aggregation.path_contribution_marking。",
+      "examples": ["学生不知道路径贡献在哪里加减标记。"],
+      "status": "deprecated",
+      "replaced_by": "aggregation.path_contribution_marking"
+    },
+    {
+      "subtype_id": "aggregation.cumulative_range_query",
+      "family": "aggregation_contribution_bridge",
+      "description": "累计量区间查询。",
+      "examples": ["学生不知道区间贡献为什么能由两个累计值相减或组合得到。"]
     },
     {
       "subtype_id": "aggregation.prefix_sum_1d",
       "family": "aggregation_contribution_bridge",
-      "description": "一维前缀和汇总。",
-      "examples": ["学生不知道区间和为什么能用两个前缀相减。"]
+      "description": "兼容旧标注：一维前缀和汇总。新标注请使用更抽象的 aggregation.cumulative_range_query。",
+      "examples": ["学生不知道区间和为什么能用两个前缀相减。"],
+      "status": "deprecated",
+      "replaced_by": "aggregation.cumulative_range_query"
+    },
+    {
+      "subtype_id": "aggregation.inclusion_exclusion_query",
+      "family": "aggregation_contribution_bridge",
+      "description": "容斥式区域查询。",
+      "examples": ["学生不知道多维、矩形或重叠区域为什么要用若干角点加减还原。"]
     },
     {
       "subtype_id": "aggregation.prefix_sum_2d",
       "family": "aggregation_contribution_bridge",
-      "description": "二维前缀和四角关系。",
-      "examples": ["学生不知道二维前缀和为什么要四角加减。"]
+      "description": "兼容旧标注：二维前缀和四角关系。新标注请使用更抽象的 aggregation.inclusion_exclusion_query。",
+      "examples": ["学生不知道二维前缀和为什么要四角加减。"],
+      "status": "deprecated",
+      "replaced_by": "aggregation.inclusion_exclusion_query"
+    },
+    {
+      "subtype_id": "aggregation.boundary_delta_update",
+      "family": "aggregation_contribution_bridge",
+      "description": "边界差量更新。",
+      "examples": ["学生不知道一个范围影响为什么能只在边界记录，再通过统一汇总还原。"]
     },
     {
       "subtype_id": "aggregation.difference_array_range_update",
       "family": "aggregation_contribution_bridge",
-      "description": "差分数组区间更新。",
-      "examples": ["学生不知道区间加为什么只改 l 和 r+1。"]
+      "description": "兼容旧标注：差分数组区间更新。新标注请使用更抽象的 aggregation.boundary_delta_update。",
+      "examples": ["学生不知道区间加为什么只改 l 和 r+1。"],
+      "status": "deprecated",
+      "replaced_by": "aggregation.boundary_delta_update"
+    },
+    {
+      "subtype_id": "ds.priority_candidate_operation_mapping",
+      "family": "data_structure_operation_bridge",
+      "description": "优先级候选取出/插入操作映射。",
+      "examples": ["学生不知道题目中的当前最优、最小或最大候选如何对应结构里的取出和插入。"]
     },
     {
       "subtype_id": "ds.heap_push_pop_mapping",
       "family": "data_structure_operation_bridge",
-      "description": "堆 push/pop 映射。",
-      "examples": ["学生不知道题目中的取当前最小应该如何映射到堆。"]
+      "description": "兼容旧标注：堆 push/pop 映射。新标注请使用更抽象的 ds.priority_candidate_operation_mapping。",
+      "examples": ["学生不知道题目中的取当前最小应该如何映射到堆。"],
+      "status": "deprecated",
+      "replaced_by": "ds.priority_candidate_operation_mapping"
+    },
+    {
+      "subtype_id": "ds.component_merge_query_mapping",
+      "family": "data_structure_operation_bridge",
+      "description": "连通分量、集合代表或关系合并/查询操作映射。",
+      "examples": ["学生不知道题目里的合并、连通、同组或代表元查询对应哪些结构操作。"]
     },
     {
       "subtype_id": "ds.union_find_operation_mapping",
       "family": "data_structure_operation_bridge",
-      "description": "并查集合并/查询映射。",
-      "examples": ["学生不知道题目里的连通关系什么时候 unite。"]
+      "description": "兼容旧标注：并查集合并/查询映射。新标注请使用更抽象的 ds.component_merge_query_mapping。",
+      "examples": ["学生不知道题目里的连通关系什么时候 unite。"],
+      "status": "deprecated",
+      "replaced_by": "ds.component_merge_query_mapping"
+    },
+    {
+      "subtype_id": "ds.dominated_candidate_stack_mapping",
+      "family": "data_structure_operation_bridge",
+      "description": "被支配候选的保留/弹出/记录操作映射。",
+      "examples": ["学生不知道比较关系如何决定一个候选是否被弹出、保留或记录答案。"]
     },
     {
       "subtype_id": "ds.monotonic_stack_mapping",
       "family": "data_structure_operation_bridge",
-      "description": "单调栈入栈出栈映射。",
-      "examples": ["学生不知道什么时候弹栈。"]
+      "description": "兼容旧标注：单调栈入栈出栈映射。新标注请使用更抽象的 ds.dominated_candidate_stack_mapping。",
+      "examples": ["学生不知道什么时候弹栈。"],
+      "status": "deprecated",
+      "replaced_by": "ds.dominated_candidate_stack_mapping"
     },
     {
       "subtype_id": "implementation.loop_boundary",
@@ -231,10 +399,18 @@
       "examples": ["学生每次取模但乘法中间仍溢出。"]
     },
     {
+      "subtype_id": "implementation.traversal_back_edge_guard",
+      "family": "implementation_boundary_bridge",
+      "description": "遍历或递归中，如何避免沿已处理关系回走、重复访问或陷入循环。",
+      "examples": ["学生不知道遍历时为什么要记录父节点或 visited。", "学生不知道无向关系中如何避免从哪里来又走回哪里。"]
+    },
+    {
       "subtype_id": "implementation.dfs_parent_guard",
       "family": "implementation_boundary_bridge",
-      "description": "DFS 父节点防回走。",
-      "examples": ["学生不知道树上 DFS 为什么要传 fa。"]
+      "description": "兼容旧标注：DFS 父节点防回走。新标注请使用更抽象的 implementation.traversal_back_edge_guard。",
+      "examples": ["学生不知道树上 DFS 为什么要传 fa。"],
+      "status": "deprecated",
+      "replaced_by": "implementation.traversal_back_edge_guard"
     },
     {
       "subtype_id": "implementation.initialization_base_case",
@@ -249,16 +425,32 @@
       "examples": ["学生读入格式理解错导致样例不对。"]
     },
     {
+      "subtype_id": "correctness.local_choice_exchange_argument",
+      "family": "correctness_invariant_bridge",
+      "description": "局部选择、排序或替换的交换论证。",
+      "examples": ["学生不知道为什么某个局部选择可以不亏地替换另一个选择。"]
+    },
+    {
       "subtype_id": "correctness.greedy_exchange_argument",
       "family": "correctness_invariant_bridge",
-      "description": "贪心交换论证。",
-      "examples": ["学生不知道为什么按结束时间排序是对的。"]
+      "description": "兼容旧标注：贪心交换论证。新标注请使用更抽象的 correctness.local_choice_exchange_argument。",
+      "examples": ["学生不知道为什么按结束时间排序是对的。"],
+      "status": "deprecated",
+      "replaced_by": "correctness.local_choice_exchange_argument"
+    },
+    {
+      "subtype_id": "correctness.settled_candidate_invariant",
+      "family": "correctness_invariant_bridge",
+      "description": "解释为什么某个当前候选一旦被选定/弹出/确认，就不会再被后续更优结果推翻。",
+      "examples": ["学生不知道为什么当前最优候选被确认后就不会再变。", "学生不知道某个局部确认动作背后的不变量是什么。"]
     },
     {
       "subtype_id": "correctness.shortest_path_invariant",
       "family": "correctness_invariant_bridge",
-      "description": "最短路正确性不变量。",
-      "examples": ["学生不知道 Dijkstra 为什么弹出后就确定了。"]
+      "description": "兼容旧标注：最短路正确性不变量。新标注请使用更抽象的 correctness.settled_candidate_invariant。",
+      "examples": ["学生不知道 Dijkstra 为什么弹出后就确定了。"],
+      "status": "deprecated",
+      "replaced_by": "correctness.settled_candidate_invariant"
     },
     {
       "subtype_id": "correctness.monotonic_structure_dominance",

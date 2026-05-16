@@ -242,6 +242,33 @@ class DialogueStateV3GenerationTests(unittest.TestCase):
             by_id["dialogue_v3_017_boundary_update_order"]["prior_ai_scaffold"],
         )
 
+    def test_default_luogu_source_replaces_round2_problem_bridge_mismatch_cases(self):
+        source_path = Path("docs/research/bridgebench_cp_heldout_v2_50_draft.jsonl")
+        source_rows = [
+            json.loads(line)
+            for line in source_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+
+        cases = generate_dialogue_state_v3_50.build_dialogue_state_cases(source_rows)
+        by_id = {row["case_id"]: row for row in cases}
+
+        data_structure = by_id["dialogue_v3_035_data_structure_operation_semantics"]
+        self.assertEqual("P3374", data_structure["problem_source_id"])
+        self.assertIn("树状数组", data_structure["problem_title"])
+        self.assertIn("update", " ".join(data_structure["success_criteria"]))
+        self.assertIn("query", " ".join(data_structure["success_criteria"]))
+
+        exchange_one = by_id["dialogue_v3_036_correctness_invariant"]
+        self.assertEqual("P1223", exchange_one["problem_source_id"])
+        self.assertIn("排队接水", exchange_one["problem_title"])
+        self.assertNotIn("状态表示/转移递推", exchange_one["missing_bridge"])
+
+        exchange_two = by_id["dialogue_v3_037_correctness_invariant"]
+        self.assertEqual("P1080", exchange_two["problem_source_id"])
+        self.assertIn("国王游戏", exchange_two["problem_title"])
+        self.assertNotIn("支配关系", exchange_two["missing_bridge"])
+
     def test_generated_cases_pass_heldout_dataset_validator(self):
         target_buckets = ["short"] * 20 + ["medium_short"] * 15 + ["medium_long"] * 10 + ["long"] * 5
         target_recent = ["none"] * 10 + ["short"] * 25 + ["long"] * 15
@@ -338,8 +365,10 @@ class DialogueStateV3GenerationTests(unittest.TestCase):
         self.assertEqual("初始提问", row3["上下文类型"])
         self.assertEqual("不适用", row3["学生跟随状态"])
         self.assertEqual("拆成更小一步", row3["期望下一步教学动作"])
+        self.assertIn("不要直接给完整 check/判定条件", row3["桥梁禁止内容"])
         self.assertNotIn("initial_question", row3.values())
         self.assertNotIn("micro_step", row3.values())
+        self.assertNotIn("no_complete_check_condition", row3.values())
 
     def test_export_review_workbook_has_instruction_and_bridge_bucket_sheets(self):
         with tempfile.TemporaryDirectory() as tmpdir:

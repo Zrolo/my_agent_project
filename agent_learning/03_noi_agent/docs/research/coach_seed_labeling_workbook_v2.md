@@ -53,17 +53,19 @@ Do not use `coach_seed_labeling_workbook_v1.prefilled.csv` or any review workboo
 | `student_already_knows` | Free-text field for what the student already said they know, such as LCA, brute force, or "probably DP". |
 | `student_already_stated_bridge` | Whether the key bridge has already been stated by the student or exposed by a previous tutor. This is crucial for leakage judgments. |
 | `primary_bridge_family` | Main missing bridge family, using the CP-specific v2 taxonomy. |
-| `primary_bridge_subtype_id` | More specific dot-notation subtype for quantitative analysis. It must match the selected `primary_bridge_family`. |
+| `primary_bridge_subtype_id` | Abstract dot-notation subtype for quantitative analysis. It must match the selected `primary_bridge_family` and should describe a transferable bridge shape, not a single algorithm instance. |
 | `registered_focus_id` | Existing system focus id from `focus_registry_v1.json`, or `unknown` / `not_applicable`. |
 | `focus_match_status` | Whether the row matches an existing focus or needs a new one. |
 | `max_scaffold_level` | Strongest appropriate help for this turn. `L0` means clarify/request evidence only. Valid values are `L0`, `L1`, `L2`, and `L3`. |
-| `bridge_specific_forbidden_content` | The current bridge that the AI must not directly complete. |
+| `bridge_specific_forbidden_content` | The abstract leakage shape that the AI must not directly complete, such as an exact state definition, full recurrence, guard condition, boundary update rule, or fully worked trace. |
 | `coach_note_tags` | Short structured note tags such as `multi_bridge_case` or `needs_discussion`. |
 | `coach_free_notes` | Free-text coach notes for disagreement discussion or case-specific comments. |
 
 ## Boundary Rules
 
 Use `turn_type` for the interaction scenario, not the detailed cognitive gap.
+
+Use `algorithm_topic` / `registered_focus_id` / notes for concrete algorithm context. Do not create separate bridge subtypes for every algorithm. For example, a Dijkstra stale priority-queue entry should be labeled as `predicate.obsolete_candidate_guard`, not as a Dijkstra-only bridge subtype. See `bridge_taxonomy_abstraction_policy_v1.md`.
 
 For example:
 
@@ -79,7 +81,7 @@ Recommended labels:
 | `student_problem_solving_state` | `method_application_gap` |
 | `student_already_knows` | `LCA` |
 | `primary_bridge_family` | `aggregation_contribution_bridge` |
-| `primary_bridge_subtype_id` | `aggregation.tree_path_difference_marking` |
+| `primary_bridge_subtype_id` | `aggregation.path_contribution_marking` |
 | `registered_focus_id` | `tree_path_difference` |
 
 Do not create a separate `turn_type` for "knows the algorithm but cannot adapt it." That idea belongs in `student_problem_solving_state=method_application_gap`.
@@ -92,11 +94,11 @@ For example:
 
 | Family | Valid subtype |
 | --- | --- |
-| `predicate_condition_bridge` | `predicate.check_truth_direction` |
-| `aggregation_contribution_bridge` | `aggregation.tree_path_difference_marking` |
-| `correctness_invariant_bridge` | `correctness.greedy_exchange_argument` |
+| `predicate_condition_bridge` | `predicate.feasibility_truth_direction` |
+| `aggregation_contribution_bridge` | `aggregation.path_contribution_marking` |
+| `correctness_invariant_bridge` | `correctness.local_choice_exchange_argument` |
 
-The validator reports an error if a row mixes unrelated values, such as `primary_bridge_family=aggregation_contribution_bridge` with `primary_bridge_subtype_id=predicate.check_truth_direction`.
+The validator reports an error if a row mixes unrelated values, such as `primary_bridge_family=aggregation_contribution_bridge` with `primary_bridge_subtype_id=predicate.feasibility_truth_direction`.
 
 ## Regenerate Workbook
 

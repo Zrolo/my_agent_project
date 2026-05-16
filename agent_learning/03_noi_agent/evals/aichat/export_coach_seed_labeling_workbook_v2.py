@@ -68,6 +68,8 @@ def load_focus_options(path: Path) -> list[str]:
             if isinstance(item, str):
                 labels[item] = option_label(item, item)
             elif isinstance(item, dict) and item.get("focus_id"):
+                if item.get("status") == "deprecated":
+                    continue
                 focus_id = str(item["focus_id"])
                 aliases = item.get("aliases") or []
                 readable = str(aliases[0] if aliases else item.get("description") or focus_id)
@@ -79,10 +81,28 @@ def _normalize_seed_row(row: dict) -> dict:
     return {
         "case_id": row.get("id") or row.get("case_id") or "",
         "problem_ref": row.get("problem_ref") or "",
+        "problem_source_platform": row.get("problem_source_platform") or "",
+        "problem_source_id": row.get("problem_source_id") or "",
+        "problem_source_url": row.get("problem_source_url") or "",
+        "problem_statement": row.get("problem_statement") or "",
+        "problem_statement_public_summary": row.get("problem_statement_public_summary") or "",
+        "problem_statement_rights_note": row.get("problem_statement_rights_note") or "",
+        "problem_statement_access_level": row.get("problem_statement_access_level") or "",
         "student_message": row.get("student_message") or "",
         "problem_context": row.get("problem_context") or "",
         "recent_dialogue": row.get("recent_dialogue") or "N/A",
         "student_code_excerpt": row.get("student_code_excerpt") or "N/A",
+        "source_case_id": row.get("source_case_id") or "",
+        "turn_position": row.get("turn_position") or "",
+        "context_type": row.get("context_type") or "",
+        "student_scaffold_followability": row.get("student_scaffold_followability") or "",
+        "followability_label_confidence": row.get("followability_label_confidence") or "",
+        "followability_evidence_quote": row.get("followability_evidence_quote") or "",
+        "followability_uncertainty_reason": row.get("followability_uncertainty_reason") or "",
+        "prior_ai_scaffold": row.get("prior_ai_scaffold") or "",
+        "student_reply_to_prior_scaffold": row.get("student_reply_to_prior_scaffold") or "",
+        "expected_tutor_move": row.get("expected_tutor_move") or "",
+        "fixed_recent_dialogue_source": row.get("fixed_recent_dialogue_source") or "",
         "review_status": option_label("unlabeled", REVIEW_STATUSES["unlabeled"]),
     }
 
@@ -159,7 +179,8 @@ def _style_labeling_sheet(sheet) -> None:
     sheet.row_dimensions[2].height = 28
     for row_idx in range(3, sheet.max_row + 1):
         sheet.row_dimensions[row_idx].height = 72
-    sheet.freeze_panes = "G3"
+    first_label_column = sheet.cell(row=1, column=len(INPUT_COLUMNS) + 1).column_letter
+    sheet.freeze_panes = f"{first_label_column}3"
     sheet.auto_filter.ref = f"A2:{sheet.cell(row=2, column=len(V2_COLUMNS)).coordinate}"
 
 

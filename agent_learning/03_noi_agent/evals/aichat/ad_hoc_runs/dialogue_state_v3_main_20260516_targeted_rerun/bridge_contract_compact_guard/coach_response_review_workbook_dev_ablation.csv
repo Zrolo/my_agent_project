@@ -1,0 +1,103 @@
+﻿case_id,anonymized_response_id,problem_ref,problem_source_platform,problem_source_id,problem_source_url,problem_statement,problem_statement_public_summary,problem_statement_rights_note,problem_statement_access_level,student_message,student_message_length_bucket,problem_context,recent_dialogue,context_ai_reply,context_alignment_flag,success_criteria,forbidden_content,critical_bridge_boundary,acceptable_reveal,expected_student_next_action,turn_position,context_type,student_scaffold_followability,expected_tutor_move,prior_ai_scaffold,student_reply_to_prior_scaffold,response_text,coach_overall_quality_score,coach_would_show_to_student,coach_leakage_label,coach_bridge_reveal_justification,coach_scaffold_sufficiency_score,coach_student_response_burden,coach_bridge_identification_score,coach_groundedness_score,coach_scaffold_appropriateness_score,coach_next_step_clarity_score,coach_single_focus_coherence_score,coach_micro_example_applicability,coach_bridge_oriented_micro_example_score,coach_bridge_leakage_control_score,coach_preference_rank,coach_reviewer_confidence,coach_needs_discussion,coach_notes,review_status
+dialogue_v3_025_modeling_object_relation,resp_ebb7f5e39c,luogu_p10929_modeling_object_relation,luogu,P10929,https://www.luogu.com.cn/problem/P10929,"题目：黑暗城堡
+来源：洛谷 P10929
+题意摘录：在顺利攻破 Lord lsp 的防线之后，lqr 一行人来到了 Lord lsp 的城堡下方。
+
+Lord lsp 黑化之后虽然拥有了强大的超能力，能够用意念力制造建筑物，但是智商水平却没怎么增加。
+
+现在 lqr 已经搞清楚黑暗城堡有 $N$ 个房间，$M$ 条可以制造的双向通道，以及每条通道的长度。
+
+lqr 深知 Lord lsp 的想法，为了避免每次都要琢磨两个房间之间的最短路径，Lord lsp 一定会把城堡修建成树形的。
+
+但是，为了尽量提高自己的移动效率，Lord lsp 一定会使得城堡满足下面的条件：
+
+设 $D[i]$ 为如果所有的通道都被修建，第 $i$ 号房间与第 $1$ 号房间的最短路径长度；而 $S[i]$ 为实际修建的树形城堡中第 $i$ 号房间与第 $1$ 号房间的路径长度；要求对于所有整数 $i$，有 $S[i]=D[i]$ 成立。
+
+为了打败 Lord lsp，lqr 想知道有多少种不同的城堡修建方案。
+
+保证至少存在一种可行的城堡修建方案。
+
+你需要输出答案对 $2^{31}–1$ 取模之后的结果。
+输入格式摘录：第一行有两个整数 $N$ 和 $M$。
+
+之后 $M$ 行，每行三个整数 $X，Y$ 和 $L$，表示可以修建 $X$ 和 $Y$ 之间的一条长度为 $L$ 的通道。
+输出格式摘录：一个整数，表示答案对 $2^{31}–1$ 取模之后的结果。
+样例输入：3 3
+1 2 2
+1 3 1
+2 3 1
+样例输出：2
+数据范围/提示摘录：数据保证，$2 \le N \le 1000$，$N-1 \le M \le N(N-1)/2$，$1 \le L \le 100$。","洛谷 P10929《黑暗城堡》：在顺利攻破 Lord lsp 的防线之后，lqr 一行人来到了 Lord lsp 的城堡下方。
+
+Lord lsp 黑化之后虽然拥有了强大的超能力，能够用意念力制造建筑物，但是智商水平却没怎么增加。
+
+现在 lqr 已经搞清楚黑暗城堡有 $N$ 个房间，$M$ 条可以制造的双向通道，以及每条通道的长度。...",本地教练复核使用必要题面片段；公开论文/仓库材料应优先保留洛谷链接、题号和改写摘要，不要转载完整原题面。,local_review_only,我能列出对象，但它们之间到底是覆盖、相邻还是依赖，我不确定。 关系我还没列清。,medium_short,"洛谷 P10929《黑暗城堡》：在顺利攻破 Lord lsp 的防线之后，lqr 一行人来到了 Lord lsp 的城堡下方。
+
+Lord lsp 黑化之后虽然拥有了强大的超能力，能够用意念力制造建筑物，但是智商水平却没怎么增加。
+
+现在 lqr 已经搞清楚黑暗城堡有 $N$ 个房间，$M$ 条可以制造的双向通道，以及每条通道的长度。...","学生：题意能看懂，但不知道哪些对象该当点、哪些关系该当边。 我写到这里就卡住。
+AI：先别急着要完整做法。围绕《黑暗城堡》，我们只拆当前一小步：你先列一个题面对象，再说它和另一个对象之间有什么关系。",先别急着要完整做法。围绕《黑暗城堡》，我们只拆当前一小步：你先列一个题面对象，再说它和另一个对象之间有什么关系。,aligned_prior_context_ends_with_assistant,,,,,,followup,followup_after_partial_answer,F2,clarify,先别急着要完整做法。围绕《黑暗城堡》，我们只拆当前一小步：你先列一个题面对象，再说它和另一个对象之间有什么关系。,我能列出对象，但它们之间到底是覆盖、相邻还是依赖，我不确定。 关系我还没列清。,"你能列出对象，这是好的第一步。先别管“覆盖、相邻、依赖”这些词——我们只看题面描述。  
+试找两个具体的房间（比如房间1和房间2），它们之间有什么直接的物理连接？这种连接是不是就是题目里说的“通道”？  
+你觉得这种“有两个房间 → 有一条通道”的关系，适合用图中的什么来表示？",,,,,,,,,,,,,,,,,,,unlabeled
+dialogue_v3_032_data_structure_operation_semantics,resp_86b163c8d8,luogu_p1198_data_structure_operation_semantics,luogu,P1198,https://www.luogu.com.cn/problem/P1198,"题目：[JSOI2008] 最大数
+来源：洛谷 P1198
+题意摘录：现在请求你维护一个数列，要求提供以下两种操作：
+
+1. 查询操作。
+
+语法：`Q L`
+
+功能：查询当前数列中末尾 $L$ 个数中的最大的数，并输出这个数的值。
+
+限制：$L$ 不超过当前数列的长度。$(L > 0)$
+
+2. 插入操作。
+
+语法：`A n`
+
+功能：将 $n$ 加上 $t$，其中 $t$ 是最近一次查询操作的答案（如果还未执行过查询操作，则 $t=0$），并将所得结果对一个固定的常数 $D$ 取模，将所得答案插入到数列的末尾。
+
+限制：$n$ 是整数（可能为负数）并且在长整范围内。
+
+注意：初始时数列是空的，没有一个数。
+输入格式摘录：第一行两个整数，$M$ 和 $D$，其中 $M$ 表示操作的个数，$D$ 如上文中所述。
+
+接下来的 $M$ 行，每行一个字符串，描述一个具体的操作。语法如上文所述。
+输出格式摘录：对于每一个查询操作，你应该按照顺序依次输出结果，每个结果占一行。
+样例输入：5 100
+A 96
+Q 1
+A 97
+Q 1
+Q 2
+样例输出：96
+93
+96
+数据范围/提示摘录：#### 数据规模与约定
+
+对于全部的测试点，保证 $1 \leq M \leq 2 \times 10^5$，$1 \leq D \leq 2 \times 10^9$。","洛谷 P1198《[JSOI2008] 最大数》：现在请求你维护一个数列，要求提供以下两种操作：
+
+1. 查询操作。
+
+语法：`Q L`
+
+功能：查询当前数列中末尾 $L$ 个数中的最大的数，并输出这个数的值。
+
+限制：$L$ 不超过当前数列的长度。$(L > 0)$
+
+2. 插入操作。
+
+语法：`A n`...",本地教练复核使用必要题面片段；公开论文/仓库材料应优先保留洛谷链接、题号和改写摘要，不要转载完整原题面。,local_review_only,一次修改之后，节点里的值要怎么保持正确我没想清。查询时为什么能直接拿这些维护量拼出答案？,medium_short,"洛谷 P1198《[JSOI2008] 最大数》：现在请求你维护一个数列，要求提供以下两种操作：
+
+1. 查询操作。
+
+语法：`Q L`
+
+功能：查询当前数列中末尾 $L$ 个数中的最大的数，并输出这个数的值。
+
+限制：$L$ 不超过当前数列的长度。$(L > 0)$
+
+2. 插入操作。
+
+语法：`A n`...","学生：update/query 我会照着写，但不知道操作后哪些信息应该保持正确。
+AI：先别急着要完整做法。围绕《[JSOI2008] 最大数》，我们只拆当前一小步：你先说一次 update/query 之后，结构里应该保持什么摘要信息。",先别急着要完整做法。围绕《[JSOI2008] 最大数》，我们只拆当前一小步：你先说一次 update/query 之后，结构里应该保持什么摘要信息。,aligned_prior_context_ends_with_assistant,,,,,,followup,followup_after_wrong_answer,F3,micro_step,先别急着要完整做法。围绕《[JSOI2008] 最大数》，我们只拆当前一小步：你先说一次 update/query 之后，结构里应该保持什么摘要信息。,一次修改之后，节点里的值要怎么保持正确我没想清。查询时为什么能直接拿这些维护量拼出答案？,你给的代码里 `pushup` 维护的是 `sum`，但题目要求查询的是区间**最大值**。是不是先核对一下：你的线段树节点里应该存什么信息，才能让一次 `Q L` 直接说出末尾 L 个数的最大值？然后你再看看当前 `pushup` 能不能正确产生那个信息。,,,,,,,,,,,,,,,,,,,unlabeled

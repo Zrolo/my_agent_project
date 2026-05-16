@@ -23,7 +23,7 @@ class ExportCoachV2GoldJsonlTests(unittest.TestCase):
             "student_already_stated_bridge": option_label("not_stated"),
             "policy_risk_type": option_label("critical_bridge_completion_risk"),
             "primary_bridge_family": option_label("aggregation_contribution_bridge"),
-            "primary_bridge_subtype_id": option_label("aggregation.tree_path_difference_marking"),
+            "primary_bridge_subtype_id": option_label("aggregation.path_contribution_marking"),
             "registered_focus_id": "tree_path_difference",
             "focus_match_status": option_label("matched_existing"),
             "help_seeking_type": f"{option_label('strategy_hint_request')};{option_label('concept_explanation')}",
@@ -43,7 +43,7 @@ class ExportCoachV2GoldJsonlTests(unittest.TestCase):
         self.assertEqual("critical_bridge_request", gold["turn_type"])
         self.assertEqual("method_application_gap", gold["student_problem_solving_state"])
         self.assertEqual("aggregation_contribution_bridge", gold["primary_bridge_family"])
-        self.assertEqual("aggregation.tree_path_difference_marking", gold["primary_bridge_subtype_id"])
+        self.assertEqual("aggregation.path_contribution_marking", gold["primary_bridge_subtype_id"])
         self.assertEqual("tree_path_difference", gold["registered_focus_id"])
         self.assertEqual(["strategy_hint_request", "concept_explanation"], gold["help_seeking_type"])
         self.assertEqual(["micro_example", "guiding_question"], gold["help_forms"])
@@ -77,7 +77,7 @@ class ExportCoachV2GoldJsonlTests(unittest.TestCase):
                     "状态怎么设？",
                     option_label("critical_bridge_request"),
                     option_label("representation_state_bridge"),
-                    option_label("state.dp_state_semantics"),
+                    option_label("state.table_or_memo_cell_semantics"),
                     "state_design",
                     option_label("labeled"),
                     "状态怎么设",

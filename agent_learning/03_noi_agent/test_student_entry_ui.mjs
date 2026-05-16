@@ -650,6 +650,20 @@ test('chat page lets students choose an AIChat model provider', () => {
   assert.doesNotMatch(chatPage, /Kimi/);
 });
 
+test('chat page lets students choose an answer style independently from model provider', () => {
+  assert.match(chatPage, /const CHAT_PROMPT_MODE_STORAGE_KEY = 'noi-agent-chat-prompt-mode'/);
+  assert.match(chatPage, /const CHAT_PROMPT_MODE_OPTIONS = \[/);
+  assert.match(chatPage, /selectedChatPromptMode/);
+  assert.match(chatPage, /selectChatPromptMode/);
+  assert.match(chatPage, /回答方式/);
+  assert.match(chatPage, /简洁提示/);
+  assert.match(chatPage, /教练引导/);
+  assert.match(chatPage, /真正卡住时使用/);
+  assert.match(chatPage, /分解成一个当前小步骤/);
+  assert.match(chatPage, /aichat_prompt_mode: selectedChatPromptMode\.value/);
+  assert.match(chatPage, /chat_model_provider: selectedChatModel\.value/);
+});
+
 test('chat page clears pending code attachment when resetting the conversation context', () => {
   const resetSessionFunction = chatPage.match(/function resetSession\(\) \{[\s\S]*?\n\}/)?.[0] || '';
   const clearProblemContextFunction = chatPage.match(/function clearProblemContext\(\) \{[\s\S]*?\n\}/)?.[0] || '';
@@ -684,7 +698,7 @@ test('teacher students page contains a usable Chinese student account creation p
   assert.match(teacherAccountsPage, /初始密码/);
   assert.match(teacherAccountsPage, /停用/);
   assert.match(teacherAccountsPage, /启用/);
-  assert.match(teacherAccountsPage, /重置密码/);
+  assert.match(teacherAccountsPage, /修改密码/);
   assert.doesNotMatch(teacherStudentsPage, /创建学生账号/);
   assert.doesNotMatch(teacherStudentsPage, />Students</);
   assert.doesNotMatch(teacherLayout, /Review Ops|Records & Students|Teacher Overview/);

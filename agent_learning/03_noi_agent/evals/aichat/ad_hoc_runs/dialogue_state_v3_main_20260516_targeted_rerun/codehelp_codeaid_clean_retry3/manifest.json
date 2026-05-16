@@ -1,0 +1,33 @@
+{
+  "input_jsonl": "docs/research/bridgebench_cp_dialogue_state_v3_50_reviewed_candidate.jsonl",
+  "output_dir": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/codehelp_codeaid_clean_retry3",
+  "case_count": 1,
+  "condition_set": "dialogue_state_v3_main",
+  "condition_count": 1,
+  "conditions": [
+    {
+      "condition_id": "codehelp_codeaid_clean",
+      "tutor_mode": "codehelp_codeaid_no_direct_solution_tutor",
+      "pipeline_mode": "tutor_only_no_diagnosis",
+      "guard_mode": "predicted"
+    }
+  ],
+  "selected_case_ids": [
+    "dialogue_v3_029_aggregation_contribution_summary"
+  ],
+  "selected_condition_ids": [
+    "codehelp_codeaid_clean"
+  ],
+  "condition_outputs": [
+    "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/codehelp_codeaid_clean_retry3/codehelp_codeaid_clean.jsonl"
+  ],
+  "combined_row_count": 1,
+  "combined_jsonl": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/codehelp_codeaid_clean_retry3/combined_dev_ablation.jsonl",
+  "summary_json": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/codehelp_codeaid_clean_retry3/combined_dev_ablation_summary.json",
+  "summary_md": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/codehelp_codeaid_clean_retry3/combined_dev_ablation_summary.md",
+  "summary_md_zh": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/codehelp_codeaid_clean_retry3/combined_dev_ablation_summary.zh.md",
+  "review_csv": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/codehelp_codeaid_clean_retry3/coach_response_review_workbook_dev_ablation.csv",
+  "review_key_csv": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/codehelp_codeaid_clean_retry3/coach_response_review_workbook_dev_ablation.key.csv",
+  "review_xlsx": "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_targeted_rerun/codehelp_codeaid_clean_retry3/coach_response_review_workbook_dev_ablation.zh.xlsx",
+  "review_row_count": 1
+}

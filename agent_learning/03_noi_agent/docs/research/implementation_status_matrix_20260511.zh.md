@@ -1,6 +1,6 @@
 # Implementation Status Matrix
 
-Date: 2026-05-11
+Date: 2026-05-11; updated 2026-05-12
 
 本文件用于区分“当前线上已经发生的行为”“离线研究工具链”“shadow/proposed 设计”和“尚未实现的计划”。论文和外部审查不得把这些状态混写。
 
@@ -24,6 +24,8 @@ Date: 2026-05-11
 | legacy learning phase judge | `online_active` | 当前流程文档已记录 | 可作为 baseline path，不作为新贡献 |
 | Pedagogical Judge v2 soft control | `online_active` | 主要影响 `tutor_control`，不直接更新 hard gate | 不能说它已经是 hard bridge controller |
 | model self-reported `[LEVEL:Lx]` hard gate | `online_active` | 当前 hard gate 依赖模型自报 level | 可作为 baseline limitation |
+| online answer-style toggle | `online_active` | 2026-05-12 上线；默认 `简洁提示=current_system`，可选 `教练引导=enhanced_prompt_only_clean`；只改变 prompt-only guidance，不接入 Bridge Judge / Guard / Repair | 可作为产品侧 UX 改动和日志分层字段；不能作为 held-out 实验证据 |
+| `aichat_prompt_mode` request / response field | `online_active` | 线上请求和响应记录回答方式；未来真实日志必须按该字段分层 | 若使用线上日志 case，必须报告 prompt mode |
 | content-level independent leakage judge in online chat | `not_implemented` | Research v1 有离线 Leakage Judge，但未接入线上 active mode | 不能声称线上已有独立泄题检测闭环 |
 | online full multi-judge every turn | `not_implemented` | scope lock 明确不作为默认线上策略 | 不应声称已上线 |
 
@@ -35,10 +37,12 @@ Date: 2026-05-11
 | Runtime bridge contract schema | `offline_eval_only` | `runtime_bridge_contract_schema_v1.json` | 可作为研究中的 compact control signal |
 | Bridge Contract Tutor | `offline_eval_only` | runner 支持 bridge_contract 相关模式 | 可作为 ablation condition |
 | Leakage Judge / Guard | `offline_eval_only` | 离线检测 candidate / final response | 可作为 guard ablation，但需校准 |
-| Repair Generator | `offline_eval_only` | 离线 repair；自然 mini-study 中不一定触发；已有 20-case repair stress development run | 需要 before/after 教练盲评后才能主张最终效果 |
+| Repair Generator | `offline_eval_only` | 离线 repair；自然 mini-study 中不一定触发；已有 20-case repair stress development run 和 20 对 before/after 教练盲评分析 | 可作为 pilot evidence；正式效果仍需 held-out 自然样本与 judge calibration |
 | Response blind review workbook | `teacher_tool_only` | 教师端/Excel/workbook 盲评流程 | 可作为 coach review workflow |
-| Repair before/after review | `teacher_tool_only` | 已有 before/after review scripts and reports | 可作为 Repair stress workflow 的基础 |
-| bilingual reports | `offline_eval_only` | 中文为教练主读面，英文为外部协作面 | 可作为研究协作规范 |
+| Repair before/after review | `teacher_tool_only` | all20 Repair stress 已有 20 对完整标注；修复后质量更好 14、持平 3、更差 3，泄露减轻 19、持平 1 | 可作为 Repair stress pilot，不作为最终 held-out 结论 |
+| bilingual reports | `offline_eval_only` | 中文为教练主读面，英文为外部协作面；已有 bilingual policy 和 validator | 可作为研究协作规范 |
+| bilingual docs validator | `offline_eval_only` | `validate_research_bilingual_docs.py` 默认允许 23 个 legacy debt，但拦截新增单语 Markdown | 可作为文档治理工具 |
+| static lint dev gate | `offline_eval_only` | summary 已输出 `dev_gate`，answer-slot / filled-trace / worked-example 等风险触发 review_required | 可作为 dev 阶段筛选信号，不是 coach gold |
 
 ## Proposed / Shadow / Future
 
@@ -56,11 +60,12 @@ Date: 2026-05-11
 | Artifact | Status | Notes |
 |---|---|---|
 | 20 old seeds | `offline_eval_only` | 已用于 pilot、prompt tuning、regression；不再作为正式 held-out test |
-| 50 held-out test set | `not_implemented` | 下一阶段核心数据集 |
+| 50 held-out test set | `offline_eval_only` | 已有 `bridgebench_cp_heldout_v1_50_draft.jsonl` 草稿和 dataset card；validator 通过 50 条数量、必填字段和 dev seed id overlap 检查 | 只能写成 draft held-out，仍需 Coach A 审查、Coach B 复标和冻结 |
 | partial double annotation | `not_implemented` | 需 Coach B 独立标至少 20 条 |
 | adjudicated reference | `not_implemented` | 主实验 headline metrics 前需要 |
 | LLM Judge calibration protocol | `doc_only` after this update | 协议先建，报告后补 |
-| repair stress set | `offline_eval_only` | `repair_stress_cases_v1.jsonl` 已扩到 20 条；已有 all20 自动 stress run 和 40 行 before/after 盲评表 | 仍需教练 blind review 和 before/after paired analysis |
+| repair stress set | `offline_eval_only` | `repair_stress_cases_v1.jsonl` 已扩到 20 条；已有 all20 自动 stress run、40 行 before/after 盲评表和 20 对 paired analysis | 仍需把 `repair_stress_004` 等失败样本纳入 regression；正式结论还需 held-out 自然样本 |
+| bilingual documentation debt | `doc_only` | 当前 129 个 research Markdown；新增文档无单语违规；23 个历史未配对文档列为 legacy debt | 后续逐步补齐，不阻塞当前 Research v1 |
 | pass^3 stability eval | `not_implemented` | 用于 online reliability discussion |
 
 ## 论文声明边界
@@ -68,6 +73,7 @@ Date: 2026-05-11
 ### 可以说
 
 - 当前线上 AIChat 是 `current_system` baseline。
+- 线上学生端已有可选 `教练引导=enhanced_prompt_only_clean` 回答方式；默认仍是 `简洁提示=current_system`。
 - Research branch 已形成 offline evaluation harness。
 - Bridge Contract、Guard、Repair 是离线可消融的研究模块。
 - mini-study 是 pilot，不是最终投稿级证据。
@@ -75,6 +81,7 @@ Date: 2026-05-11
 ### 不可以说
 
 - 当前线上 AIChat 已经完整 Bridge-aware。
+- `教练引导` 已证明 Research v1 方法有效。
 - Repair 已经在线修复学生回复。
 - Leakage Judge 已经在线阻断所有泄露。
 - risk-triggered routing 已经成熟上线。

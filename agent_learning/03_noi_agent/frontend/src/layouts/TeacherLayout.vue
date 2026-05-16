@@ -1,14 +1,24 @@
 <script setup>
-import { computed, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router';
 
 import LoginView from '@/components/LoginView.vue';
 import { defaultPathForRole, normalizePendingPath } from '@/router/routeAccess';
+import { changeTeacherPassword } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 
 const auth = useAuthStore();
 const route = useRoute();
 const router = useRouter();
+const showPasswordDialog = ref(false);
+const passwordSaving = ref(false);
+const passwordError = ref('');
+const passwordMessage = ref('');
+const passwordForm = reactive({
+  current_password: '',
+  new_password: '',
+  confirm_password: '',
+});
 
 watch(
   () => auth.role,
@@ -87,6 +97,50 @@ function handleLogout() {
   auth.logout();
   router.replace(defaultPathForRole('student'));
 }
+
+function resetPasswordForm() {
+  passwordForm.current_password = '';
+  passwordForm.new_password = '';
+  passwordForm.confirm_password = '';
+}
+
+function openPasswordDialog() {
+  passwordError.value = '';
+  passwordMessage.value = '';
+  resetPasswordForm();
+  showPasswordDialog.value = true;
+}
+
+function closePasswordDialog() {
+  if (passwordSaving.value) return;
+  showPasswordDialog.value = false;
+  passwordError.value = '';
+  passwordMessage.value = '';
+  resetPasswordForm();
+}
+
+async function handlePasswordChange() {
+  passwordError.value = '';
+  passwordMessage.value = '';
+  if (passwordForm.new_password !== passwordForm.confirm_password) {
+    passwordError.value = '两次输入的新密码不一致';
+    return;
+  }
+  passwordSaving.value = true;
+  try {
+    const result = await changeTeacherPassword(auth.token, {
+      current_password: passwordForm.current_password,
+      new_password: passwordForm.new_password,
+      confirm_password: passwordForm.confirm_password,
+    });
+    resetPasswordForm();
+    passwordMessage.value = result?.message || '密码已修改，请妥善保存新密码';
+  } catch (error) {
+    passwordError.value = error?.message || '修改密码失败，请稍后再试';
+  } finally {
+    passwordSaving.value = false;
+  }
+}
 </script>
 
 <template>
@@ -127,10 +181,80 @@ function handleLogout() {
             <div class="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600">
               {{ auth.userId }}
             </div>
+            <button class="button-secondary" type="button" @click="openPasswordDialog">修改密码</button>
             <button class="button-secondary" type="button" @click="handleLogout">退出</button>
           </div>
         </div>
       </header>
+
+      <div
+        v-if="showPasswordDialog"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4"
+        role="dialog"
+        aria-modal="true"
+        aria-label="修改密码"
+        @click.self="closePasswordDialog"
+      >
+        <form class="w-full max-w-md rounded-[8px] bg-white p-5 shadow-xl" @submit.prevent="handlePasswordChange">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-sm font-semibold tracking-[0.16em] text-slate-400">账号安全</p>
+              <h2 class="mt-1 text-xl font-bold text-slate-900">修改密码</h2>
+              <p class="mt-1 text-sm text-slate-500">请输入当前密码，并自己设置新的登录密码。</p>
+            </div>
+            <button class="button-secondary px-3 py-1 text-sm" type="button" @click="closePasswordDialog">关闭</button>
+          </div>
+
+          <div class="mt-5 space-y-4">
+            <label class="block">
+              <span class="text-sm font-semibold text-slate-700">当前密码</span>
+              <input
+                v-model="passwordForm.current_password"
+                class="mt-2 w-full rounded-[8px] border border-slate-200 px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-100"
+                type="password"
+                autocomplete="current-password"
+                required
+              >
+            </label>
+            <label class="block">
+              <span class="text-sm font-semibold text-slate-700">新密码</span>
+              <input
+                v-model="passwordForm.new_password"
+                class="mt-2 w-full rounded-[8px] border border-slate-200 px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-100"
+                type="password"
+                autocomplete="new-password"
+                minlength="4"
+                required
+              >
+            </label>
+            <label class="block">
+              <span class="text-sm font-semibold text-slate-700">确认新密码</span>
+              <input
+                v-model="passwordForm.confirm_password"
+                class="mt-2 w-full rounded-[8px] border border-slate-200 px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-100"
+                type="password"
+                autocomplete="new-password"
+                minlength="4"
+                required
+              >
+            </label>
+          </div>
+
+          <p v-if="passwordError" class="mt-4 rounded-[8px] bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">
+            {{ passwordError }}
+          </p>
+          <p v-if="passwordMessage" class="mt-4 rounded-[8px] bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">
+            {{ passwordMessage }}
+          </p>
+
+          <div class="mt-5 flex justify-end gap-3">
+            <button class="button-secondary" type="button" :disabled="passwordSaving" @click="closePasswordDialog">取消</button>
+            <button class="button-primary" type="submit" :disabled="passwordSaving">
+              {{ passwordSaving ? '正在修改...' : '保存新密码' }}
+            </button>
+          </div>
+        </form>
+      </div>
 
       <section :class="['hero-band bg-gradient-to-br', heroConfig.accent]">
         <p class="section-eyebrow text-white/75">{{ heroConfig.eyebrow }}</p>
