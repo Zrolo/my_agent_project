@@ -138,6 +138,10 @@ class CoachResponseReviewXlsxTests(unittest.TestCase):
         workflow = workbook["评分流程"]
         workflow_values = "\n".join(str(cell.value or "") for row in workflow.iter_rows() for cell in row)
         self.assertIn("教练评分顺序", workflow_values)
+        self.assertIn("正式评分入口", workflow_values)
+        self.assertIn("题001_", workflow_values)
+        self.assertIn("横向比较", workflow_values)
+        self.assertIn("不建议人工直接填写", workflow_values)
         self.assertIn("校准轮", workflow_values)
         self.assertIn("calibration samples", workflow_values)
         self.assertIn("先看题目/题面摘要", workflow_values)
@@ -150,6 +154,12 @@ class CoachResponseReviewXlsxTests(unittest.TestCase):
         self.assertIn("近期对话和学生当前问题明显不接", workflow_values)
         self.assertIn("补强制备注", workflow_values)
         self.assertIn("低置信", workflow_values)
+        start = workbook["开始这里"]
+        start_values = "\n".join(str(cell.value or "") for row in start.iter_rows() for cell in row)
+        self.assertIn("按题索引", start_values)
+        self.assertIn("题001_", start_values)
+        self.assertIn("横向比较同一题的 7 条匿名 AI 回复", start_values)
+        self.assertIn("盲评表”用于全局汇总查看", start_values)
 
     def test_export_xlsx_can_show_dialogue_state_context_columns(self):
         with tempfile.TemporaryDirectory() as tmpdir:

@@ -134,6 +134,50 @@ class CoachResponseReviewWorkbookTests(unittest.TestCase):
         self.assertIn("coach_reviewer_confidence", reader.fieldnames)
         self.assertIn("coach_needs_discussion", reader.fieldnames)
 
+    def test_build_review_rows_backfills_case_specific_rubric_from_case_source(self):
+        result_rows = [
+            {
+                "case_id": "dialogue_v3_001_state_representation_semantics",
+                "problem_ref": "P1001",
+                "student_message": "这个状态怎么想？",
+                "context_type": "initial_question",
+                "turn_position": "initial",
+                "student_scaffold_followability": "NA",
+                "expected_tutor_move": "micro_step",
+                "final_response_text": "先说这个格子对应题面里的哪个对象。",
+            }
+        ]
+        case_source_by_id = {
+            "dialogue_v3_001_state_representation_semantics": {
+                "case_id": "dialogue_v3_001_state_representation_semantics",
+                "missing_bridge": "缺少把题面对象、已处理范围和状态值语义对应起来的表示关系。",
+                "success_criteria": ["回复让学生先说清状态下标代表的对象或范围。"],
+                "forbidden_content": ["no_exact_state_definition", "no_full_solution"],
+                "context_type_zh": "初始提问",
+                "turn_position": "initial",
+                "student_scaffold_followability_zh": "不适用",
+                "expected_tutor_move_zh": "拆成更小一步",
+            }
+        }
+
+        rows, _ = response_workbook.build_review_rows(
+            result_rows,
+            shuffle_seed=1,
+            case_source_by_id=case_source_by_id,
+        )
+        row = rows[0]
+
+        self.assertIn("回复让学生先说清状态下标代表的对象或范围", row["success_criteria"])
+        self.assertIn("不要直接给出完整状态/表示定义", row["forbidden_content"])
+        self.assertNotIn("no_exact_state_definition", row["forbidden_content"])
+        self.assertIn("缺少把题面对象", row["critical_bridge_boundary"])
+        self.assertIn("可以复述题意", row["acceptable_reveal"])
+        self.assertIn("学生下一步应能", row["expected_student_next_action"])
+        self.assertEqual("初始提问", row["context_type"])
+        self.assertEqual("初始提问", row["turn_position"])
+        self.assertEqual("不适用", row["student_scaffold_followability"])
+        self.assertEqual("拆成更小一步", row["expected_tutor_move"])
+
     def test_main_writes_blind_workbook_and_key(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             input_path = Path(tmpdir) / "results.jsonl"
@@ -173,6 +217,56 @@ class CoachResponseReviewWorkbookTests(unittest.TestCase):
             self.assertTrue(key_csv.exists())
             self.assertIn("anonymized_response_id", output_csv.read_text(encoding="utf-8-sig"))
             self.assertIn("current_system", key_csv.read_text(encoding="utf-8-sig"))
+
+    def test_main_can_backfill_rubric_from_case_source_jsonl(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_path = Path(tmpdir) / "results.jsonl"
+            case_path = Path(tmpdir) / "cases.jsonl"
+            output_csv = Path(tmpdir) / "review.csv"
+            key_csv = Path(tmpdir) / "review.key.csv"
+            input_path.write_text(
+                json.dumps(
+                    {
+                        "case_id": "case_1",
+                        "student_message": "不会",
+                        "final_response_text": "先说一个小观察。",
+                    },
+                    ensure_ascii=False,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            case_path.write_text(
+                json.dumps(
+                    {
+                        "case_id": "case_1",
+                        "missing_bridge": "缺少把候选值和可行性方向对应起来。",
+                        "success_criteria": ["回复让学生判断 true/false 的含义。"],
+                        "forbidden_content": ["no_complete_check_condition"],
+                    },
+                    ensure_ascii=False,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            response_workbook.main(
+                [
+                    "--input-jsonl",
+                    str(input_path),
+                    "--output-csv",
+                    str(output_csv),
+                    "--key-csv",
+                    str(key_csv),
+                    "--case-source-jsonl",
+                    str(case_path),
+                ]
+            )
+
+            content = output_csv.read_text(encoding="utf-8-sig")
+            self.assertIn("回复让学生判断 true/false 的含义", content)
+            self.assertIn("不要直接给出完整 check/判定条件", content)
+            self.assertNotIn("no_complete_check_condition", content)
 
     def test_context_ai_reply_is_extracted_from_prior_assistant_message(self):
         rows, _ = response_workbook.build_review_rows(
