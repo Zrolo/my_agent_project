@@ -147,6 +147,8 @@ Research v1 不包含：
 - [dialogue_state_v3_prompt_rubric_freeze_gate_20260516.md](dialogue_state_v3_prompt_rubric_freeze_gate_20260516.md): English prompt/rubric freeze gate for the dialogue-state v3 reviewed candidate response generation run.
 - [dialogue_state_v3_main_generation_integrity_20260516.zh.md](dialogue_state_v3_main_generation_integrity_20260516.zh.md): 中文 dialogue-state v3 主实验生成完整性记录，说明 7-condition 主表 350 行和 DBox+Repair 附录 50 行均已通过完整性检查，可进入后续盲评。
 - [dialogue_state_v3_main_generation_integrity_20260516.md](dialogue_state_v3_main_generation_integrity_20260516.md): English integrity record for the dialogue-state v3 main response generation pack and DBox+Repair fairness add-on.
+- [dialogue_state_v3_human_review_result_packet_20260517.zh.md](dialogue_state_v3_human_review_result_packet_20260517.zh.md): 中文 dialogue-state v3 人类盲评结果总包，汇总 Coach A/B 全量评审、一致性、60 条高优先级裁决、敏感性分析和按 case-use slice 的分层分析；当前是 formal human-review evidence candidate，不是 final gold。
+- [dialogue_state_v3_human_review_result_packet_20260517.md](dialogue_state_v3_human_review_result_packet_20260517.md): English dialogue-state v3 human-review result packet summarizing Coach A/B reviews, agreement, high-priority adjudication, sensitivity analysis, and slice analysis.
 
 ### Runtime Contract And Registries
 

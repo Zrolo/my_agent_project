@@ -1,0 +1,427 @@
+{
+  "notes": "A/B-only are raw rater views; priority60 scenarios replace 60 high-priority disagreements with adjudicated labels.",
+  "robustness": [
+    {
+      "best_overall": [
+        "bridge_contract_compact_guard_repair",
+        3.96
+      ],
+      "best_ready": [
+        "bridge_contract_compact_guard_repair",
+        37
+      ],
+      "best_safe_ready": [
+        "bridge_contract_compact_guard_repair",
+        37
+      ],
+      "lowest_major_answer": [
+        "bridge_contract_compact_guard_repair",
+        1
+      ],
+      "scenario": "coach_A_only"
+    },
+    {
+      "best_overall": [
+        "bridge_contract_compact_guard_repair",
+        3.24
+      ],
+      "best_ready": [
+        "enhanced_prompt_only_clean",
+        17
+      ],
+      "best_safe_ready": [
+        "enhanced_prompt_only_clean",
+        17
+      ],
+      "lowest_major_answer": [
+        "codehelp_codeaid_clean",
+        1
+      ],
+      "scenario": "coach_B_only"
+    },
+    {
+      "best_overall": [
+        "bridge_contract_compact_guard_repair",
+        4.02
+      ],
+      "best_ready": [
+        "bridge_contract_compact_guard_repair",
+        39
+      ],
+      "best_safe_ready": [
+        "bridge_contract_compact_guard_repair",
+        39
+      ],
+      "lowest_major_answer": [
+        "bridge_contract_compact_guard",
+        0
+      ],
+      "scenario": "priority60_adjudicated_plus_coachA"
+    },
+    {
+      "best_overall": [
+        "bridge_contract_compact_guard_repair",
+        3.34
+      ],
+      "best_ready": [
+        "dbox_inspired_clean",
+        18
+      ],
+      "best_safe_ready": [
+        "dbox_inspired_clean",
+        18
+      ],
+      "lowest_major_answer": [
+        "bridge_contract_compact_guard",
+        0
+      ],
+      "scenario": "priority60_adjudicated_plus_coachB"
+    }
+  ],
+  "summaries": {
+    "coach_A_only": {
+      "bridge_contract_compact_guard": {
+        "adjudicated_rows": 0,
+        "major_answer": 4,
+        "minor": 11,
+        "n": 50,
+        "overall": 3.9,
+        "rank1": 5,
+        "ready": 33,
+        "safe_ready": 33,
+        "show_no": 1,
+        "show_yes": 33
+      },
+      "bridge_contract_compact_guard_repair": {
+        "adjudicated_rows": 0,
+        "major_answer": 1,
+        "minor": 7,
+        "n": 50,
+        "overall": 3.96,
+        "rank1": 16,
+        "ready": 37,
+        "safe_ready": 37,
+        "show_no": 3,
+        "show_yes": 37
+      },
+      "bridge_guided_dbox_style_guard": {
+        "adjudicated_rows": 0,
+        "major_answer": 3,
+        "minor": 15,
+        "n": 50,
+        "overall": 3.68,
+        "rank1": 6,
+        "ready": 29,
+        "safe_ready": 29,
+        "show_no": 5,
+        "show_yes": 29
+      },
+      "codehelp_codeaid_clean": {
+        "adjudicated_rows": 0,
+        "major_answer": 3,
+        "minor": 9,
+        "n": 50,
+        "overall": 3.64,
+        "rank1": 3,
+        "ready": 31,
+        "safe_ready": 31,
+        "show_no": 4,
+        "show_yes": 31
+      },
+      "dbox_inspired_clean": {
+        "adjudicated_rows": 0,
+        "major_answer": 4,
+        "minor": 9,
+        "n": 50,
+        "overall": 3.68,
+        "rank1": 10,
+        "ready": 31,
+        "safe_ready": 31,
+        "show_no": 6,
+        "show_yes": 31
+      },
+      "dbox_inspired_guard": {
+        "adjudicated_rows": 0,
+        "major_answer": 2,
+        "minor": 10,
+        "n": 50,
+        "overall": 3.7,
+        "rank1": 8,
+        "ready": 33,
+        "safe_ready": 33,
+        "show_no": 4,
+        "show_yes": 33
+      },
+      "enhanced_prompt_only_clean": {
+        "adjudicated_rows": 0,
+        "major_answer": 18,
+        "minor": 17,
+        "n": 50,
+        "overall": 3.16,
+        "rank1": 2,
+        "ready": 14,
+        "safe_ready": 14,
+        "show_no": 9,
+        "show_yes": 14
+      }
+    },
+    "coach_B_only": {
+      "bridge_contract_compact_guard": {
+        "adjudicated_rows": 0,
+        "major_answer": 1,
+        "minor": 1,
+        "n": 50,
+        "overall": 3.1,
+        "rank1": 6,
+        "ready": 9,
+        "safe_ready": 9,
+        "show_no": 4,
+        "show_yes": 9
+      },
+      "bridge_contract_compact_guard_repair": {
+        "adjudicated_rows": 0,
+        "major_answer": 1,
+        "minor": 1,
+        "n": 50,
+        "overall": 3.24,
+        "rank1": 6,
+        "ready": 14,
+        "safe_ready": 14,
+        "show_no": 2,
+        "show_yes": 14
+      },
+      "bridge_guided_dbox_style_guard": {
+        "adjudicated_rows": 0,
+        "major_answer": 2,
+        "minor": 0,
+        "n": 50,
+        "overall": 3.14,
+        "rank1": 7,
+        "ready": 12,
+        "safe_ready": 12,
+        "show_no": 5,
+        "show_yes": 12
+      },
+      "codehelp_codeaid_clean": {
+        "adjudicated_rows": 0,
+        "major_answer": 1,
+        "minor": 0,
+        "n": 50,
+        "overall": 3.1,
+        "rank1": 4,
+        "ready": 10,
+        "safe_ready": 10,
+        "show_no": 5,
+        "show_yes": 10
+      },
+      "dbox_inspired_clean": {
+        "adjudicated_rows": 0,
+        "major_answer": 3,
+        "minor": 0,
+        "n": 50,
+        "overall": 3.2,
+        "rank1": 10,
+        "ready": 15,
+        "safe_ready": 15,
+        "show_no": 5,
+        "show_yes": 15
+      },
+      "dbox_inspired_guard": {
+        "adjudicated_rows": 0,
+        "major_answer": 1,
+        "minor": 0,
+        "n": 50,
+        "overall": 3.22,
+        "rank1": 10,
+        "ready": 16,
+        "safe_ready": 16,
+        "show_no": 5,
+        "show_yes": 16
+      },
+      "enhanced_prompt_only_clean": {
+        "adjudicated_rows": 0,
+        "major_answer": 4,
+        "minor": 0,
+        "n": 50,
+        "overall": 3.18,
+        "rank1": 7,
+        "ready": 17,
+        "safe_ready": 17,
+        "show_no": 7,
+        "show_yes": 17
+      }
+    },
+    "priority60_adjudicated_plus_coachA": {
+      "bridge_contract_compact_guard": {
+        "adjudicated_rows": 9,
+        "major_answer": 0,
+        "minor": 14,
+        "n": 50,
+        "overall": 3.86,
+        "rank1": 5,
+        "ready": 33,
+        "safe_ready": 32,
+        "show_no": 1,
+        "show_yes": 33
+      },
+      "bridge_contract_compact_guard_repair": {
+        "adjudicated_rows": 4,
+        "major_answer": 0,
+        "minor": 7,
+        "n": 50,
+        "overall": 4.02,
+        "rank1": 16,
+        "ready": 39,
+        "safe_ready": 39,
+        "show_no": 2,
+        "show_yes": 39
+      },
+      "bridge_guided_dbox_style_guard": {
+        "adjudicated_rows": 4,
+        "major_answer": 3,
+        "minor": 15,
+        "n": 50,
+        "overall": 3.66,
+        "rank1": 6,
+        "ready": 29,
+        "safe_ready": 29,
+        "show_no": 5,
+        "show_yes": 29
+      },
+      "codehelp_codeaid_clean": {
+        "adjudicated_rows": 7,
+        "major_answer": 2,
+        "minor": 9,
+        "n": 50,
+        "overall": 3.6,
+        "rank1": 3,
+        "ready": 30,
+        "safe_ready": 30,
+        "show_no": 5,
+        "show_yes": 30
+      },
+      "dbox_inspired_clean": {
+        "adjudicated_rows": 10,
+        "major_answer": 3,
+        "minor": 10,
+        "n": 50,
+        "overall": 3.74,
+        "rank1": 10,
+        "ready": 33,
+        "safe_ready": 33,
+        "show_no": 5,
+        "show_yes": 33
+      },
+      "dbox_inspired_guard": {
+        "adjudicated_rows": 5,
+        "major_answer": 2,
+        "minor": 8,
+        "n": 50,
+        "overall": 3.72,
+        "rank1": 8,
+        "ready": 34,
+        "safe_ready": 34,
+        "show_no": 4,
+        "show_yes": 34
+      },
+      "enhanced_prompt_only_clean": {
+        "adjudicated_rows": 21,
+        "major_answer": 13,
+        "minor": 19,
+        "n": 50,
+        "overall": 3.12,
+        "rank1": 2,
+        "ready": 14,
+        "safe_ready": 14,
+        "show_no": 11,
+        "show_yes": 14
+      }
+    },
+    "priority60_adjudicated_plus_coachB": {
+      "bridge_contract_compact_guard": {
+        "adjudicated_rows": 9,
+        "major_answer": 0,
+        "minor": 3,
+        "n": 50,
+        "overall": 3.28,
+        "rank1": 6,
+        "ready": 14,
+        "safe_ready": 13,
+        "show_no": 1,
+        "show_yes": 14
+      },
+      "bridge_contract_compact_guard_repair": {
+        "adjudicated_rows": 4,
+        "major_answer": 0,
+        "minor": 1,
+        "n": 50,
+        "overall": 3.34,
+        "rank1": 6,
+        "ready": 17,
+        "safe_ready": 17,
+        "show_no": 1,
+        "show_yes": 17
+      },
+      "bridge_guided_dbox_style_guard": {
+        "adjudicated_rows": 4,
+        "major_answer": 3,
+        "minor": 0,
+        "n": 50,
+        "overall": 3.22,
+        "rank1": 7,
+        "ready": 15,
+        "safe_ready": 15,
+        "show_no": 4,
+        "show_yes": 15
+      },
+      "codehelp_codeaid_clean": {
+        "adjudicated_rows": 7,
+        "major_answer": 2,
+        "minor": 0,
+        "n": 50,
+        "overall": 3.14,
+        "rank1": 4,
+        "ready": 11,
+        "safe_ready": 11,
+        "show_no": 5,
+        "show_yes": 11
+      },
+      "dbox_inspired_clean": {
+        "adjudicated_rows": 10,
+        "major_answer": 3,
+        "minor": 1,
+        "n": 50,
+        "overall": 3.32,
+        "rank1": 10,
+        "ready": 18,
+        "safe_ready": 18,
+        "show_no": 4,
+        "show_yes": 18
+      },
+      "dbox_inspired_guard": {
+        "adjudicated_rows": 5,
+        "major_answer": 2,
+        "minor": 0,
+        "n": 50,
+        "overall": 3.3,
+        "rank1": 10,
+        "ready": 17,
+        "safe_ready": 17,
+        "show_no": 3,
+        "show_yes": 17
+      },
+      "enhanced_prompt_only_clean": {
+        "adjudicated_rows": 21,
+        "major_answer": 13,
+        "minor": 3,
+        "n": 50,
+        "overall": 3.02,
+        "rank1": 7,
+        "ready": 13,
+        "safe_ready": 13,
+        "show_no": 11,
+        "show_yes": 13
+      }
+    }
+  }
+}

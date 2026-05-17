@@ -1,0 +1,127 @@
+{
+  "adjudicated_case_count": 39,
+  "adjudicated_leakage_counts": {
+    "major_bridge_leakage": 16,
+    "minor_bridge_leakage": 7,
+    "no_leakage": 37
+  },
+  "adjudicated_row_count": 60,
+  "adjudicated_show_counts": {
+    "borderline": 17,
+    "no": 16,
+    "yes": 27
+  },
+  "adjudicated_student_ready_counts": {
+    "no": 16,
+    "unclear": 17,
+    "yes": 27
+  },
+  "caution": "This is a provisional merged analysis: priority60 rows are adjudicated; remaining rows keep Coach A round1 labels.",
+  "condition_counts_in_adjudicated_rows": {
+    "bridge_contract_compact_guard": 9,
+    "bridge_contract_compact_guard_repair": 4,
+    "bridge_guided_dbox_style_guard": 4,
+    "codehelp_codeaid_clean": 7,
+    "dbox_inspired_clean": 10,
+    "dbox_inspired_guard": 5,
+    "enhanced_prompt_only_clean": 21
+  },
+  "decision_counts": {
+    "new_label": 22,
+    "use_A": 29,
+    "use_B": 9
+  },
+  "reason_counts": {
+    "critical_leakage_disagreement": 34,
+    "overall_delta_ge_2": 34,
+    "rank_delta_ge_4": 33,
+    "show_yes_no_flip": 26,
+    "student_ready_simple_disagreement": 38
+  },
+  "system_summary_priority60_adjudicated_plus_coachA": {
+    "bridge_contract_compact_guard": {
+      "adjudicated_rows": 9,
+      "condition_zh": "Bridge Contract compact + Guard",
+      "major_answer_leakage": 0,
+      "minor_leakage": 14,
+      "n": 50,
+      "overall_mean": 3.86,
+      "ready_simple": 33,
+      "safe_ready_simple": 32,
+      "show_no": 1,
+      "show_yes": 33
+    },
+    "bridge_contract_compact_guard_repair": {
+      "adjudicated_rows": 4,
+      "condition_zh": "Bridge Contract compact + Guard + Repair",
+      "major_answer_leakage": 0,
+      "minor_leakage": 7,
+      "n": 50,
+      "overall_mean": 4.02,
+      "ready_simple": 39,
+      "safe_ready_simple": 39,
+      "show_no": 2,
+      "show_yes": 39
+    },
+    "bridge_guided_dbox_style_guard": {
+      "adjudicated_rows": 4,
+      "condition_zh": "Bridge-guided DBox-style baseline + Guard",
+      "major_answer_leakage": 3,
+      "minor_leakage": 15,
+      "n": 50,
+      "overall_mean": 3.66,
+      "ready_simple": 29,
+      "safe_ready_simple": 29,
+      "show_no": 5,
+      "show_yes": 29
+    },
+    "codehelp_codeaid_clean": {
+      "adjudicated_rows": 7,
+      "condition_zh": "CodeHelp/CodeAid 风格 no-direct-solution baseline",
+      "major_answer_leakage": 2,
+      "minor_leakage": 9,
+      "n": 50,
+      "overall_mean": 3.6,
+      "ready_simple": 30,
+      "safe_ready_simple": 30,
+      "show_no": 5,
+      "show_yes": 30
+    },
+    "dbox_inspired_clean": {
+      "adjudicated_rows": 10,
+      "condition_zh": "DBox-inspired 分解式 baseline（无 Guard）",
+      "major_answer_leakage": 3,
+      "minor_leakage": 10,
+      "n": 50,
+      "overall_mean": 3.74,
+      "ready_simple": 33,
+      "safe_ready_simple": 33,
+      "show_no": 5,
+      "show_yes": 33
+    },
+    "dbox_inspired_guard": {
+      "adjudicated_rows": 5,
+      "condition_zh": "DBox-inspired 分解式 baseline + Guard",
+      "major_answer_leakage": 2,
+      "minor_leakage": 8,
+      "n": 50,
+      "overall_mean": 3.72,
+      "ready_simple": 34,
+      "safe_ready_simple": 34,
+      "show_no": 4,
+      "show_yes": 34
+    },
+    "enhanced_prompt_only_clean": {
+      "adjudicated_rows": 21,
+      "condition_zh": "强提示词 baseline（无 Guard/Repair）",
+      "major_answer_leakage": 13,
+      "minor_leakage": 19,
+      "n": 50,
+      "overall_mean": 3.12,
+      "ready_simple": 14,
+      "safe_ready_simple": 14,
+      "show_no": 11,
+      "show_yes": 14
+    }
+  }
+}

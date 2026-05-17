@@ -161,6 +161,16 @@ DBOX_BRIDGE_HYBRID_FULL_FAIRNESS_SYSTEMS = [
     "bridge_guided_dbox_style_guard",
 ]
 
+DIALOGUE_STATE_V3_MAIN_SYSTEMS = [
+    "enhanced_prompt_only_clean",
+    "codehelp_codeaid_clean",
+    "dbox_inspired_clean",
+    "dbox_inspired_guard",
+    "bridge_guided_dbox_style_guard",
+    "bridge_contract_compact_guard",
+    "bridge_contract_compact_guard_repair",
+]
+
 IMPORTANT_COMPARISONS = [
     ("bridge_contract_safe_scaffold", "bridge_contract_clean"),
     ("bridge_contract_safe_scaffold", "bridge_contract_guard"),
@@ -199,6 +209,8 @@ def systems_for_set(system_set: str) -> list[str]:
         return list(DBOX_BRIDGE_HYBRID_SYSTEMS)
     if system_set == "dbox_bridge_hybrid_full_fairness":
         return list(DBOX_BRIDGE_HYBRID_FULL_FAIRNESS_SYSTEMS)
+    if system_set == "dialogue_state_v3_main":
+        return list(DIALOGUE_STATE_V3_MAIN_SYSTEMS)
     raise ValueError(f"Unsupported system_set: {system_set}")
 
 
@@ -1121,6 +1133,7 @@ def main(argv: list[str] | None = None) -> int:
             "prompt_compression",
             "dbox_bridge_hybrid",
             "dbox_bridge_hybrid_full_fairness",
+            "dialogue_state_v3_main",
         ],
         default="default",
         help="Named system list for summary tables and paired comparisons.",
