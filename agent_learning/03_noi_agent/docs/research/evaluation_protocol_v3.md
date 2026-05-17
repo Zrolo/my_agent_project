@@ -80,11 +80,19 @@ Paired comparisons compare conditions within the same case, including:
 
 Major/answer leakage rows are automatically listed for qualitative coding:
 
-- over-complete micro-example
-- direct state/transition/check/boundary completion
-- local code leakage
+- direct bridge completion: completing the student's current cognitive bridge;
+- answer-slot compression: turning the bridge into a blank, choice, true/false follow-up action, or operation-location question;
+- worked-trace completion: using a complete micro-example or local trace to demonstrate the key relation;
+- local implementation completion: completing the key local implementation, condition, update statement, or code diagnosis;
+- proof / invariant completion: completing the correctness, invariant, exchange, dominance, or safety argument;
+- decision-rule completion: directly telling the student which side to keep, branch to take, candidate to skip, or operation to apply;
+- debugging diagnosis completion: directly naming the bug cause and fix instead of eliciting minimal evidence;
+- modeling-plan completion: giving the complete object/relation/constraint/structure mapping;
+- over-constrained scaffold: using question form while narrowing the answer space to the current bridge;
 - context mismatch
 - unclear rubric boundary
+
+Bridge buckets such as `state_representation_semantics` and `predicate_check_semantics` are Research v1 operational cognitive bridge families. DP states, binary-search checks, lazy propagation, tree-difference marking, and local code are surface anchors: concrete algorithm instances of broader bridge families and leakage mechanisms.
 
 ## Relation To Rubrics as Rewards
 

@@ -97,6 +97,14 @@ A/B 一致性核心结果：
 
 > Bridge Contract compact + Guard/Repair 在总体质量和 critical leakage 控制上表现出稳定优势；但 student-ready 偏好对评分者严格程度敏感，因此必须配合敏感性分析报告。
 
+## Taxonomy Scope
+
+本 50-case dialogue-state v3 不是算法题型清单，而是按 Research v1 operational cognitive bridge families 采样的开放式辅导回复评测。`state_representation_semantics`、`transition_recurrence_source`、`predicate_check_semantics`、`boundary_update_order` 等 bridge bucket 是实验中的认知桥 family 标签，不是 surface anchor。
+
+surface anchor 指这些 family 在具体算法语境中的实例，例如 DP state、binary-search check、lazy propagation、tree difference、local code、greedy proof 或 debugging trace。论文主张应上提为 representation semantics、transition/action mapping、predicate/decision semantics、dependency/order control、modeling relation、aggregation/contribution accounting、data-structure operation mapping、correctness/invariant reasoning、implementation/debugging evidence 和 policy-request handling 等学习卡点类型。
+
+当前覆盖限制也应报告：dialogue-state v3 对 math property / modular invariant、counting / inclusion-exclusion、geometry predicate relation、search pruning / deduplication、reflection / transfer 的覆盖有限；这些应作为 future extensions 或 supplementary stress sets，而不是被暗示为已充分覆盖。
+
 ## 分层分析
 
 根据 context-readiness audit，50 cases 被分成：

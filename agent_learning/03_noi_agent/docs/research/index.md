@@ -149,6 +149,14 @@ Research v1 不包含：
 - [dialogue_state_v3_main_generation_integrity_20260516.md](dialogue_state_v3_main_generation_integrity_20260516.md): English integrity record for the dialogue-state v3 main response generation pack and DBox+Repair fairness add-on.
 - [dialogue_state_v3_human_review_result_packet_20260517.zh.md](dialogue_state_v3_human_review_result_packet_20260517.zh.md): 中文 dialogue-state v3 人类盲评结果总包，汇总 Coach A/B 全量评审、一致性、60 条高优先级裁决、敏感性分析和按 case-use slice 的分层分析；当前是 formal human-review evidence candidate，不是 final gold。
 - [dialogue_state_v3_human_review_result_packet_20260517.md](dialogue_state_v3_human_review_result_packet_20260517.md): English dialogue-state v3 human-review result packet summarizing Coach A/B reviews, agreement, high-priority adjudication, sensitivity analysis, and slice analysis.
+- [dialogue_state_v3_main_scaffold_paired_uncertainty_20260517.zh.md](dialogue_state_v3_main_scaffold_paired_uncertainty_20260517.zh.md): 中文 main_scaffold_eval 配对不确定性报告，按 priority60 adjudicated + Coach A 主口径和 Coach A/B 敏感性计算 W/T/L、mean delta、bootstrap CI 与 paired permutation。
+- [dialogue_state_v3_main_scaffold_paired_uncertainty_20260517.md](dialogue_state_v3_main_scaffold_paired_uncertainty_20260517.md): English paired uncertainty report for dialogue-state v3 main_scaffold_eval headline comparisons.
+- [dialogue_state_v3_targeted_adjudication_extension_plan_20260517.zh.md](dialogue_state_v3_targeted_adjudication_extension_plan_20260517.zh.md): 中文 targeted adjudication extension 计划，从剩余未裁决分歧中追加 40 条 headline-sensitive 样本，配套输出裁决候选工作簿。
+- [dialogue_state_v3_targeted_adjudication_extension_plan_20260517.md](dialogue_state_v3_targeted_adjudication_extension_plan_20260517.md): English plan for a targeted 40-row adjudication extension focused on headline-sensitive disagreements.
+- [paper_results_interpretation_guardrails_20260517.zh.md](paper_results_interpretation_guardrails_20260517.zh.md): 中文论文结果解释 guardrails，明确 Guard-only 是 instrumentation、Repair 因果效果需要 same-candidate stress、主张应写 trade-off。
+- [paper_results_interpretation_guardrails_20260517.md](paper_results_interpretation_guardrails_20260517.md): English paper-result interpretation guardrails for Guard-only, Repair, rater sensitivity, and safe claims.
+- [taxonomy_specificity_revision_summary_20260517.zh.md](taxonomy_specificity_revision_summary_20260517.zh.md): 中文 taxonomy specificity revision 摘要，记录 P0/P1 文件如何从具体算法场景上提为 operational cognitive bridge families、leakage mechanisms 和 surface anchors。
+- [taxonomy_specificity_revision_summary_20260517.md](taxonomy_specificity_revision_summary_20260517.md): English summary of the taxonomy specificity revision.
 
 ### Runtime Contract And Registries
 
@@ -164,6 +172,12 @@ Research v1 不包含：
 - [llm_judge_calibration_protocol_v1.zh.md](llm_judge_calibration_protocol_v1.zh.md): LLM Judge / Offline Grader 校准协议，包含 UNKNOWN、false positive/negative 和 prompt freeze 要求。
 - [llm_grader_calibration_protocol_v2.zh.md](llm_grader_calibration_protocol_v2.zh.md): 中文 LLM Grader v2 校准协议，比较 Likert-only、generic rubric 和 case-specific bridge rubric grader。
 - [llm_grader_calibration_protocol_v2.md](llm_grader_calibration_protocol_v2.md): English LLM Grader calibration protocol v2.
+- [llm_grader_calibration_plan_20260517.zh.md](llm_grader_calibration_plan_20260517.zh.md): 中文 LLM grader calibration 计划，以 priority60 adjudicated labels 和 adjudicated+Coach A/B 为参考，比较 Likert-only、generic rubric、case-specific bridge rubric judge。
+- [llm_grader_calibration_plan_20260517.md](llm_grader_calibration_plan_20260517.md): English LLM grader calibration plan for Likert-only, generic rubric, and case-specific bridge rubric judges.
+- [repair_same_candidate_stress_protocol_20260517.zh.md](repair_same_candidate_stress_protocol_20260517.zh.md): 中文 Repair same-candidate stress protocol，固定同一 candidate 比较 before/after repair，并配套 30-row workbook template。
+- [repair_same_candidate_stress_protocol_20260517.md](repair_same_candidate_stress_protocol_20260517.md): English same-candidate Repair stress protocol and workbook-template description.
+- [dbox_guard_repair_fairness_review_plan_20260517.zh.md](dbox_guard_repair_fairness_review_plan_20260517.zh.md): 中文 DBox+Guard+Repair fairness add-on 人审方案，基于已有 50-row 生成包抽取 20 个敏感 case。
+- [dbox_guard_repair_fairness_review_plan_20260517.md](dbox_guard_repair_fairness_review_plan_20260517.md): English DBox+Guard+Repair fairness add-on review plan with a 20-case candidate list.
 - [judge_schema_smoke_report_20260509.md](judge_schema_smoke_report_20260509.md): 20-case judge schema smoke 结果。
 - [response_ablation_smoke_report_20260509.md](response_ablation_smoke_report_20260509.md): response ablation smoke 结果。
 - [tutor_thinking_ablation_smoke_report_20260509.md](tutor_thinking_ablation_smoke_report_20260509.md): thinking mode smoke 结果。

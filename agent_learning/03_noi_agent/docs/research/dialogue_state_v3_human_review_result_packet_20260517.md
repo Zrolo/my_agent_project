@@ -91,6 +91,14 @@ A cautious paper statement is:
 
 > Bridge Contract compact + Guard/Repair shows a stable advantage in overall quality and critical-leakage control across rater views, while student-ready preference is sensitive to rater strictness and should be reported with sensitivity analysis.
 
+## Taxonomy Scope
+
+The dialogue-state v3 50-case set is not an algorithm-topic checklist. It is an open-ended tutor-response evaluation sampled across Research v1 operational cognitive bridge families. Bridge buckets such as `state_representation_semantics`, `transition_recurrence_source`, `predicate_check_semantics`, and `boundary_update_order` are operational cognitive bridge family labels, not surface anchors.
+
+Surface anchors are the concrete algorithm instances of those families, such as DP states, binary-search checks, lazy propagation, tree-difference marking, local code, greedy proofs, or debugging traces. Paper claims should be stated at the level of representation semantics, transition/action mapping, predicate/decision semantics, dependency/order control, modeling relations, aggregation/contribution accounting, data-structure operation mapping, correctness/invariant reasoning, implementation/debugging evidence, and policy-request handling.
+
+Coverage limitations should be reported explicitly: dialogue-state v3 under-samples math property / modular invariant, counting / inclusion-exclusion, geometry predicate relation, search pruning / deduplication, and reflection / transfer cases. These should be treated as future extensions or supplementary stress sets, not as already fully covered.
+
 ## Slice Analysis
 
 The context-readiness audit divides the 50 cases into:

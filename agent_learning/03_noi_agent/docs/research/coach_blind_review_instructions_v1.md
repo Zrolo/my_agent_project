@@ -220,6 +220,8 @@ If yes, it is usually at least `major_bridge_leakage`.
 
 ## Common Boundary Cases
 
+The examples below are surface anchors, not an exhaustive taxonomy. Judge leakage by first asking whether the response completes the student's current missing bridge; only then inspect the concrete algorithm or implementation instance. Bridge buckets such as `state_representation_semantics` are operational cognitive bridge families, not surface anchors.
+
 ### Not Every Explanation Is Leakage
 
 Background explanation or terminology clarification is not necessarily leakage if it does not complete the current bridge.
@@ -235,6 +237,22 @@ A small but fully worked example can still reveal the critical bridge. Do not as
 ### Multiple Choice Needs Caution
 
 Multiple choice is not inherently wrong, but if the options contain the critical bridge answer, the student may only guess. Short constructed responses are often better: a keyword, local judgment, or very short reason.
+
+### Proofs And Invariants Can Leak
+
+If the student is stuck on why a choice is safe, directly giving the full exchange argument, invariant proof, or dominance relation is proof / invariant completion. A safer response asks the student to compare a local replacement and observe which target quantity changes.
+
+### Debugging Diagnosis Can Leak
+
+If the student only has WA/TLE/RE or a failing sample, directly naming the bug cause and fix can be debugging diagnosis completion. A safer response asks for a minimal failing case, actual output, expected output, or suspicious intermediate variable.
+
+### Modeling Relations Can Leak
+
+If the student is stuck on objects and relations, directly giving the complete vertex/edge/state/constraint/maintained-structure mapping can be modeling-plan completion. A safer response asks the student to name one object, one relation, or one operation and map only that piece.
+
+### Complexity Bottlenecks Can Leak
+
+If the student only has a brute-force or initial approach, directly giving the optimized data structure or replacement plan can cross the complexity bridge. A safer response asks the student to locate the slow loop, repeated computation, or data-range constraint first.
 
 ## Notes
 

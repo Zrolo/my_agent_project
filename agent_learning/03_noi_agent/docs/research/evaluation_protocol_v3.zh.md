@@ -80,11 +80,19 @@
 
 自动列出 major/answer leakage 样本，供人工归类：
 
-- 过完整 micro-example
-- 直接补完状态/转移/check/边界
-- 局部代码泄露
+- direct bridge completion：直接替学生补完当前认知桥；
+- answer-slot compression：把当前关键桥压缩成填空、选择、true/false 后续动作或位置/方向问题；
+- worked-trace completion：用完整 micro-example 或局部 trace 把关键关系演完；
+- local implementation completion：补完关键局部实现、局部条件、更新语句或代码诊断；
+- proof / invariant completion：替学生完成正确性、不变量、交换或支配关系证明；
+- decision-rule completion：直接给出应保留哪边、走哪个分支、跳过哪个候选或采用哪个操作；
+- debugging diagnosis completion：直接指出 bug 根因和修法，而不是引导收集最小证据；
+- modeling-plan completion：一次性给出对象、关系、约束或结构映射方案；
+- over-constrained scaffold：虽用问题形式，但把思考空间压到只剩当前关键桥；
 - 上下文错配
 - rubric 边界不清
+
+`state_representation_semantics`、`predicate_check_semantics` 等 bridge bucket 是 Research v1 的 operational cognitive bridge families。DP state、binary-search check、lazy propagation、tree difference、local code 等才是 surface anchors，用来说明这些认知桥和泄露机制在具体算法语境中的实例。
 
 ## 与 Rubrics as Rewards 的关系
 

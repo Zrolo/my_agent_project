@@ -178,7 +178,7 @@ STUDENT_STATES = {
 POLICY_RISK_TYPES = {
     "none": "无明显策略风险",
     "algorithm_confirmation_risk": "算法确认风险：直接确认会泄露题型或核心方向",
-    "critical_bridge_completion_risk": "关键桥补全风险：直接回答会补完状态、转移、check 或公式",
+    "critical_bridge_completion_risk": "关键桥补全风险：直接回答会补完学生当前缺失的认知桥，例如表示语义、关系建模、转移/动作映射、判定语义、更新顺序、贡献汇总、正确性理由、调试定位或局部实现",
     "complete_answer_risk": "完整题解风险：可能给出完整流程或标准做法",
     "complete_code_risk": "完整代码风险：可能代写可提交代码",
     "local_code_completion_risk": "局部补全风险：可能替学生补完关键 if、边界或一行代码",

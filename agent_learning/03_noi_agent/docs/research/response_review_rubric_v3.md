@@ -60,6 +60,22 @@ critical_leakage_label + bridge_reveal_justification
 
 This prevents all useful instructional information from being over-penalized as leakage.
 
+## Leakage Mechanisms Are Not Algorithm Categories
+
+Leakage labels ask whether the response completes the student's current missing bridge, not which algorithm family the problem belongs to. Buckets such as `state_representation_semantics`, `transition_recurrence_source`, and `predicate_check_semantics` are Research v1 operational cognitive bridge families. DP states, binary-search checks, lazy propagation, tree-difference marking, and local code are surface anchors.
+
+Common leakage mechanisms include:
+
+- direct bridge completion: completing the current cognitive bridge;
+- answer-slot compression: turning the bridge into a blank, choice, true/false follow-up action, or key location/direction question;
+- worked-trace completion: using a complete micro-example or local trace to demonstrate the key relation;
+- local implementation completion: completing the key local implementation, condition, update statement, or code diagnosis;
+- proof / invariant completion: completing the correctness, invariant, exchange, dominance, or safety argument;
+- decision-rule completion: directly telling the student which side to keep, branch to take, candidate to skip, or operation to apply;
+- debugging diagnosis completion: directly naming the bug cause and fix instead of eliciting evidence;
+- modeling-plan completion: giving the complete object/relation/constraint/structure mapping;
+- over-constrained scaffold: using question form while narrowing the answer space to the current bridge.
+
 ## Reliability Fields
 
 | Field | Purpose |

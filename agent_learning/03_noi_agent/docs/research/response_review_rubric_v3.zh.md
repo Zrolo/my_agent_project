@@ -60,6 +60,22 @@ critical_leakage_label + bridge_reveal_justification
 
 这可以避免把所有有信息量的教学解释都误判为泄露。
 
+## 泄露机制不是算法类别
+
+泄露标签判断的是 AI 是否替学生完成当前 missing bridge，而不是这道题属于哪种算法。`state_representation_semantics`、`transition_recurrence_source`、`predicate_check_semantics` 等是 Research v1 的 operational cognitive bridge families；DP state、binary-search check、lazy propagation、tree difference、local code 等才是 surface anchors。
+
+常见泄露机制包括：
+
+- direct bridge completion：直接补完当前认知桥；
+- answer-slot compression：把关键桥压缩成填空、选择、true/false 后续动作或关键位置/方向问题；
+- worked-trace completion：用完整 micro-example 或局部 trace 把关键关系演完；
+- local implementation completion：补完关键局部实现、局部条件、更新语句或代码诊断；
+- proof / invariant completion：替学生完成正确性、不变量、交换或支配关系证明；
+- decision-rule completion：直接给出保留哪边、走哪个分支、跳过哪个候选或执行哪个操作；
+- debugging diagnosis completion：直接指出 bug 根因和修法，而不是引导定位证据；
+- modeling-plan completion：一次性给出对象、关系、约束或结构映射方案；
+- over-constrained scaffold：虽是问题形式，但答案空间已被压缩到当前关键桥。
+
 ## 可靠性字段
 
 | 字段 | 用途 |
