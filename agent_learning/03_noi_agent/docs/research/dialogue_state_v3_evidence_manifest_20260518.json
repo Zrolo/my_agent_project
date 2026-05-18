@@ -1,0 +1,261 @@
+{
+  "manifest_id": "dialogue_state_v3_evidence_manifest_20260518",
+  "checkpoint": "dbbbd5c Document dialogue-state v3 research evidence",
+  "status": "formal_human_review_evidence_candidate_not_final_gold",
+  "headline_slice": "main_scaffold_eval",
+  "all_50_cases_policy": "all-case aggregate is sensitivity/appendix only, not headline",
+  "records": [
+    {
+      "claim_id": "main_paper_ready_tables",
+      "report_file": "docs/research/dialogue_state_v3_main_paper_ready_tables_20260517.zh.md",
+      "input_files": [
+        "docs/research/dialogue_state_v3_50_context_readiness_audit_20260515.jsonl",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_priority60_adjudicated_plus_coachA_labels_20260517.jsonl",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_priority60_adjudicated_plus_coachB_labels_20260517.jsonl",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_coach_A_round1_labels_20260517.jsonl",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_coach_B_round1_labels_20260517.jsonl"
+      ],
+      "script_used": [
+        "evals/aichat/reproduce_dialogue_state_v3_tables.py",
+        "evals/aichat/verify_dialogue_state_v3_reports.py"
+      ],
+      "output_files": [
+        "docs/research/dialogue_state_v3_main_paper_ready_tables_20260517.md",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_slice_analysis_20260517.csv",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_slice_analysis_20260517.json"
+      ],
+      "checksum": {
+        "docs/research/dialogue_state_v3_main_paper_ready_tables_20260517.zh.md": "sha256:1f69a3b86b72561e1f24128f186b3d2a7d94a351b1bc517845d30e8f35548968",
+        "docs/research/dialogue_state_v3_50_context_readiness_audit_20260515.jsonl": "sha256:d23dd596dbb188f23834d0aa6029eee4f5c5ed91ad3534194b4a7e1d2b989e52",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_priority60_adjudicated_plus_coachA_labels_20260517.jsonl": "sha256:884ae153478c530269e0c54089c2414e199c6abe000aeab87a16342bcb3f6a3b",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_priority60_adjudicated_plus_coachB_labels_20260517.jsonl": "sha256:b233e8ca304956ecb330a2bb683777f22132c70e7856ee432da1574efbf403c5",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_coach_A_round1_labels_20260517.jsonl": "sha256:041d5af978fc25d24c89b5437c0706b1c9bfa2d17f9dfd81d5ed592785ef40ec",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_coach_B_round1_labels_20260517.jsonl": "sha256:861dfa0f0a55f2c8e48214c24e4ffda90bd99666e419a58fb16a6c99d35e8b11",
+        "evals/aichat/reproduce_dialogue_state_v3_tables.py": "sha256:f1f288ff28ba6eb7f51b1eaf91fa4be508f9cf844736a9bba01590800e2e4590",
+        "evals/aichat/verify_dialogue_state_v3_reports.py": "sha256:174fcf878a5bdea0954db322678fc7ae43a665eb61a59aa40fb8bf950a93b782",
+        "docs/research/dialogue_state_v3_main_paper_ready_tables_20260517.md": "sha256:33c9b38df65ebf0494be91002dbba3ddffa736babbc949f5c09fcfc99249e490",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_slice_analysis_20260517.csv": "sha256:96b76cbcb2ceb2eeaba92fcbd3f5310f375c32e52f2d5446fad52d4a4f9b0188",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_slice_analysis_20260517.json": "sha256:e7acebd9f04cd657b0b3c2fa295310525e75ea4478ec22c14e368c17da35ee05"
+      },
+      "interpretation_boundary": "Primary headline may use only main_scaffold_eval + priority60 adjudicated + Coach A. Other slices are sensitivity/appendix.",
+      "forbidden_wording": [
+        "all 50 cases headline",
+        "final gold",
+        "Bridge Contract significantly outperforms all baselines"
+      ]
+    },
+    {
+      "claim_id": "pairwise_win_tie_loss_uncertainty",
+      "report_file": "docs/research/dialogue_state_v3_pairwise_win_tie_loss_20260517.zh.md",
+      "input_files": [
+        "docs/research/dialogue_state_v3_50_context_readiness_audit_20260515.jsonl",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_priority60_adjudicated_plus_coachA_labels_20260517.jsonl",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_priority60_adjudicated_plus_coachB_labels_20260517.jsonl",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_coach_A_round1_labels_20260517.jsonl",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_coach_B_round1_labels_20260517.jsonl"
+      ],
+      "script_used": [
+        "evals/aichat/reproduce_dialogue_state_v3_tables.py",
+        "evals/aichat/verify_dialogue_state_v3_reports.py"
+      ],
+      "output_files": [
+        "docs/research/dialogue_state_v3_pairwise_win_tie_loss_20260517.md",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_scaffold_paired_uncertainty_20260517.csv",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_scaffold_paired_uncertainty_20260517.json"
+      ],
+      "checksum": {
+        "docs/research/dialogue_state_v3_pairwise_win_tie_loss_20260517.zh.md": "sha256:29277cf24bf63d02f1f4a718a0fbea63cce6fda51ce3974f17798da9ad37e6c8",
+        "docs/research/dialogue_state_v3_50_context_readiness_audit_20260515.jsonl": "sha256:d23dd596dbb188f23834d0aa6029eee4f5c5ed91ad3534194b4a7e1d2b989e52",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_priority60_adjudicated_plus_coachA_labels_20260517.jsonl": "sha256:884ae153478c530269e0c54089c2414e199c6abe000aeab87a16342bcb3f6a3b",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_priority60_adjudicated_plus_coachB_labels_20260517.jsonl": "sha256:b233e8ca304956ecb330a2bb683777f22132c70e7856ee432da1574efbf403c5",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_coach_A_round1_labels_20260517.jsonl": "sha256:041d5af978fc25d24c89b5437c0706b1c9bfa2d17f9dfd81d5ed592785ef40ec",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_coach_B_round1_labels_20260517.jsonl": "sha256:861dfa0f0a55f2c8e48214c24e4ffda90bd99666e419a58fb16a6c99d35e8b11",
+        "evals/aichat/reproduce_dialogue_state_v3_tables.py": "sha256:f1f288ff28ba6eb7f51b1eaf91fa4be508f9cf844736a9bba01590800e2e4590",
+        "evals/aichat/verify_dialogue_state_v3_reports.py": "sha256:174fcf878a5bdea0954db322678fc7ae43a665eb61a59aa40fb8bf950a93b782",
+        "docs/research/dialogue_state_v3_pairwise_win_tie_loss_20260517.md": "sha256:46f3b9adaaa5232ba6c0b9bf776f021a55b328c9a945a461cd837370c16fe8dc",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_scaffold_paired_uncertainty_20260517.csv": "sha256:1874eb244ccbbe6b4c5ba3b71106958c6454ae83888b92eeb5a3eaa245a1e669",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_scaffold_paired_uncertainty_20260517.json": "sha256:66739374f9583f9fd0223c1708db0b00e8ad7b195d36191fc34d51f5ca840b01"
+      },
+      "interpretation_boundary": "Paired deltas and CI support trend/trade-off wording unless CI excludes zero and design supports stronger claims.",
+      "forbidden_wording": [
+        "significant dominance",
+        "absolute winner",
+        "Bridge Contract fully solves tutoring"
+      ]
+    },
+    {
+      "claim_id": "human_review_reliability",
+      "report_file": "docs/research/human_review_reliability_section_draft_20260517.zh.md",
+      "input_files": [
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_coach_A_round1_labels_20260517.jsonl",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_coach_B_round1_labels_20260517.jsonl",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_A_B_adjudication_priority60_20260517.csv",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_adjudication_priority60_labels_20260517.jsonl"
+      ],
+      "script_used": [
+        "evals/aichat/analyze_dev_ablation_review.py"
+      ],
+      "output_files": [
+        "docs/research/human_review_reliability_section_draft_20260517.md",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_coach_A_B_agreement_20260517.json",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_coach_A_B_agreement_20260517.zh.md"
+      ],
+      "checksum": {
+        "docs/research/human_review_reliability_section_draft_20260517.zh.md": "sha256:4f92cd330bd58bac9b19386f611250f0703773e21267ee44798fc7849d49bfcf",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_coach_A_round1_labels_20260517.jsonl": "sha256:041d5af978fc25d24c89b5437c0706b1c9bfa2d17f9dfd81d5ed592785ef40ec",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_coach_B_round1_labels_20260517.jsonl": "sha256:861dfa0f0a55f2c8e48214c24e4ffda90bd99666e419a58fb16a6c99d35e8b11",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_A_B_adjudication_priority60_20260517.csv": "sha256:ae1253f71d26a99b32df3120eccc7a801b776b25cc846e9c943db7aa48f32ba8",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_adjudication_priority60_labels_20260517.jsonl": "sha256:9a0d8b14a7e4ee8c599db668c20f9d266bd82aa0c8b4b1ed037969ea545d356d",
+        "evals/aichat/analyze_dev_ablation_review.py": "sha256:ab3ab57371b75713e7e107459f9646372b1a474737990f6c154403f8738f4839",
+        "docs/research/human_review_reliability_section_draft_20260517.md": "sha256:a5a2b4bd4b4e3334b16d6c61fda2c4e33c4294f493ff1e008fedd2f8af135f77",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_coach_A_B_agreement_20260517.json": "sha256:e73eb1a7c5cdc6c8f76762475cb518a5a9e755e0964348532451737cb9746e6f",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_coach_A_B_agreement_20260517.zh.md": "sha256:8b2c6084b6ce67e7bb9ab37cffd5deb2f18f457a05ce5c8fbaf706a55b8b6103"
+      },
+      "interpretation_boundary": "A/B disagreement is reported as rater-sensitive pedagogical judgment; priority60 adjudication reduces uncertainty but is not final gold.",
+      "forbidden_wording": [
+        "Coach A is gold",
+        "Coach B is gold",
+        "priority60 adjudicated labels are final gold"
+      ]
+    },
+    {
+      "claim_id": "repair_same_candidate_stress",
+      "report_file": "docs/research/repair_same_candidate_stress_result_20260517.zh.md",
+      "input_files": [
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/repair_same_candidate_stress_candidate_list_20260517.csv",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/repair_same_candidate_stress_blind_review_key_20260517.csv",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/repair_same_candidate_stress_summary_20260517.json"
+      ],
+      "script_used": [
+        "evals/aichat/summarize_repair_same_candidate_stress.py",
+        "evals/aichat/reproduce_dialogue_state_v3_tables.py",
+        "evals/aichat/verify_dialogue_state_v3_reports.py"
+      ],
+      "output_files": [
+        "docs/research/repair_same_candidate_stress_result_20260517.md",
+        "docs/research/repair_same_candidate_stress_summary_20260517.zh.md",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/repair_same_candidate_stress_workbook_template_20260517.xlsx"
+      ],
+      "checksum": {
+        "docs/research/repair_same_candidate_stress_result_20260517.zh.md": "sha256:94148a1e3200731677e4a1ae6fb9db1841e7eaa12db09a56e4408f9f3dcafd9a",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/repair_same_candidate_stress_candidate_list_20260517.csv": "sha256:b0218fac7282140c1af2f863763e513b8e93cc8c7468dfe60ffa06f5baa8be17",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/repair_same_candidate_stress_blind_review_key_20260517.csv": "sha256:54ed7f4627208614842b20162a157da77f5da80b9559b98cf078d5261525cedc",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/repair_same_candidate_stress_summary_20260517.json": "sha256:78b8dd27bf40609019647015ed8ebe2362885afb5f1d9492953977c407ddcbc8",
+        "evals/aichat/summarize_repair_same_candidate_stress.py": "sha256:bf7307f3833880d18d34fbcd4f740b6c64decec58885b055f345d96ac0401a3c",
+        "evals/aichat/reproduce_dialogue_state_v3_tables.py": "sha256:f1f288ff28ba6eb7f51b1eaf91fa4be508f9cf844736a9bba01590800e2e4590",
+        "evals/aichat/verify_dialogue_state_v3_reports.py": "sha256:174fcf878a5bdea0954db322678fc7ae43a665eb61a59aa40fb8bf950a93b782",
+        "docs/research/repair_same_candidate_stress_result_20260517.md": "sha256:2d8d09395afd146c3279d98dcc016272c99be6d71b4d71c36bbe6f1e517e3d47",
+        "docs/research/repair_same_candidate_stress_summary_20260517.zh.md": "sha256:4213605a192296fc02bd50a317272d97dedb63861103e16d2cacb4e9aa912094",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/repair_same_candidate_stress_workbook_template_20260517.xlsx": "sha256:3a3d36e12aabf691ef2a834a4fba43d021975f586e52a3958d7d1fb5fcdc18de"
+      },
+      "interpretation_boundary": "Same-candidate before/after evidence supports Repair leakage reduction; it does not replace main condition-level results and must report burden trade-off.",
+      "forbidden_wording": [
+        "Repair fully solves leakage",
+        "Repair always improves quality",
+        "main experiment proves Repair causality by itself"
+      ]
+    },
+    {
+      "claim_id": "dbox_repair_fairness_addon",
+      "report_file": "docs/research/dbox_guard_repair_fairness_report_20260517.zh.md",
+      "input_files": [
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_repair_fairness_addon_20260516/human_review/dbox_guard_repair_fairness_review20_labels_20260517.jsonl",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_repair_fairness_addon_20260516/human_review/dbox_guard_repair_fairness_comparison_summary_20260517.json",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_repair_fairness_addon_20260516/human_review/dbox_guard_repair_fairness_review20_workbook_20260517_reviewed.xlsx"
+      ],
+      "script_used": [
+        "evals/aichat/reproduce_dialogue_state_v3_tables.py",
+        "evals/aichat/verify_dialogue_state_v3_reports.py"
+      ],
+      "output_files": [
+        "docs/research/dbox_guard_repair_fairness_report_20260517.md",
+        "docs/research/dbox_guard_repair_fairness_review20_report_20260517.zh.md",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_repair_fairness_addon_20260516/human_review/dbox_guard_repair_fairness_review20_summary_20260517.json"
+      ],
+      "checksum": {
+        "docs/research/dbox_guard_repair_fairness_report_20260517.zh.md": "sha256:1fe78bd4ca4e0ef6fb4ec275bcbee91cf201e5ef1c7631b3505c5a3496a8172f",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_repair_fairness_addon_20260516/human_review/dbox_guard_repair_fairness_review20_labels_20260517.jsonl": "sha256:9a51212b06e260337f30f9b689d6db9258c490a7603a2e90ee81d4402fd9dc27",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_repair_fairness_addon_20260516/human_review/dbox_guard_repair_fairness_comparison_summary_20260517.json": "sha256:d878bf496e81d278040cbfb55c6fc3d3aced4aa6503c83683ff514d658eb1e66",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_repair_fairness_addon_20260516/human_review/dbox_guard_repair_fairness_review20_workbook_20260517_reviewed.xlsx": "sha256:5d2cfae92d60c1cc542843b677a3e8e37435b5c336b3b556a4ed35057e301524",
+        "evals/aichat/reproduce_dialogue_state_v3_tables.py": "sha256:f1f288ff28ba6eb7f51b1eaf91fa4be508f9cf844736a9bba01590800e2e4590",
+        "evals/aichat/verify_dialogue_state_v3_reports.py": "sha256:174fcf878a5bdea0954db322678fc7ae43a665eb61a59aa40fb8bf950a93b782",
+        "docs/research/dbox_guard_repair_fairness_report_20260517.md": "sha256:c7c7880f7a4034b9b09e8c639f4ef8fbaf33e9814e0af2b5662536e130b2ea28",
+        "docs/research/dbox_guard_repair_fairness_review20_report_20260517.zh.md": "sha256:6a41f4351584557a9a3374f8e16beed918ab5dd9cdaa8b8733c159ab946b3122",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_repair_fairness_addon_20260516/human_review/dbox_guard_repair_fairness_review20_summary_20260517.json": "sha256:2f8c24a8a4f7171beae9db30e19264c2b6dad9483cf0fa213e68ffc22fe906d3"
+      },
+      "interpretation_boundary": "DBox+Repair is a targeted 20-case fairness sensitivity review, not a new main condition or full 50-case double-coach review.",
+      "forbidden_wording": [
+        "DBox+Repair full 50-case validated",
+        "Bridge+Repair definitively beats all repair-enabled baselines"
+      ]
+    },
+    {
+      "claim_id": "deepseek_llm_grader_calibration",
+      "report_file": "docs/research/llm_grader_calibration_deepseek_sensitivity_report_20260518.zh.md",
+      "input_files": [
+        "docs/research/llm_grader_calibration_reference_priority60_adjudicated_20260517.jsonl",
+        "docs/research/llm_grader_calibration_predictions_priority60_adjudicated_deepseek_20260518.jsonl",
+        "docs/research/llm_grader_calibration_predictions_adj_coachA_sample20_deepseek_20260518.jsonl",
+        "docs/research/llm_grader_calibration_predictions_adj_coachB_sample20_deepseek_20260518.jsonl"
+      ],
+      "script_used": [
+        "evals/aichat/summarize_llm_grader_calibration.py",
+        "evals/aichat/reproduce_dialogue_state_v3_tables.py",
+        "evals/aichat/verify_dialogue_state_v3_reports.py"
+      ],
+      "output_files": [
+        "docs/research/llm_grader_calibration_deepseek_sensitivity_report_20260518.md",
+        "docs/research/llm_grader_calibration_metrics_priority60_adjudicated_deepseek_20260518.json",
+        "docs/research/llm_grader_calibration_metrics_adj_coachA_sample20_deepseek_20260518.json",
+        "docs/research/llm_grader_calibration_metrics_adj_coachB_sample20_deepseek_20260518.json"
+      ],
+      "checksum": {
+        "docs/research/llm_grader_calibration_deepseek_sensitivity_report_20260518.zh.md": "sha256:5908ec9a097706f84d0a4b97b528dce0a1ecfad50f6438d71e3ce2e2fac31b25",
+        "docs/research/llm_grader_calibration_reference_priority60_adjudicated_20260517.jsonl": "sha256:c9032f507cacf28b51a3487e34e309e1caa385eb47342abc4b78a246fdf54325",
+        "docs/research/llm_grader_calibration_predictions_priority60_adjudicated_deepseek_20260518.jsonl": "sha256:cb0dfb560a79b4ffb8362881179abd7bb8a17f85e90a8f8646c41084e770bc4a",
+        "docs/research/llm_grader_calibration_predictions_adj_coachA_sample20_deepseek_20260518.jsonl": "sha256:c1ffce3178fb4631ae1358fccc2bd2685a42206833997886949804124b8f7258",
+        "docs/research/llm_grader_calibration_predictions_adj_coachB_sample20_deepseek_20260518.jsonl": "sha256:f690ff7c9af15d70aa6001b438d5274b1c9acb8caa8684b8c1a5d4bf3ff281f0",
+        "evals/aichat/summarize_llm_grader_calibration.py": "sha256:d6bff6615fe1de9728f465a3ab1aeb8e649d9531fd33b7aefa516cc589beed55",
+        "evals/aichat/reproduce_dialogue_state_v3_tables.py": "sha256:f1f288ff28ba6eb7f51b1eaf91fa4be508f9cf844736a9bba01590800e2e4590",
+        "evals/aichat/verify_dialogue_state_v3_reports.py": "sha256:174fcf878a5bdea0954db322678fc7ae43a665eb61a59aa40fb8bf950a93b782",
+        "docs/research/llm_grader_calibration_deepseek_sensitivity_report_20260518.md": "sha256:38b154590d26ff8159b9ed1523156a4bfbba0ca9c0e9fed2606df4e159b4ca7e",
+        "docs/research/llm_grader_calibration_metrics_priority60_adjudicated_deepseek_20260518.json": "sha256:a7a2cffaf05d8edc1b7baa03087c55714b7377ef69972b65e966d70c3f719ffd",
+        "docs/research/llm_grader_calibration_metrics_adj_coachA_sample20_deepseek_20260518.json": "sha256:d86966d98755568526039423fd79b97a4840bfcf9ac1b99f7e05897651052955",
+        "docs/research/llm_grader_calibration_metrics_adj_coachB_sample20_deepseek_20260518.json": "sha256:f50bf3422484822c432921c620704e5ec10204f3af61ea2cff604ad37f8ce333"
+      },
+      "interpretation_boundary": "LLM grader is an auxiliary calibration signal; DeepSeek priority60 critical recall is 0 and major FN is 1.000.",
+      "forbidden_wording": [
+        "LLM grader replaces human review",
+        "LLM grader labels are gold",
+        "DeepSeek grader reliably detects critical bridge leakage"
+      ]
+    },
+    {
+      "claim_id": "observed_error_taxonomy",
+      "report_file": "docs/research/dialogue_state_v3_observed_error_taxonomy_20260517.zh.md",
+      "input_files": [
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_priority60_adjudicated_plus_coachA_labels_20260517.jsonl",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_priority60_adjudicated_plus_coachB_labels_20260517.jsonl"
+      ],
+      "script_used": [
+        "evals/aichat/reproduce_dialogue_state_v3_tables.py"
+      ],
+      "output_files": [
+        "docs/research/dialogue_state_v3_observed_error_taxonomy_20260517.md"
+      ],
+      "checksum": {
+        "docs/research/dialogue_state_v3_observed_error_taxonomy_20260517.zh.md": "sha256:9eedd9b34c8142cf7a80d1fc017ecb5d92a9aa7ae91b7b3b666f005594d5fcc5",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_priority60_adjudicated_plus_coachA_labels_20260517.jsonl": "sha256:884ae153478c530269e0c54089c2414e199c6abe000aeab87a16342bcb3f6a3b",
+        "evals/aichat/ad_hoc_runs/dialogue_state_v3_main_20260516_merged/human_review/dialogue_state_v3_main_priority60_adjudicated_plus_coachB_labels_20260517.jsonl": "sha256:b233e8ca304956ecb330a2bb683777f22132c70e7856ee432da1574efbf403c5",
+        "evals/aichat/reproduce_dialogue_state_v3_tables.py": "sha256:f1f288ff28ba6eb7f51b1eaf91fa4be508f9cf844736a9bba01590800e2e4590",
+        "docs/research/dialogue_state_v3_observed_error_taxonomy_20260517.md": "sha256:c301d727d1acd44821f3f605283fd220ea0dd28224df3d30b24225cd74a7a88e"
+      },
+      "interpretation_boundary": "Taxonomy is observed, not universal; concrete algorithms are surface anchors, not the taxonomy body.",
+      "forbidden_wording": [
+        "only DP/check/lazy/tree/local-code cases",
+        "universal taxonomy",
+        "algorithm-specific tuning"
+      ]
+    }
+  ]
+}

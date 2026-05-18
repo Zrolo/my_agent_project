@@ -5,7 +5,9 @@
 ## Current Checkpoint
 
 - Branch: `codex/bridge-research-annotation`
-- Last pushed checkpoint before this cleanup: `42c17d5 Add bridge tutor evaluation workflow`
+- Current evidence checkpoint: `dbbbd5c Document dialogue-state v3 research evidence`
+- Dialogue-state v3 status: `formal human-review evidence candidate`；它不是 `final gold`，也不能把 Coach A、Coach B 或 priority60 adjudicated merge 当作唯一真值。
+- Headline rule: 论文主 headline 只能使用 `main_scaffold_eval` slice；`main_eval_with_caution`、`clarification_safety_slice`、`policy_safety_slice` 和 all-50 aggregate 只能作为 sensitivity / appendix，不混成一个 headline 平均。
 - Current online AIChat status: 仍以 `chat()` 为入口，主要由 rules、legacy learning phase judge、Pedagogical Judge v2 soft control、main LLM、自报 level hard gate 和 output guards 组成。
 - 2026-05-12 online update: 学生端已增加“回答方式”切换。默认 `简洁提示=current_system` 仍保留当前线上行为；可选 `教练引导=enhanced_prompt_only_clean` 只加入 prompt-only 教练引导，不接入 Bridge Judge、Leakage Guard、Repair 或 risk-triggered routing。
 - 2026-05-16 data gate: dialogue-state v3 50-case 已完成 Coach A case/source review gate，并导出 `reviewed_candidate` 版本；该状态只表示 case/source 可用于后续 prompt/rubric freeze 与 response generation，不表示 gold/reference label 或 AI response review 已完成。
@@ -175,6 +177,11 @@ Research v1 不包含：
 - [paper_results_discussion_section_dialogue_state_v3_20260518.md](paper_results_discussion_section_dialogue_state_v3_20260518.md): English paper-section draft for Results / Discussion, organized as `4 Results` / `5 Discussion`.
 - [project_status_after_taxonomy_revision_20260517.zh.md](project_status_after_taxonomy_revision_20260517.zh.md): 中文 taxonomy revision 后项目状态和下一步执行顺序。
 - [project_status_after_taxonomy_revision_20260517.md](project_status_after_taxonomy_revision_20260517.md): English project status after taxonomy revision.
+- [dialogue_state_v3_evidence_manifest_20260518.json](dialogue_state_v3_evidence_manifest_20260518.json): dialogue-state v3 evidence manifest，列出每个 paper-facing 结果表的报告、输入、脚本、输出、checksum、解释边界和禁止表述。
+- [dialogue_state_v3_paper_claims_final_gate_20260518.zh.md](dialogue_state_v3_paper_claims_final_gate_20260518.zh.md): 中文论文 claim final gate，按 allowed wording / required evidence / forbidden wording 锁定投稿前表述边界。
+- [dialogue_state_v3_paper_claims_final_gate_20260518.md](dialogue_state_v3_paper_claims_final_gate_20260518.md): English paper-claim final gate for dialogue-state v3.
+- [dbox_repair_fairness_extension_plan_20260518.zh.md](dbox_repair_fairness_extension_plan_20260518.zh.md): 中文 DBox+Repair fairness extension plan，列出第二教练 20-case 复评、50-case full review、保持 appendix sensitivity 三个选择。
+- [dbox_repair_fairness_extension_plan_20260518.md](dbox_repair_fairness_extension_plan_20260518.md): English DBox+Repair fairness extension plan.
 
 ### Runtime Contract And Registries
 
@@ -215,6 +222,8 @@ Research v1 不包含：
 - [dbox_guard_repair_fairness_coach_instructions_20260517.md](dbox_guard_repair_fairness_coach_instructions_20260517.md): English coach instructions for the DBox+Guard+Repair 20-case direct-fill review workbook.
 - [dbox_guard_repair_fairness_report_20260517.zh.md](dbox_guard_repair_fairness_report_20260517.zh.md): 中文 DBox+Guard+Repair 20-case 补评结果报告，汇总 targeted fairness sensitivity、同 case 主实验对照和论文口径。
 - [dbox_guard_repair_fairness_report_20260517.md](dbox_guard_repair_fairness_report_20260517.md): English DBox+Guard+Repair 20-case fairness sensitivity report with same-case main-experiment comparisons.
+- `evals/aichat/reproduce_dialogue_state_v3_tables.py`: 离线复算 dialogue-state v3 paper-facing tables / paired WTL / sensitivity / Repair stress / DBox fairness / DeepSeek LLM grader calibration 的脚本。
+- `evals/aichat/verify_dialogue_state_v3_reports.py`: 离线 report verification gate，检查 Markdown 报告中的核心数字是否与机器可读证据一致。
 - [judge_schema_smoke_report_20260509.md](judge_schema_smoke_report_20260509.md): 20-case judge schema smoke 结果。
 - [response_ablation_smoke_report_20260509.md](response_ablation_smoke_report_20260509.md): response ablation smoke 结果。
 - [tutor_thinking_ablation_smoke_report_20260509.md](tutor_thinking_ablation_smoke_report_20260509.md): thinking mode smoke 结果。
