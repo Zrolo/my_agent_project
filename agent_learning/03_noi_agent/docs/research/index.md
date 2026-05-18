@@ -179,6 +179,8 @@ Research v1 不包含：
 - [project_status_after_taxonomy_revision_20260517.md](project_status_after_taxonomy_revision_20260517.md): English project status after taxonomy revision.
 - [dialogue_state_v3_external_review_handoff_20260518.zh.md](dialogue_state_v3_external_review_handoff_20260518.zh.md): 中文外部复核 handoff，给 AI / 人类 reviewer 的阅读顺序、复算命令、审稿问题和解释边界。
 - [dialogue_state_v3_external_review_handoff_20260518.md](dialogue_state_v3_external_review_handoff_20260518.md): English external-review handoff with reading order, reproduction commands, reviewer questions, and interpretation boundaries.
+- [dialogue_state_v3_external_reviewer_prompt_20260518.zh.md](dialogue_state_v3_external_reviewer_prompt_20260518.zh.md): 中文可复制外部 reviewer 提示词，要求从 GitHub 真实文件复核 evidence package。
+- [dialogue_state_v3_external_reviewer_prompt_20260518.md](dialogue_state_v3_external_reviewer_prompt_20260518.md): English copy-paste external reviewer prompt for auditing the evidence package from GitHub files.
 - [dialogue_state_v3_evidence_manifest_20260518.json](dialogue_state_v3_evidence_manifest_20260518.json): dialogue-state v3 evidence manifest，列出每个 paper-facing 结果表的报告、输入、脚本、输出、checksum、解释边界和禁止表述。
 - [dialogue_state_v3_paper_claims_final_gate_20260518.zh.md](dialogue_state_v3_paper_claims_final_gate_20260518.zh.md): 中文论文 claim final gate，按 allowed wording / required evidence / forbidden wording 锁定投稿前表述边界。
 - [dialogue_state_v3_paper_claims_final_gate_20260518.md](dialogue_state_v3_paper_claims_final_gate_20260518.md): English paper-claim final gate for dialogue-state v3.
