@@ -2,6 +2,8 @@
 
 ## 4 Results
 
+Evidence classes are kept separate throughout the section: `main_scaffold_eval` + priority60 adjudicated + Coach A is the main result; rater views, all-case aggregates, and non-main slices are sensitivity / appendix evidence; Repair same-candidate before/after review is a stress test; DBox+Repair is a 20-case fairness sensitivity add-on; and DeepSeek LLM grader calibration is auxiliary-grader calibration, not a human-review replacement.
+
 ### 4.1 Human Review Reliability
 
 Dialogue-state v3 contains 50 reviewed candidate cases, 7 anonymized tutoring-harness conditions, and 350 AI responses. Both coaches completed all 350 blind reviews. Coach A/B exact agreement on overall quality is 0.2829, but within-1 agreement reaches 0.8429. Leakage-label exact agreement is 0.6714. Critical-binary exact agreement is 0.9029, but kappa is only 0.2511. Rank agreement is also weak: top-1 and last-place agreement are both 10/50.
@@ -89,5 +91,5 @@ First, the 50-case set is a high-risk CP tutoring evidence candidate, not exhaus
 The safest conclusion is:
 
 ```text
-CP-MissingBridgeBench reveals quality-safety-burden trade-offs in dialogue-state competitive-programming tutoring. DBox-inspired decomposition is a strong baseline. Bridge Contract compact + Guard/Repair shows stable advantages in overall quality and high-severity critical-leakage control, but student-ready, rank preference, and automatic grader agreement remain rater- and backend-sensitive. Guard-only is instrumentation in the current pipeline, and Repair requires same-candidate evidence to support causal claims.
+CP-MissingBridgeBench reveals quality-safety-burden trade-offs in dialogue-state competitive-programming tutoring. DBox-inspired decomposition is a strong baseline. Bridge Contract compact + Guard/Repair shows favorable overall-quality and high-severity critical-leakage-control trends under the primary human-review view, but student-ready, rank preference, and automatic grader agreement remain rater- and backend-sensitive. Guard-only is instrumentation in the current pipeline, and Repair requires same-candidate evidence to support causal claims.
 ```

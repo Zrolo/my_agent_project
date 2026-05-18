@@ -2,6 +2,8 @@
 
 ## 4 Results
 
+本节显式区分 evidence class：`main_scaffold_eval` + priority60 adjudicated + Coach A 是 main result；rater views、all-case aggregate 和非主 slices 是 sensitivity / appendix evidence；Repair same-candidate before/after review 是 stress test；DBox+Repair 是 20-case fairness sensitivity add-on；DeepSeek LLM grader calibration 是 auxiliary-grader calibration，不替代 human review。
+
 ### 4.1 Human Review Reliability
 
 Dialogue-state v3 包含 50 个 reviewed candidate cases、7 个匿名 tutoring harness conditions 和 350 条 AI 回复。两位教练均完成 350 条全量盲评。Coach A/B 的 overall exact agreement 为 0.2829，但 within-1 agreement 达到 0.8429；leakage-label exact agreement 为 0.6714；critical-binary exact agreement 为 0.9029，但 kappa 只有 0.2511。rank agreement 也较弱，top-1 与 last-place agreement 均为 10/50。
@@ -89,5 +91,5 @@ First, the 50-case set is a high-risk CP tutoring evidence candidate, not exhaus
 The safest conclusion is:
 
 ```text
-CP-MissingBridgeBench reveals quality-safety-burden trade-offs in dialogue-state competitive-programming tutoring. DBox-inspired decomposition is a strong baseline. Bridge Contract compact + Guard/Repair shows stable advantages in overall quality and high-severity critical-leakage control, but student-ready, rank preference, and automatic grader agreement remain rater- and backend-sensitive. Guard-only is instrumentation in the current pipeline, and Repair requires same-candidate evidence to support causal claims.
+CP-MissingBridgeBench reveals quality-safety-burden trade-offs in dialogue-state competitive-programming tutoring. DBox-inspired decomposition is a strong baseline. Bridge Contract compact + Guard/Repair shows favorable overall-quality and high-severity critical-leakage-control trends under the primary human-review view, but student-ready, rank preference, and automatic grader agreement remain rater- and backend-sensitive. Guard-only is instrumentation in the current pipeline, and Repair requires same-candidate evidence to support causal claims.
 ```

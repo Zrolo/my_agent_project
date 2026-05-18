@@ -19,6 +19,12 @@ for LLM Tutors in Competitive Programming
 
 The current status is `formal human-review evidence candidate`, not `final gold`. The main headline must use only the `main_scaffold_eval` slice; do not pool all 50 cases into one headline mean.
 
+Checkpoint interpretation:
+
+- `dbbbd5c` is the evidence-content base recorded in some machine-readable manifest metadata.
+- `33a5dd7` is the fixed evidence-package gates checkpoint for this external audit; it includes the manifest, claim gate, verify / reproduce scripts, and extension plan.
+- Branch-tip commits after `33a5dd7` mainly update reviewer-facing handoff / prompt wording. If a reviewer uses a newer branch tip, first audit the `33a5dd7` evidence package, then separately note whether later commits change evidence files, scripts, or paper wording.
+
 ## Reviewer Non-Goals
 
 Please do not:

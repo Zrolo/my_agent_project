@@ -81,7 +81,7 @@ DeepSeek-backed adj+CoachA sample20 与 adj+CoachB sample20 均已完成 60/60 t
 
 - CP-MissingBridgeBench 能区分不同 tutoring harness 的 quality-safety-burden trade-off；
 - DBox-inspired decomposition 是强 baseline；
-- Bridge Contract compact + Guard/Repair 在 overall 与 critical-leakage control 上表现稳定；
+- Bridge Contract compact + Guard/Repair 在主人工评审口径下呈现较有利的 overall 与 critical-leakage-control trend；
 - student-ready 对评分者口径敏感；
 - no-direct-code 不等于 no critical bridge leakage；
 - prompt-only 在 dialogue-state CP tutoring 中不够稳定；

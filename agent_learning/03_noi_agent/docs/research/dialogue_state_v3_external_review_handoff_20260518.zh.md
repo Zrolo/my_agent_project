@@ -19,6 +19,12 @@ for LLM Tutors in Competitive Programming
 
 当前状态是 `formal human-review evidence candidate`，不是 `final gold`。主 headline 只能使用 `main_scaffold_eval` slice；不要把 all 50 cases 混成一个 headline 平均。
 
+Checkpoint 解释：
+
+- `dbbbd5c` 是部分机器可读 manifest 中记录的 evidence-content base。
+- `33a5dd7` 是本轮外部审查固定的 evidence-package gates checkpoint，包含 manifest、claim gate、verify / reproduce scripts 和 extension plan。
+- `33a5dd7` 之后的 branch-tip commits 主要用于 reviewer-facing handoff / prompt wording。若 reviewer 使用较新的 branch tip，请先审 `33a5dd7` 的 evidence package，再单独说明后续 commit 是否改变 evidence files、scripts 或 paper wording。
+
 ## Reviewer Non-Goals
 
 请不要做以下事情：

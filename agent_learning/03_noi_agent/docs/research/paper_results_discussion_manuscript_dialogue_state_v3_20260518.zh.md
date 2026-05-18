@@ -12,6 +12,18 @@ main_scaffold_eval slice + priority60 adjudicated + Coach A labels
 
 全 50-case 平均、Coach A/B 单独口径、priority60+CoachB、clarification / policy slices 只作为 sensitivity 或 appendix。
 
+Evidence classes:
+
+| Evidence item | Class | Paper role |
+| --- | --- | --- |
+| `main_scaffold_eval` + priority60 adjudicated + Coach A | main result | 论文 headline human-review result。 |
+| Coach A only / Coach B only / priority60+CoachB | sensitivity analysis | rater strictness sensitivity。 |
+| all-50 aggregate 与非主 slices | sensitivity / appendix | robustness 与 targeted safety discussion，不作为 headline。 |
+| Pairwise W/T/L 与 paired uncertainty | main result support | 量化 headline comparison 的不确定性。 |
+| Repair same-candidate before/after review | stress test | 固定 candidate 下的 Repair 因果证据。 |
+| DBox+Repair 20-case add-on | sensitivity analysis | fairness add-on check，不是 main condition。 |
+| DeepSeek LLM grader calibration | calibration | auxiliary-grader assessment，不替代 human review。 |
+
 ## Results
 
 ### Human Review Reliability
@@ -109,5 +121,5 @@ Repair 的因果作用不能只由主实验 condition 均值证明。same-candid
 最稳的论文主张是：
 
 ```text
-CP-MissingBridgeBench reveals quality-safety-burden trade-offs in dialogue-state competitive-programming tutoring. DBox-inspired decomposition is a strong baseline. Bridge Contract compact + Guard/Repair shows stable advantages in overall quality and high-severity critical-leakage control, but student-ready, rank preference, and automatic grader agreement remain rater- and backend-sensitive. Guard-only is instrumentation in the current pipeline, and Repair requires same-candidate evidence to support causal claims.
+CP-MissingBridgeBench reveals quality-safety-burden trade-offs in dialogue-state competitive-programming tutoring. DBox-inspired decomposition is a strong baseline. Bridge Contract compact + Guard/Repair shows favorable overall-quality and high-severity critical-leakage-control trends under the primary human-review view, but student-ready, rank preference, and automatic grader agreement remain rater- and backend-sensitive. Guard-only is instrumentation in the current pipeline, and Repair requires same-candidate evidence to support causal claims.
 ```

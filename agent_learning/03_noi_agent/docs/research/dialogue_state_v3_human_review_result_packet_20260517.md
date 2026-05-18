@@ -89,7 +89,7 @@ Main observations:
 
 A cautious paper statement is:
 
-> Bridge Contract compact + Guard/Repair shows a stable advantage in overall quality and critical-leakage control across rater views, while student-ready preference is sensitive to rater strictness and should be reported with sensitivity analysis.
+> Bridge Contract compact + Guard/Repair shows favorable overall-quality and critical-leakage-control trends under the primary human-review view, while student-ready preference is sensitive to rater strictness and should be reported with sensitivity analysis.
 
 ## Taxonomy Scope
 
@@ -130,7 +130,7 @@ Candidate claims:
 
 1. `critical bridge leakage` reveals over-helping beyond answer/code leakage.
 2. DBox-inspired decomposition is a strong baseline and should not be treated as weak control.
-3. Bridge Contract compact + Guard/Repair shows stable overall-quality and critical-leakage-control trends.
+3. Bridge Contract compact + Guard/Repair shows favorable overall-quality and critical-leakage-control trends under the primary human-review view.
 4. Student-ready and rank preference are sensitive to rater strictness; sensitivity analysis is necessary.
 5. The paper should report a quality-safety-burden trade-off rather than declare a single universal winner.
 

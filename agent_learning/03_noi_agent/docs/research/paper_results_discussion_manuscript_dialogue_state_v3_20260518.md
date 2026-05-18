@@ -12,6 +12,18 @@ main_scaffold_eval slice + priority60 adjudicated + Coach A labels
 
 All-case averages, Coach A/B only views, priority60+CoachB, and clarification / policy slices should be used as sensitivity or appendix evidence.
 
+Evidence classes:
+
+| Evidence item | Class | Paper role |
+| --- | --- | --- |
+| `main_scaffold_eval` + priority60 adjudicated + Coach A | main result | Headline human-review result. |
+| Coach A only / Coach B only / priority60+CoachB | sensitivity analysis | Rater-strictness sensitivity. |
+| all-50 aggregate and non-main slices | sensitivity / appendix | Robustness and targeted safety discussion, not headline. |
+| Pairwise W/T/L and paired uncertainty | main result support | Quantifies uncertainty around headline comparisons. |
+| Repair same-candidate before/after review | stress test | Causal Repair evidence under fixed candidates. |
+| DBox+Repair 20-case add-on | sensitivity analysis | Fairness add-on check, not a main condition. |
+| DeepSeek LLM grader calibration | calibration | Auxiliary-grader assessment, not a human-review replacement. |
+
 ## Results
 
 ### Human Review Reliability
@@ -88,7 +100,7 @@ The paper should therefore say that case-specific bridge rubrics improve some au
 
 ### What CP-MissingBridgeBench Shows
 
-CP-MissingBridgeBench's main contribution is not proving that one tutor harness is an absolute winner. It makes missing bridges and critical bridge leakage into inspectable evaluation objects. It reveals quality-safety-burden trade-offs across tutoring harnesses: prompt-only is unstable, no-direct-solution does not imply no leakage, DBox-inspired decomposition is a strong baseline, and Bridge Contract compact + Guard/Repair shows stable but not absolute advantages in overall quality and high-severity leakage control.
+CP-MissingBridgeBench's main contribution is not proving that one tutor harness is an absolute winner. It makes missing bridges and critical bridge leakage into inspectable evaluation objects. It reveals quality-safety-burden trade-offs across tutoring harnesses: prompt-only is unstable, no-direct-solution does not imply no leakage, DBox-inspired decomposition is a strong baseline, and Bridge Contract compact + Guard/Repair shows favorable but not absolute trends in overall quality and high-severity leakage control.
 
 ### Why Critical Bridge Leakage Matters
 
@@ -109,5 +121,5 @@ This study has five main limitations. First, the 50-case set is a high-risk CP t
 The safest main claim is:
 
 ```text
-CP-MissingBridgeBench reveals quality-safety-burden trade-offs in dialogue-state competitive-programming tutoring. DBox-inspired decomposition is a strong baseline. Bridge Contract compact + Guard/Repair shows stable advantages in overall quality and high-severity critical-leakage control, but student-ready, rank preference, and automatic grader agreement remain rater- and backend-sensitive. Guard-only is instrumentation in the current pipeline, and Repair requires same-candidate evidence to support causal claims.
+CP-MissingBridgeBench reveals quality-safety-burden trade-offs in dialogue-state competitive-programming tutoring. DBox-inspired decomposition is a strong baseline. Bridge Contract compact + Guard/Repair shows favorable overall-quality and high-severity critical-leakage-control trends under the primary human-review view, but student-ready, rank preference, and automatic grader agreement remain rater- and backend-sensitive. Guard-only is instrumentation in the current pipeline, and Repair requires same-candidate evidence to support causal claims.
 ```

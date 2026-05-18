@@ -57,7 +57,7 @@ CP-MissingBridgeBench 能揭示 LLM tutors 在 quality、critical-bridge leakage
 可以写：
 
 - DBox-inspired decomposition 是强 baseline；
-- Bridge Contract compact + Guard/Repair 在 overall 和 critical-leakage control 上表现稳定；
+- Bridge Contract compact + Guard/Repair 在主人工评审口径下呈现较有利的 overall 和 critical-leakage-control trend；
 - no-direct-solution 不等于无 critical bridge leakage；
 - student-ready / rank 对 rater strictness 敏感；
 - Repair 因果解释已有 same-candidate stress 支撑；DBox+Repair fairness 目前是 targeted sensitivity，不是 full 50-case 双教练补评。

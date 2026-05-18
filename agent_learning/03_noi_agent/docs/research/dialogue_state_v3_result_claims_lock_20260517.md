@@ -8,7 +8,7 @@ This document locks what the dialogue-state v3 50-case human review can and cann
 
 1. CP-MissingBridgeBench reveals quality-safety-burden trade-offs across LLM tutoring harnesses.
 2. DBox-inspired decomposition is a strong baseline and should not be treated as a weak comparator.
-3. Bridge Contract compact + Guard/Repair shows a relatively stable advantage in overall quality and critical-leakage control.
+3. Bridge Contract compact + Guard/Repair shows favorable overall-quality and critical-leakage-control trends under the primary human-review view.
 4. No-direct-code / no-direct-solution baselines can still produce critical bridge leakage; not giving full code or a full solution is not sufficient.
 5. Student-ready, safe-ready, and rank preference are sensitive to rater strictness, so Coach A/B agreement, priority60 adjudication, and sensitivity analysis must be reported.
 6. Guard-only conditions are guard-instrumented / guard-signal variants in the current main experiment; unless a block fallback fires, they do not rewrite final student-visible responses.
@@ -34,8 +34,8 @@ Use:
 ```text
 trade-off
 trend
-stable advantage in overall quality
-stable advantage in critical-leakage control
+favorable overall-quality trend
+favorable critical-leakage-control trend
 rater-sensitive student-ready preference
 formal human-review evidence candidate
 ```
@@ -54,7 +54,7 @@ Repair causally proven by the main experiment
 ## Suggested Paragraph
 
 ```text
-CP-MissingBridgeBench distinguishes tutor harnesses by their quality-safety-burden trade-offs rather than by a single global winner. In the dialogue-state v3 human-review candidate evidence, DBox-inspired decomposition is a strong baseline, while Bridge Contract compact + Guard/Repair shows a stable advantage in overall quality and critical-leakage control. Same-candidate Repair stress testing and the targeted DBox+Repair fairness add-on support Repair as a leakage-reduction mechanism with burden / over-strong-hint trade-offs. However, student-ready and rank preferences are rater-sensitive, Guard-only variants are instrumentation rather than rewrite conditions, and DBox+Repair remains sensitivity evidence rather than a full main condition.
+CP-MissingBridgeBench distinguishes tutor harnesses by their quality-safety-burden trade-offs rather than by a single global winner. In the dialogue-state v3 human-review candidate evidence, DBox-inspired decomposition is a strong baseline, while Bridge Contract compact + Guard/Repair shows favorable overall-quality and critical-leakage-control trends under the primary human-review view. Same-candidate Repair stress testing and the targeted DBox+Repair fairness add-on support Repair as a leakage-reduction mechanism with burden / over-strong-hint trade-offs. However, student-ready and rank preferences are rater-sensitive, Guard-only variants are instrumentation rather than rewrite conditions, and DBox+Repair remains sensitivity evidence rather than a full main condition.
 ```
 
 ## Scope

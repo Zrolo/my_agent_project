@@ -79,7 +79,7 @@ Can write:
 
 - CP-MissingBridgeBench distinguishes quality-safety-burden trade-offs.
 - DBox-inspired decomposition is a strong baseline.
-- Bridge Contract compact + Guard/Repair is stable in overall and critical-leakage control.
+- Bridge Contract compact + Guard/Repair shows favorable overall and critical-leakage-control trends under the primary human-review view.
 - Student-ready is rater-sensitive.
 - No-direct-code does not imply no critical bridge leakage.
 - Prompt-only is not stable enough in dialogue-state CP tutoring.

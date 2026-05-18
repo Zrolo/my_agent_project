@@ -57,7 +57,7 @@ CP-MissingBridgeBench reveals quality, critical-bridge leakage, and student-burd
 Can write:
 
 - DBox-inspired decomposition is a strong baseline.
-- Bridge Contract compact + Guard/Repair is stable in overall and critical-leakage control.
+- Bridge Contract compact + Guard/Repair shows favorable overall and critical-leakage-control trends under the primary human-review view.
 - No-direct-solution does not imply no critical bridge leakage.
 - Student-ready / rank are rater-sensitive.
 - Repair causality now has same-candidate stress support; DBox+Repair fairness is targeted sensitivity, not a full 50-case double-coach add-on.

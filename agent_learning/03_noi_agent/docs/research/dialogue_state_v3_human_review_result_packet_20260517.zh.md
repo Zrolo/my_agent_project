@@ -91,11 +91,11 @@ A/B 一致性核心结果：
 
 论文中较稳的说法是：
 
-> Bridge Contract compact + Guard/Repair shows a stable advantage in overall quality and critical-leakage control across rater views, while student-ready preference is sensitive to rater strictness and should be reported with sensitivity analysis.
+> Bridge Contract compact + Guard/Repair shows favorable overall-quality and critical-leakage-control trends under the primary human-review view, while student-ready preference is sensitive to rater strictness and should be reported with sensitivity analysis.
 
 中文表述：
 
-> Bridge Contract compact + Guard/Repair 在总体质量和 critical leakage 控制上表现出稳定优势；但 student-ready 偏好对评分者严格程度敏感，因此必须配合敏感性分析报告。
+> Bridge Contract compact + Guard/Repair 在主人工评审口径下呈现较有利的 overall-quality 和 critical-leakage-control trend；但 student-ready 偏好对评分者严格程度敏感，因此必须配合敏感性分析报告。
 
 ## Taxonomy Scope
 
@@ -136,7 +136,7 @@ surface anchor 指这些 family 在具体算法语境中的实例，例如 DP st
 
 1. `critical bridge leakage` 比 answer/code leakage 更细，能够暴露 no-direct-code baseline 仍可能存在的过度提示问题。
 2. DBox-inspired decomposition 是强 baseline，不能被当作弱对照。
-3. Bridge Contract compact + Guard/Repair 在 overall 与 critical-leakage control 上表现稳定。
+3. Bridge Contract compact + Guard/Repair 在主人工评审口径下呈现较有利的 overall 与 critical-leakage-control trend。
 4. student-ready 与 rank 偏好对教练口径敏感，因此需要双评审、裁决和 sensitivity analysis。
 5. 论文应报告 quality-safety-burden trade-off，而不是只宣布某个系统绝对胜出。
 
