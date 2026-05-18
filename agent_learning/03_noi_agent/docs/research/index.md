@@ -5,7 +5,7 @@
 ## Current Checkpoint
 
 - Branch: `codex/bridge-research-annotation`
-- Current evidence checkpoint: `dbbbd5c Document dialogue-state v3 research evidence`
+- Current evidence checkpoint: `33a5dd7 Add dialogue-state v3 evidence package gates`
 - Dialogue-state v3 status: `formal human-review evidence candidate`；它不是 `final gold`，也不能把 Coach A、Coach B 或 priority60 adjudicated merge 当作唯一真值。
 - Headline rule: 论文主 headline 只能使用 `main_scaffold_eval` slice；`main_eval_with_caution`、`clarification_safety_slice`、`policy_safety_slice` 和 all-50 aggregate 只能作为 sensitivity / appendix，不混成一个 headline 平均。
 - Current online AIChat status: 仍以 `chat()` 为入口，主要由 rules、legacy learning phase judge、Pedagogical Judge v2 soft control、main LLM、自报 level hard gate 和 output guards 组成。
@@ -177,6 +177,8 @@ Research v1 不包含：
 - [paper_results_discussion_section_dialogue_state_v3_20260518.md](paper_results_discussion_section_dialogue_state_v3_20260518.md): English paper-section draft for Results / Discussion, organized as `4 Results` / `5 Discussion`.
 - [project_status_after_taxonomy_revision_20260517.zh.md](project_status_after_taxonomy_revision_20260517.zh.md): 中文 taxonomy revision 后项目状态和下一步执行顺序。
 - [project_status_after_taxonomy_revision_20260517.md](project_status_after_taxonomy_revision_20260517.md): English project status after taxonomy revision.
+- [dialogue_state_v3_external_review_handoff_20260518.zh.md](dialogue_state_v3_external_review_handoff_20260518.zh.md): 中文外部复核 handoff，给 AI / 人类 reviewer 的阅读顺序、复算命令、审稿问题和解释边界。
+- [dialogue_state_v3_external_review_handoff_20260518.md](dialogue_state_v3_external_review_handoff_20260518.md): English external-review handoff with reading order, reproduction commands, reviewer questions, and interpretation boundaries.
 - [dialogue_state_v3_evidence_manifest_20260518.json](dialogue_state_v3_evidence_manifest_20260518.json): dialogue-state v3 evidence manifest，列出每个 paper-facing 结果表的报告、输入、脚本、输出、checksum、解释边界和禁止表述。
 - [dialogue_state_v3_paper_claims_final_gate_20260518.zh.md](dialogue_state_v3_paper_claims_final_gate_20260518.zh.md): 中文论文 claim final gate，按 allowed wording / required evidence / forbidden wording 锁定投稿前表述边界。
 - [dialogue_state_v3_paper_claims_final_gate_20260518.md](dialogue_state_v3_paper_claims_final_gate_20260518.md): English paper-claim final gate for dialogue-state v3.
