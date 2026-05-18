@@ -6,7 +6,8 @@
 
 - Repository: `https://github.com/Zrolo/my_agent_project`
 - Branch: `codex/bridge-research-annotation`
-- Base evidence checkpoint: `33a5dd7 Add dialogue-state v3 evidence package gates`
+- Primary review target: `33a5dd7 Add dialogue-state v3 evidence package gates`
+- Branch-tip policy: 如果 branch tip 晚于 `33a5dd7`，请先审固定 evidence package，再单独说明后续 commit 是否改变 evidence、scripts 或 paper wording。
 - Project path inside repo: `agent_learning/03_noi_agent`
 - Paper working title:
 
@@ -29,6 +30,8 @@ for LLM Tutors in Competitive Programming
 - 不要把 Guard-only 写成 rewrite / repair condition。
 - 不要把 DBox+Repair 20-case add-on 写成完整主实验。
 - 不要用 LLM grader 替代人类教练。
+- 除非明确标为 future work，否则不要提出新增模块；本次任务是 evidence validation，不是 system expansion。
+- 不要把 sensitivity analysis、stress test 或 calibration 写成 main result。
 
 ## 推荐阅读顺序
 
@@ -123,6 +126,8 @@ python3 -m unittest test_dialogue_state_v3_evidence_package_unit.py test_llm_gra
 python3 -m json.tool docs/research/dialogue_state_v3_evidence_manifest_20260518.json >/tmp/dialogue_state_v3_evidence_manifest_check.json
 ```
 
+如果脚本成功，请报告 command、exit status、key output files、reproduced numbers 是否与 reports 一致，以及是否有 mismatched claim IDs。如果脚本失败，请报告 exact failure stage，并说明该失败是否阻塞 evidence review。
+
 可选双语检查：
 
 ```bash
@@ -137,7 +142,7 @@ python3 -m evals.aichat.validate_research_bilingual_docs --output-json /tmp/dial
 
 1. Evidence manifest 是否足够追踪每个 claim 的 report / input / script / output / checksum？
 2. `verify_dialogue_state_v3_reports.py` 是否覆盖了论文核心数字？还缺哪些应 gate 的数字？
-3. 主结果是否能支持 “trade-off / trend / stable advantage in overall and critical-leakage control”，而不是 “absolute winner”？
+3. 主结果是否能支持 “trade-off / favorable trend in overall and critical-leakage control”，而不是 “absolute winner”？
 4. Guard-only 是否仍存在被误写成 rewrite 的风险？
 5. Repair same-candidate stress 是否足以支持因果解释？哪些 wording 仍过强？
 6. DBox+Repair 20-case add-on 是否足以作为 fairness sensitivity？如果不足，是选 Option A、B 还是 C？
@@ -166,6 +171,11 @@ Overclaim risks:
 Evidence-chain risks:
 - ...
 
+Claim-by-claim audit table:
+
+| Claim | Supported? yes/partial/no | Evidence files/scripts | Main/sensitivity/stress/calibration | Risk | Safer wording |
+| --- | --- | --- | --- | --- | --- |
+
 Recommended minimal fixes:
 - ...
 ```
@@ -177,7 +187,7 @@ Recommended minimal fixes:
 ```text
 CP-MissingBridgeBench reveals quality-safety-burden trade-offs in turn-level CP tutoring.
 DBox-inspired decomposition is a strong baseline.
-Bridge Contract compact + Guard/Repair shows stable overall and critical-leakage-control advantages, but most paired CIs support trend/trade-off wording rather than significant dominance.
+Bridge Contract compact + Guard/Repair shows favorable overall and critical-leakage-control trends under the primary human-review view, but most paired CIs support trend/trade-off wording rather than significant dominance.
 Guard-only is instrumentation, not final-response rewrite.
 Repair has same-candidate causal evidence for leakage reduction, with student-burden trade-off.
 DBox+Repair is targeted fairness sensitivity, not a full main condition.

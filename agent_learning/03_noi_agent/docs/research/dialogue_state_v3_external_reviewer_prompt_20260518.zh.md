@@ -10,10 +10,20 @@
 Repository: https://github.com/Zrolo/my_agent_project
 Branch: codex/bridge-research-annotation
 Project path: agent_learning/03_noi_agent
-Review entrypoint: use the current branch tip
-Fixed evidence-package base checkpoint: 33a5dd7 Add dialogue-state v3 evidence package gates
+Primary review target:
+Commit 33a5dd7 Add dialogue-state v3 evidence package gates.
+
+If the branch tip is newer than 33a5dd7, first audit the fixed evidence package at 33a5dd7, then separately note whether newer commits change evidence files, reproduction scripts, or paper wording. Do not silently mix commits.
 
 你的任务不是新增实验、不是改线上系统、不是修改 prompt、不是重跑 active mode。当前目标是复核 dialogue-state v3 证据包是否可投稿、可追踪、不过度解释。
+
+Non-goals:
+
+- 不要新增实验 condition。
+- 不要修改线上 AIChat、active mode、prompt 或主实验数据。
+- 除非明确标为 future work，否则不要提出新增模块；本次任务是 evidence validation，不是 system expansion。
+- 不要把 sensitivity analysis、stress test 或 calibration 写成 main result。
+- 如果 raw CSV/JSONL 或 reproduction scripts 与报告摘要冲突，不要根据摘要推断结论。
 
 请优先阅读：
 
@@ -39,11 +49,21 @@ python3 evals/aichat/reproduce_dialogue_state_v3_tables.py --output-json /tmp/di
 python3 -m unittest test_dialogue_state_v3_evidence_package_unit.py test_llm_grader_calibration_pack_unit.py
 python3 -m json.tool docs/research/dialogue_state_v3_evidence_manifest_20260518.json >/tmp/dialogue_state_v3_evidence_manifest_check.json
 
+如果脚本成功，请报告：
+
+- command；
+- exit status；
+- key output files；
+- reproduced numbers 是否与 reports 一致；
+- 是否有 mismatched claim IDs。
+
+如果脚本失败，请报告 exact failure stage，并说明该失败是否阻塞 evidence review。
+
 请重点判断：
 
 1. Evidence manifest 是否足够把论文 claim 追溯到 report / input / script / output / checksum？
 2. 主 headline 是否只使用 main_scaffold_eval slice，而不是 all 50 cases 混合平均？
-3. 当前结果是否只支持 trade-off / trend / stable advantage，而不是 absolute winner / significant dominance？
+3. 当前结果是否只支持 trade-off / favorable trend，而不是 absolute winner / significant dominance？
 4. Guard-only 是否被正确写成 guard-instrumented / runtime signal，而不是 rewrite / repair condition？
 5. Repair 的因果证据是否只来自 same-candidate before/after stress，而不是主实验均值？
 6. DBox+Repair 是否只是 targeted fairness sensitivity，而不是完整主实验 condition？
@@ -51,6 +71,14 @@ python3 -m json.tool docs/research/dialogue_state_v3_evidence_manifest_20260518.
 8. taxonomy 是否稳定为 cognitive bridge family + leakage mechanism + surface anchor，避免被看成只针对 DP/check/lazy/tree/local-code 的特调？
 9. Coach A / Coach B / priority60 adjudication 是否被正确写成 human-review evidence candidate，而不是 final gold？
 10. 论文 Results / Discussion 最可能被严格审稿人攻击的 3 个点是什么？
+
+请把每个 evidence item 分类为：
+
+- main result；
+- sensitivity analysis；
+- stress test；
+- calibration；
+- future-work support。
 
 请输出：
 
@@ -69,6 +97,11 @@ Overclaim risks:
 Evidence-chain risks:
 - ...
 
+Claim-by-claim audit table:
+
+| Claim | Supported? yes/partial/no | Evidence files/scripts | Main/sensitivity/stress/calibration | Risk | Safer wording |
+| --- | --- | --- | --- | --- | --- |
+
 Recommended minimal fixes:
 - ...
 
@@ -86,7 +119,7 @@ Recommended minimal fixes:
 
 CP-MissingBridgeBench reveals quality-safety-burden trade-offs in turn-level CP tutoring.
 DBox-inspired decomposition is a strong baseline.
-Bridge Contract compact + Guard/Repair shows stable overall and critical-leakage-control advantages, but paired uncertainty supports trend/trade-off wording rather than broad significant dominance.
+Bridge Contract compact + Guard/Repair shows favorable overall and critical-leakage-control trends under the primary human-review view, but paired uncertainty supports trend/trade-off wording rather than broad significant dominance.
 Guard-only is instrumentation, not final-response rewrite.
 Repair has same-candidate causal evidence for leakage reduction, with student-burden trade-off.
 DBox+Repair is targeted fairness sensitivity, not a full main condition.

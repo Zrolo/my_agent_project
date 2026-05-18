@@ -10,10 +10,20 @@ Do not judge only from this description. First open the GitHub project:
 Repository: https://github.com/Zrolo/my_agent_project
 Branch: codex/bridge-research-annotation
 Project path: agent_learning/03_noi_agent
-Review entrypoint: use the current branch tip
-Fixed evidence-package base checkpoint: 33a5dd7 Add dialogue-state v3 evidence package gates
+Primary review target:
+Commit 33a5dd7 Add dialogue-state v3 evidence package gates.
+
+If the branch tip is newer than 33a5dd7, first audit the fixed evidence package at 33a5dd7, then separately note whether newer commits change evidence files, reproduction scripts, or paper wording. Do not silently mix commits.
 
 Your task is not to add experiments, modify the online system, edit prompts, or rerun active mode. The current goal is to audit whether the dialogue-state v3 evidence package is submission-ready, traceable, and not over-interpreted.
+
+Non-goals:
+
+- Do not add new experimental conditions.
+- Do not modify online AIChat, active mode, prompts, or main-experiment data.
+- Do not propose new modules unless explicitly labeled as future work; the task is evidence validation, not system expansion.
+- Do not treat sensitivity analyses, stress tests, or calibration runs as main results.
+- Do not infer conclusions from summaries if raw CSV/JSONL files or reproduction scripts disagree.
 
 Read these files first:
 
@@ -39,11 +49,21 @@ python3 evals/aichat/reproduce_dialogue_state_v3_tables.py --output-json /tmp/di
 python3 -m unittest test_dialogue_state_v3_evidence_package_unit.py test_llm_grader_calibration_pack_unit.py
 python3 -m json.tool docs/research/dialogue_state_v3_evidence_manifest_20260518.json >/tmp/dialogue_state_v3_evidence_manifest_check.json
 
+If scripts run successfully, report:
+
+- command;
+- exit status;
+- key output files;
+- whether reproduced numbers match reports;
+- any mismatched claim IDs.
+
+If scripts fail, report the exact failure stage and whether the failure blocks evidence review.
+
 Focus on these questions:
 
 1. Is the evidence manifest sufficient to trace paper claims to report / input / script / output / checksum?
 2. Does the main headline use only the main_scaffold_eval slice, rather than pooling all 50 cases into one mean?
-3. Do the current results support only trade-off / trend / stable advantage wording, rather than absolute winner / significant dominance wording?
+3. Do the current results support only trade-off / favorable trend wording, rather than absolute winner / significant dominance wording?
 4. Is Guard-only correctly described as guard-instrumented / runtime signal, not as a rewrite / repair condition?
 5. Is Repair causality supported only by same-candidate before/after stress, not by main-condition means alone?
 6. Is DBox+Repair described only as targeted fairness sensitivity, not as a full main experimental condition?
@@ -51,6 +71,14 @@ Focus on these questions:
 8. Is the taxonomy stably framed as cognitive bridge family + leakage mechanism + surface anchor, avoiding the impression that it is tuned only to DP/check/lazy/tree/local-code cases?
 9. Are Coach A / Coach B / priority60 adjudication correctly described as human-review evidence candidates, not final gold?
 10. What are the three most likely strict-reviewer attacks on the Results / Discussion draft?
+
+Classify each evidence item as:
+
+- main result;
+- sensitivity analysis;
+- stress test;
+- calibration;
+- future-work support.
 
 Please output:
 
@@ -69,6 +97,11 @@ Overclaim risks:
 Evidence-chain risks:
 - ...
 
+Claim-by-claim audit table:
+
+| Claim | Supported? yes/partial/no | Evidence files/scripts | Main/sensitivity/stress/calibration | Risk | Safer wording |
+| --- | --- | --- | --- | --- | --- |
+
 Recommended minimal fixes:
 - ...
 
@@ -86,7 +119,7 @@ The safest current paper interpretation is:
 
 CP-MissingBridgeBench reveals quality-safety-burden trade-offs in turn-level CP tutoring.
 DBox-inspired decomposition is a strong baseline.
-Bridge Contract compact + Guard/Repair shows stable overall and critical-leakage-control advantages, but paired uncertainty supports trend/trade-off wording rather than broad significant dominance.
+Bridge Contract compact + Guard/Repair shows favorable overall and critical-leakage-control trends under the primary human-review view, but paired uncertainty supports trend/trade-off wording rather than broad significant dominance.
 Guard-only is instrumentation, not final-response rewrite.
 Repair has same-candidate causal evidence for leakage reduction, with student-burden trade-off.
 DBox+Repair is targeted fairness sensitivity, not a full main condition.

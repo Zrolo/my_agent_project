@@ -6,7 +6,8 @@ This document is the entry point for an external AI or human reviewer. It adds n
 
 - Repository: `https://github.com/Zrolo/my_agent_project`
 - Branch: `codex/bridge-research-annotation`
-- Base evidence checkpoint: `33a5dd7 Add dialogue-state v3 evidence package gates`
+- Primary review target: `33a5dd7 Add dialogue-state v3 evidence package gates`
+- Branch-tip policy: if the branch tip is newer than `33a5dd7`, first audit the fixed evidence package, then separately note whether later commits change evidence files, scripts, or paper wording.
 - Project path inside repo: `agent_learning/03_noi_agent`
 - Working paper title:
 
@@ -29,6 +30,8 @@ Please do not:
 - Describe Guard-only as a rewrite / repair condition.
 - Describe the 20-case DBox+Repair add-on as a full main experiment.
 - Replace human coaches with the LLM grader.
+- Propose new modules unless explicitly labeled as future work; this task is evidence validation, not system expansion.
+- Treat sensitivity analyses, stress tests, or calibration runs as main results.
 
 ## Recommended Reading Order
 
@@ -123,6 +126,8 @@ python3 -m unittest test_dialogue_state_v3_evidence_package_unit.py test_llm_gra
 python3 -m json.tool docs/research/dialogue_state_v3_evidence_manifest_20260518.json >/tmp/dialogue_state_v3_evidence_manifest_check.json
 ```
 
+If scripts run successfully, report the command, exit status, key output files, whether reproduced numbers match reports, and any mismatched claim IDs. If scripts fail, report the exact failure stage and whether the failure blocks evidence review.
+
 Optional bilingual check:
 
 ```bash
@@ -137,7 +142,7 @@ Please answer clearly:
 
 1. Is the evidence manifest sufficient to trace each claim to report / input / script / output / checksum?
 2. Does `verify_dialogue_state_v3_reports.py` cover the core paper numbers? Which additional numbers should be gated?
-3. Do the main results support “trade-off / trend / stable advantage in overall and critical-leakage control” rather than “absolute winner”?
+3. Do the main results support “trade-off / favorable trend in overall and critical-leakage control” rather than “absolute winner”?
 4. Is there still a risk that Guard-only is misdescribed as rewrite?
 5. Is the same-candidate Repair stress test sufficient for causal Repair wording? Which wording remains too strong?
 6. Is the 20-case DBox+Repair add-on sufficient as fairness sensitivity? If not, choose Option A, B, or C.
@@ -166,6 +171,11 @@ Overclaim risks:
 Evidence-chain risks:
 - ...
 
+Claim-by-claim audit table:
+
+| Claim | Supported? yes/partial/no | Evidence files/scripts | Main/sensitivity/stress/calibration | Risk | Safer wording |
+| --- | --- | --- | --- | --- | --- |
+
 Recommended minimal fixes:
 - ...
 ```
@@ -177,7 +187,7 @@ The safest current interpretation is:
 ```text
 CP-MissingBridgeBench reveals quality-safety-burden trade-offs in turn-level CP tutoring.
 DBox-inspired decomposition is a strong baseline.
-Bridge Contract compact + Guard/Repair shows stable overall and critical-leakage-control advantages, but most paired CIs support trend/trade-off wording rather than significant dominance.
+Bridge Contract compact + Guard/Repair shows favorable overall and critical-leakage-control trends under the primary human-review view, but most paired CIs support trend/trade-off wording rather than significant dominance.
 Guard-only is instrumentation, not final-response rewrite.
 Repair has same-candidate causal evidence for leakage reduction, with student-burden trade-off.
 DBox+Repair is targeted fairness sensitivity, not a full main condition.
