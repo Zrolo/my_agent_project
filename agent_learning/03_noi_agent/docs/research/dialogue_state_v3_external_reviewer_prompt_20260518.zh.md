@@ -10,7 +10,8 @@
 Repository: https://github.com/Zrolo/my_agent_project
 Branch: codex/bridge-research-annotation
 Project path: agent_learning/03_noi_agent
-Latest review-handoff checkpoint: 82b2619 Add dialogue-state v3 external review handoff
+Review entrypoint: use the current branch tip
+Fixed evidence-package base checkpoint: 33a5dd7 Add dialogue-state v3 evidence package gates
 
 你的任务不是新增实验、不是改线上系统、不是修改 prompt、不是重跑 active mode。当前目标是复核 dialogue-state v3 证据包是否可投稿、可追踪、不过度解释。
 

@@ -10,7 +10,8 @@ Do not judge only from this description. First open the GitHub project:
 Repository: https://github.com/Zrolo/my_agent_project
 Branch: codex/bridge-research-annotation
 Project path: agent_learning/03_noi_agent
-Latest review-handoff checkpoint: 82b2619 Add dialogue-state v3 external review handoff
+Review entrypoint: use the current branch tip
+Fixed evidence-package base checkpoint: 33a5dd7 Add dialogue-state v3 evidence package gates
 
 Your task is not to add experiments, modify the online system, edit prompts, or rerun active mode. The current goal is to audit whether the dialogue-state v3 evidence package is submission-ready, traceable, and not over-interpreted.
 

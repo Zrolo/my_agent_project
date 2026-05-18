@@ -5,7 +5,8 @@
 ## Current Checkpoint
 
 - Branch: `codex/bridge-research-annotation`
-- Current evidence checkpoint: `33a5dd7 Add dialogue-state v3 evidence package gates`
+- Current review entrypoint: branch tip of `codex/bridge-research-annotation`
+- Fixed evidence-package base checkpoint: `33a5dd7 Add dialogue-state v3 evidence package gates`
 - Dialogue-state v3 status: `formal human-review evidence candidate`；它不是 `final gold`，也不能把 Coach A、Coach B 或 priority60 adjudicated merge 当作唯一真值。
 - Headline rule: 论文主 headline 只能使用 `main_scaffold_eval` slice；`main_eval_with_caution`、`clarification_safety_slice`、`policy_safety_slice` 和 all-50 aggregate 只能作为 sensitivity / appendix，不混成一个 headline 平均。
 - Current online AIChat status: 仍以 `chat()` 为入口，主要由 rules、legacy learning phase judge、Pedagogical Judge v2 soft control、main LLM、自报 level hard gate 和 output guards 组成。
