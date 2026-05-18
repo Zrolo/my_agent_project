@@ -38,6 +38,6 @@
 ## Notes
 
 - Bridge Contract has the highest quality but also substantial bridge leakage.
-- Guard/Repair improves safety but can reduce response quality.
+- The Guard/Repair condition produces safer final responses in this dev review, but the effect should not be attributed to guard-only rewriting; causal Guard/Repair claims require same-candidate before/after evidence and may involve quality trade-offs.
 - DBox-inspired + guard is a competitive literature-inspired baseline and should remain in the main study.
 - This dev set should guide prompt repair and system selection, not headline claims.

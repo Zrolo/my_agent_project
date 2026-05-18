@@ -130,4 +130,3 @@
 > 用 CP-MissingBridgeBench 严格评估强 baseline 与多种 tutoring harness 的质量、安全和可展示性权衡。
 
 DBox-inspired 强，反而能增强论文说服力；因为你们不是只赢弱 baseline，而是在强 baseline 面前讨论 missing bridge 和 critical bridge leakage 的真实价值。
-

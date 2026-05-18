@@ -50,4 +50,3 @@ python3 -m evals.aichat.run_bridge_offline_eval \
 - Summary JSON：`evals/aichat/ad_hoc_runs/single_llm_structured_calibrated_smoke_20260510/single_llm_structured_calibrated_antileak_tutor_only_smoke3_summary.json`
 - 英文 summary：`evals/aichat/ad_hoc_runs/single_llm_structured_calibrated_smoke_20260510/single_llm_structured_calibrated_antileak_tutor_only_smoke3_summary.md`
 - 中文 summary：`evals/aichat/ad_hoc_runs/single_llm_structured_calibrated_smoke_20260510/single_llm_structured_calibrated_antileak_tutor_only_smoke3_summary.zh.md`
-

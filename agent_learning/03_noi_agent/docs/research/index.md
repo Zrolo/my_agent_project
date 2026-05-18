@@ -157,6 +157,24 @@ Research v1 不包含：
 - [paper_results_interpretation_guardrails_20260517.md](paper_results_interpretation_guardrails_20260517.md): English paper-result interpretation guardrails for Guard-only, Repair, rater sensitivity, and safe claims.
 - [taxonomy_specificity_revision_summary_20260517.zh.md](taxonomy_specificity_revision_summary_20260517.zh.md): 中文 taxonomy specificity revision 摘要，记录 P0/P1 文件如何从具体算法场景上提为 operational cognitive bridge families、leakage mechanisms 和 surface anchors。
 - [taxonomy_specificity_revision_summary_20260517.md](taxonomy_specificity_revision_summary_20260517.md): English summary of the taxonomy specificity revision.
+- [dialogue_state_v3_result_claims_lock_20260517.zh.md](dialogue_state_v3_result_claims_lock_20260517.zh.md): 中文 dialogue-state v3 结果声明锁，列出可以写、不能写和推荐论文表述。
+- [dialogue_state_v3_result_claims_lock_20260517.md](dialogue_state_v3_result_claims_lock_20260517.md): English dialogue-state v3 result claims lock.
+- [dialogue_state_v3_main_paper_ready_tables_20260517.zh.md](dialogue_state_v3_main_paper_ready_tables_20260517.zh.md): 中文 paper-ready 主表，按 main scaffold / caution / clarification / policy slice 分开报告。
+- [dialogue_state_v3_main_paper_ready_tables_20260517.md](dialogue_state_v3_main_paper_ready_tables_20260517.md): English paper-ready main tables for dialogue-state v3.
+- [dialogue_state_v3_pairwise_win_tie_loss_20260517.zh.md](dialogue_state_v3_pairwise_win_tie_loss_20260517.zh.md): 中文 main_scaffold_eval 配对 W/T/L 与不确定性解释。
+- [dialogue_state_v3_pairwise_win_tie_loss_20260517.md](dialogue_state_v3_pairwise_win_tie_loss_20260517.md): English pairwise win/tie/loss interpretation.
+- [human_review_reliability_section_draft_20260517.zh.md](human_review_reliability_section_draft_20260517.zh.md): 中文 human review reliability 论文小节草稿。
+- [human_review_reliability_section_draft_20260517.md](human_review_reliability_section_draft_20260517.md): English human-review reliability section draft.
+- [dialogue_state_v3_observed_error_taxonomy_20260517.zh.md](dialogue_state_v3_observed_error_taxonomy_20260517.zh.md): 中文 observed error taxonomy，将错误分为 failure type、cognitive bridge family 与 surface anchor。
+- [dialogue_state_v3_observed_error_taxonomy_20260517.md](dialogue_state_v3_observed_error_taxonomy_20260517.md): English observed error taxonomy.
+- [paper_results_draft_dialogue_state_v3_20260517.zh.md](paper_results_draft_dialogue_state_v3_20260517.zh.md): 中文 dialogue-state v3 Results / Discussion 初稿。
+- [paper_results_draft_dialogue_state_v3_20260517.md](paper_results_draft_dialogue_state_v3_20260517.md): English dialogue-state v3 Results / Discussion draft.
+- [paper_results_discussion_manuscript_dialogue_state_v3_20260518.zh.md](paper_results_discussion_manuscript_dialogue_state_v3_20260518.zh.md): 中文 manuscript-style Results / Discussion 压缩正文，整合人审可靠性、main scaffold、paired uncertainty、Repair stress、DBox fairness 和 DeepSeek-backed LLM grader calibration。
+- [paper_results_discussion_manuscript_dialogue_state_v3_20260518.md](paper_results_discussion_manuscript_dialogue_state_v3_20260518.md): English manuscript-style Results / Discussion draft with paper-safe claims and limitations.
+- [paper_results_discussion_section_dialogue_state_v3_20260518.zh.md](paper_results_discussion_section_dialogue_state_v3_20260518.zh.md): 中文论文正文版 Results / Discussion section 草稿，按 `4 Results` / `5 Discussion` 组织，可作为论文写作基底。
+- [paper_results_discussion_section_dialogue_state_v3_20260518.md](paper_results_discussion_section_dialogue_state_v3_20260518.md): English paper-section draft for Results / Discussion, organized as `4 Results` / `5 Discussion`.
+- [project_status_after_taxonomy_revision_20260517.zh.md](project_status_after_taxonomy_revision_20260517.zh.md): 中文 taxonomy revision 后项目状态和下一步执行顺序。
+- [project_status_after_taxonomy_revision_20260517.md](project_status_after_taxonomy_revision_20260517.md): English project status after taxonomy revision.
 
 ### Runtime Contract And Registries
 
@@ -174,10 +192,29 @@ Research v1 不包含：
 - [llm_grader_calibration_protocol_v2.md](llm_grader_calibration_protocol_v2.md): English LLM Grader calibration protocol v2.
 - [llm_grader_calibration_plan_20260517.zh.md](llm_grader_calibration_plan_20260517.zh.md): 中文 LLM grader calibration 计划，以 priority60 adjudicated labels 和 adjudicated+Coach A/B 为参考，比较 Likert-only、generic rubric、case-specific bridge rubric judge。
 - [llm_grader_calibration_plan_20260517.md](llm_grader_calibration_plan_20260517.md): English LLM grader calibration plan for Likert-only, generic rubric, and case-specific bridge rubric judges.
+- [llm_grader_calibration_plan_or_report_20260517.zh.md](llm_grader_calibration_plan_or_report_20260517.zh.md): 中文 LLM grader calibration plan/report 状态，记录 DeepSeek-backed priority60、adj+CoachA sample20、adj+CoachB sample20 完整结果，并将 Kimi run 标为 exploratory。
+- [llm_grader_calibration_plan_or_report_20260517.md](llm_grader_calibration_plan_or_report_20260517.md): English LLM grader calibration plan/report status with complete DeepSeek-backed priority60 and adj+CoachA/B sample20 results; Kimi runs are exploratory.
+- [llm_grader_calibration_pack_priority60_adjudicated_20260517.jsonl](llm_grader_calibration_pack_priority60_adjudicated_20260517.jsonl): priority60 adjudicated 60-row × 3 judge prompt pack for LLM grader calibration; predictions not included.
+- [llm_grader_calibration_pack_adj_coachA_sample20_20260517.jsonl](llm_grader_calibration_pack_adj_coachA_sample20_20260517.jsonl): adj+CoachA sample20 × 3 judge prompt pack for rater-view sensitivity.
+- [llm_grader_calibration_pack_adj_coachB_sample20_20260517.jsonl](llm_grader_calibration_pack_adj_coachB_sample20_20260517.jsonl): adj+CoachB sample20 × 3 judge prompt pack for rater-view sensitivity.
+- [llm_grader_calibration_smoke12_priority60_20260517.zh.md](llm_grader_calibration_smoke12_priority60_20260517.zh.md): 中文 LLM grader calibration priority60 smoke12 工具链记录，确认 runner、strict schema、retry 和 summarizer 可用；不是正式 calibration evidence。
+- [llm_grader_calibration_smoke12_priority60_20260517.md](llm_grader_calibration_smoke12_priority60_20260517.md): English LLM grader calibration priority60 smoke12 toolchain note; not formal calibration evidence.
+- [llm_grader_calibration_priority60_report_20260517.zh.md](llm_grader_calibration_priority60_report_20260517.zh.md): 中文 Kimi exploratory priority60 LLM grader calibration 记录；不是论文主 calibration evidence。
+- [llm_grader_calibration_priority60_report_20260517.md](llm_grader_calibration_priority60_report_20260517.md): English Kimi exploratory priority60 LLM grader calibration record; not paper-facing calibration evidence.
+- [llm_grader_calibration_sensitivity_report_20260518.zh.md](llm_grader_calibration_sensitivity_report_20260518.zh.md): 中文 Kimi exploratory LLM grader calibration sensitivity 记录，说明 backend-sensitive；不是论文主 evidence。
+- [llm_grader_calibration_sensitivity_report_20260518.md](llm_grader_calibration_sensitivity_report_20260518.md): English Kimi exploratory LLM grader calibration sensitivity record; backend-sensitive and not paper-facing evidence.
+- [llm_grader_calibration_deepseek_sensitivity_report_20260518.zh.md](llm_grader_calibration_deepseek_sensitivity_report_20260518.zh.md): 中文 DeepSeek-backed LLM grader calibration 主报告，汇总 priority60、adj+CoachA sample20、adj+CoachB sample20 完整结果。
+- [llm_grader_calibration_deepseek_sensitivity_report_20260518.md](llm_grader_calibration_deepseek_sensitivity_report_20260518.md): English DeepSeek-backed LLM grader calibration main report for complete priority60 and adj+CoachA/B sample20 runs.
 - [repair_same_candidate_stress_protocol_20260517.zh.md](repair_same_candidate_stress_protocol_20260517.zh.md): 中文 Repair same-candidate stress protocol，固定同一 candidate 比较 before/after repair，并配套 30-row workbook template。
 - [repair_same_candidate_stress_protocol_20260517.md](repair_same_candidate_stress_protocol_20260517.md): English same-candidate Repair stress protocol and workbook-template description.
+- [repair_same_candidate_stress_result_20260517.zh.md](repair_same_candidate_stress_result_20260517.zh.md): 中文 Repair same-candidate stress 30-pair 人审结果，报告 leakage、quality、burden before/after delta。
+- [repair_same_candidate_stress_result_20260517.md](repair_same_candidate_stress_result_20260517.md): English 30-pair same-candidate Repair stress result.
 - [dbox_guard_repair_fairness_review_plan_20260517.zh.md](dbox_guard_repair_fairness_review_plan_20260517.zh.md): 中文 DBox+Guard+Repair fairness add-on 人审方案，基于已有 50-row 生成包抽取 20 个敏感 case。
 - [dbox_guard_repair_fairness_review_plan_20260517.md](dbox_guard_repair_fairness_review_plan_20260517.md): English DBox+Guard+Repair fairness add-on review plan with a 20-case candidate list.
+- [dbox_guard_repair_fairness_coach_instructions_20260517.zh.md](dbox_guard_repair_fairness_coach_instructions_20260517.zh.md): 中文 DBox+Guard+Repair 20-case 补评教练说明，明确只填写 direct-fill workbook 的 `盲评表`。
+- [dbox_guard_repair_fairness_coach_instructions_20260517.md](dbox_guard_repair_fairness_coach_instructions_20260517.md): English coach instructions for the DBox+Guard+Repair 20-case direct-fill review workbook.
+- [dbox_guard_repair_fairness_report_20260517.zh.md](dbox_guard_repair_fairness_report_20260517.zh.md): 中文 DBox+Guard+Repair 20-case 补评结果报告，汇总 targeted fairness sensitivity、同 case 主实验对照和论文口径。
+- [dbox_guard_repair_fairness_report_20260517.md](dbox_guard_repair_fairness_report_20260517.md): English DBox+Guard+Repair 20-case fairness sensitivity report with same-case main-experiment comparisons.
 - [judge_schema_smoke_report_20260509.md](judge_schema_smoke_report_20260509.md): 20-case judge schema smoke 结果。
 - [response_ablation_smoke_report_20260509.md](response_ablation_smoke_report_20260509.md): response ablation smoke 结果。
 - [tutor_thinking_ablation_smoke_report_20260509.md](tutor_thinking_ablation_smoke_report_20260509.md): thinking mode smoke 结果。

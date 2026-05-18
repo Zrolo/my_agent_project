@@ -59,4 +59,3 @@ After this 5-case calibration:
 1. Summarize coach disagreements.
 2. If needed, adjust rubric instructions before changing tutor prompts.
 3. Proceed to the 50-case / 250-response human blind review or partial double annotation.
-

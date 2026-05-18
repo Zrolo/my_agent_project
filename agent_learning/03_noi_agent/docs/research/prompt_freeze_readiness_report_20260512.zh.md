@@ -12,7 +12,7 @@
 |---|---|---:|---|
 | `enhanced_prompt_only` | runner 已接入，dev ablation 已覆盖 | 有条件可以 | 它是 strong prompt baseline，必须保留；但仍需项目负责人确认 prompt 版本并锁定 |
 | `dbox_inspired_decomposition_tutor` | runner 已接入，DBox reproduction gap 已记录 | 有条件可以 | 可作为文献启发 baseline；不是 DBox reproduction；进入主实验前需固定 prompt 文本 |
-| `dbox_inspired_decomposition_tutor + guard` | dev ablation 已覆盖 | 有条件可以 | 用于公平比较 Guard 是否跨 generator 有效；需与 Leakage Guard freeze 状态绑定 |
+| `dbox_inspired_decomposition_tutor + guard` | dev ablation 已覆盖 | 有条件可以 | 用于公平比较 Guard 信号是否跨 generator 可用；guard-only 不代表最终回复已被改写 |
 | `bridge_contract_predicted` | dev ablation 已覆盖 | 暂不建议单独作为 headline 安全结论 | 质量信号强，但 dev review 显示仍有 critical bridge leakage；可进入主表但结论必须限于质量/控制信号，不得声称安全 |
 | `bridge_contract_predicted + guard` | dev ablation 已覆盖 | 暂不建议声称 Guard 已解决泄露 | Leakage Guard 对 answer-slot / filled-table / worked-example recall 仍不稳定；需要 coach calibration |
 | `bridge_contract_predicted + guard + repair` | dev ablation 和 Repair stress 已覆盖 | 有条件进入主表或 appendix | Repair stress 有正向 pilot evidence，但自然样本触发率、repair_still_leaks 和质量损失仍需 held-out 报告 |

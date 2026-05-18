@@ -50,4 +50,3 @@ However, the generated responses still show why the one-call baseline should rem
 - Summary JSON: `evals/aichat/ad_hoc_runs/single_llm_structured_calibrated_smoke_20260510/single_llm_structured_calibrated_antileak_tutor_only_smoke3_summary.json`
 - English summary: `evals/aichat/ad_hoc_runs/single_llm_structured_calibrated_smoke_20260510/single_llm_structured_calibrated_antileak_tutor_only_smoke3_summary.md`
 - Chinese summary: `evals/aichat/ad_hoc_runs/single_llm_structured_calibrated_smoke_20260510/single_llm_structured_calibrated_antileak_tutor_only_smoke3_summary.zh.md`
-

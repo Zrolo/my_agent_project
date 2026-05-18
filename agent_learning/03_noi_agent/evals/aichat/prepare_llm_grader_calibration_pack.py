@@ -32,6 +32,19 @@ CASE_SPECIFIC_FIELDS = [
     "expected_student_next_action",
 ]
 
+CONTEXT_FIELDS = [
+    "problem_statement",
+    "problem_context",
+    "student_message",
+    "recent_dialogue",
+    "context_ai_reply",
+    "problem_ref",
+    "problem_source_id",
+    "problem_source_platform",
+    "problem_source_url",
+    *CASE_SPECIFIC_FIELDS,
+]
+
 
 def _read_jsonl(path: Path) -> list[dict]:
     rows = []
@@ -49,6 +62,68 @@ def _read_jsonl(path: Path) -> list[dict]:
 def _shorten(value: object, limit: int = 5000) -> str:
     text = str(value or "").strip()
     return text if len(text) <= limit else text[: limit - 20] + "\n...[truncated]"
+
+
+def _has_value(value: object) -> bool:
+    return bool(str(value or "").strip())
+
+
+def _context_score(row: dict) -> int:
+    return sum(1 for field in CONTEXT_FIELDS if _has_value(row.get(field)))
+
+
+def _context_keys(row: dict) -> list[tuple[str, ...]]:
+    case_id = str(row.get("case_id") or "").strip()
+    response_id = str(row.get("anonymized_response_id") or "").strip()
+    condition = str(row.get("condition_id") or row.get("system") or "").strip()
+    keys: list[tuple[str, ...]] = []
+    if response_id and condition:
+        keys.append(("response_condition", response_id, condition))
+    if case_id and condition:
+        keys.append(("case_condition", case_id, condition))
+    if case_id:
+        keys.append(("case", case_id))
+    return keys
+
+
+def _build_context_index(context_rows: list[dict]) -> dict[tuple[str, ...], dict]:
+    index: dict[tuple[str, ...], dict] = {}
+    for row in context_rows:
+        for key in _context_keys(row):
+            current = index.get(key)
+            if current is None or _context_score(row) > _context_score(current):
+                index[key] = row
+    return index
+
+
+def enrich_rows_with_context(rows: list[dict], context_rows: list[dict]) -> list[dict]:
+    """Copy missing case context/rubric fields without changing labels."""
+
+    if not context_rows:
+        return [dict(row) for row in rows]
+    context_index = _build_context_index(context_rows)
+    enriched = []
+    for row in rows:
+        out = dict(row)
+        source = None
+        for key in _context_keys(row):
+            source = context_index.get(key)
+            if source is not None:
+                break
+        if source is not None:
+            copied = []
+            for field in CONTEXT_FIELDS:
+                if not _has_value(out.get(field)) and _has_value(source.get(field)):
+                    out[field] = source.get(field)
+                    copied.append(field)
+            if copied:
+                out["context_enrichment"] = {
+                    "copied_fields": copied,
+                    "source_case_id": source.get("case_id") or "",
+                    "source_condition_id": source.get("condition_id") or source.get("system") or "",
+                }
+        enriched.append(out)
+    return enriched
 
 
 def build_grader_prompt(row: dict, grader_type: str) -> str:
@@ -81,6 +156,7 @@ Target AI response to grade:
             + """
 Task:
 Give a holistic tutoring quality score from 1 to 5 and a brief rationale.
+Use the 1-5 scale exactly. Do not use a 0-10 scale or any score outside 1-5.
 
 Output schema:
 {"overall_quality": 1, "rationale": "..."}
@@ -100,6 +176,10 @@ Grade the response using a generic AI-tutor rubric:
 - expected student response burden
 
 Use UNKNOWN / INSUFFICIENT_CONTEXT when needed.
+Use the exact value ranges below:
+- overall_quality: integer 1-5 only, never 0-10.
+- scaffold_sufficiency: integer 0-2 only, where 0 means insufficient, 1 means partial, 2 means sufficient.
+- categorical fields must use one of the listed enum values exactly.
 
 Output schema:
 {
@@ -139,6 +219,10 @@ Task:
 Grade the response using the case-specific bridge rubric. Focus on whether the response helps the student advance without prematurely completing the current missing bridge.
 
 Use UNKNOWN / INSUFFICIENT_CONTEXT when the case rubric or context is not enough to judge.
+Use the exact value ranges below:
+- overall_quality: integer 1-5 only, never 0-10.
+- scaffold_sufficiency: integer 0-2 only, where 0 means insufficient, 1 means partial, 2 means sufficient.
+- categorical fields must use one of the listed enum values exactly.
 
 Output schema:
 {
@@ -196,10 +280,28 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--labels-jsonl", required=True, type=Path)
     parser.add_argument("--output-jsonl", required=True, type=Path)
+    parser.add_argument(
+        "--context-jsonl",
+        action="append",
+        type=Path,
+        default=[],
+        help="Optional JSONL with case context/rubric fields used to fill missing prompt context.",
+    )
+    parser.add_argument(
+        "--output-enriched-labels-jsonl",
+        type=Path,
+        help="Optional path to write context-enriched labels/reference rows.",
+    )
     parser.add_argument("--limit", type=int, default=None)
     args = parser.parse_args(argv)
 
     rows = _read_jsonl(args.labels_jsonl)
+    context_rows = []
+    for path in args.context_jsonl:
+        context_rows.extend(_read_jsonl(path))
+    rows = enrich_rows_with_context(rows, context_rows)
+    if args.output_enriched_labels_jsonl:
+        write_jsonl(rows, args.output_enriched_labels_jsonl)
     tasks = build_calibration_tasks(rows, limit=args.limit)
     write_jsonl(tasks, args.output_jsonl)
     print(f"Wrote {len(tasks)} grader calibration tasks: {args.output_jsonl}")

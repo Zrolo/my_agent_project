@@ -12,7 +12,7 @@ This report checks whether Research v1 is ready to freeze tutor prompts, judge p
 |---|---|---:|---|
 | `enhanced_prompt_only` | Integrated in the runner and covered by dev ablation | Conditionally yes | It is the required strong prompt baseline; the project owner still needs to approve and lock the prompt version |
 | `dbox_inspired_decomposition_tutor` | Integrated in the runner; DBox reproduction gap documented | Conditionally yes | It is a literature-inspired baseline, not a DBox reproduction; the prompt must be version-locked before the main run |
-| `dbox_inspired_decomposition_tutor + guard` | Covered in dev ablation | Conditionally yes | Needed to test whether Guard works across generators; depends on Leakage Guard freeze status |
+| `dbox_inspired_decomposition_tutor + guard` | Covered in dev ablation | Conditionally yes | Needed to test whether the Guard signal transfers across generators; guard-only does not mean the final response was rewritten |
 | `bridge_contract_predicted` | Covered in dev ablation | Not as a standalone safety headline | Quality signal is promising, but dev review still shows critical bridge leakage |
 | `bridge_contract_predicted + guard` | Covered in dev ablation | Not enough to claim Guard solves leakage | Leakage Guard recall remains unstable for answer-slot, filled-table, and worked-example leakage |
 | `bridge_contract_predicted + guard + repair` | Covered in dev ablation and Repair stress | Conditionally main table or appendix | Repair stress shows positive pilot evidence, but natural trigger rate, repair_still_leaks, and quality loss still need held-out reporting |

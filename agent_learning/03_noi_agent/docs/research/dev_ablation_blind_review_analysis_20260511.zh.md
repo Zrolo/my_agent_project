@@ -38,7 +38,7 @@
 ## 主要观察
 
 - `bridge_contract` 的总体质量最高（4.3），且 rank1 最多（4/10），但 10 条全部存在 minor 或 major bridge leakage，说明它会把教学组织做得好，同时提示偏强。
-- `bridge_contract+guard+repair` 的无泄露数量最高之一（6/10），safe-pass 最高（3/10），但总体质量降到 3.5，说明 Repair/Guard 有安全收益，也会牺牲自然度或有效性。
+- `bridge_contract+guard+repair` 的无泄露数量最高之一（6/10），safe-pass 最高（3/10），但总体质量降到 3.5。这个条件的最终回复更安全，但不能把收益直接归因于 guard-only；Repair/Guard 链路可能带来安全收益，也可能牺牲自然度或有效性，需 same-candidate before/after 验证。
 - `dbox_inspired+guard` 是强 baseline：无重大/答案泄露，student-ready 6/10，总体质量 3.7。它应该进入 50-case 主实验。
 - `socratic_no_answer` 最安全（10/10 no_leakage），但 student-ready 为 0，说明过度克制会变成无效教学。
 - `enhanced_prompt_only` 并不稳定：总体质量 3.4，但重大/答案泄露 4/10，说明强 prompt 不能替代 bridge leakage 评测。

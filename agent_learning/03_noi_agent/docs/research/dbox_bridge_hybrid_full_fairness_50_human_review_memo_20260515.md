@@ -130,4 +130,3 @@ This result is not bad for the paper. It moves the study away from “prove our 
 > CP-MissingBridgeBench rigorously evaluates the quality, safety, and student-readiness trade-offs of strong baselines and tutoring harnesses.
 
 The fact that DBox-inspired is strong improves the credibility of the paper, because the benchmark is no longer only comparing against a weak baseline.
-

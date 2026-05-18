@@ -70,7 +70,7 @@ This does not mean more than half are major leakage. Static lint is a high-recal
 1. `bridge_contract_safe_scaffold` has the lowest static risk. This is expected because it is a deterministic L1 safe scaffold, not the main method; it belongs in appendix / fallback comparisons.
 2. `bridge_contract_guard_repair` has one of the highest static risk rates, suggesting that Repair does not reliably reduce answer-slot, filled-trace, or worked-example risk.
 3. `single_llm_structured_guard` has automatic critical leakage of 0, but static risk remains 0.5, suggesting possible Guard false negatives.
-4. `dbox_inspired_guard` has lower static risk than `dbox_inspired_clean`, but it remains 0.444; Guard helps but is incomplete.
+4. `dbox_inspired_guard` has lower static risk than `dbox_inspired_clean`, but it remains 0.444; this supports keeping a guard-instrumented DBox variant, not claiming that guard-only repaired the final outputs.
 
 ## Implications
 

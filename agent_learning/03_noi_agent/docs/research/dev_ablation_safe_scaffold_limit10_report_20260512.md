@@ -202,4 +202,3 @@ automatic Leakage Judge labels are final gold labels;
    - whether safe scaffold belongs only in appendix;
    - whether it should become a high-risk routing candidate;
    - which conditions should enter the 50-case held-out main table.
-

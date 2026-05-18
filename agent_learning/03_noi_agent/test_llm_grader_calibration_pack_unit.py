@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 from evals.aichat import prepare_llm_grader_calibration_pack as pack
+from evals.aichat import run_llm_grader_calibration as runner
 
 
 class LlmGraderCalibrationPackTests(unittest.TestCase):
@@ -72,6 +73,40 @@ class LlmGraderCalibrationPackTests(unittest.TestCase):
 
             self.assertEqual(0, exit_code)
             self.assertEqual(3, len(output.read_text(encoding="utf-8").splitlines()))
+
+    def test_runner_accepts_deepseek_backend_for_dry_run(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            pack_jsonl = tmp / "pack.jsonl"
+            output = tmp / "predictions.jsonl"
+            pack_jsonl.write_text(
+                json.dumps(
+                    {
+                        "grader_type": "likert_only_judge",
+                        "case_id": "case_1",
+                        "anonymized_response_id": "resp_1",
+                        "condition_id": "cond_1",
+                        "prompt": "Return JSON.",
+                    },
+                    ensure_ascii=False,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            exit_code = runner.main(
+                [
+                    "--pack-jsonl",
+                    str(pack_jsonl),
+                    "--output-jsonl",
+                    str(output),
+                    "--backend",
+                    "deepseek",
+                    "--dry-run",
+                ]
+            )
+
+            self.assertEqual(0, exit_code)
 
 
 if __name__ == "__main__":

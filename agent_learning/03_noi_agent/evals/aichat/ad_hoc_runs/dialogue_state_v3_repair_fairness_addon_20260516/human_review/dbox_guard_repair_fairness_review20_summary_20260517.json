@@ -1,0 +1,4508 @@
+{
+  "bridge_reveal_justification_counts": {
+    "borderline": 5,
+    "no_reveal": 11,
+    "pedagogically_justified": 4
+  },
+  "case_count": 20,
+  "case_specific_rubric_present_count": 20,
+  "overall_leakage_counts": {
+    "minor_bridge_leakage": 6,
+    "no_leakage": 14
+  },
+  "overall_show_counts": {
+    "borderline": 9,
+    "yes": 11
+  },
+  "paired_comparisons": {
+    "bridge_contract_compact_clean__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_clean__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_clean__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_clean__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_clean__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_clean__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_clean__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_clean__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_clean__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "overall_quality_score",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    }
+  },
+  "paired_comparisons_core6": {
+    "bridge_contract_compact_clean__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_clean__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_clean__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_clean__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_clean__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_clean__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_clean__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_clean__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_clean__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "core6_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    }
+  },
+  "paired_comparisons_micro7": {
+    "bridge_contract_compact_clean__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_clean__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_clean__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_clean__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_clean__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_clean__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_clean__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_clean__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_clean__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_clean",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_contract_compact_guard_repair__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_contract_compact_guard_repair",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "bridge_guided_dbox_style_guard__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "bridge_guided_dbox_style_guard",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_clean__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_clean",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "dbox_inspired_guard_repair__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "dbox_inspired_guard_repair",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_clean__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_clean",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard__vs__enhanced_prompt_only_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard",
+      "system_b": "enhanced_prompt_only_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__bridge_contract_compact_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "bridge_contract_compact_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__bridge_contract_compact_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "bridge_contract_compact_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__bridge_contract_compact_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "bridge_contract_compact_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__bridge_guided_dbox_style_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "bridge_guided_dbox_style_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__dbox_inspired_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "dbox_inspired_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__dbox_inspired_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "dbox_inspired_guard",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__dbox_inspired_guard_repair": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "dbox_inspired_guard_repair",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__enhanced_prompt_only_clean": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "enhanced_prompt_only_clean",
+      "ties": 0,
+      "wins": 0
+    },
+    "enhanced_prompt_only_guard_repair__vs__enhanced_prompt_only_guard": {
+      "bootstrap_ci95": [
+        0.0,
+        0.0
+      ],
+      "case_diffs": {},
+      "losses": 0,
+      "mean_diff": 0.0,
+      "metric": "with_micro7_mean",
+      "paired_cases": 0,
+      "system_a": "enhanced_prompt_only_guard_repair",
+      "system_b": "enhanced_prompt_only_guard",
+      "ties": 0,
+      "wins": 0
+    }
+  },
+  "rank1_by_case": {
+    "dialogue_v3_001_state_representation_semantics": [],
+    "dialogue_v3_005_state_representation_semantics": [],
+    "dialogue_v3_011_transition_recurrence_source": [],
+    "dialogue_v3_012_predicate_check_semantics": [],
+    "dialogue_v3_013_predicate_check_semantics": [],
+    "dialogue_v3_014_predicate_check_semantics": [],
+    "dialogue_v3_016_predicate_check_semantics": [],
+    "dialogue_v3_020_boundary_update_order": [],
+    "dialogue_v3_022_modeling_object_relation": [],
+    "dialogue_v3_025_modeling_object_relation": [],
+    "dialogue_v3_027_aggregation_contribution_summary": [],
+    "dialogue_v3_030_aggregation_contribution_summary": [],
+    "dialogue_v3_031_data_structure_operation_semantics": [],
+    "dialogue_v3_032_data_structure_operation_semantics": [],
+    "dialogue_v3_033_data_structure_operation_semantics": [],
+    "dialogue_v3_034_data_structure_operation_semantics": [],
+    "dialogue_v3_035_data_structure_operation_semantics": [],
+    "dialogue_v3_036_correctness_invariant": [],
+    "dialogue_v3_040_correctness_invariant": [],
+    "dialogue_v3_042_implementation_boundary": []
+  },
+  "row_count": 20,
+  "row_count_by_system": {
+    "dbox_inspired_guard_repair": 20
+  },
+  "student_response_burden_counts": {
+    "high": 3,
+    "low": 8,
+    "medium": 9
+  },
+  "system_summary": {
+    "bridge_contract_compact_clean": {
+      "answer_leakage_count": 0,
+      "blocked_count": 0,
+      "borderline_reveal_count": 0,
+      "bridge_identification_mean": 0.0,
+      "core6_mean": 0.0,
+      "groundedness_mean": 0.0,
+      "major_bridge_leakage_count": 0,
+      "major_or_answer_leakage_count": 0,
+      "micro_applicable_count": 0,
+      "micro_applicable_mean": 0.0,
+      "micro_scored_count": 0,
+      "minor_bridge_leakage_count": 0,
+      "n": 0,
+      "needs_discussion_count": 0,
+      "next_step_clarity_mean": 0.0,
+      "no_leakage_count": 0,
+      "no_reveal_count": 0,
+      "notes_count": 0,
+      "overall_quality_mean": 0.0,
+      "pedagogically_justified_reveal_count": 0,
+      "rank1_count": 0,
+      "rank_mean": 0.0,
+      "repair_applied_count": 0,
+      "rubric_eval_score_v1_mean": 0.0,
+      "scaffold_appropriateness_mean": 0.0,
+      "scaffold_sufficiency_mean": 0.0,
+      "single_focus_coherence_mean": 0.0,
+      "student_ready_pass_count": 0,
+      "student_ready_safe_pass_count": 0,
+      "student_response_burden_high_count": 0,
+      "student_response_burden_low_count": 0,
+      "student_response_burden_medium_count": 0,
+      "unjustified_reveal_count": 0,
+      "with_micro7_mean": 0.0,
+      "would_show_borderline_count": 0,
+      "would_show_no_count": 0,
+      "would_show_yes_count": 0
+    },
+    "bridge_contract_compact_guard": {
+      "answer_leakage_count": 0,
+      "blocked_count": 0,
+      "borderline_reveal_count": 0,
+      "bridge_identification_mean": 0.0,
+      "core6_mean": 0.0,
+      "groundedness_mean": 0.0,
+      "major_bridge_leakage_count": 0,
+      "major_or_answer_leakage_count": 0,
+      "micro_applicable_count": 0,
+      "micro_applicable_mean": 0.0,
+      "micro_scored_count": 0,
+      "minor_bridge_leakage_count": 0,
+      "n": 0,
+      "needs_discussion_count": 0,
+      "next_step_clarity_mean": 0.0,
+      "no_leakage_count": 0,
+      "no_reveal_count": 0,
+      "notes_count": 0,
+      "overall_quality_mean": 0.0,
+      "pedagogically_justified_reveal_count": 0,
+      "rank1_count": 0,
+      "rank_mean": 0.0,
+      "repair_applied_count": 0,
+      "rubric_eval_score_v1_mean": 0.0,
+      "scaffold_appropriateness_mean": 0.0,
+      "scaffold_sufficiency_mean": 0.0,
+      "single_focus_coherence_mean": 0.0,
+      "student_ready_pass_count": 0,
+      "student_ready_safe_pass_count": 0,
+      "student_response_burden_high_count": 0,
+      "student_response_burden_low_count": 0,
+      "student_response_burden_medium_count": 0,
+      "unjustified_reveal_count": 0,
+      "with_micro7_mean": 0.0,
+      "would_show_borderline_count": 0,
+      "would_show_no_count": 0,
+      "would_show_yes_count": 0
+    },
+    "bridge_contract_compact_guard_repair": {
+      "answer_leakage_count": 0,
+      "blocked_count": 0,
+      "borderline_reveal_count": 0,
+      "bridge_identification_mean": 0.0,
+      "core6_mean": 0.0,
+      "groundedness_mean": 0.0,
+      "major_bridge_leakage_count": 0,
+      "major_or_answer_leakage_count": 0,
+      "micro_applicable_count": 0,
+      "micro_applicable_mean": 0.0,
+      "micro_scored_count": 0,
+      "minor_bridge_leakage_count": 0,
+      "n": 0,
+      "needs_discussion_count": 0,
+      "next_step_clarity_mean": 0.0,
+      "no_leakage_count": 0,
+      "no_reveal_count": 0,
+      "notes_count": 0,
+      "overall_quality_mean": 0.0,
+      "pedagogically_justified_reveal_count": 0,
+      "rank1_count": 0,
+      "rank_mean": 0.0,
+      "repair_applied_count": 0,
+      "rubric_eval_score_v1_mean": 0.0,
+      "scaffold_appropriateness_mean": 0.0,
+      "scaffold_sufficiency_mean": 0.0,
+      "single_focus_coherence_mean": 0.0,
+      "student_ready_pass_count": 0,
+      "student_ready_safe_pass_count": 0,
+      "student_response_burden_high_count": 0,
+      "student_response_burden_low_count": 0,
+      "student_response_burden_medium_count": 0,
+      "unjustified_reveal_count": 0,
+      "with_micro7_mean": 0.0,
+      "would_show_borderline_count": 0,
+      "would_show_no_count": 0,
+      "would_show_yes_count": 0
+    },
+    "bridge_guided_dbox_style_guard": {
+      "answer_leakage_count": 0,
+      "blocked_count": 0,
+      "borderline_reveal_count": 0,
+      "bridge_identification_mean": 0.0,
+      "core6_mean": 0.0,
+      "groundedness_mean": 0.0,
+      "major_bridge_leakage_count": 0,
+      "major_or_answer_leakage_count": 0,
+      "micro_applicable_count": 0,
+      "micro_applicable_mean": 0.0,
+      "micro_scored_count": 0,
+      "minor_bridge_leakage_count": 0,
+      "n": 0,
+      "needs_discussion_count": 0,
+      "next_step_clarity_mean": 0.0,
+      "no_leakage_count": 0,
+      "no_reveal_count": 0,
+      "notes_count": 0,
+      "overall_quality_mean": 0.0,
+      "pedagogically_justified_reveal_count": 0,
+      "rank1_count": 0,
+      "rank_mean": 0.0,
+      "repair_applied_count": 0,
+      "rubric_eval_score_v1_mean": 0.0,
+      "scaffold_appropriateness_mean": 0.0,
+      "scaffold_sufficiency_mean": 0.0,
+      "single_focus_coherence_mean": 0.0,
+      "student_ready_pass_count": 0,
+      "student_ready_safe_pass_count": 0,
+      "student_response_burden_high_count": 0,
+      "student_response_burden_low_count": 0,
+      "student_response_burden_medium_count": 0,
+      "unjustified_reveal_count": 0,
+      "with_micro7_mean": 0.0,
+      "would_show_borderline_count": 0,
+      "would_show_no_count": 0,
+      "would_show_yes_count": 0
+    },
+    "dbox_inspired_clean": {
+      "answer_leakage_count": 0,
+      "blocked_count": 0,
+      "borderline_reveal_count": 0,
+      "bridge_identification_mean": 0.0,
+      "core6_mean": 0.0,
+      "groundedness_mean": 0.0,
+      "major_bridge_leakage_count": 0,
+      "major_or_answer_leakage_count": 0,
+      "micro_applicable_count": 0,
+      "micro_applicable_mean": 0.0,
+      "micro_scored_count": 0,
+      "minor_bridge_leakage_count": 0,
+      "n": 0,
+      "needs_discussion_count": 0,
+      "next_step_clarity_mean": 0.0,
+      "no_leakage_count": 0,
+      "no_reveal_count": 0,
+      "notes_count": 0,
+      "overall_quality_mean": 0.0,
+      "pedagogically_justified_reveal_count": 0,
+      "rank1_count": 0,
+      "rank_mean": 0.0,
+      "repair_applied_count": 0,
+      "rubric_eval_score_v1_mean": 0.0,
+      "scaffold_appropriateness_mean": 0.0,
+      "scaffold_sufficiency_mean": 0.0,
+      "single_focus_coherence_mean": 0.0,
+      "student_ready_pass_count": 0,
+      "student_ready_safe_pass_count": 0,
+      "student_response_burden_high_count": 0,
+      "student_response_burden_low_count": 0,
+      "student_response_burden_medium_count": 0,
+      "unjustified_reveal_count": 0,
+      "with_micro7_mean": 0.0,
+      "would_show_borderline_count": 0,
+      "would_show_no_count": 0,
+      "would_show_yes_count": 0
+    },
+    "dbox_inspired_guard": {
+      "answer_leakage_count": 0,
+      "blocked_count": 0,
+      "borderline_reveal_count": 0,
+      "bridge_identification_mean": 0.0,
+      "core6_mean": 0.0,
+      "groundedness_mean": 0.0,
+      "major_bridge_leakage_count": 0,
+      "major_or_answer_leakage_count": 0,
+      "micro_applicable_count": 0,
+      "micro_applicable_mean": 0.0,
+      "micro_scored_count": 0,
+      "minor_bridge_leakage_count": 0,
+      "n": 0,
+      "needs_discussion_count": 0,
+      "next_step_clarity_mean": 0.0,
+      "no_leakage_count": 0,
+      "no_reveal_count": 0,
+      "notes_count": 0,
+      "overall_quality_mean": 0.0,
+      "pedagogically_justified_reveal_count": 0,
+      "rank1_count": 0,
+      "rank_mean": 0.0,
+      "repair_applied_count": 0,
+      "rubric_eval_score_v1_mean": 0.0,
+      "scaffold_appropriateness_mean": 0.0,
+      "scaffold_sufficiency_mean": 0.0,
+      "single_focus_coherence_mean": 0.0,
+      "student_ready_pass_count": 0,
+      "student_ready_safe_pass_count": 0,
+      "student_response_burden_high_count": 0,
+      "student_response_burden_low_count": 0,
+      "student_response_burden_medium_count": 0,
+      "unjustified_reveal_count": 0,
+      "with_micro7_mean": 0.0,
+      "would_show_borderline_count": 0,
+      "would_show_no_count": 0,
+      "would_show_yes_count": 0
+    },
+    "dbox_inspired_guard_repair": {
+      "answer_leakage_count": 0,
+      "blocked_count": 0,
+      "borderline_reveal_count": 5,
+      "bridge_identification_mean": 1.85,
+      "core6_mean": 1.7083,
+      "groundedness_mean": 1.7,
+      "major_bridge_leakage_count": 0,
+      "major_or_answer_leakage_count": 0,
+      "micro_applicable_count": 10,
+      "micro_applicable_mean": 1.5,
+      "micro_scored_count": 10,
+      "minor_bridge_leakage_count": 6,
+      "n": 20,
+      "needs_discussion_count": 7,
+      "next_step_clarity_mean": 1.7,
+      "no_leakage_count": 14,
+      "no_reveal_count": 11,
+      "notes_count": 8,
+      "overall_quality_mean": 3.55,
+      "pedagogically_justified_reveal_count": 4,
+      "rank1_count": 0,
+      "rank_mean": 0.0,
+      "repair_applied_count": 16,
+      "rubric_eval_score_v1_mean": 52.075,
+      "scaffold_appropriateness_mean": 1.5,
+      "scaffold_sufficiency_mean": 1.8,
+      "single_focus_coherence_mean": 1.8,
+      "student_ready_pass_count": 10,
+      "student_ready_safe_pass_count": 10,
+      "student_response_burden_high_count": 3,
+      "student_response_burden_low_count": 8,
+      "student_response_burden_medium_count": 9,
+      "unjustified_reveal_count": 0,
+      "with_micro7_mean": 1.6976,
+      "would_show_borderline_count": 9,
+      "would_show_no_count": 0,
+      "would_show_yes_count": 11
+    },
+    "enhanced_prompt_only_clean": {
+      "answer_leakage_count": 0,
+      "blocked_count": 0,
+      "borderline_reveal_count": 0,
+      "bridge_identification_mean": 0.0,
+      "core6_mean": 0.0,
+      "groundedness_mean": 0.0,
+      "major_bridge_leakage_count": 0,
+      "major_or_answer_leakage_count": 0,
+      "micro_applicable_count": 0,
+      "micro_applicable_mean": 0.0,
+      "micro_scored_count": 0,
+      "minor_bridge_leakage_count": 0,
+      "n": 0,
+      "needs_discussion_count": 0,
+      "next_step_clarity_mean": 0.0,
+      "no_leakage_count": 0,
+      "no_reveal_count": 0,
+      "notes_count": 0,
+      "overall_quality_mean": 0.0,
+      "pedagogically_justified_reveal_count": 0,
+      "rank1_count": 0,
+      "rank_mean": 0.0,
+      "repair_applied_count": 0,
+      "rubric_eval_score_v1_mean": 0.0,
+      "scaffold_appropriateness_mean": 0.0,
+      "scaffold_sufficiency_mean": 0.0,
+      "single_focus_coherence_mean": 0.0,
+      "student_ready_pass_count": 0,
+      "student_ready_safe_pass_count": 0,
+      "student_response_burden_high_count": 0,
+      "student_response_burden_low_count": 0,
+      "student_response_burden_medium_count": 0,
+      "unjustified_reveal_count": 0,
+      "with_micro7_mean": 0.0,
+      "would_show_borderline_count": 0,
+      "would_show_no_count": 0,
+      "would_show_yes_count": 0
+    },
+    "enhanced_prompt_only_guard": {
+      "answer_leakage_count": 0,
+      "blocked_count": 0,
+      "borderline_reveal_count": 0,
+      "bridge_identification_mean": 0.0,
+      "core6_mean": 0.0,
+      "groundedness_mean": 0.0,
+      "major_bridge_leakage_count": 0,
+      "major_or_answer_leakage_count": 0,
+      "micro_applicable_count": 0,
+      "micro_applicable_mean": 0.0,
+      "micro_scored_count": 0,
+      "minor_bridge_leakage_count": 0,
+      "n": 0,
+      "needs_discussion_count": 0,
+      "next_step_clarity_mean": 0.0,
+      "no_leakage_count": 0,
+      "no_reveal_count": 0,
+      "notes_count": 0,
+      "overall_quality_mean": 0.0,
+      "pedagogically_justified_reveal_count": 0,
+      "rank1_count": 0,
+      "rank_mean": 0.0,
+      "repair_applied_count": 0,
+      "rubric_eval_score_v1_mean": 0.0,
+      "scaffold_appropriateness_mean": 0.0,
+      "scaffold_sufficiency_mean": 0.0,
+      "single_focus_coherence_mean": 0.0,
+      "student_ready_pass_count": 0,
+      "student_ready_safe_pass_count": 0,
+      "student_response_burden_high_count": 0,
+      "student_response_burden_low_count": 0,
+      "student_response_burden_medium_count": 0,
+      "unjustified_reveal_count": 0,
+      "with_micro7_mean": 0.0,
+      "would_show_borderline_count": 0,
+      "would_show_no_count": 0,
+      "would_show_yes_count": 0
+    },
+    "enhanced_prompt_only_guard_repair": {
+      "answer_leakage_count": 0,
+      "blocked_count": 0,
+      "borderline_reveal_count": 0,
+      "bridge_identification_mean": 0.0,
+      "core6_mean": 0.0,
+      "groundedness_mean": 0.0,
+      "major_bridge_leakage_count": 0,
+      "major_or_answer_leakage_count": 0,
+      "micro_applicable_count": 0,
+      "micro_applicable_mean": 0.0,
+      "micro_scored_count": 0,
+      "minor_bridge_leakage_count": 0,
+      "n": 0,
+      "needs_discussion_count": 0,
+      "next_step_clarity_mean": 0.0,
+      "no_leakage_count": 0,
+      "no_reveal_count": 0,
+      "notes_count": 0,
+      "overall_quality_mean": 0.0,
+      "pedagogically_justified_reveal_count": 0,
+      "rank1_count": 0,
+      "rank_mean": 0.0,
+      "repair_applied_count": 0,
+      "rubric_eval_score_v1_mean": 0.0,
+      "scaffold_appropriateness_mean": 0.0,
+      "scaffold_sufficiency_mean": 0.0,
+      "single_focus_coherence_mean": 0.0,
+      "student_ready_pass_count": 0,
+      "student_ready_safe_pass_count": 0,
+      "student_response_burden_high_count": 0,
+      "student_response_burden_low_count": 0,
+      "student_response_burden_medium_count": 0,
+      "unjustified_reveal_count": 0,
+      "with_micro7_mean": 0.0,
+      "would_show_borderline_count": 0,
+      "would_show_no_count": 0,
+      "would_show_yes_count": 0
+    }
+  },
+  "systems": [
+    "enhanced_prompt_only_clean",
+    "enhanced_prompt_only_guard",
+    "enhanced_prompt_only_guard_repair",
+    "dbox_inspired_clean",
+    "dbox_inspired_guard",
+    "dbox_inspired_guard_repair",
+    "bridge_contract_compact_clean",
+    "bridge_contract_compact_guard",
+    "bridge_contract_compact_guard_repair",
+    "bridge_guided_dbox_style_guard"
+  ]
+}

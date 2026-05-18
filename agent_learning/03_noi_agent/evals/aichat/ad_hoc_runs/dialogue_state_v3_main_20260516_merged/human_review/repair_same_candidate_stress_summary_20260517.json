@@ -1,0 +1,172 @@
+{
+  "after_burden_distribution": {
+    "high": 3,
+    "low": 8,
+    "medium": 19
+  },
+  "after_leakage_distribution": {
+    "minor_bridge_leakage": 8,
+    "no_leakage": 22
+  },
+  "after_overall_mean": 3.6333333333333333,
+  "after_show_distribution": {
+    "borderline": 11,
+    "no": 1,
+    "yes": 18
+  },
+  "before_burden_distribution": {
+    "high": 1,
+    "low": 18,
+    "medium": 11
+  },
+  "before_leakage_distribution": {
+    "major_bridge_leakage": 7,
+    "minor_bridge_leakage": 13,
+    "no_leakage": 10
+  },
+  "before_overall_mean": 3.3666666666666667,
+  "before_show_distribution": {
+    "borderline": 11,
+    "no": 7,
+    "yes": 12
+  },
+  "burden_delta": {
+    "improved": 2,
+    "same": 16,
+    "worse": 12
+  },
+  "by_bridge_bucket": {
+    "aggregation_contribution_summary": {
+      "leakage_improved": 3,
+      "leakage_same": 2,
+      "quality_loss": 1,
+      "quality_tie": 2,
+      "quality_win": 2
+    },
+    "boundary_update_order": {
+      "leakage_same": 2,
+      "quality_loss": 1,
+      "quality_tie": 1
+    },
+    "correctness_invariant": {
+      "leakage_same": 2,
+      "quality_tie": 1,
+      "quality_win": 1
+    },
+    "data_structure_operation_semantics": {
+      "leakage_improved": 3,
+      "leakage_same": 2,
+      "quality_loss": 1,
+      "quality_tie": 1,
+      "quality_win": 3
+    },
+    "implementation_boundary": {
+      "leakage_improved": 1,
+      "quality_tie": 1
+    },
+    "modeling_object_relation": {
+      "leakage_improved": 2,
+      "leakage_same": 1,
+      "quality_loss": 1,
+      "quality_tie": 1,
+      "quality_win": 1
+    },
+    "policy_request": {
+      "leakage_same": 1,
+      "quality_loss": 1
+    },
+    "predicate_check_semantics": {
+      "leakage_improved": 3,
+      "leakage_same": 1,
+      "quality_loss": 1,
+      "quality_tie": 2,
+      "quality_win": 1
+    },
+    "state_representation_semantics": {
+      "leakage_improved": 3,
+      "leakage_same": 1,
+      "quality_tie": 1,
+      "quality_win": 3
+    },
+    "transition_recurrence_source": {
+      "leakage_improved": 1,
+      "leakage_same": 2,
+      "quality_loss": 1,
+      "quality_tie": 1,
+      "quality_win": 1
+    }
+  },
+  "by_source_condition": {
+    "bridge_contract_compact_guard_repair": {
+      "burden_improved_same_worse": {
+        "improved": 1,
+        "same": 9,
+        "worse": 3
+      },
+      "leakage_improved_same_worse": {
+        "improved": 5,
+        "same": 8,
+        "worse": 0
+      },
+      "mean_overall_delta": -0.07692307692307693,
+      "n": 13,
+      "quality_win_tie_loss": {
+        "loss": 4,
+        "tie": 6,
+        "win": 3
+      },
+      "repair_pair_preference": {
+        "original_preferred": 6,
+        "repair_preferred": 4,
+        "tie": 3,
+        "unclear": 0
+      }
+    },
+    "dbox_inspired_guard_repair": {
+      "burden_improved_same_worse": {
+        "improved": 1,
+        "same": 7,
+        "worse": 9
+      },
+      "leakage_improved_same_worse": {
+        "improved": 11,
+        "same": 6,
+        "worse": 0
+      },
+      "mean_overall_delta": 0.5294117647058824,
+      "n": 17,
+      "quality_win_tie_loss": {
+        "loss": 3,
+        "tie": 5,
+        "win": 9
+      },
+      "repair_pair_preference": {
+        "original_preferred": 5,
+        "repair_preferred": 11,
+        "tie": 1,
+        "unclear": 0
+      }
+    }
+  },
+  "labeled_pairs": 30,
+  "leakage_delta": {
+    "improved": 16,
+    "same": 14,
+    "worse": 0
+  },
+  "mean_overall_delta": 0.26666666666666666,
+  "repair_pair_preference": {
+    "original_preferred": 11,
+    "repair_preferred": 15,
+    "tie": 4
+  },
+  "repair_win_tie_loss": {
+    "loss": 7,
+    "tie": 11,
+    "win": 12
+  },
+  "still_leaks_rate": 0.0,
+  "too_vague_after_repair_rate": 0.06666666666666667,
+  "total_rows": 30,
+  "unlabeled_pairs": 0
+}

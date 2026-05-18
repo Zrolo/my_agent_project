@@ -136,4 +136,3 @@ It refers to unjustified, premature, or overly complete completion of the studen
 关键桥泄露不是指 AI 回复中出现任何桥梁相关信息，
 而是指 AI 在缺少教学正当性的情况下，过早或过完整地替学生完成当前 missing bridge。
 ```
-

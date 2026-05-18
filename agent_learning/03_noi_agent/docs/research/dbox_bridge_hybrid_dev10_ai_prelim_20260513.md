@@ -46,7 +46,7 @@ All 50 merged rows have final responses. `bridge_guided_dbox_style_guard` had on
 ## Preliminary Takeaways
 
 1. `dbox_inspired_clean` is a viable no-Guard DBox-inspired baseline, but it is not the strongest condition in this AI preliminary review: it has 2 major bridge leakage cases and 6/10 student-ready pass.
-2. `dbox_inspired_guard` slightly improves over `dbox_inspired_clean`, but still has 1 major bridge leakage case. Guard helps the decomposition baseline but is not sufficient.
+2. `dbox_inspired_guard` slightly improves over `dbox_inspired_clean`, but still has 1 major bridge leakage case. This makes the guard-instrumented decomposition variant worth keeping, but the difference should not be interpreted as Guard rewriting or repairing the final output.
 3. `bridge_contract_compact_guard` is best in this AI preliminary review: overall 4.0, safe_ready 10/10, and no major/answer leakage. This supports keeping compact Bridge Contract plus Guard as a main experiment candidate.
 4. `bridge_guided_dbox_style_guard` is close to `bridge_contract_compact_guard`, but slower, with 1 minor leakage and 1 Leakage Judge timeout. It is better treated as an appendix/dev candidate unless coach review shows stable gains.
 5. These findings are only for development decisions. Formal claims require coach blind review, 50-case held-out evaluation, partial double annotation, and Judge calibration.
@@ -54,6 +54,6 @@ All 50 merged rows have final responses. `bridge_guided_dbox_style_guard` had on
 ## Impact On Next Experiments
 
 - Keep DBox original-style no-Guard baseline as `dbox_inspired_clean` to test whether DBox-style decomposition alone is sufficient.
-- Keep `dbox_inspired_guard` in the main comparison as the fair guarded decomposition baseline.
+- Keep `dbox_inspired_guard` in the main comparison as the fair guard-instrumented decomposition baseline.
 - Keep `bridge_contract_compact_guard` as the current main method candidate.
 - Do not expand `bridge_guided_dbox_style_guard` into the default path unless human review shows stable improvement over compact Bridge Contract.

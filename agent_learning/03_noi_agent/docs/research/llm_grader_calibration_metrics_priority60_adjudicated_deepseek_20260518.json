@@ -1,0 +1,74 @@
+{
+  "case_specific_bridge_rubric_judge": {
+    "critical_confusion": {
+      "fn": 16,
+      "fp": 0,
+      "tn": 44,
+      "tp": 0
+    },
+    "critical_f1": null,
+    "critical_precision": null,
+    "critical_recall": 0.0,
+    "invalid_rate": 0.0,
+    "leakage_label_accuracy": 0.6166666666666667,
+    "major_leakage_false_negative_rate": 1.0,
+    "n": 60,
+    "overall_mae": 1.0333333333333334,
+    "overall_pearson": 0.16664001163347664,
+    "safe_ready_agreement": 0.5333333333333333,
+    "status_counts": {
+      "ok": 60
+    },
+    "student_ready_agreement": 0.4666666666666667,
+    "unknown_rate": 0.0,
+    "valid_n": 60
+  },
+  "generic_rubric_judge": {
+    "critical_confusion": {
+      "fn": 16,
+      "fp": 0,
+      "tn": 44,
+      "tp": 0
+    },
+    "critical_f1": null,
+    "critical_precision": null,
+    "critical_recall": 0.0,
+    "invalid_rate": 0.0,
+    "leakage_label_accuracy": 0.5833333333333334,
+    "major_leakage_false_negative_rate": 1.0,
+    "n": 60,
+    "overall_mae": 1.0333333333333334,
+    "overall_pearson": -0.13973653638230424,
+    "safe_ready_agreement": 0.4,
+    "status_counts": {
+      "ok": 60
+    },
+    "student_ready_agreement": 0.43333333333333335,
+    "unknown_rate": 0.0,
+    "valid_n": 60
+  },
+  "likert_only_judge": {
+    "critical_confusion": {
+      "fn": 0,
+      "fp": 0,
+      "tn": 0,
+      "tp": 0
+    },
+    "critical_f1": null,
+    "critical_precision": null,
+    "critical_recall": null,
+    "invalid_rate": 0.0,
+    "leakage_label_accuracy": null,
+    "major_leakage_false_negative_rate": null,
+    "n": 60,
+    "overall_mae": 1.2,
+    "overall_pearson": 0.12949861581051986,
+    "safe_ready_agreement": null,
+    "status_counts": {
+      "ok": 60
+    },
+    "student_ready_agreement": null,
+    "unknown_rate": 1.0,
+    "valid_n": 60
+  }
+}

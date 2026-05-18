@@ -221,7 +221,7 @@ python3 -m evals.aichat.run_bridge_offline_eval \
   --limit 3
 ```
 
-Use `--tutor-mode enhanced_prompt_only` for the strong prompt-only baseline. This mode uses stronger tutoring instructions but does not receive a concrete Bridge Contract, predicted missing bridge, or runtime diagnosis object. It isolates prompt wording effects from missing-bridge diagnosis effects. Run its clean condition with `--pipeline-mode tutor_only_no_diagnosis`; add `tutor_plus_guard` only when testing whether the same Leakage Guard helps strong prompt-only generation.
+Use `--tutor-mode enhanced_prompt_only` for the strong prompt-only baseline. This mode uses stronger tutoring instructions but does not receive a concrete Bridge Contract, predicted missing bridge, or runtime diagnosis object. It isolates prompt wording effects from missing-bridge diagnosis effects. Run its clean condition with `--pipeline-mode tutor_only_no_diagnosis`; add `tutor_plus_guard` only when testing whether the same Leakage Guard signal transfers to strong prompt-only generation.
 
 Example:
 
@@ -254,7 +254,7 @@ python3 -m evals.aichat.run_bridge_offline_eval \
   --limit 3
 ```
 
-Use `--tutor-mode socratic_no_answer_tutor` for the literature-inspired Socratic/no-answer baseline. Use `--tutor-mode codehelp_codeaid_no_direct_solution_tutor` for the literature-inspired programming guardrail baseline. It gives one helpful next step without full solution/code or direct critical-bridge completion. Use `--tutor-mode bridge_inspired_expert_decision_tutor` for the literature-inspired expert-decision baseline, which internally emits `student_error_or_gap`, `remediation_strategy`, and `teaching_intention` before the student-facing response. These are standalone literature-adapted baselines, so run their clean latency/quality condition with `--pipeline-mode tutor_only_no_diagnosis`; add `tutor_plus_guard` only when testing whether the same Guard helps non-Bridge generators.
+Use `--tutor-mode socratic_no_answer_tutor` for the literature-inspired Socratic/no-answer baseline. Use `--tutor-mode codehelp_codeaid_no_direct_solution_tutor` for the literature-inspired programming guardrail baseline. It gives one helpful next step without full solution/code or direct critical-bridge completion. Use `--tutor-mode bridge_inspired_expert_decision_tutor` for the literature-inspired expert-decision baseline, which internally emits `student_error_or_gap`, `remediation_strategy`, and `teaching_intention` before the student-facing response. These are standalone literature-adapted baselines, so run their clean latency/quality condition with `--pipeline-mode tutor_only_no_diagnosis`; add `tutor_plus_guard` only when testing whether the same Guard signal is useful for non-Bridge generators.
 
 Use `--guard-mode predicted` for the fair default experiment. In this mode Leakage Judge receives only the forbidden content predicted by Bridge Judge. Use `--guard-mode oracle` only as an upper-bound experiment; oracle mode may add `gold_forbidden_completion` from the seed row to the guard input and is not comparable to runtime behavior.
 

@@ -63,4 +63,3 @@ python3 -m evals.aichat.validate_research_bilingual_docs \
 - The two versions do not need to be literal translations, but they must preserve the same conclusion, experimental boundary, main metrics, and limitations.
 - If one version is drafted first, the companion version can follow shortly, but the work should not be treated as complete before both exist.
 - Paper-facing claims, experimental numbers, and risk caveats must match across both versions.
-

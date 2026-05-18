@@ -36,10 +36,10 @@ The minimum main experiment should include:
 | `enhanced_prompt_only` | strong prompt-only baseline | Isolate prompt wording effects |
 | `codehelp_codeaid_no_direct_solution_tutor` | programming guardrail baseline | Test whether ordinary no-direct-solution guardrails are sufficient |
 | `dbox_inspired_decomposition_tutor` | DBox-inspired baseline | Test whether decomposition scaffolding is already strong |
-| `dbox_inspired_decomposition_tutor + guard` | guarded decomposition baseline | Test whether Guard works across generator families |
+| `dbox_inspired_decomposition_tutor + guard` | guard-instrumented decomposition baseline | Test whether the Guard signal transfers across generator families; guard-only does not mean the final response was rewritten |
 | `bridge_inspired_expert_decision_tutor` | Bridge-inspired baseline | Test whether generic expert-decision prompting approaches Bridge Contract |
 | `bridge_contract_predicted` | ours | Test predicted missing-bridge contracts |
-| `bridge_contract_predicted + guard` | ours + safety | Test critical bridge leakage guard |
+| `bridge_contract_predicted + guard` | ours + safety instrumentation | Test the critical bridge leakage guard signal; do not interpret it as output repair except for block fallback |
 | `bridge_contract_predicted + guard + repair` | ours + safety | Test the quality-leakage trade-off of repair |
 
 If the main table becomes too large, the paper can report a 7-system main table and move full ablations to the appendix.
@@ -61,7 +61,7 @@ We implement literature-adapted baselines, not direct reproductions.
 | The deployed system has real failure modes | `current_system` human review | This only shows product weakness, not the main contribution |
 | Prompt wording matters | `enhanced_prompt_only` vs `single_llm_structured` | Prompt effect may be small |
 | Decomposition scaffold is a strong baseline | `dbox_inspired_decomposition_tutor` vs `enhanced_prompt_only` | DBox-inspired may not be a strong default |
-| Guard works across generators | `dbox + guard` vs `dbox`; `bridge + guard` vs `bridge` | Guard claims must be generator-specific |
+| Guard signal transfers across generators | `dbox + guard` vs `dbox`; `bridge + guard` vs `bridge`; same-candidate guard/repair stress | Guard-only claims must be limited to detection/intervention signal; output repair requires repair/block evidence |
 | Contract content matters | `bridge_contract_predicted` vs `bridge_contract_shuffled` | Bridge Contract may be acting like a prompt wrapper |
 | Critical bridge leakage is necessary | low answer/code leakage but high bridge leakage | The core metric is weakened if bridge leakage is absent |
 | Repair helps | repair stress before/after | If quality drops, report a trade-off |

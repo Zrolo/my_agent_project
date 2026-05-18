@@ -1,0 +1,228 @@
+{
+  "paired": {
+    "bridge_repair_A_minus_dbox_repair_addon": {
+      "mean_burden_delta": 0.1,
+      "mean_leakage_severity_delta": -0.15,
+      "mean_overall_delta": 0.5,
+      "n": 20,
+      "safe_ready_delta_count": 4,
+      "win_tie_loss": {
+        "loss": 3,
+        "tie": 5,
+        "win": 12
+      }
+    },
+    "bridge_repair_A_minus_main_dbox_guard_A": {
+      "mean_burden_delta": 0.15,
+      "mean_leakage_severity_delta": -0.2,
+      "mean_overall_delta": 0.65,
+      "n": 20,
+      "safe_ready_delta_count": 5,
+      "win_tie_loss": {
+        "loss": 3,
+        "tie": 5,
+        "win": 12
+      }
+    },
+    "bridge_repair_B_minus_dbox_repair_addon": {
+      "mean_burden_delta": -0.25,
+      "mean_leakage_severity_delta": -0.25,
+      "mean_overall_delta": -0.3,
+      "n": 20,
+      "safe_ready_delta_count": -6,
+      "win_tie_loss": {
+        "loss": 7,
+        "tie": 11,
+        "win": 2
+      }
+    },
+    "dbox_repair_addon_minus_main_dbox_guard_A": {
+      "mean_burden_delta": 0.05,
+      "mean_leakage_severity_delta": -0.05,
+      "mean_overall_delta": 0.15,
+      "n": 20,
+      "safe_ready_delta_count": 1,
+      "win_tie_loss": {
+        "loss": 5,
+        "tie": 9,
+        "win": 6
+      }
+    },
+    "dbox_repair_addon_minus_main_dbox_guard_B": {
+      "mean_burden_delta": 0.2,
+      "mean_leakage_severity_delta": 0.1,
+      "mean_overall_delta": 0.4,
+      "n": 20,
+      "safe_ready_delta_count": 6,
+      "win_tie_loss": {
+        "loss": 3,
+        "tie": 8,
+        "win": 9
+      }
+    }
+  },
+  "risk_cases": [
+    {
+      "burden": "medium",
+      "case_id": "dialogue_v3_012_predicate_check_semantics",
+      "leakage": "minor_bridge_leakage",
+      "needs_discussion": "yes",
+      "notes": "优点：例子能推进 true/false 方向。问题：可行/不可行和搜索侧选择已给得偏强，学生可能填空而非自构造。建议：改成先让学生自己判断两个候选是否可行。",
+      "overall": 3.0,
+      "show": "borderline"
+    },
+    {
+      "burden": "medium",
+      "case_id": "dialogue_v3_020_boundary_update_order",
+      "leakage": "no_leakage",
+      "needs_discussion": "yes",
+      "notes": "问题：小例子的递推式和原题/边界覆盖问题贴合弱，学生可能在无关数组更新上耗力。安全但教学指向不够清楚。",
+      "overall": 2.0,
+      "show": "borderline"
+    },
+    {
+      "burden": "high",
+      "case_id": "dialogue_v3_030_aggregation_contribution_summary",
+      "leakage": "minor_bridge_leakage",
+      "needs_discussion": "yes",
+      "notes": "优点：路径前缀例子有桥梁导向。问题：pre[u]+pre[v] 的提示接近 LCA 修正核心，且模拟负担偏高。",
+      "overall": 3.0,
+      "show": "borderline"
+    },
+    {
+      "burden": "low",
+      "case_id": "dialogue_v3_032_data_structure_operation_semantics",
+      "leakage": "minor_bridge_leakage",
+      "needs_discussion": "yes",
+      "notes": "问题：把 a+b 与最大值对比，几乎把节点摘要方向摆到学生面前；仍需学生回答，但偏强。",
+      "overall": 3.0,
+      "show": "borderline"
+    },
+    {
+      "burden": "medium",
+      "case_id": "dialogue_v3_005_state_representation_semantics",
+      "leakage": "minor_bridge_leakage",
+      "needs_discussion": "yes",
+      "notes": "优点：抓到状态表示。问题：先给出“节点 u 对应原图哪个点”这个维度，接近状态核心；且要求列两个维度负担略高。",
+      "overall": 3.0,
+      "show": "borderline"
+    },
+    {
+      "burden": "high",
+      "case_id": "dialogue_v3_022_modeling_object_relation",
+      "leakage": "no_leakage",
+      "needs_discussion": "no",
+      "notes": "问题：要求列三种关系及条件，学生回复负担偏高；可改成只选一个对象对和一种关系。",
+      "overall": 3.0,
+      "show": "borderline"
+    },
+    {
+      "burden": "low",
+      "case_id": "dialogue_v3_031_data_structure_operation_semantics",
+      "leakage": "minor_bridge_leakage",
+      "needs_discussion": "yes",
+      "notes": "问题：直接点出逆序对需要查“之前出现且比它大”的数量，接近数据结构摘要语义核心；仍需学生补 leaf sum 含义。",
+      "overall": 3.0,
+      "show": "borderline"
+    },
+    {
+      "burden": "high",
+      "case_id": "dialogue_v3_042_implementation_boundary",
+      "leakage": "no_leakage",
+      "needs_discussion": "no",
+      "notes": "",
+      "overall": 4.0,
+      "show": "yes"
+    },
+    {
+      "burden": "low",
+      "case_id": "dialogue_v3_001_state_representation_semantics",
+      "leakage": "minor_bridge_leakage",
+      "needs_discussion": "yes",
+      "notes": "问题：直接提示用起始和结束两个参数，接近区间状态下标核心；还未完整给状态值含义，故判轻微泄露。",
+      "overall": 3.0,
+      "show": "borderline"
+    }
+  ],
+  "scope": {
+    "n": 20,
+    "reviewed_workbook": "evals/aichat/ad_hoc_runs/dialogue_state_v3_repair_fairness_addon_20260516/human_review/dbox_guard_repair_fairness_review20_workbook_20260517_reviewed.xlsx"
+  },
+  "summaries": {
+    "dbox_repair_addon_review20": {
+      "burden_high": 3,
+      "burden_low": 8,
+      "burden_medium": 9,
+      "condition": "dbox_repair_addon_review20",
+      "major_answer": 0,
+      "minor": 6,
+      "n": 20,
+      "needs_discussion": 7,
+      "no_leakage": 14,
+      "overall": 3.55,
+      "ready_yes": 11,
+      "safe_ready": 11,
+      "sufficiency": 1.8
+    },
+    "main_bridge_repair_priority60_plus_coachA_same20": {
+      "burden_high": 0,
+      "burden_low": 3,
+      "burden_medium": 17,
+      "condition": "main_bridge_repair_priority60_plus_coachA_same20",
+      "major_answer": 0,
+      "minor": 3,
+      "n": 20,
+      "needs_discussion": 5,
+      "no_leakage": 17,
+      "overall": 4.05,
+      "ready_yes": 15,
+      "safe_ready": 15,
+      "sufficiency": 1.65
+    },
+    "main_bridge_repair_priority60_plus_coachB_same20": {
+      "burden_high": 0,
+      "burden_low": 10,
+      "burden_medium": 10,
+      "condition": "main_bridge_repair_priority60_plus_coachB_same20",
+      "major_answer": 0,
+      "minor": 1,
+      "n": 20,
+      "needs_discussion": 1,
+      "no_leakage": 19,
+      "overall": 3.25,
+      "ready_yes": 5,
+      "safe_ready": 5,
+      "sufficiency": 0.85
+    },
+    "main_dbox_guard_priority60_plus_coachA_same20": {
+      "burden_high": 1,
+      "burden_low": 7,
+      "burden_medium": 12,
+      "condition": "main_dbox_guard_priority60_plus_coachA_same20",
+      "major_answer": 2,
+      "minor": 3,
+      "n": 20,
+      "needs_discussion": 9,
+      "no_leakage": 15,
+      "overall": 3.4,
+      "ready_yes": 10,
+      "safe_ready": 10,
+      "sufficiency": 1.45
+    },
+    "main_dbox_guard_priority60_plus_coachB_same20": {
+      "burden_high": 1,
+      "burden_low": 10,
+      "burden_medium": 9,
+      "condition": "main_dbox_guard_priority60_plus_coachB_same20",
+      "major_answer": 2,
+      "minor": 0,
+      "n": 20,
+      "needs_discussion": 4,
+      "no_leakage": 18,
+      "overall": 3.15,
+      "ready_yes": 5,
+      "safe_ready": 5,
+      "sufficiency": 0.8
+    }
+  }
+}

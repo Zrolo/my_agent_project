@@ -44,10 +44,10 @@ bridge_contract_predicted + guard + repair
 | `enhanced_prompt_only` | strong prompt-only baseline | 排除“只是 prompt wording 更强”的解释 |
 | `codehelp_codeaid_no_direct_solution_tutor` | programming guardrail baseline | 检验普通 no-direct-solution 是否已足够 |
 | `dbox_inspired_decomposition_tutor` | DBox-inspired baseline | 检验分解式脚手架是否已足够强 |
-| `dbox_inspired_decomposition_tutor + guard` | guarded decomposition baseline | 公平测试 Guard 是否跨 generator 有效 |
+| `dbox_inspired_decomposition_tutor + guard` | guard-instrumented decomposition baseline | 公平测试 Guard 信号是否跨 generator 可用；guard-only 不代表最终回复已被改写 |
 | `bridge_inspired_expert_decision_tutor` | Bridge-inspired baseline | 检验通用专家决策 prompt 是否接近 Bridge Contract |
 | `bridge_contract_predicted` | ours | 检验 predicted missing-bridge contract |
-| `bridge_contract_predicted + guard` | ours + safety | 检验 critical bridge leakage guard |
+| `bridge_contract_predicted + guard` | ours + safety instrumentation | 检验 critical bridge leakage guard 信号；除 block fallback 外不解释为输出修复 |
 | `bridge_contract_predicted + guard + repair` | ours + safety | 检验 repair 的质量-泄露权衡 |
 
 如果主表太大，可以主文放 7 个系统，将完整消融放 appendix。
@@ -69,7 +69,7 @@ We implement literature-adapted baselines, not direct reproductions.
 | current system 有真实失败模式 | `current_system` human review | 只能说明当前产品弱，不作为主贡献 |
 | prompt wording 本身很重要 | `enhanced_prompt_only` vs `single_llm_structured` | prompt effect 较小 |
 | decomposition scaffold 是强 baseline | `dbox_inspired_decomposition_tutor` vs `enhanced_prompt_only` | DBox-inspired 可能不是默认强策略 |
-| Guard 跨 generator 有效 | `dbox + guard` vs `dbox`；`bridge + guard` vs `bridge` | Guard 结论只能限定在部分 generator |
+| Guard 信号跨 generator 可用 | `dbox + guard` vs `dbox`；`bridge + guard` vs `bridge`；same-candidate guard/repair stress | Guard-only 结论只能限定为检测/干预信号；最终输出修复需要 repair/block 证据 |
 | contract 内容真的重要 | `bridge_contract_predicted` vs `bridge_contract_shuffled` | Bridge Contract 可能只是 prompt wrapper |
 | critical bridge leakage 有必要 | answer/code leakage 低，但 minor/major bridge leakage 高 | 如果没有 bridge leakage，核心指标会被削弱 |
 | repair 有用 | repair stress before/after | 如果质量下降，报告 trade-off 而非单向胜利 |

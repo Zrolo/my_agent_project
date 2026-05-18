@@ -87,4 +87,3 @@ CP-MissingBridgeBench 的 taxonomy 不是算法清单，而是围绕学生当前
 - broader non-DP/non-data-structure mathematical reasoning cases。
 
 这些 limitation 不推翻当前结果，但会限制论文主张范围。当前最稳写法是：Research v1 覆盖了一组高风险 CP tutoring cognitive bridge families，并证明 CP-MissingBridgeBench 能揭示质量、安全和学生负担 trade-off；更完整的 algorithm-domain coverage 是后续扩展。
-

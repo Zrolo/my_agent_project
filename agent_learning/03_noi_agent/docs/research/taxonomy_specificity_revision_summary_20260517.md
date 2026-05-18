@@ -35,4 +35,3 @@ The paper should describe CP-MissingBridgeBench as evaluating operational cognit
 ## Coverage Limitations
 
 The current dialogue-state v3 set covers representation, transition/action mapping, predicate/decision, ordering/dependency, modeling, aggregation/contribution, data-structure operation, correctness/invariant, implementation, debugging evidence, and policy-request families. It under-samples math property / modular invariant, counting / inclusion-exclusion, geometry predicate relation, search pruning / deduplication, reflection / transfer, richer multi-turn debugging diagnosis, and broader non-DP/non-data-structure mathematical reasoning.
-

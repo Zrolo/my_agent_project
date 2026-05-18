@@ -102,7 +102,7 @@ In particular, `detailed_hint`, `correctStep`, `correct_code`, pseudocode, and c
 
 - whether decomposition scaffolding is already strong enough;
 - whether a missing-bridge contract adds value beyond decomposition prompting;
-- whether Guard works across decomposition-based generators;
+- whether the Guard signal transfers across decomposition-based generators;
 - whether Bridge Contract advantages concentrate in high-risk or complex stuck-point cases.
 
 ## Fair Comparison Requirements

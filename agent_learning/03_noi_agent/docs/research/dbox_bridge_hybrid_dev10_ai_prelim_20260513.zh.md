@@ -17,7 +17,7 @@
 | --- | --- |
 | `enhanced_prompt_only_clean` | 强 prompt-only baseline，不用 Bridge Judge 或 Guard。 |
 | `dbox_inspired_clean` | DBox-inspired 单轮 step-tree-style decomposition baseline，不加 Guard。 |
-| `dbox_inspired_guard` | DBox-inspired baseline + Leakage Guard，检验 Guard 是否改善 decomposition baseline。 |
+| `dbox_inspired_guard` | DBox-inspired baseline + Leakage Guard，检验 guard-instrumented decomposition 变体是否值得保留；不解释为 Guard 已修复最终输出。 |
 | `bridge_contract_compact_guard` | 当前 Bridge Contract compact + Guard。 |
 | `bridge_guided_dbox_style_guard` | 新增混合方案：Bridge Contract 负责诊断/禁止内容，DBox-style 负责学生可见脚手架。 |
 
@@ -46,7 +46,7 @@
 ## 初步结论
 
 1. `dbox_inspired_clean` 可以作为“不加 Guard 的 DBox-inspired baseline”，但在本轮 AI 初评里并不是最强 baseline：它有 2 条 major bridge leakage，student-ready pass 为 6/10。
-2. `dbox_inspired_guard` 略优于 `dbox_inspired_clean`，但仍有 1 条 major bridge leakage；这说明 Guard 对 decomposition baseline 有帮助，但还不充分。
+2. `dbox_inspired_guard` 略优于 `dbox_inspired_clean`，但仍有 1 条 major bridge leakage；这说明 guard-instrumented decomposition 变体值得保留，但不能把差异直接解释为 Guard 已修复最终输出。
 3. `bridge_contract_compact_guard` 在 AI 初评中最好：overall 4.0、safe_ready 10/10、major/answer leakage 0。这个结果支持继续保留 Bridge Contract compact + Guard 作为主实验候选。
 4. 新增 `bridge_guided_dbox_style_guard` 接近 `bridge_contract_compact_guard`，但更慢，且出现 1 条 minor leakage 和 1 条 Leakage Judge timeout；它暂时更适合做 appendix/dev 候选，不建议直接替代主方案。
 5. 这些结论只用于 dev 决策。正式判断仍需要教练盲评、50-case held-out、部分双教练标注和 Judge calibration。
@@ -54,6 +54,6 @@
 ## 对后续实验的影响
 
 - DBox original-style no-Guard baseline 应保留为 `dbox_inspired_clean`，用于回答“DBox-style decomposition 本身是否已足够强”。
-- 主实验里至少应保留 `dbox_inspired_guard`，因为它是更公平的 guarded decomposition baseline。
+- 主实验里至少应保留 `dbox_inspired_guard`，因为它是更公平的 guard-instrumented decomposition baseline。
 - `bridge_contract_compact_guard` 暂时是主方案候选。
 - `bridge_guided_dbox_style_guard` 不应扩大为默认主线，除非后续人类盲评证明它稳定超过 compact Bridge Contract。

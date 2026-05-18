@@ -42,7 +42,7 @@ This report analyzes 8 real online student-question-only pilot cases, 6 anonymou
 ## Development Notes
 
 - The highest `student_ready_pass` condition is `enhanced_prompt_only_clean`: 6 / 8.
-- This is the EDF core condition set: use it to compare EDF against enhanced prompt / DBox+Guard and to check whether Guard improves EDF.
+- This is the EDF core condition set: use it to compare EDF against enhanced prompt / DBox+Guard and to check whether the guard-instrumented EDF variant is worth keeping; between-run differences should not be interpreted as Guard rewriting or repairing the final output.
 - Major/answer leakage cases should be inspected qualitatively because fully worked micro-examples can leak the critical bridge without giving code.
 - The new bridge-reveal justification field separates useful instructional information from unjustified early completion of the student's current missing bridge.
 - Guard/Repair causal effects still require same-candidate before/after repair stress; between-run averages are not enough.

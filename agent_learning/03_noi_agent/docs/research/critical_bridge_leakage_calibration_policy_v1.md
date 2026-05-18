@@ -129,4 +129,3 @@ Recommended wording:
 Critical bridge leakage is not defined as the presence of any bridge-related information.
 It refers to unjustified, premature, or overly complete completion of the student's current missing bridge.
 ```
-

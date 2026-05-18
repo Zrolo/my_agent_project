@@ -42,7 +42,7 @@
 ## 初步观察
 
 - `student_ready_pass` 最高的是 `enhanced_prompt_only_clean`：6 / 8。
-- 本轮是 EDF core 条件集：重点看 EDF 是否接近 enhanced prompt / DBox+Guard，以及 Guard 是否改善 EDF。
+- 本轮是 EDF core 条件集：重点看 EDF 是否接近 enhanced prompt / DBox+Guard，以及 guard-instrumented EDF 变体是否值得继续保留；不能把不同 run 的差异直接解释为 Guard 已修复最终输出。
 - `major_or_answer_leakage_count` 仍然需要按 case 回看，尤其要检查它是否来自过完整 micro-example、直接补完关键桥，还是 reviewer 对局部代码/状态关系的判定。
 - 新增 `bridge_reveal_justification` 用于区分“有信息量的合理教学透露”和“过早/过完整的无正当性关键桥泄露”，避免把所有关键知识讲解都惩罚为泄露。
 - 出现 major/answer 级泄露的条件：无。

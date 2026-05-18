@@ -61,4 +61,3 @@ This distinguishes low-quality micro-examples that merely create a temporary tas
 ## Next Step
 
 Review 20-30 anonymous responses first rather than all 100 at once. Then use the key file to aggregate coach ratings by pipeline and decide whether `single_llm_structured`, `bridge_contract`, `guard`, and `repair` are worth their latency costs.
-
