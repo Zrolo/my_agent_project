@@ -4,7 +4,7 @@
 
 - CP-MissingBridgeBench 揭示不同 LLM tutoring harness 的质量、安全和学生负担 trade-off。
 - DBox-inspired decomposition 是强 baseline，不能被当作弱对照。
-- 在 `main_scaffold_eval` + `priority60 adjudicated + Coach A` 主口径下，`bridge_contract_compact_guard_repair` 的 overall 最高，critical/answer leakage 控制较稳；但 paired CI 多数跨 0，应写为趋势/权衡优势。
+- 在 `main_scaffold_eval` + `priority60 adjudicated + Coach A` 主口径下，`bridge_contract_compact_guard_repair` 的 overall 最高，并呈现有利的 critical/answer leakage-control signal；但 paired CI 多数跨 0，应写为趋势/权衡优势。
 - `bridge_contract_compact_guard` 与 `bridge_contract_compact_guard_repair` 都能把主 slice 的 critical/answer leakage 控到 0；Repair 条件 overall 略高，但主实验本身未证明 Repair 因果效果。新增 same-candidate stress test 提供了固定 candidate 下的 Repair leakage-reduction 证据。
 - DBox+Repair 20-case targeted fairness add-on 没有出现 major/answer leakage，并相对同 case DBox Guard 子集小幅改善 overall / sufficiency；但它是 sensitivity evidence，不是完整 50-case fair baseline 结论。
 - student-ready、rank preference、would-show 对 rater strictness 敏感，必须报告 Coach A/B agreement、adjudication 和 sensitivity analysis。

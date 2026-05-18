@@ -100,7 +100,7 @@ DeepSeek-backed priority60 run 完成 180/180 tasks。case-specific bridge-rubri
 
 ### What CP-MissingBridgeBench Shows
 
-CP-MissingBridgeBench 的主要贡献不是证明某个 tutor harness 绝对胜利，而是让 missing bridge 与 critical bridge leakage 变成可讨论、可标注、可复核的 evaluation object。它揭示了 LLM tutoring harness 之间的 quality-safety-burden trade-off：prompt-only 不够稳，no-direct-solution 不等于 no leakage，DBox-inspired decomposition 是强 baseline，Bridge Contract compact + Guard/Repair 在 overall 与 high-severity leakage control 上呈现稳定但非绝对的优势。
+CP-MissingBridgeBench 的主要贡献不是证明某个 tutor harness 绝对胜利，而是让 missing bridge 与 critical bridge leakage 变成可讨论、可标注、可复核的 evaluation object。它揭示了 LLM tutoring harness 之间的 quality-safety-burden trade-off：prompt-only 不够稳，no-direct-solution 不等于 no leakage，DBox-inspired decomposition 是强 baseline，Bridge Contract compact + Guard/Repair 在 overall 与 high-severity leakage control 上呈现有利但有边界的趋势。
 
 ### Why Critical Bridge Leakage Matters
 

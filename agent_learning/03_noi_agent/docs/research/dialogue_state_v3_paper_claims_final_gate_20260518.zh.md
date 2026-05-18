@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | CP-MissingBridgeBench 能揭示不同 LLM tutoring harness 的 quality-safety-burden trade-off。 | `dialogue_state_v3_main_paper_ready_tables_20260517.zh.md`；`dialogue_state_v3_pairwise_win_tie_loss_20260517.zh.md`；human review A/B + priority60 adjudication。 | CP-MissingBridgeBench 已完整覆盖所有 CP tutoring 场景；all 50 cases 可作为唯一 headline。 |
 | 主 headline 使用 `main_scaffold_eval` 31 cases；其他 slices 分开作为 sensitivity / appendix。 | `dialogue_state_v3_main_paper_ready_tables_20260517.zh.md`；`dialogue_state_v3_50_context_readiness_audit_20260515.jsonl`。 | 把 `main_eval_with_caution`、`clarification_safety_slice`、`policy_safety_slice` 和 main scaffold 混成一个 headline 平均。 |
-| Bridge Contract compact + Guard/Repair 在 overall 和 critical-leakage control 上呈现稳定趋势优势。 | main scaffold table；paired W/T/L；paired CI；sensitivity tables。 | Bridge Contract 显著、全面、无条件优于所有 baseline。 |
+| Bridge Contract compact + Guard/Repair 在 overall 和 critical-leakage control 上呈现有利趋势。 | main scaffold table；paired W/T/L；paired CI；sensitivity tables。 | Bridge Contract 显著、全面、无条件优于所有 baseline。 |
 | DBox-inspired decomposition 是强 baseline。 | DBox clean / guard 在 main scaffold 表和 paired comparison 中的表现。 | DBox baseline 很弱，或 Bridge 只是在弱 baseline 上取胜。 |
 | no-direct-code / no-direct-solution baseline 仍可能出现 critical bridge leakage。 | `codehelp_codeaid_clean` 与 `enhanced_prompt_only_clean`、DBox / Bridge 条件的 leakage 对比。 | 不直接给代码就等于不会 critical bridge leakage。 |
 | Guard-only 是 guard-instrumented / guard-checked condition，主要提供 runtime leakage signal。 | `paper_results_interpretation_guardrails_20260517.zh.md`；`run_bridge_offline_eval.py` 中 tutor_plus_guard 链路；主实验 block=0。 | Guard-only 修复了最终输出；Guard-only rewrite 已改写 student-visible response。 |

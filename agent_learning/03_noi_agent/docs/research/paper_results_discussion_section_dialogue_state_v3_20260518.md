@@ -70,7 +70,7 @@ Thus, case-specific bridge rubrics can improve some automatic-grading signals, b
 
 ### 5.1 What The Benchmark Contributes
 
-CP-MissingBridgeBench does not primarily claim that one tutoring harness is an absolute winner. Its contribution is to make missing bridges and critical bridge leakage explicit evaluation objects for dialogue-state competitive-programming tutoring. The benchmark distinguishes systems by quality, leakage control, and student burden. In the current evidence, prompt-only is unstable, no-direct-solution is not safety-complete, DBox-inspired decomposition is a strong baseline, and Bridge Contract compact + Guard/Repair shows a stable but bounded advantage in overall quality and high-severity leakage control.
+CP-MissingBridgeBench does not primarily claim that one tutoring harness is an absolute winner. Its contribution is to make missing bridges and critical bridge leakage explicit evaluation objects for dialogue-state competitive-programming tutoring. The benchmark distinguishes systems by quality, leakage control, and student burden. In the current evidence, prompt-only is unstable, no-direct-solution is not safety-complete, DBox-inspired decomposition is a strong baseline, and Bridge Contract compact + Guard/Repair shows a favorable but bounded trend in overall quality and high-severity leakage control.
 
 ### 5.2 Why Critical Bridge Leakage Is Different From Answer Leakage
 

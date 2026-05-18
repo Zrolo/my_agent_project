@@ -4,7 +4,7 @@
 
 - CP-MissingBridgeBench reveals quality, safety, and student-burden trade-offs across LLM tutoring harnesses.
 - DBox-inspired decomposition is a strong baseline and should not be treated as weak.
-- Under the `main_scaffold_eval` + `priority60 adjudicated + Coach A` primary view, `bridge_contract_compact_guard_repair` has the highest overall score and stable critical/answer leakage control; however, most paired CIs cross zero, so this should be written as a trend/trade-off advantage.
+- Under the `main_scaffold_eval` + `priority60 adjudicated + Coach A` primary view, `bridge_contract_compact_guard_repair` has the highest overall score and a favorable critical/answer leakage-control signal; however, most paired CIs cross zero, so this should be written as a trend/trade-off advantage.
 - Both `bridge_contract_compact_guard` and `bridge_contract_compact_guard_repair` reduce main-slice critical/answer leakage to 0; Repair-enabled overall is slightly higher, but the main experiment itself does not prove Repair causality. The same-candidate stress test now provides fixed-candidate Repair leakage-reduction evidence.
 - The DBox+Repair 20-case targeted fairness add-on has no major/answer leakage and modestly improves overall / sufficiency over the same-case DBox Guard subset; it is sensitivity evidence, not a full 50-case fair-baseline conclusion.
 - Student-ready, rank preference, and would-show labels are sensitive to rater strictness. Report Coach A/B agreement, adjudication, and sensitivity analysis.
