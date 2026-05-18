@@ -7,7 +7,7 @@
 - Repository: `https://github.com/Zrolo/my_agent_project`
 - Branch: `codex/bridge-research-annotation`
 - Primary review target: `33a5dd7 Add dialogue-state v3 evidence package gates`
-- Branch-tip policy: 如果 branch tip 晚于 `33a5dd7`，请先审固定 evidence package，再单独说明后续 commit 是否改变 evidence、scripts 或 paper wording。
+- Branch-tip policy: 如果 branch tip 晚于 `33a5dd7`，请先审固定 evidence package，再单独说明后续 commit 是否改变 evidence、scripts 或 paper wording。若 branch tip 至少包含 `7baa54e`，可把它视为 integrity zh-pairs / documentation-hygiene checkpoint，而不是新的实验 checkpoint。
 - Project path inside repo: `agent_learning/03_noi_agent`
 - Paper working title:
 
@@ -23,7 +23,8 @@ Checkpoint 解释：
 
 - `dbbbd5c` 是部分机器可读 manifest 中记录的 evidence-content base。
 - `33a5dd7` 是本轮外部审查固定的 evidence-package gates checkpoint，包含 manifest、claim gate、verify / reproduce scripts 和 extension plan。
-- `33a5dd7` 之后的 branch-tip commits 主要用于 reviewer-facing handoff / prompt wording。若 reviewer 使用较新的 branch tip，请先审 `33a5dd7` 的 evidence package，再单独说明后续 commit 是否改变 evidence files、scripts 或 paper wording。
+- `7baa54e` 是 integrity zh-pairs checkpoint，补齐当前 dialogue-state v3 integrity docs 的中文配对并让 non-legacy bilingual validator gap 归零；它不改变主实验数据、主结果或 evidence manifest 的 content-base 口径。
+- `33a5dd7` 之后的 branch-tip commits 主要用于 reviewer-facing handoff / prompt wording、submission-prep 文档和 formatting hygiene。若 reviewer 使用较新的 branch tip，请先审 `33a5dd7` 的 evidence package，再单独说明后续 commit 是否改变 evidence files、scripts 或 paper wording。
 
 ## Reviewer Non-Goals
 

@@ -1,0 +1,22 @@
+# Paper Claims Final Submission Gate 20260519
+
+## 使用边界
+
+本文档是 dialogue-state v3 evidence package 的投稿前最终 claim gate。它不新增实验、不修改数据。论文在 external review、arXiv 或会议投稿前，每个主张都应对照本表检查。
+
+| Claim | Allowed wording | Evidence class | Required evidence | Forbidden wording | Notes |
+| --- | --- | --- | --- | --- | --- |
+| CP-MissingBridgeBench reveals quality-safety-burden trade-offs in turn-level CP tutoring. | CP-MissingBridgeBench reveals quality-safety-burden trade-offs under human review. | main result | Main scaffold table；paired uncertainty；slice analysis；human review reliability。 | proves universal superiority；fully solves CP tutoring；validates an online tutor system | 写成评测框架贡献，不写成线上系统胜利。 |
+| Main headline uses `main_scaffold_eval`, not all 50. | Main headline results are reported on the 31-case `main_scaffold_eval` slice. | main result | `dialogue_state_v3_main_paper_ready_tables_20260517.zh.md`；`paper_table_source_dialogue_state_v3_20260518.zh.md`；reproduction JSON metadata。 | all 50 headline aggregate；pooled 50-case headline；full CP tutoring coverage | all-50 aggregate 只能放 appendix / sensitivity。 |
+| Bridge Contract compact + Guard/Repair shows favorable trend under primary human review. | Bridge Contract compact + Guard/Repair shows favorable overall-quality and high-severity leakage-control trends under the primary human-review view. | main result | Main scaffold table；pairwise W/T/L；paired CI；sensitivity views。 | significantly outperforms all baselines；significant dominance；stable advantage；absolute winner | 关键 CI 跨 0，因此只能写 trend / trade-off。 |
+| DBox-inspired decomposition is a strong baseline. | DBox-inspired decomposition is a strong baseline in this offline single-turn human-review setting. | main + sensitivity | Main tables；DBox rows；DBox+Repair fairness sensitivity。 | weak baseline；strawman baseline；faithful DBox reproduction | DBox-inspired 不是完整 DBox 系统复现。 |
+| Guard-only is instrumentation / runtime signal. | Guard-only conditions are guard-instrumented / guard-checked variants that expose leakage risk. | main interpretation | Pipeline notes；guardrails docs；condition definitions。 | Guard-only repairs final output；Guard-only rewrites final response；Guard-only improved final response by rewriting | 当前主 pipeline 中，rewrite signal 不替换 `final_response_text`，除非触发 block fallback。 |
+| Repair has same-candidate stress evidence for leakage reduction. | Repair reduced leakage severity in same-candidate before/after stress testing, with a student-burden trade-off. | stress test | `repair_same_candidate_stress_result_20260517.zh.md`；paired stress workbook summary；reproduction JSON repair section。 | Repair causality proven by main condition means；Repair fully solves leakage；Repair has no cost | 主实验 condition 均值只能显示趋势，不能证明 Repair 因果。 |
+| DBox+Repair is targeted fairness sensitivity. | DBox+Repair is a targeted 20-case fairness sensitivity add-on. | sensitivity analysis | `dbox_guard_repair_fairness_report_20260517.zh.md`；reproduction JSON DBox fairness section。 | full 50-case main condition；full double-coach validation；new main experiment condition | 放在 appendix / sensitivity 口径。 |
+| Human review and adjudication remain necessary. | Coach A/B reviews and priority60 adjudication are expert reference views with rater-sensitivity reporting. | main method | 350-row Coach A/B review；priority60 adjudication；agreement report；sensitivity analysis。 | Coach A is final gold；Coach B is final gold；priority60 is final gold | 报告 reliability 和 sensitivity，不给单一 gold table。 |
+| LLM grader is auxiliary only. | LLM graders can be used as scalable auxiliary graders, but human review remains necessary. | calibration | DeepSeek calibration report；priority60 reference comparisons；critical recall / major FN metrics。 | LLM grader replaces human coaches；DeepSeek is gold；automatic grader adjudicates critical leakage | 当前 DeepSeek calibration 的 critical false-negative 风险太高，不能替代人审。 |
+| Taxonomy is observed operational taxonomy: cognitive bridge family + leakage mechanism + surface anchor. | The taxonomy is an observed operational taxonomy for this benchmark. | taxonomy / error analysis | Taxonomy revision summary；response rubric；observed error taxonomy；sampled error pool。 | universal complete CP taxonomy；only DP/check/lazy/tree/local-code scenes；exhaustive tutoring taxonomy | surface anchors 是 broader cognitive bridge families 的实例，不是 taxonomy 本体。 |
+
+## Final Scan Rule
+
+投稿前运行 forbidden wording scan，并人工检查命中。命中若在 forbidden wording 列表中可以保留；若在正向 manuscript claim 中必须改写。

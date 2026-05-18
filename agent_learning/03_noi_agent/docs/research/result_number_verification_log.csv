@@ -1,0 +1,15 @@
+manuscript_section,number_or_table,value,source_file,reproduction_script,verified_yes_no,notes
+Dataset / Protocol,reviewed candidate cases,50,docs/research/dialogue_state_v3_human_review_result_packet_20260517.md,evals/aichat/reproduce_dialogue_state_v3_tables.py,yes,Formal human-review evidence candidate; not final gold.
+Systems and Baselines,conditions,7,docs/research/paper_table_source_dialogue_state_v3_20260518.md,evals/aichat/reproduce_dialogue_state_v3_tables.py,yes,Offline human-review harnesses only.
+Human Review Protocol,AI responses reviewed,350,docs/research/dialogue_state_v3_human_review_result_packet_20260517.md,evals/aichat/verify_dialogue_state_v3_reports.py,yes,Coach A and Coach B each reviewed 350 rows.
+Main Results,headline slice case count,31,docs/research/paper_table_source_dialogue_state_v3_20260518.md,evals/aichat/reproduce_dialogue_state_v3_tables.py,yes,Use main_scaffold_eval only for headline.
+Main Results,bridge_contract_compact_guard_repair overall,4.065,docs/research/paper_table_source_dialogue_state_v3_20260518.md,evals/aichat/reproduce_dialogue_state_v3_tables.py,yes,Primary view: main_scaffold_eval + priority60 adjudicated + Coach A.
+Main Results,bridge_contract_compact_guard_repair major+answer leakage,0,docs/research/paper_table_source_dialogue_state_v3_20260518.md,evals/aichat/reproduce_dialogue_state_v3_tables.py,yes,Do not overclaim significant dominance.
+Pairwise Uncertainty,bridge_repair vs dbox_guard W/T/L,14/10/7,docs/research/paper_table_source_dialogue_state_v3_20260518.md,evals/aichat/reproduce_dialogue_state_v3_tables.py,yes,CI crosses zero.
+Pairwise Uncertainty,bridge_repair vs dbox_guard mean overall delta,+0.290,docs/research/paper_table_source_dialogue_state_v3_20260518.md,evals/aichat/reproduce_dialogue_state_v3_tables.py,yes,Use favorable trend / trade-off wording.
+Pairwise Uncertainty,bridge_repair vs dbox_guard CI95,"[-0.097,+0.645]",docs/research/paper_table_source_dialogue_state_v3_20260518.md,evals/aichat/reproduce_dialogue_state_v3_tables.py,yes,Blocks significant-dominance wording.
+Repair Stress,stress pair count,30,docs/research/repair_same_candidate_stress_result_20260517.md,evals/aichat/reproduce_dialogue_state_v3_tables.py,yes,Stress evidence only; not main result.
+Repair Stress,major leakage before to after,7/30 -> 0/30,docs/research/repair_same_candidate_stress_result_20260517.md,evals/aichat/reproduce_dialogue_state_v3_tables.py,yes,Mention burden trade-off.
+DBox Repair Fairness,targeted add-on cases,20,docs/research/dbox_guard_repair_fairness_report_20260517.md,evals/aichat/reproduce_dialogue_state_v3_tables.py,yes,Targeted sensitivity only.
+LLM Grader Calibration,DeepSeek critical recall,0,docs/research/llm_grader_calibration_deepseek_sensitivity_report_20260518.md,evals/aichat/reproduce_dialogue_state_v3_tables.py,yes,Auxiliary only; cannot replace human review.
+Bilingual Validation,non-legacy unpaired docs,0,docs/research/submission_reproduction_log_20260519.zh.md,evals/aichat/validate_research_bilingual_docs.py,yes,legacy_unpaired_count remains 23.

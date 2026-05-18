@@ -5,9 +5,9 @@
 ## Current Checkpoint
 
 - Branch: `codex/bridge-research-annotation`
-- Current review entrypoint: branch tip of `codex/bridge-research-annotation` for handoff / prompt wording.
+- Current review entrypoint: branch tip of `codex/bridge-research-annotation` for submission-prep handoff, prompt wording, and documentation hygiene.
 - Primary evidence-package review target: `33a5dd7 Add dialogue-state v3 evidence package gates`; if branch tip is newer, audit this fixed evidence package first and separately note whether later commits change evidence files, scripts, or paper wording.
-- Checkpoint interpretation: `dbbbd5c` may appear in machine-readable manifest metadata as the evidence-content base; `33a5dd7` is the evidence-package gates checkpoint; later branch-tip commits primarily tighten reviewer-facing handoff / prompt wording unless explicitly stated otherwise.
+- Checkpoint interpretation: `dbbbd5c` may appear in machine-readable manifest metadata as the evidence-content base; `33a5dd7` is the evidence-package gates checkpoint; `7baa54e` is the integrity zh-pairs checkpoint that closes current non-legacy bilingual pairing gaps. Later branch-tip commits should be read as submission-prep / reviewer-facing documentation work unless they explicitly modify evidence files, scripts, or paper wording.
 - Dialogue-state v3 status: `formal human-review evidence candidate`；它不是 `final gold`，也不能把 Coach A、Coach B 或 priority60 adjudicated merge 当作唯一真值。
 - Headline rule: 论文主 headline 只能使用 `main_scaffold_eval` slice；`main_eval_with_caution`、`clarification_safety_slice`、`policy_safety_slice` 和 all-50 aggregate 只能作为 sensitivity / appendix，不混成一个 headline 平均。
 - Current online AIChat status: 仍以 `chat()` 为入口，主要由 rules、legacy learning phase judge、Pedagogical Judge v2 soft control、main LLM、自报 level hard gate 和 output guards 组成。
@@ -185,10 +185,14 @@ Research v1 不包含：
 - [paper_manuscript_assembly_map_dialogue_state_v3_20260518.md](paper_manuscript_assembly_map_dialogue_state_v3_20260518.md): English manuscript assembly map linking each paper section to source docs, evidence classes, main-text / appendix placement, and claim gates.
 - [paper_submission_manuscript_dialogue_state_v3_20260518.zh.md](paper_submission_manuscript_dialogue_state_v3_20260518.zh.md): 中文单文件 submission manuscript skeleton，组装 Abstract、Introduction、Related Work、Methods、Results、Discussion、Conclusion 和复现入口。
 - [paper_submission_manuscript_dialogue_state_v3_20260518.md](paper_submission_manuscript_dialogue_state_v3_20260518.md): English single-file submission manuscript skeleton assembling Abstract, Introduction, Related Work, Methods, Results, Discussion, Conclusion, and reproducibility commands.
+- [paper_submission_manuscript_dialogue_state_v3_20260519.zh.md](paper_submission_manuscript_dialogue_state_v3_20260519.zh.md): 中文 submission draft skeleton，按 14 个投稿章节列出写作目标、已有证据、允许/禁止 claim 和待人工补写内容。
+- [paper_submission_manuscript_dialogue_state_v3_20260519.md](paper_submission_manuscript_dialogue_state_v3_20260519.md): English submission draft skeleton with section-level writing goals, evidence, allowed/forbidden claims, and human-author work items.
 - [paper_appendix_skeleton_dialogue_state_v3_20260518.zh.md](paper_appendix_skeleton_dialogue_state_v3_20260518.zh.md): 中文 appendix skeleton，按 evidence class 组织 reliability、slice sensitivity、paired uncertainty、taxonomy、Repair stress、DBox+Repair、LLM grader calibration 和 manifest。
 - [paper_appendix_skeleton_dialogue_state_v3_20260518.md](paper_appendix_skeleton_dialogue_state_v3_20260518.md): English appendix skeleton organized by reliability, slice sensitivity, paired uncertainty, taxonomy, Repair stress, DBox+Repair, LLM grader calibration, and manifest evidence classes.
 - [paper_submission_readiness_checklist_dialogue_state_v3_20260518.zh.md](paper_submission_readiness_checklist_dialogue_state_v3_20260518.zh.md): 中文投稿 readiness checklist，区分 ready for external audit、ready as draft source 和 not yet camera-ready tasks。
 - [paper_submission_readiness_checklist_dialogue_state_v3_20260518.md](paper_submission_readiness_checklist_dialogue_state_v3_20260518.md): English submission readiness checklist separating external-audit readiness, draft-source readiness, and not-yet-camera-ready tasks.
+- [submission_readiness_checklist_20260519.zh.md](submission_readiness_checklist_20260519.zh.md): 中文 final submission-prep readiness checklist，按 evidence、claim safety、人审、baseline fairness、Repair、LLM grader、AI writing、ethics、reproducibility 和 formatting 分项标注状态。
+- [submission_readiness_checklist_20260519.md](submission_readiness_checklist_20260519.md): English final submission-prep readiness checklist with ready / needs-work status by evidence, claims, review validity, fairness, repair, calibration, AI use, ethics, reproducibility, and formatting.
 - [paper_methods_evaluation_dialogue_state_v3_20260518.zh.md](paper_methods_evaluation_dialogue_state_v3_20260518.zh.md): 中文 Methods / Evaluation 论文草稿，说明 missing bridge、critical bridge leakage、case-specific rubric、condition 边界、人审协议、分析层级和复现入口。
 - [paper_methods_evaluation_dialogue_state_v3_20260518.md](paper_methods_evaluation_dialogue_state_v3_20260518.md): English Methods / Evaluation manuscript draft for dialogue-state v3, including benchmark scope, rubric workflow, conditions, metrics, analysis plan, and reproduction commands.
 - [paper_results_discussion_submission_compact_dialogue_state_v3_20260518.zh.md](paper_results_discussion_submission_compact_dialogue_state_v3_20260518.zh.md): 中文投稿正文压缩版 Results / Discussion，使用 main scaffold 主口径并明确 sensitivity、stress test、fairness add-on 和 calibration 的证据边界。
@@ -203,6 +207,12 @@ Research v1 不包含：
 - [paper_intro_related_work_dialogue_state_v3_20260518.md](paper_intro_related_work_dialogue_state_v3_20260518.md): English Introduction / Related Work draft with safe framing, related-work positioning, and candidate citation keys to verify before submission.
 - [paper_citation_checklist_dialogue_state_v3_20260518.zh.md](paper_citation_checklist_dialogue_state_v3_20260518.zh.md): 中文 citation checklist / bibliography audit，将 Related Work 占位符映射到候选引用、可支撑句子和禁止用法。
 - [paper_citation_checklist_dialogue_state_v3_20260518.md](paper_citation_checklist_dialogue_state_v3_20260518.md): English citation checklist / bibliography audit mapping placeholders to candidate citations, paper-safe uses, and unsafe citation patterns.
+- [ai_writing_disclosure_and_verification_log.zh.md](ai_writing_disclosure_and_verification_log.zh.md): 中文 AI writing disclosure and verification log，说明 AI 仅用于 drafting/editing/checklist/evidence organization，所有科学主张、引用和数字需人类核验。
+- [ai_writing_disclosure_and_verification_log.md](ai_writing_disclosure_and_verification_log.md): English AI writing disclosure and verification log.
+- [citation_verification_log.csv](citation_verification_log.csv): citation verification CSV template and candidate rows for human bibliography audit.
+- [result_number_verification_log.csv](result_number_verification_log.csv): result-number verification CSV linking manuscript numbers to source files and reproduction scripts.
+- [manuscript_human_revision_checklist.zh.md](manuscript_human_revision_checklist.zh.md): 中文 manuscript human revision checklist，按章节检查人工逐句审阅、引用核验、数字复算和 forbidden wording。
+- [manuscript_human_revision_checklist.md](manuscript_human_revision_checklist.md): English manuscript human revision checklist.
 - [paper_results_discussion_section_dialogue_state_v3_20260518.zh.md](paper_results_discussion_section_dialogue_state_v3_20260518.zh.md): 中文论文正文版 Results / Discussion section 草稿，按 `4 Results` / `5 Discussion` 组织，可作为论文写作基底。
 - [paper_results_discussion_section_dialogue_state_v3_20260518.md](paper_results_discussion_section_dialogue_state_v3_20260518.md): English paper-section draft for Results / Discussion, organized as `4 Results` / `5 Discussion`.
 - [project_status_after_taxonomy_revision_20260517.zh.md](project_status_after_taxonomy_revision_20260517.zh.md): 中文 taxonomy revision 后项目状态和下一步执行顺序。
@@ -213,9 +223,15 @@ Research v1 不包含：
 - [dialogue_state_v3_external_reviewer_prompt_20260518.md](dialogue_state_v3_external_reviewer_prompt_20260518.md): English copy-paste external reviewer prompt for auditing the evidence package from GitHub files.
 - [dialogue_state_v3_submission_revision_plan_20260518.zh.md](dialogue_state_v3_submission_revision_plan_20260518.zh.md): 中文 dialogue-state v3 投稿前修订计划，锁定 Methods / Results / Discussion 的写作顺序、claim gate 和不再扩实验的边界。
 - [dialogue_state_v3_submission_revision_plan_20260518.md](dialogue_state_v3_submission_revision_plan_20260518.md): English dialogue-state v3 submission revision plan for manuscript integration, claim gates, and non-goals.
+- [submission_reproduction_log_20260519.zh.md](submission_reproduction_log_20260519.zh.md): 中文 submission reproduction log，记录 verify、reproduce、unit tests 和 bilingual validator 的 exit status、输出文件和 blocking 解释。
+- [submission_reproduction_log_20260519.md](submission_reproduction_log_20260519.md): English submission reproduction log.
+- [formatting_cleanup_log_20260519.md](formatting_cleanup_log_20260519.md): Formatting cleanup log for black, JSON pretty-print checks, and bilingual validator report refresh.
+- [formatting_cleanup_log_20260519.zh.md](formatting_cleanup_log_20260519.zh.md): 中文 formatting cleanup log，记录 black、JSON pretty-print check 和 bilingual validator report refresh。
 - [dialogue_state_v3_evidence_manifest_20260518.json](dialogue_state_v3_evidence_manifest_20260518.json): dialogue-state v3 evidence manifest，列出每个 paper-facing 结果表的报告、输入、脚本、输出、checksum、解释边界和禁止表述。
 - [dialogue_state_v3_paper_claims_final_gate_20260518.zh.md](dialogue_state_v3_paper_claims_final_gate_20260518.zh.md): 中文论文 claim final gate，按 allowed wording / required evidence / forbidden wording 锁定投稿前表述边界。
 - [dialogue_state_v3_paper_claims_final_gate_20260518.md](dialogue_state_v3_paper_claims_final_gate_20260518.md): English paper-claim final gate for dialogue-state v3.
+- [paper_claims_final_submission_gate_20260519.zh.md](paper_claims_final_submission_gate_20260519.zh.md): 中文 final submission claim gate，按 Claim / Allowed wording / Evidence class / Required evidence / Forbidden wording / Notes 锁定投稿前主张边界。
+- [paper_claims_final_submission_gate_20260519.md](paper_claims_final_submission_gate_20260519.md): English final submission claim gate for dialogue-state v3.
 - [dbox_repair_fairness_extension_plan_20260518.zh.md](dbox_repair_fairness_extension_plan_20260518.zh.md): 中文 DBox+Repair fairness extension plan，列出第二教练 20-case 复评、50-case full review、保持 appendix sensitivity 三个选择。
 - [dbox_repair_fairness_extension_plan_20260518.md](dbox_repair_fairness_extension_plan_20260518.md): English DBox+Repair fairness extension plan.
 

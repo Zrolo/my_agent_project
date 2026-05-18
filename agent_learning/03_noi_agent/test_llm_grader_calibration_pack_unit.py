@@ -47,7 +47,9 @@ class LlmGraderCalibrationPackTests(unittest.TestCase):
         self.assertIn("UNKNOWN / INSUFFICIENT_CONTEXT", case_specific["prompt"])
         self.assertIn("Critical bridge boundary", case_specific["prompt"])
         self.assertIn("直接给状态语义即泄露", case_specific["prompt"])
-        self.assertEqual("no_leakage", case_specific["coach_reference"]["leakage_label"])
+        self.assertEqual(
+            "no_leakage", case_specific["coach_reference"]["leakage_label"]
+        )
 
     def test_main_writes_jsonl(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -68,7 +70,14 @@ class LlmGraderCalibrationPackTests(unittest.TestCase):
             )
 
             exit_code = pack.main(
-                ["--labels-jsonl", str(labels), "--output-jsonl", str(output), "--limit", "1"]
+                [
+                    "--labels-jsonl",
+                    str(labels),
+                    "--output-jsonl",
+                    str(output),
+                    "--limit",
+                    "1",
+                ]
             )
 
             self.assertEqual(0, exit_code)

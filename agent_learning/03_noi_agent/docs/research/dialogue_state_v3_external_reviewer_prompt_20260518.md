@@ -13,12 +13,13 @@ Project path: agent_learning/03_noi_agent
 Primary review target:
 Commit 33a5dd7 Add dialogue-state v3 evidence package gates.
 
-If the branch tip is newer than 33a5dd7, first audit the fixed evidence package at 33a5dd7, then separately note whether newer commits change evidence files, reproduction scripts, or paper wording. Do not silently mix commits.
+If the branch tip is newer than 33a5dd7, first audit the fixed evidence package at 33a5dd7, then separately note whether newer commits change evidence files, reproduction scripts, or paper wording. If the branch tip includes 7baa54e, treat it as an integrity zh-pairs / documentation-hygiene checkpoint, not a new experiment checkpoint. Do not silently mix commits.
 
 Checkpoint interpretation:
 - dbbbd5c may appear as the evidence-content base in machine-readable manifest metadata.
 - 33a5dd7 is the fixed evidence-package gates checkpoint for this audit.
-- Later branch-tip commits mainly update reviewer-facing handoff / prompt wording; check separately whether they change evidence, scripts, or paper wording.
+- 7baa54e is the integrity zh-pairs checkpoint; it closes current non-legacy bilingual pairing gaps and does not modify main evidence or scripts.
+- Later branch-tip commits mainly update reviewer-facing handoff / prompt wording, submission-prep docs, or formatting hygiene; check separately whether they change evidence, scripts, or paper wording.
 
 Your task is not to add experiments, modify the online system, edit prompts, or rerun active mode. The current goal is to audit whether the dialogue-state v3 evidence package is submission-ready, traceable, and not over-interpreted.
 

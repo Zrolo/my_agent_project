@@ -7,7 +7,7 @@ This document is the entry point for an external AI or human reviewer. It adds n
 - Repository: `https://github.com/Zrolo/my_agent_project`
 - Branch: `codex/bridge-research-annotation`
 - Primary review target: `33a5dd7 Add dialogue-state v3 evidence package gates`
-- Branch-tip policy: if the branch tip is newer than `33a5dd7`, first audit the fixed evidence package, then separately note whether later commits change evidence files, scripts, or paper wording.
+- Branch-tip policy: if the branch tip is newer than `33a5dd7`, first audit the fixed evidence package, then separately note whether later commits change evidence files, scripts, or paper wording. If the branch tip includes `7baa54e`, treat it as an integrity zh-pairs / documentation-hygiene checkpoint, not a new experiment checkpoint.
 - Project path inside repo: `agent_learning/03_noi_agent`
 - Working paper title:
 
@@ -23,7 +23,8 @@ Checkpoint interpretation:
 
 - `dbbbd5c` is the evidence-content base recorded in some machine-readable manifest metadata.
 - `33a5dd7` is the fixed evidence-package gates checkpoint for this external audit; it includes the manifest, claim gate, verify / reproduce scripts, and extension plan.
-- Branch-tip commits after `33a5dd7` mainly update reviewer-facing handoff / prompt wording. If a reviewer uses a newer branch tip, first audit the `33a5dd7` evidence package, then separately note whether later commits change evidence files, scripts, or paper wording.
+- `7baa54e` is the integrity zh-pairs checkpoint: it adds Chinese companions for current dialogue-state v3 integrity docs and brings the non-legacy bilingual validator gap to zero. It does not change main experiment data, main results, or the evidence manifest content-base interpretation.
+- Branch-tip commits after `33a5dd7` mainly update reviewer-facing handoff / prompt wording, submission-prep docs, and formatting hygiene. If a reviewer uses a newer branch tip, first audit the `33a5dd7` evidence package, then separately note whether later commits change evidence files, scripts, or paper wording.
 
 ## Reviewer Non-Goals
 
