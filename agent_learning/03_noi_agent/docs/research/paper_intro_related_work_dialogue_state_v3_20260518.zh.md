@@ -2,7 +2,7 @@
 
 ## 使用边界
 
-本文档是 Introduction / Related Work 的投稿安全草稿。它不新增实验、不修改数据、不接入线上系统。所有引用标记都是 bibliography placeholders，最终投稿前需要用 BibTeX key 替换并核对原文。
+本文档是 Introduction / Related Work 的投稿安全草稿。它不新增实验、不修改数据、不接入线上系统。方括号引用 key 来自 `paper_citation_checklist_dialogue_state_v3_20260518.zh.md` 的候选 BibTeX key；最终投稿前仍需核对 venue、BibTeX 条目和原文是否支撑对应句子。
 
 核心写作边界：
 
@@ -39,37 +39,37 @@ This paper makes four contributions:
 
 ### 2.1 LLM Tutors And Socratic Scaffolding
 
-Prior work on dialogue tutoring and Socratic guidance studies how models can ask questions, elicit explanations, and scaffold student reasoning rather than directly provide final answers [TODO: MathDial / Socratic tutoring citations]. CP-MissingBridgeBench shares this emphasis on preserving learner reasoning, but focuses on competitive-programming turns where the critical unit is often a localized bridge: a state meaning, transition source, check predicate, invariant, or debugging evidence target.
+Prior work on dialogue tutoring and Socratic guidance studies how models can ask questions, elicit explanations, and scaffold student reasoning rather than directly provide final answers [macina2023mathdial; maurya2024mrbench; wang2023bridge]. CP-MissingBridgeBench shares this emphasis on preserving learner reasoning, but focuses on competitive-programming turns where the critical unit is often a localized bridge: a state meaning, transition source, check predicate, invariant, or debugging evidence target.
 
 Our contribution is not a new Socratic style prompt. Instead, we make the boundary between helpful scaffolding and premature bridge completion explicit through case-specific rubrics and human review. This allows the evaluation to distinguish an open, low-burden prompt from a question that has compressed the answer space so much that the missing bridge is effectively completed.
 
 ### 2.2 Programming Help Benchmarks And No-Direct-Solution Guardrails
 
-Programming-help systems and benchmarks often include guardrails against providing full solutions or code [TODO: CodeHelp / CodeAid / programming-help citations]. These constraints are important, but our results show why they are not enough for competitive-programming tutoring. In dialogue-state v3, a no-direct-solution baseline is stronger than prompt-only, yet still produces critical bridge leakage. This motivates evaluating intermediate reasoning leakage, not only final answer leakage.
+Programming-help systems and benchmarks often include guardrails against providing full solutions or code [liffiton2023codehelp; kazemitabaar2024codeaid]. These constraints are important, but our results show why they are not enough for competitive-programming tutoring. In dialogue-state v3, a no-direct-solution baseline is stronger than prompt-only, yet still produces critical bridge leakage. This motivates evaluating intermediate reasoning leakage, not only final answer leakage.
 
 CP-MissingBridgeBench therefore treats "no full code" as a baseline requirement rather than the main safety criterion. The main question is whether the tutor preserves the student's opportunity to infer the current missing bridge while still moving the student forward.
 
 ### 2.3 Decomposition And Step-Based Programming Tutors
 
-DBox and related step-based programming tutors emphasize decomposing programming tasks, tracking substeps, and supporting learners through structured hints [TODO: DBox citation]. We use DBox as a literature anchor for a DBox-inspired decomposition baseline. However, our condition is not a DBox reproduction: it does not implement the interactive step-tree UI, multi-turn co-decomposition, progressive reveal, code-step alignment, or student learning-gain study from the original system.
+DBox and related step-based programming tutors emphasize decomposing programming tasks, tracking substeps, and supporting learners through structured hints [ma2025dbox]. We use DBox as a literature anchor for a DBox-inspired decomposition baseline. However, our condition is not a DBox reproduction: it does not implement the interactive step-tree UI, multi-turn co-decomposition, progressive reveal, code-step alignment, or student learning-gain study from the original system.
 
 This distinction matters because a weak baseline would inflate our claims. In dialogue-state v3, DBox-inspired decomposition is a strong baseline, especially on student-ready and safe-ready counts. We therefore frame Bridge Contract compact + Guard/Repair as showing favorable trends under the primary human-review view, not as comprehensively defeating a weak comparator.
 
 ### 2.4 Adaptive Scaffolding And Learner-State Modeling
 
-Adaptive scaffolding systems such as EDF/Copa organize tutoring around evidence, decision, and feedback, using learner-state estimates and dialogue policies to decide how to respond [TODO: EDF/Copa citation]. This is closely related to our view that a tutor response should depend on the student's current state and next useful action.
+Adaptive scaffolding systems such as EDF/Copa organize tutoring around evidence, decision, and feedback, using learner-state estimates and dialogue policies to decide how to respond [cohn2026edf]. This is closely related to our view that a tutor response should depend on the student's current state and next useful action.
 
 Our benchmark differs in domain and granularity. EDF/Copa targets multi-turn computational modeling contexts with environment logs, mastery rubrics, and classroom interaction, whereas CP-MissingBridgeBench evaluates single-turn competitive-programming tutor responses with recent dialogue and problem context. We use EDF/Copa as related work and optional inspiration for baselines, not as a direct reproduction or a directly comparable learning-outcome result.
 
 ### 2.5 Rubric-Based Evaluation And LLM-as-Judge
 
-Open-ended tutoring responses are difficult to evaluate with deterministic correctness alone. Rubric-based evaluation and LLM-as-judge methods provide scalable ways to compare responses [TODO: LLM-as-judge / rubric evaluation citations]. CP-MissingBridgeBench adopts the idea that open-ended responses need structured rubrics, but the current evidence shows that automatic graders remain insufficient for high-stakes critical bridge leakage.
+Open-ended tutoring responses are difficult to evaluate with deterministic correctness alone. Rubric-based evaluation and LLM-as-judge methods provide scalable ways to compare responses [zheng2023llmjudge; kim2023prometheus; maurya2024mrbench; gunjal2025rar]. CP-MissingBridgeBench adopts the idea that open-ended responses need structured rubrics, but the current evidence shows that automatic graders remain insufficient for high-stakes critical bridge leakage.
 
 In our DeepSeek-backed calibration, case-specific bridge rubrics improve some auxiliary grading signals relative to a generic rubric, but the priority60 critical recall remains 0 and the major-leakage false-negative rate remains 1.000. Thus, LLM graders are useful as auxiliary signals and scaling tools, but human review and adjudication remain necessary.
 
 ### 2.6 Agent Evaluation And Harness-Level Measurement
 
-Agent evaluation work argues that evaluations should measure the whole harness: task construction, traces, graders, tools, routing, and final outcomes [TODO: agent eval citations]. This perspective fits LLM tutoring systems, where response quality depends not only on the base model but also on prompts, diagnosis, guardrails, repair, and final-response selection.
+Agent evaluation work argues that evaluations should measure the whole harness: task construction, traces, graders, tools, routing, and final outcomes [anthropic2026agentevals]. This perspective fits LLM tutoring systems, where response quality depends not only on the base model but also on prompts, diagnosis, guardrails, repair, and final-response selection.
 
 CP-MissingBridgeBench follows this harness-level view. We compare offline tutoring harnesses under a common case set, keep runtime guard/repair separate from offline grading, and report reproduction scripts and an evidence manifest. At the same time, we avoid treating internal runtime judges as proof of their own safety; the paper-facing evidence relies on human review, adjudication, paired uncertainty, stress testing, and calibration.
 
@@ -84,15 +84,13 @@ CP-MissingBridgeBench follows this harness-level view. We compare offline tutori
 | LLM-as-judge | Scalable open-ended evaluation. | Critical bridge leakage has high false-negative risk. | LLM graders are auxiliary; human review remains central. |
 | Agent evals | Evaluate whole harnesses and traces. | Needs domain-specific tasks and rubrics for tutoring. | We provide case-specific rubrics and evidence-class reporting. |
 
-## 4 Citation TODOs
+## 4 Citation Verification Notes
 
-Before submission, replace placeholders with checked BibTeX keys:
+以上 citation keys 是候选 key，不是最终 camera-ready bibliography 条目。投稿前需要：
 
-- `[TODO: MathDial / Socratic tutoring citations]`
-- `[TODO: CodeHelp / CodeAid / programming-help citations]`
-- `[TODO: DBox citation]`
-- `[TODO: EDF/Copa citation]`
-- `[TODO: LLM-as-judge / rubric evaluation citations]`
-- `[TODO: agent eval citations]`
+- 对照论文 PDF、proceedings 页面、DOI 页面或官方 BibTeX 核对每个候选来源。
+- 有正式 venue 时优先使用正式 venue citation，尤其是 DBox、CodeAid 和 MRBench。
+- 保持 `paper_citation_checklist_dialogue_state_v3_20260518.zh.md` 中的引用边界。
+- 不要因为某篇相关工作存在，就把本文 claim 写强。
 
-Do not add a citation unless the paper has been checked for the specific claim being made. This is especially important for DBox and EDF/Copa, where the safe wording is literature-inspired / related work, not reproduction.
+除非已经核对原文确实支撑对应句子，否则不要加入引用。DBox 和 EDF/Copa 尤其需要谨慎：安全写法是 literature-inspired / related work，不是 reproduction。
