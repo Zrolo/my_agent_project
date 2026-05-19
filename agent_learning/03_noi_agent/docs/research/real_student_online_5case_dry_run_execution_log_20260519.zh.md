@@ -7,9 +7,12 @@
 | 5-case dry-run plan created | yes | `real_student_online_5case_dry_run_plan_20260519.zh.md` |
 | dry-run form created | yes | `real_student_online_5case_dry_run_form_v1.csv` |
 | local-only private annotation packet created | yes | `.local_private/real_student_online_5case_annotation_packet_20260519.*`; ignored by git |
+| local-only AI preannotation completed | yes | internal-only; not final coach label and not reportable evidence |
+| local-only coach review packet created | yes | `.local_private/real_student_online_5case_coach_review_packet_20260519.*`; ignored by git |
+| public coach review protocol created | yes | `real_student_online_5case_coach_review_protocol_20260519.zh.md` |
 | cases selected from 30 pilot candidate cases | yes | selected by coverage, not model performance |
 | raw student text included in public dry-run files | no | only candidate ids and screening labels are included |
-| complete deep annotation done | no | pending manual/coach annotation |
+| complete coach-reviewed annotation done | no | pending manual/coach review |
 | consent/reporting gate complete | no | current status remains pending |
 | reportable deep-pilot evidence produced | no | forbidden until consent/status gate is complete |
 
