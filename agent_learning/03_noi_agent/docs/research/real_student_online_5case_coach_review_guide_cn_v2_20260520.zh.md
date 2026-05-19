@@ -6,6 +6,15 @@
 
 本表不修改 dialogue-state v3 主实验，不新增主实验 condition，不重算主表，不改变线上 AIChat 回复，不作为 learning outcome study，也不把 pending-consent cases 写成公开 deep-pilot evidence。
 
+## 推荐填写入口
+
+教练优先使用 `.xlsx` 工作簿，而不是直接填写 CSV：
+
+- 公开空模板：`docs/research/real_student_online_5case_coach_review_form_cn_v2.xlsx`
+- 本地私有真实案例表：`.local_private/real_student_online_5case_coach_review_packet_cn_v2_20260520.xlsx`
+
+`.xlsx` 工作簿提供下拉选择、颜色提示、冻结表头和 50-case 字段对照。CSV 主要用于脚本校验和必要时的备份交换。
+
 ## 与 50-case 评分表是否一致
 
 v2 表格把教练评分区改回 dialogue-state v3 / 50-case 人审口径。下面这些列与 50-case response-level rubric 对齐：
@@ -35,7 +44,7 @@ v2 表格把教练评分区改回 dialogue-state v3 / 50-case 人审口径。下
 1. 先看“学生问题、近期对话、学生代码、当前 AIChat 回复”。
 2. 判断隐私是否足够：若仍有姓名、学校、账号、手机号、邮箱或过长原文，填“需继续脱敏”或“因隐私风险排除”。
 3. 判断上下文是否足够：足够 / 部分足够 / 不足 / 不清楚。
-4. 先独立填写 50-case 对齐评分区，不要先看 AI 预标注。
+4. 先独立填写 50-case 对齐评分区，不要先看 AI 预标注；有下拉框的列必须用下拉选择。
 5. 再填写 pilot validity 区：缺失桥家族、缺失桥实例、禁止直接说出的内容、可以提示到什么程度、期望学生下一步。
 6. 最后比较 AI 预标注，填写是否同意、是否需要裁决。
 7. `知情/报告门` 默认保持“待完成”；只有完成知情/同意或报告资格审核后，才能改成“可报告”。

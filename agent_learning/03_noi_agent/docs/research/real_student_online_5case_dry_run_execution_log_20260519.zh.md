@@ -10,11 +10,13 @@
 | local-only AI preannotation completed | yes | internal-only; not final coach label and not reportable evidence |
 | local-only coach review packet created | yes | `.local_private/real_student_online_5case_coach_review_packet_20260519.*`; ignored by git |
 | local-only Chinese coach review packet v2 created | yes | `.local_private/real_student_online_5case_coach_review_packet_cn_v2_20260520.csv`; Chinese fill values; ignored by git |
+| local-only Chinese coach review workbook v2 created | yes | `.local_private/real_student_online_5case_coach_review_packet_cn_v2_20260520.xlsx`; dropdowns/colors; ignored by git |
 | public coach review protocol created | yes | `real_student_online_5case_coach_review_protocol_20260519.zh.md` |
 | coach review schema created | yes | `real_student_online_5case_coach_review_schema_v1.json` |
 | coach review validator created | yes | `validate_real_student_5case_coach_review.py`; validates private packet without exposing contents |
 | Chinese coach-facing schema v2 created | yes | `real_student_online_5case_coach_review_cn_schema_v2.json`; aligns scoring fields with 50-case rubric |
 | Chinese coach-facing validator v2 created | yes | `validate_real_student_5case_coach_review_cn_v2.py`; validates Chinese labels and reporting gate |
+| Chinese coach-facing workbook exporter created | yes | `export_real_student_5case_coach_review_cn_xlsx.py`; exports dropdowns/colors workbook |
 | public aggregate summary template created | yes | `real_student_online_5case_coach_review_public_summary_template_20260519.zh.md` |
 | public aggregate summary script created | yes | `summarize_real_student_5case_coach_review.py`; suppresses leakage counts until consent/status gate is complete |
 | current public aggregate summary generated | yes | reviewed rows = 0; reportable rows = 0; leakage counts suppressed |
@@ -28,7 +30,7 @@
 
 The current private coach-review packet has 5 rows. The validator reports `ok=true`, `reviewed_rows_count=0`, `reportable_after_consent_count=0`, and 5 reporting-gate warnings because all selected cases remain `consent_reporting_gate=pending`. This is expected and does not make the cases reportable.
 
-The Chinese coach-facing v2 packet also has 5 rows. Its validator reports `ok=true`, `reviewed_rows_count=0`, `reportable_after_consent_count=0`, and 5 reporting-gate warnings because all selected cases remain `知情/报告门=待完成`. This is expected and does not make the cases reportable.
+The Chinese coach-facing v2 packet also has 5 rows. Its validator reports `ok=true`, `reviewed_rows_count=0`, `reportable_after_consent_count=0`, and 5 reporting-gate warnings because all selected cases remain `知情/报告门=待完成`. The `.xlsx` version mirrors the 50-case workbook style with dropdowns and color cues. This is expected and does not make the cases reportable.
 
 ## Selected Case Coverage
 
@@ -46,4 +48,4 @@ The 5-case dry run is a schema and annotation-guide feasibility check. It is not
 
 ## Next Manual Step
 
-For each `candidate_turn_id`, use the internal non-public Chinese coach-facing v2 packet to fill the 50-case-aligned scoring fields and pilot validity fields. Do not paste full student messages, full code, full AIChat responses, real identifiers, individual student/problem hash tables, or hash mappings into public research documents.
+For each `candidate_turn_id`, use the internal non-public Chinese coach-facing v2 `.xlsx` workbook to fill the 50-case-aligned scoring fields and pilot validity fields. Prefer the dropdown values and color-coded fields. Do not paste full student messages, full code, full AIChat responses, real identifiers, individual student/problem hash tables, or hash mappings into public research documents.

@@ -3,15 +3,21 @@
 ## 修改内容
 
 - 新增中文教练可填表模板：`real_student_online_5case_coach_review_form_cn_v2.csv`。
+- 新增中文教练可填 Excel 工作簿：`real_student_online_5case_coach_review_form_cn_v2.xlsx`。
 - 新增中文 schema：`real_student_online_5case_coach_review_cn_schema_v2.json`。
 - 新增中文填写说明：`real_student_online_5case_coach_review_guide_cn_v2_20260520.zh.md`。
 - 新增中文校验脚本：`validate_real_student_5case_coach_review_cn_v2.py`。
 - 新增中文校验测试：`test_validate_real_student_5case_coach_review_cn_v2.py`。
+- 新增中文 Excel 导出脚本：`export_real_student_5case_coach_review_cn_xlsx.py`。
+- 新增中文 Excel 导出测试：`test_export_real_student_5case_coach_review_cn_xlsx.py`。
 - 生成本地私有中文 5-case 教练复核表：`.local_private/real_student_online_5case_coach_review_packet_cn_v2_20260520.csv`。
+- 生成本地私有中文 5-case 教练复核工作簿：`.local_private/real_student_online_5case_coach_review_packet_cn_v2_20260520.xlsx`。
 
 ## 为什么修改
 
 原 v1 表格更像 schema / audit packet，字段偏内部，教练不容易直接填写。v2 将评分区改为 dialogue-state v3 / 50-case 人审口径，包括 7 个 0/1/2 小分、泄露标签、总体质量、是否愿意给学生看、学生回答负担、复核信心和备注。
+
+在此基础上补充 `.xlsx` 工作簿，使教练填写体验与此前 50-case workbook 一致：下拉选择、颜色提示、冻结表头、字段对照和填写说明。CSV 仍保留作为脚本校验和数据交换格式。
 
 pilot validity 字段仍保留，但放在评分区之后，用于检查真实学生对话是否能映射到现有 cognitive bridge family、surface anchor 和 case-specific rubric。
 
@@ -43,6 +49,7 @@ v2 的 response-level 评分字段对齐 50-case 人审维度：
 - 教练备注要求使用中文。
 - 不要求教练填写英文 enum。
 - 校验器会拒绝把 `minor_bridge_leakage` 等英文内部标签直接填入中文表。
+- `.xlsx` 工作簿中的结构化字段提供下拉框和颜色提示，推荐教练使用 `.xlsx` 而不是直接编辑 CSV。
 
 ## Claim Gate
 
