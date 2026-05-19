@@ -1,0 +1,31 @@
+{
+  "total_rows": 5,
+  "reviewed_rows_count": 0,
+  "reportable_after_consent_count": 0,
+  "leakage_counts_suppressed": true,
+  "counts": {
+    "coach_review_status": {
+      "pending": 5
+    },
+    "coach_privacy_review_status": {
+      "pending": 5
+    },
+    "coach_context_sufficiency": {
+      "(blank)": 5
+    },
+    "coach_matches_existing_taxonomy": {
+      "(blank)": 5
+    },
+    "adjudication_needed": {
+      "(blank)": 5
+    },
+    "consent_reporting_gate": {
+      "pending": 5
+    }
+  },
+  "boundary": {
+    "evidence_role": "5-case dry run process evidence only; not a main result or learning-outcome study.",
+    "privacy": "Public summary excludes student text, code, AI responses, case ids, student hashes, and problem hashes.",
+    "consent": "Case-level or leakage-result reporting is suppressed until consent/reporting gate is complete."
+  }
+}

@@ -13,6 +13,8 @@
 | coach review schema created | yes | `real_student_online_5case_coach_review_schema_v1.json` |
 | coach review validator created | yes | `validate_real_student_5case_coach_review.py`; validates private packet without exposing contents |
 | public aggregate summary template created | yes | `real_student_online_5case_coach_review_public_summary_template_20260519.zh.md` |
+| public aggregate summary script created | yes | `summarize_real_student_5case_coach_review.py`; suppresses leakage counts until consent/status gate is complete |
+| current public aggregate summary generated | yes | reviewed rows = 0; reportable rows = 0; leakage counts suppressed |
 | cases selected from 30 pilot candidate cases | yes | selected by coverage, not model performance |
 | raw student text included in public dry-run files | no | only candidate ids and screening labels are included |
 | complete coach-reviewed annotation done | no | pending manual/coach review |
