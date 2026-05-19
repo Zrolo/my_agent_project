@@ -131,7 +131,7 @@ pilot 前应提供学生 / 家长 / 教练知情说明。说明应包括：
 | `needs_redaction` | 需要继续脱敏 |
 | `excluded_privacy_risk` | 因隐私风险排除 |
 
-只有 `passed` 且 consent 状态允许的 cases 可以进入 reporting。
+只有 `passed` 且 consent 状态允许的 cases 可以进入 reporting。若 consent/status 仍为 `pending`，该 case 可以保留为 selected pilot candidate，但不能写成可公开报告的 deep-pilot evidence，也不能用于论文示例、深标发现或个案结论。
 
 ## 10. 提交前检查
 

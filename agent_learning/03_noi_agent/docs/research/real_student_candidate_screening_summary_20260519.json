@@ -63,15 +63,17 @@
       "pending": 137
     }
   },
-  "selected_deep_candidates_count": 30,
-  "selected_deep_candidates_by_bridge_family": {
+  "selected_pilot_candidate_cases_count": 30,
+  "selected_candidate_cases_pending_consent_count": 30,
+  "selected_reportable_after_consent_count": 0,
+  "selected_pilot_candidate_cases_by_bridge_family": {
     "implementation_bridge": 12,
     "debugging_bridge": 10,
     "data_structure_bridge": 3,
     "unclear": 3,
     "aggregation_contribution_bridge": 2
   },
-  "selected_deep_candidates_by_surface_anchor": {
+  "selected_pilot_candidate_cases_by_surface_anchor": {
     "implementation boundary": 12,
     "debugging trace": 10,
     "conceptual hint request": 3,
@@ -79,39 +81,35 @@
     "tree / graph traversal": 2,
     "data-structure operation": 1
   },
-  "selected_deep_candidates_by_student": {
-    "stu_925ad19bad497ce0": 5,
-    "stu_9589f185858ab7f4": 4,
-    "stu_d8240700d7b4a573": 4,
-    "stu_e8d61ca1e8d38a6d": 4,
-    "stu_2874c3bc5292937e": 3,
-    "stu_4b2d444c6851750d": 3,
-    "stu_a449c196f0b55660": 2,
-    "stu_b531e3ef57c1904a": 2,
-    "stu_05c8a0464f305ce6": 1,
-    "stu_28310c7c6f47decf": 1,
-    "stu_fdff3e566a4a4271": 1
+  "selected_candidate_student_coverage": {
+    "unique_count": 11,
+    "min_count_per_id": 1,
+    "median_count_per_id": 3,
+    "max_count_per_id": 5,
+    "count_distribution": {
+      "1": 3,
+      "2": 2,
+      "3": 2,
+      "4": 3,
+      "5": 1
+    }
   },
-  "selected_deep_candidates_by_problem": {
-    "prob_3b5a682d7bb8c38a": 7,
-    "prob_ff5e477452170911": 5,
-    "prob_0a1afc175b781068": 2,
-    "prob_19d6a797891845ab": 2,
-    "prob_b8897aede85aa2a0": 2,
-    "prob_e5ce6c02c6a4ab64": 2,
-    "prob_e893e49d29d156d7": 2,
-    "prob_068410236aed77d1": 1,
-    "prob_08af834e8fc24af1": 1,
-    "prob_36845b05fe98edf2": 1,
-    "prob_4f29cdd992363857": 1,
-    "prob_9177928a1c886d3d": 1,
-    "prob_a0bf3fe990f7682a": 1,
-    "prob_b807a713f7bfb63b": 1,
-    "prob_d115d0e01d0a0f4f": 1
+  "selected_candidate_problem_coverage": {
+    "unique_count": 15,
+    "min_count_per_id": 1,
+    "median_count_per_id": 1,
+    "max_count_per_id": 7,
+    "count_distribution": {
+      "1": 8,
+      "2": 5,
+      "5": 1,
+      "7": 1
+    }
   },
   "boundary": {
     "candidate_turns": "137 candidate turns are a screening pool, not a deep annotation sample.",
-    "deep_sample": "30 selected cases are a deep annotation sample, not all online AIChat data.",
+    "deep_sample": "30 selected cases are candidate cases for deep annotation, not all online AIChat data.",
+    "consent_gate": "Selected cases are not reportable deep-pilot evidence until consent/reporting eligibility is completed.",
     "evidence_role": "ecological validity only; not a main result or learning outcome study."
   }
 }

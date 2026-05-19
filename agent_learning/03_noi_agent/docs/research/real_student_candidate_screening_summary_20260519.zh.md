@@ -4,7 +4,7 @@
 
 本报告汇总 real-student online AIChat candidate-turn screening CSV 的轻量筛查统计。它不修改 dialogue-state v3 主实验，不新增主实验 condition，不新增 baseline，不重算主表，不改变 evidence class，不上线 active mode，不改变学生可见回复，也不把 pilot 写成 learning outcome study。
 
-137 条 candidate turns 是 screening pool，不是 deep annotation sample。30 条 selected cases 是 deep annotation sample，不是全部线上 AIChat 数据。本报告只能作为 ecological validity 的数据漏斗和抽样说明，可放入 Discussion / Appendix，不能作为 main result。
+137 条 candidate turns 是 screening pool，不是 deep annotation sample。30 条 selected cases 是 pending consent/reporting gate 的 pilot candidate cases，不是全部线上 AIChat 数据，也不能在 consent/reporting gate 完成前写成可公开报告的 deep-pilot evidence。本报告只能作为 ecological validity 的数据漏斗和抽样说明，可放入 Discussion / Appendix，不能作为 main result。
 
 ## Data Funnel
 
@@ -15,7 +15,7 @@
 | Online log corpus summary | paired user-assistant turns | 578 | source-corpus background only |
 | Candidate-turn screening | expected substantial candidate turns | 137 | lightweight screening pool |
 | Candidate-turn screening | actual screening rows in CSV | 137 | generated from screening form |
-| Deep pilot annotation | selected deep candidates in CSV | 30 | complete annotation only after privacy review |
+| Deep pilot candidate selection | selected pilot candidate cases in CSV | 30 | selected for possible deep annotation; reporting waits for consent/status gate |
 
 ## Coverage Summary
 
@@ -25,7 +25,8 @@
 | unique sessions | 59 |
 | unique students | 13 |
 | unique problems | 25 |
-| selected deep candidates count | 30 |
+| selected pilot candidate cases pending consent/reporting gate | 30 |
+| selected reportable after consent/status gate | 0 |
 
 ## Context Sufficiency Counts
 
@@ -112,7 +113,7 @@
 | --- | ---: |
 | `pending` | 137 |
 
-## Selected Deep Candidates By Bridge Family
+## Selected Pilot Candidate Cases By Bridge Family
 
 | rough_bridge_family | count |
 | --- | ---: |
@@ -122,7 +123,7 @@
 | `unclear` | 3 |
 | `aggregation_contribution_bridge` | 2 |
 
-## Selected Deep Candidates By Surface Anchor
+## Selected Pilot Candidate Cases By Surface Anchor
 
 | surface_anchor | count |
 | --- | ---: |
@@ -133,42 +134,26 @@
 | `tree / graph traversal` | 2 |
 | `data-structure operation` | 1 |
 
-## Selected Deep Candidates By Student
+## Selected Pilot Candidate Student Coverage
 
-| student_id_hash | count |
+| coverage field | value |
 | --- | ---: |
-| `stu_925ad19bad497ce0` | 5 |
-| `stu_9589f185858ab7f4` | 4 |
-| `stu_d8240700d7b4a573` | 4 |
-| `stu_e8d61ca1e8d38a6d` | 4 |
-| `stu_2874c3bc5292937e` | 3 |
-| `stu_4b2d444c6851750d` | 3 |
-| `stu_a449c196f0b55660` | 2 |
-| `stu_b531e3ef57c1904a` | 2 |
-| `stu_05c8a0464f305ce6` | 1 |
-| `stu_28310c7c6f47decf` | 1 |
-| `stu_fdff3e566a4a4271` | 1 |
+| unique hashed students covered | 11 |
+| min cases per hashed students | 1 |
+| median cases per hashed students | 3 |
+| max cases per hashed students | 5 |
+| count distribution | 1 cases: 3 ids, 2 cases: 2 ids, 3 cases: 2 ids, 4 cases: 3 ids, 5 cases: 1 ids |
 
-## Selected Deep Candidates By Problem
+## Selected Pilot Candidate Problem Coverage
 
-| problem_id_hash | count |
+| coverage field | value |
 | --- | ---: |
-| `prob_3b5a682d7bb8c38a` | 7 |
-| `prob_ff5e477452170911` | 5 |
-| `prob_0a1afc175b781068` | 2 |
-| `prob_19d6a797891845ab` | 2 |
-| `prob_b8897aede85aa2a0` | 2 |
-| `prob_e5ce6c02c6a4ab64` | 2 |
-| `prob_e893e49d29d156d7` | 2 |
-| `prob_068410236aed77d1` | 1 |
-| `prob_08af834e8fc24af1` | 1 |
-| `prob_36845b05fe98edf2` | 1 |
-| `prob_4f29cdd992363857` | 1 |
-| `prob_9177928a1c886d3d` | 1 |
-| `prob_a0bf3fe990f7682a` | 1 |
-| `prob_b807a713f7bfb63b` | 1 |
-| `prob_d115d0e01d0a0f4f` | 1 |
+| unique hashed problems covered | 15 |
+| min cases per hashed problems | 1 |
+| median cases per hashed problems | 1 |
+| max cases per hashed problems | 7 |
+| count distribution | 1 cases: 8 ids, 2 cases: 5 ids, 5 cases: 1 ids, 7 cases: 1 ids |
 
 ## Interpretation Boundary
 
-The 137 substantial candidate turns form a lightweight screening pool. They are used to describe the availability and diversity of real-student online AIChat dialogue-state candidates, not to report deep rubric annotations. The selected deep cases are chosen from this pool for privacy-reviewed case-specific annotation and are not the full online corpus.
+The 137 substantial candidate turns form a lightweight screening pool. They are used to describe the availability and diversity of real-student online AIChat dialogue-state candidates, not to report deep rubric annotations. The 30 selected pilot candidate cases are chosen from this pool for possible case-specific annotation and are not the full online corpus. They are not reportable deep-pilot evidence until consent/reporting eligibility is completed. Public-facing reporting should use aggregate coverage and distribution summaries rather than individual student or problem hash tables.

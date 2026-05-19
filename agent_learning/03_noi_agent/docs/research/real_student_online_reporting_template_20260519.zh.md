@@ -23,21 +23,22 @@ This real-student online pilot examines whether CP-MissingBridgeBench cognitive 
 | Layer 1: Online log corpus summary | paired user-assistant turns | 578 | source-corpus background only |
 | Layer 2: Substantial candidate-turn screening | substantial candidate turns | 137 | lightweight screening pool |
 | Layer 2: Substantial candidate-turn screening | candidate sessions | 59 | lightweight screening pool |
-| Layer 3: Deep pilot case annotation | selected pilot candidate cases | 30 | deep annotation sample after privacy review |
+| Layer 3: Deep pilot candidate selection | selected pilot candidate cases | 30 | selected for possible deep annotation; reporting waits for consent/status gate |
 | Layer 3: Deep pilot case annotation | hashed students covered | 11 | coverage description only |
 | Layer 3: Deep pilot case annotation | hashed problems covered | 15 | coverage description only |
 
 Boundary statement:
 
 ```text
-The 137 substantial candidate turns are a screening pool, not a deeply annotated sample. The 30 selected cases are a deep annotation sample, not the full online corpus. Neither layer is used as a main result or learning-outcome study.
+The 137 substantial candidate turns are a screening pool, not a deeply annotated sample. The 30 selected cases are pilot candidate cases for possible deep annotation, not the full online corpus. They are not reportable deep-pilot evidence until consent/reporting eligibility is completed. Neither layer is used as a main result or learning-outcome study.
 ```
 
-### 2.2 Deep Pilot Case Summary
+### 2.2 Deep Pilot Candidate Summary Pending Consent/Reporting Gate
 
 | reporting field | value |
 | --- | --- |
-| number of deep pilot cases | 30 |
+| selected pilot candidate cases pending consent/reporting gate | 30 |
+| reportable deep pilot cases after consent/status gate | [fill after consent/status gate] |
 | number of hashed students | 11 |
 | number of hashed problems | 15 |
 | source | our own online AIChat / teaching system |
@@ -66,7 +67,7 @@ Use this section for the 137 substantial candidate turns. This is a lightweight 
 Recommended wording:
 
 ```text
-The 30 deep pilot cases were selected from the 137 substantial candidate turns using stratified purposive sampling. Selection aimed to cover bridge-family candidates, surface anchors, context-sufficiency levels, debugging / implementation / policy-risk situations, and different hashed students and problems. Cases were not selected by model performance or by whether they supported the paper's main claims.
+The 30 pilot candidate cases were selected from the 137 substantial candidate turns using stratified purposive sampling. Selection aimed to cover bridge-family candidates, surface anchors, context-sufficiency levels, debugging / implementation / policy-risk situations, and different hashed students and problems. Cases were not selected by model performance or by whether they supported the paper's main claims. They should not be reported as deep-pilot evidence until consent/reporting eligibility is completed.
 ```
 
 ## 3. Bridge Family Coverage
@@ -192,7 +193,8 @@ Include at least:
 
 - The online log corpus summary reports 1156 message rows, 87 sessions, and 578 paired user-assistant turns.
 - The 137 substantial candidate turns are a screening pool, not a deeply annotated sample.
-- The 30 selected pilot cases are a deep annotation sample, not all online AIChat data.
+- The 30 selected pilot cases are candidate cases pending consent/reporting gate, not all online AIChat data.
+- Deep-pilot findings, examples, or case labels should not be reported until consent/reporting eligibility is completed.
 - The deep pilot includes 30 curated real-student online AIChat cases, not a random sample of all CP tutoring interactions.
 - The pilot uses only our own system data and excludes public communities and third-party platform data.
 - The pilot is an ecological-validity check, not a main result.
@@ -209,7 +211,7 @@ Include at least:
 | The pilot reports bridge family coverage among collected real-student cases. | yes | Do not generalize to all CP tutoring |
 | The pilot identifies candidate new bridge boundaries. | yes | Do not modify main taxonomy or main results here |
 | The 137 candidate turns are a screening pool. | yes | Do not report as deep annotation |
-| The 30 selected cases are a deep annotation sample. | yes | Do not report as all online data |
+| The 30 selected cases are pilot candidates for possible deep annotation after consent/reporting gate. | yes | Do not report as all online data or as reportable deep evidence before consent/status completion |
 | The pilot is a main result. | no | Forbidden |
 | The pilot compares the 7 conditions. | no | Forbidden |
 | The pilot evaluates long-term learning effects. | no | Forbidden |

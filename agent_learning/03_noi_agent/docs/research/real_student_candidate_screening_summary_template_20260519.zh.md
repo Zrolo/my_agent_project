@@ -11,7 +11,7 @@
 
 本 summary 只汇总 137 条 real-student online AIChat substantial candidate turns 的轻量筛查结果。它不修改 dialogue-state v3 主实验，不新增主实验 condition，不新增 baseline，不重算主表，不改变 evidence class，不上线 active mode，不改变学生可见回复，也不把 pilot 写成 learning outcome study。
 
-137 条 candidate turns 是 screening pool，不是 deep annotation sample。30 条 selected cases 是 deep annotation sample，不是全部线上 AIChat 数据。筛查结果只能作为 ecological validity 的数据漏斗和抽样说明，可放入 Discussion / Appendix，不能作为 main result。
+137 条 candidate turns 是 screening pool，不是 deep annotation sample。30 条 selected cases 是 pending consent/reporting gate 的 pilot candidate cases，不是全部线上 AIChat 数据。筛查结果只能作为 ecological validity 的数据漏斗和抽样说明，可放入 Discussion / Appendix，不能作为 main result。consent/reporting gate 完成前，30 条不能写成可公开报告的 deep-pilot evidence。
 
 ## Script Command
 
@@ -33,7 +33,8 @@ The generated report must include:
 - paired user-assistant turns: 578
 - expected substantial candidate turns: 137
 - actual screening rows in CSV
-- selected deep candidates in CSV
+- selected pilot candidate cases in CSV
+- selected reportable after consent/status gate
 
 ### Coverage Summary
 
@@ -43,7 +44,8 @@ The generated report must include:
 - unique sessions
 - unique students
 - unique problems
-- selected deep candidates count
+- selected pilot candidate cases pending consent/reporting gate
+- selected reportable after consent/status gate
 
 ### Screening Counts
 
@@ -59,21 +61,21 @@ The generated report must include counts for:
 - `privacy_review_status`
 - `consent_eligibility`
 
-### Selected Deep Candidate Breakdown
+### Selected Pilot Candidate Breakdown
 
-The generated report must include selected deep candidates by:
+The generated report must include selected pilot candidate cases by:
 
 - `rough_bridge_family`
 - `surface_anchor`
-- `student_id_hash`
-- `problem_id_hash`
+
+For student/problem coverage, the generated public-facing report must include only aggregate coverage and distribution summaries. It must not list individual `student_id_hash` or `problem_id_hash` values.
 
 ## Required Boundary Sentence
 
 The generated report must include the following interpretation boundary:
 
 ```text
-The 137 substantial candidate turns form a lightweight screening pool. They are used to describe the availability and diversity of real-student online AIChat dialogue-state candidates, not to report deep rubric annotations. The selected deep cases are chosen from this pool for privacy-reviewed case-specific annotation and are not the full online corpus.
+The 137 substantial candidate turns form a lightweight screening pool. They are used to describe the availability and diversity of real-student online AIChat dialogue-state candidates, not to report deep rubric annotations. The selected pilot candidate cases are chosen from this pool for possible case-specific annotation and are not the full online corpus. They are not reportable deep-pilot evidence until consent/reporting eligibility is completed.
 ```
 
 ## Claim Gate
@@ -81,8 +83,9 @@ The 137 substantial candidate turns form a lightweight screening pool. They are 
 | statement | allowed? | note |
 | --- | --- | --- |
 | The online AIChat logs provide a screening pool of 137 substantial candidate turns. | yes | Data funnel only |
-| The screening pool helps select 30 deep pilot cases. | yes | Use stratified purposive sampling language |
+| The screening pool helps select 30 pilot candidate cases for possible deep annotation. | yes | Use stratified purposive sampling language and pending consent/reporting gate |
 | The 137 candidate turns are deeply annotated. | no | Forbidden |
 | The 30 selected cases are all online AIChat data. | no | Forbidden |
+| The 30 selected cases are reportable deep-pilot evidence before consent/status completion. | no | Forbidden |
 | The pilot is a learning outcome study. | no | Forbidden |
 | The pilot modifies dialogue-state v3 main results. | no | Forbidden |

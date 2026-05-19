@@ -56,22 +56,65 @@ def _selected(rows: Iterable[dict[str, str]]) -> list[dict[str, str]]:
     ]
 
 
+def _reportable_after_consent(rows: Iterable[dict[str, str]]) -> list[dict[str, str]]:
+    return [
+        row
+        for row in rows
+        if _clean(row.get("candidate_for_deep_annotation")).lower() == "yes"
+        and _clean(row.get("privacy_review_status")) == "passed"
+        and _clean(row.get("consent_eligibility")) == "eligible"
+    ]
+
+
+def _coverage_distribution(rows: Iterable[dict[str, str]], field: str) -> dict[str, object]:
+    counts = Counter(_clean(row.get(field)) for row in rows)
+    counts.pop("(blank)", None)
+    values = sorted(counts.values())
+    if not values:
+        return {
+            "unique_count": 0,
+            "min_count_per_id": 0,
+            "median_count_per_id": 0,
+            "max_count_per_id": 0,
+            "count_distribution": {},
+        }
+
+    midpoint = len(values) // 2
+    if len(values) % 2:
+        median_count: int | float = values[midpoint]
+    else:
+        median_count = (values[midpoint - 1] + values[midpoint]) / 2
+
+    distribution = Counter(str(value) for value in values)
+    return {
+        "unique_count": len(values),
+        "min_count_per_id": min(values),
+        "median_count_per_id": median_count,
+        "max_count_per_id": max(values),
+        "count_distribution": dict(sorted(distribution.items(), key=lambda item: int(item[0]))),
+    }
+
+
 def summarize(rows: list[dict[str, str]]) -> dict[str, object]:
     selected = _selected(rows)
+    reportable_after_consent = _reportable_after_consent(rows)
     summary: dict[str, object] = {
         "total_rows": len(rows),
         "unique_sessions": _unique_count(rows, "session_id_hash"),
         "unique_students": _unique_count(rows, "student_id_hash"),
         "unique_problems": _unique_count(rows, "problem_id_hash"),
         "counts": {field: _counter(rows, field) for field in COUNT_FIELDS},
-        "selected_deep_candidates_count": len(selected),
-        "selected_deep_candidates_by_bridge_family": _counter(selected, "rough_bridge_family"),
-        "selected_deep_candidates_by_surface_anchor": _counter(selected, "surface_anchor"),
-        "selected_deep_candidates_by_student": _counter(selected, "student_id_hash"),
-        "selected_deep_candidates_by_problem": _counter(selected, "problem_id_hash"),
+        "selected_pilot_candidate_cases_count": len(selected),
+        "selected_candidate_cases_pending_consent_count": len(selected),
+        "selected_reportable_after_consent_count": len(reportable_after_consent),
+        "selected_pilot_candidate_cases_by_bridge_family": _counter(selected, "rough_bridge_family"),
+        "selected_pilot_candidate_cases_by_surface_anchor": _counter(selected, "surface_anchor"),
+        "selected_candidate_student_coverage": _coverage_distribution(selected, "student_id_hash"),
+        "selected_candidate_problem_coverage": _coverage_distribution(selected, "problem_id_hash"),
         "boundary": {
             "candidate_turns": "137 candidate turns are a screening pool, not a deep annotation sample.",
-            "deep_sample": "30 selected cases are a deep annotation sample, not all online AIChat data.",
+            "deep_sample": "30 selected cases are candidate cases for deep annotation, not all online AIChat data.",
+            "consent_gate": "Selected cases are not reportable deep-pilot evidence until consent/reporting eligibility is completed.",
             "evidence_role": "ecological validity only; not a main result or learning outcome study.",
         },
     }
@@ -92,6 +135,27 @@ def _table_from_counts(counts: dict[str, int], key_label: str, value_label: str 
     return "\n".join(lines)
 
 
+def _coverage_table(coverage: dict[str, object], label: str) -> str:
+    distribution = coverage.get("count_distribution", {})
+    distribution_text = ", ".join(
+        f"{count_per_id} cases: {id_count} ids"
+        for count_per_id, id_count in distribution.items()
+    )
+    if not distribution_text:
+        distribution_text = "(none)"
+    return "\n".join(
+        [
+            "| coverage field | value |",
+            "| --- | ---: |",
+            f"| unique {label} covered | {coverage.get('unique_count', 0)} |",
+            f"| min cases per {label} | {coverage.get('min_count_per_id', 0)} |",
+            f"| median cases per {label} | {coverage.get('median_count_per_id', 0)} |",
+            f"| max cases per {label} | {coverage.get('max_count_per_id', 0)} |",
+            f"| count distribution | {distribution_text} |",
+        ]
+    )
+
+
 def render_markdown(summary: dict[str, object]) -> str:
     counts = summary["counts"]
     assert isinstance(counts, dict)
@@ -101,7 +165,7 @@ def render_markdown(summary: dict[str, object]) -> str:
 
 本报告汇总 real-student online AIChat candidate-turn screening CSV 的轻量筛查统计。它不修改 dialogue-state v3 主实验，不新增主实验 condition，不新增 baseline，不重算主表，不改变 evidence class，不上线 active mode，不改变学生可见回复，也不把 pilot 写成 learning outcome study。
 
-137 条 candidate turns 是 screening pool，不是 deep annotation sample。30 条 selected cases 是 deep annotation sample，不是全部线上 AIChat 数据。本报告只能作为 ecological validity 的数据漏斗和抽样说明，可放入 Discussion / Appendix，不能作为 main result。
+137 条 candidate turns 是 screening pool，不是 deep annotation sample。30 条 selected cases 是 pending consent/reporting gate 的 pilot candidate cases，不是全部线上 AIChat 数据，也不能在 consent/reporting gate 完成前写成可公开报告的 deep-pilot evidence。本报告只能作为 ecological validity 的数据漏斗和抽样说明，可放入 Discussion / Appendix，不能作为 main result。
 
 ## Data Funnel
 
@@ -112,7 +176,7 @@ def render_markdown(summary: dict[str, object]) -> str:
 | Online log corpus summary | paired user-assistant turns | 578 | source-corpus background only |
 | Candidate-turn screening | expected substantial candidate turns | 137 | lightweight screening pool |
 | Candidate-turn screening | actual screening rows in CSV | {summary["total_rows"]} | generated from screening form |
-| Deep pilot annotation | selected deep candidates in CSV | {summary["selected_deep_candidates_count"]} | complete annotation only after privacy review |
+| Deep pilot candidate selection | selected pilot candidate cases in CSV | {summary["selected_pilot_candidate_cases_count"]} | selected for possible deep annotation; reporting waits for consent/status gate |
 
 ## Coverage Summary
 
@@ -122,7 +186,8 @@ def render_markdown(summary: dict[str, object]) -> str:
 | unique sessions | {summary["unique_sessions"]} |
 | unique students | {summary["unique_students"]} |
 | unique problems | {summary["unique_problems"]} |
-| selected deep candidates count | {summary["selected_deep_candidates_count"]} |
+| selected pilot candidate cases pending consent/reporting gate | {summary["selected_candidate_cases_pending_consent_count"]} |
+| selected reportable after consent/status gate | {summary["selected_reportable_after_consent_count"]} |
 
 ## Context Sufficiency Counts
 
@@ -160,25 +225,25 @@ def render_markdown(summary: dict[str, object]) -> str:
 
 {_table_from_counts(counts.get("consent_eligibility", {}), "consent_eligibility")}
 
-## Selected Deep Candidates By Bridge Family
+## Selected Pilot Candidate Cases By Bridge Family
 
-{_table_from_counts(summary["selected_deep_candidates_by_bridge_family"], "rough_bridge_family")}
+{_table_from_counts(summary["selected_pilot_candidate_cases_by_bridge_family"], "rough_bridge_family")}
 
-## Selected Deep Candidates By Surface Anchor
+## Selected Pilot Candidate Cases By Surface Anchor
 
-{_table_from_counts(summary["selected_deep_candidates_by_surface_anchor"], "surface_anchor")}
+{_table_from_counts(summary["selected_pilot_candidate_cases_by_surface_anchor"], "surface_anchor")}
 
-## Selected Deep Candidates By Student
+## Selected Pilot Candidate Student Coverage
 
-{_table_from_counts(summary["selected_deep_candidates_by_student"], "student_id_hash")}
+{_coverage_table(summary["selected_candidate_student_coverage"], "hashed students")}
 
-## Selected Deep Candidates By Problem
+## Selected Pilot Candidate Problem Coverage
 
-{_table_from_counts(summary["selected_deep_candidates_by_problem"], "problem_id_hash")}
+{_coverage_table(summary["selected_candidate_problem_coverage"], "hashed problems")}
 
 ## Interpretation Boundary
 
-The 137 substantial candidate turns form a lightweight screening pool. They are used to describe the availability and diversity of real-student online AIChat dialogue-state candidates, not to report deep rubric annotations. The selected deep cases are chosen from this pool for privacy-reviewed case-specific annotation and are not the full online corpus.
+The 137 substantial candidate turns form a lightweight screening pool. They are used to describe the availability and diversity of real-student online AIChat dialogue-state candidates, not to report deep rubric annotations. The 30 selected pilot candidate cases are chosen from this pool for possible case-specific annotation and are not the full online corpus. They are not reportable deep-pilot evidence until consent/reporting eligibility is completed. Public-facing reporting should use aggregate coverage and distribution summaries rather than individual student or problem hash tables.
 """
 
 

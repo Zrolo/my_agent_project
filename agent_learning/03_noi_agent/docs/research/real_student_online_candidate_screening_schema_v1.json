@@ -118,7 +118,7 @@
         "policy_safety_slice",
         "exclude"
       ],
-      "description": "Likely evaluation target if this candidate were selected for deep annotation. This does not change dialogue-state v3 slices."
+      "description": "Screening-only pilot evaluation target if this candidate were selected for deep annotation. This does not change dialogue-state v3 slices or add a main-experiment condition."
     },
     "candidate_for_deep_annotation": {
       "type": "string",
@@ -150,7 +150,7 @@
         "not_eligible",
         "unknown"
       ],
-      "description": "Whether the candidate is eligible for pilot use under the consent and notice rules."
+      "description": "Whether the candidate is eligible for pilot use under the consent and notice rules. pending means the selected case is not yet reportable as deep-pilot evidence."
     },
     "candidate_selection_reason": {
       "type": "string",

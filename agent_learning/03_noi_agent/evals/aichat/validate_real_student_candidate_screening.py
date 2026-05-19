@@ -16,6 +16,7 @@ from pathlib import Path
 DEFAULT_INPUT = Path("docs/research/real_student_online_candidate_screening_form_v1.csv")
 DEFAULT_SCHEMA = Path("docs/research/real_student_online_candidate_screening_schema_v1.json")
 DEFAULT_EXPECTED_ROWS = 137
+DEFAULT_EXPECTED_SELECTED = 30
 
 CONDITIONALLY_EMPTY_FIELDS = {
     "candidate_selection_reason",
@@ -38,8 +39,15 @@ def read_schema(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def validate(rows: list[dict[str, str]], header: list[str], schema: dict, expected_rows: int) -> dict[str, object]:
+def validate(
+    rows: list[dict[str, str]],
+    header: list[str],
+    schema: dict,
+    expected_rows: int,
+    expected_selected: int | None,
+) -> dict[str, object]:
     errors: list[str] = []
+    warnings: list[str] = []
     required = list(schema.get("required", []))
     properties = schema.get("properties", {})
 
@@ -53,6 +61,7 @@ def validate(rows: list[dict[str, str]], header: list[str], schema: dict, expect
     if len(rows) != expected_rows:
         errors.append(f"Expected {expected_rows} screening rows, found {len(rows)}")
 
+    candidate_ids: dict[str, int] = {}
     enum_by_field = {
         field: set(spec.get("enum", []))
         for field, spec in properties.items()
@@ -61,6 +70,13 @@ def validate(rows: list[dict[str, str]], header: list[str], schema: dict, expect
 
     for index, row in enumerate(rows, start=2):
         row_id = _clean(row.get("candidate_turn_id")) or f"line_{index}"
+
+        if row_id in candidate_ids:
+            errors.append(
+                f"{row_id}: duplicate candidate_turn_id; first seen on line {candidate_ids[row_id]}"
+            )
+        else:
+            candidate_ids[row_id] = index
 
         for field in required:
             if field in CONDITIONALLY_EMPTY_FIELDS:
@@ -89,16 +105,44 @@ def validate(rows: list[dict[str, str]], header: list[str], schema: dict, expect
                 errors.append(
                     f"{row_id}: selected deep annotation candidate cannot have consent_eligibility=not_eligible"
                 )
+            if _clean(row.get("consent_eligibility")) != "eligible":
+                warnings.append(
+                    f"{row_id}: selected candidate is not reportable deep-pilot evidence until consent_eligibility=eligible"
+                )
+        else:
+            if not _clean(row.get("exclusion_reason")):
+                errors.append(
+                    f"{row_id}: candidate_for_deep_annotation=no requires exclusion_reason"
+                )
+
+        if _clean(row.get("is_cp_related")) != "yes":
+            warnings.append(f"{row_id}: is_cp_related is not yes")
+        if _clean(row.get("is_substantial_turn")) != "yes":
+            warnings.append(f"{row_id}: is_substantial_turn is not yes")
 
     selected_rows = [
         row for row in rows if _clean(row.get("candidate_for_deep_annotation")) == "yes"
+    ]
+    if expected_selected is not None and len(selected_rows) != expected_selected:
+        errors.append(
+            f"Expected {expected_selected} selected pilot candidate rows, found {len(selected_rows)}"
+        )
+
+    reportable_after_consent = [
+        row
+        for row in selected_rows
+        if _clean(row.get("privacy_review_status")) == "passed"
+        and _clean(row.get("consent_eligibility")) == "eligible"
     ]
     result = {
         "ok": not errors,
         "total_rows": len(rows),
         "expected_rows": expected_rows,
-        "selected_deep_candidates_count": len(selected_rows),
+        "selected_pilot_candidate_cases_count": len(selected_rows),
+        "expected_selected_pilot_candidate_cases_count": expected_selected,
+        "selected_reportable_after_consent_count": len(reportable_after_consent),
         "errors": errors,
+        "warnings": warnings,
     }
     return result
 
@@ -110,6 +154,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input", type=Path, default=DEFAULT_INPUT)
     parser.add_argument("--schema", type=Path, default=DEFAULT_SCHEMA)
     parser.add_argument("--expected-rows", type=int, default=DEFAULT_EXPECTED_ROWS)
+    parser.add_argument("--expected-selected", type=int, default=DEFAULT_EXPECTED_SELECTED)
     parser.add_argument("--output-json", type=Path, default=None)
     return parser.parse_args()
 
@@ -118,7 +163,7 @@ def main() -> int:
     args = parse_args()
     header, rows = read_csv(args.input)
     schema = read_schema(args.schema)
-    result = validate(rows, header, schema, args.expected_rows)
+    result = validate(rows, header, schema, args.expected_rows, args.expected_selected)
     text = json.dumps(result, ensure_ascii=False, indent=2)
     print(text)
     if args.output_json:

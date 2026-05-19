@@ -19,17 +19,17 @@
 
 ## Online Log Data Funnel
 
-本 pilot 采用三层数据设计。它先报告线上 AIChat 日志漏斗，再从候选 turn 中选择小规模 deep annotation sample。这样可以让读者看到真实数据来源和筛选规模，同时避免把轻量筛查池误写成深度标注样本。
+本 pilot 采用三层数据设计。它先报告线上 AIChat 日志漏斗，再从候选 turn 中选择小规模 pilot candidate set，用于后续 deep annotation。这样可以让读者看到真实数据来源和筛选规模，同时避免把轻量筛查池误写成深度标注样本。
 
 | layer | unit | count | role | reporting boundary |
 | --- | --- | ---: | --- | --- |
 | Layer 1: Online log corpus summary | AIChat message rows / sessions / paired turns | 1156 message rows; 87 sessions; 578 paired user-assistant turns | 描述我们自己线上 AIChat 数据来源规模 | 只作数据漏斗背景，不作 main result |
 | Layer 2: Substantial candidate-turn screening | candidate turns / candidate sessions | 137 substantial candidate turns; 59 candidate sessions | 轻量筛查 context sufficiency、rough bridge family、surface anchor、help-seeking type 和是否适合 deep annotation | 不做完整 case-specific rubric 深标，不写成深度标注样本 |
-| Layer 3: Deep pilot case annotation | selected dialogue-state cases | 30 selected pilot candidate cases; 11 hashed students; 15 hashed problems | 完整标注 case-specific rubric，包括 missing bridge、forbidden content、expected next student action 和 taxonomy fit | 仅作为 ecological validity evidence，不作为 main result |
+| Layer 3: Deep pilot candidate selection | selected dialogue-state candidate cases | 30 selected pilot candidate cases; 11 hashed students; 15 hashed problems | 被选入后续完整 case-specific rubric 标注的候选集，包括 missing bridge、forbidden content、expected next student action 和 taxonomy fit | consent/reporting gate 完成前只能作为候选集与数据漏斗说明；不作为 main result |
 
 Layer 2 的 137 条是 candidate-turn screening pool，用于了解真实线上问题中哪些 turn 可能适合进入 deep annotation。它们不进行完整 rubric 深标，不参与 dialogue-state v3 主表，也不与 7 个 offline conditions 比较。
 
-Layer 3 的 30 条是 deep annotation sample。它不是全部线上数据，而是从 candidate-turn screening pool 中按覆盖性和可标注性选择的 purposive sample。进入正式报告前，每条 deep case 必须通过 privacy review 和 consent/status 检查。未通过 privacy review 的 case 只能保留为候选，不应写成 privacy-reviewed evidence。
+Layer 3 的 30 条是 selected pilot candidate cases。它不是全部线上数据，而是从 candidate-turn screening pool 中按覆盖性和可标注性选择的 purposive sample。进入正式报告前，每条 deep case 必须通过 privacy review 和 consent/status 检查；在 consent/reporting gate 完成前，这 30 条只能写成 selected candidate cases pending consent/reporting gate，不能写成可公开报告的 deep-pilot evidence。
 
 ## 目标
 
