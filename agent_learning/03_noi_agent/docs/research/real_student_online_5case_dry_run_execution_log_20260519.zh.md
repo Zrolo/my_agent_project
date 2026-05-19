@@ -11,6 +11,7 @@
 | local-only coach review packet created | yes | `.local_private/real_student_online_5case_coach_review_packet_20260519.*`; ignored by git |
 | local-only Chinese coach review packet v2 created | yes | `.local_private/real_student_online_5case_coach_review_packet_cn_v2_20260520.csv`; Chinese fill values; ignored by git |
 | local-only Chinese coach review workbook v2 created | yes | `.local_private/real_student_online_5case_coach_review_packet_cn_v2_20260520.xlsx`; dropdowns/colors; ignored by git |
+| public Chinese coach review template context fields strengthened | yes | public template now separates task summary, constraints/input-output summary, student-state summary, and current-AIChat field boundary |
 | public coach review protocol created | yes | `real_student_online_5case_coach_review_protocol_20260519.zh.md` |
 | coach review schema created | yes | `real_student_online_5case_coach_review_schema_v1.json` |
 | coach review validator created | yes | `validate_real_student_5case_coach_review.py`; validates private packet without exposing contents |
@@ -30,7 +31,7 @@
 
 The current private coach-review packet has 5 rows. The validator reports `ok=true`, `reviewed_rows_count=0`, `reportable_after_consent_count=0`, and 5 reporting-gate warnings because all selected cases remain `consent_reporting_gate=pending`. This is expected and does not make the cases reportable.
 
-The Chinese coach-facing v2 packet also has 5 rows. Its validator reports `ok=true`, `reviewed_rows_count=0`, `reportable_after_consent_count=0`, and 5 reporting-gate warnings because all selected cases remain `知情/报告门=待完成`. The `.xlsx` version mirrors the 50-case workbook style with dropdowns and color cues. This is expected and does not make the cases reportable.
+The Chinese coach-facing v2 public template has 5 rows. Its validator reports `ok=true`, `reviewed_rows_count=0`, `reportable_after_consent_count=0`, and 5 reporting-gate warnings because all selected cases remain `知情/报告门=待完成`. The `.xlsx` version mirrors the 50-case workbook style with dropdowns and color cues. The current-AIChat response column is explicitly labeled as an observed online response, not an offline condition. This is expected and does not make the cases reportable.
 
 ## Selected Case Coverage
 
@@ -48,4 +49,4 @@ The 5-case dry run is a schema and annotation-guide feasibility check. It is not
 
 ## Next Manual Step
 
-For each `candidate_turn_id`, use the internal non-public Chinese coach-facing v2 `.xlsx` workbook to fill the 50-case-aligned scoring fields and pilot validity fields. Prefer the dropdown values and color-coded fields. Do not paste full student messages, full code, full AIChat responses, real identifiers, individual student/problem hash tables, or hash mappings into public research documents.
+For each `candidate_turn_id`, use the internal non-public Chinese coach-facing v2 `.xlsx` workbook to fill the 50-case-aligned scoring fields and pilot validity fields. Prefer the dropdown values and color-coded fields. Before scoring, complete or verify the task summary, constraints/input-output summary, current student-state summary, and whether the summary is sufficient for scoring. Do not paste full student messages, full code, full AIChat responses, real identifiers, individual student/problem hash tables, or hash mappings into public research documents.

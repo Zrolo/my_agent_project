@@ -30,10 +30,19 @@ COACH_REVIEW_CN_COLUMNS = [
     "试点案例编号",
     "30例候选序号",
     "时间桶",
+    "题目名称/匿名题号",
+    "题目任务摘要",
+    "关键约束/输入输出摘要",
+    "当前学生状态摘要",
+    "是否有完整题目上下文",
+    "题目摘要是否足够评分",
+    "是否需要查看完整题面才能评分",
+    "题目摘要来源",
     "题目/场景摘要",
     "学生问题（已脱敏）",
     "近期对话（已脱敏，可空）",
     "学生代码片段（已脱敏，可空）",
+    "当前AIChat回复字段说明",
     "当前AIChat回复（已脱敏）",
     "复核状态",
     "隐私复核状态",
@@ -69,6 +78,11 @@ COACH_REVIEW_CN_COLUMNS = [
 OPTION_LISTS = {
     "复核状态": ["待复核", "已复核", "需第二教练", "因隐私风险排除", "因上下文不足排除"],
     "隐私复核状态": ["待复核", "可内部复核", "需继续脱敏", "因隐私风险排除"],
+    "是否有完整题目上下文": ["是", "否", "不确定"],
+    "题目摘要是否足够评分": ["足够", "部分足够", "不足", "不确定"],
+    "是否需要查看完整题面才能评分": ["是", "否", "不确定"],
+    "题目摘要来源": ["线上AIChat元数据", "教练人工改写", "题目上下文摘要", "不确定"],
+    "当前AIChat回复字段说明": ["线上已展示回复，观察项，非实验条件"],
     "上下文是否足够": ["足够", "部分足够", "不足", "不清楚"],
     "识别当前缺失桥是否准确（0/1/2）": ["2", "1", "0"],
     "回复是否基于当前材料（0/1/2）": ["2", "1", "0"],
@@ -104,11 +118,17 @@ OPTION_LISTS = {
 }
 
 FIELD_COMMENTS = {
+    "题目名称/匿名题号": "不要填写真实学生身份。可填写题目名、匿名题号或内部脱敏题目标识。",
+    "题目任务摘要": "人工改写的任务摘要，不粘贴完整题面。用于判断 context sufficiency 和 rubric transfer。",
+    "关键约束/输入输出摘要": "只保留足以判断当前 missing bridge 的约束、输入输出或目标摘要。",
+    "当前学生状态摘要": "概括学生已经知道什么、当前卡在哪里。不要粘贴完整私有对话。",
+    "题目摘要是否足够评分": "判断当前摘要是否足够教练评分；不足时应降低复核信心或要求查看完整题面。",
+    "当前AIChat回复字段说明": "固定说明：这是线上已经展示给学生的 observed current-system response，不是 7 个 offline conditions 中的实验条件。",
     "识别当前缺失桥是否准确（0/1/2）": "对齐 50-case: coach_bridge_identification_score。2=准确抓住；1=部分抓住；0=没抓住。",
     "回复是否基于当前材料（0/1/2）": "对齐 50-case: coach_groundedness_score。看回复是否基于题目、学生话语和近期对话。",
     "脚手架是否合适（0/1/2）": "对齐 50-case: coach_scaffold_appropriateness_score。太弱、太强、直接给答案都扣分。",
     "是否控制关键桥泄露（0/1/2）": "对齐 50-case: coach_bridge_leakage_control_score。0=严重泄露，1=边界/轻微，2=控制良好。",
-    "泄露标签": "对齐 50-case: coach_leakage_label。判断当前 AIChat 是否提前补完 critical bridge。",
+    "泄露标签": "对齐 50-case: coach_leakage_label。判断 observed current AIChat response 是否提前补完 critical bridge；它是观察项，非实验条件。",
     "总体质量（1-5）": "对齐 50-case: coach_overall_quality_score。1=不可用，5=很适合给学生。",
     "是否愿意给学生看": "对齐 50-case: coach_would_show_to_student。",
     "学生回答负担": "对齐 50-case: student_response_burden。低=短回复即可，高=完整推导/表格/代码。",
@@ -181,14 +201,42 @@ def _style_review_sheet(sheet) -> None:
         "pilot": "BF9000",
         "notes": "7030A0",
     }
+    context_fields = {
+        "干跑案例编号",
+        "候选轮次编号",
+        "试点案例编号",
+        "30例候选序号",
+        "时间桶",
+        "题目名称/匿名题号",
+        "题目任务摘要",
+        "关键约束/输入输出摘要",
+        "当前学生状态摘要",
+        "题目/场景摘要",
+        "学生问题（已脱敏）",
+        "近期对话（已脱敏，可空）",
+        "学生代码片段（已脱敏，可空）",
+        "当前AIChat回复字段说明",
+        "当前AIChat回复（已脱敏）",
+    }
+    gate_fields = {
+        "是否有完整题目上下文",
+        "题目摘要是否足够评分",
+        "是否需要查看完整题面才能评分",
+        "题目摘要来源",
+        "复核状态",
+        "隐私复核状态",
+        "上下文是否足够",
+        "知情/报告门",
+    }
+    score_fields = set(COACH_REVIEW_CN_COLUMNS[22:36])
     for col_idx, header in enumerate(COACH_REVIEW_CN_COLUMNS, start=1):
-        if col_idx <= 10:
+        if header in context_fields:
             fill = section_fills["context"]
-        elif col_idx <= 13 or header == "知情/报告门":
+        elif header in gate_fields:
             fill = section_fills["gate"]
-        elif 14 <= col_idx <= 27:
+        elif header in score_fields:
             fill = section_fills["score"]
-        elif 28 <= col_idx <= 37:
+        elif header in {"缺失桥家族（中文）", "当前缺失桥实例（中文简述）", "禁止直接说出的内容（中文）", "可以提示到什么程度（中文）", "期望学生下一步（中文）", "是否匹配现有taxonomy", "新桥候选（如无填“无”）", "观察到的下一轮进展", "是否同意AI预标注", "是否需要裁决"}:
             fill = section_fills["pilot"]
         else:
             fill = section_fills["notes"]
@@ -203,19 +251,20 @@ def _style_review_sheet(sheet) -> None:
 
     widths = {
         "A": 20, "B": 24, "C": 24, "D": 12, "E": 12,
-        "F": 34, "G": 38, "H": 48, "I": 44, "J": 48,
-        "K": 14, "L": 16, "M": 14,
-        "N": 16, "O": 16, "P": 16, "Q": 16, "R": 16, "S": 16, "T": 18,
-        "U": 14, "V": 18, "W": 14, "X": 14, "Y": 14, "Z": 12, "AA": 14,
-        "AB": 22, "AC": 36, "AD": 36, "AE": 36, "AF": 34, "AG": 18,
-        "AH": 20, "AI": 16, "AJ": 16, "AK": 14, "AL": 14, "AM": 40,
+        "F": 24, "G": 46, "H": 42, "I": 42, "J": 18, "K": 18, "L": 18, "M": 20,
+        "N": 34, "O": 38, "P": 48, "Q": 44, "R": 30, "S": 48,
+        "T": 14, "U": 16, "V": 14,
+        "W": 16, "X": 16, "Y": 16, "Z": 16, "AA": 16, "AB": 16, "AC": 18,
+        "AD": 14, "AE": 18, "AF": 14, "AG": 14, "AH": 14, "AI": 12, "AJ": 14,
+        "AK": 22, "AL": 36, "AM": 36, "AN": 36, "AO": 34, "AP": 18,
+        "AQ": 20, "AR": 16, "AS": 16, "AT": 14, "AU": 14, "AV": 40,
     }
     for col, width in widths.items():
         sheet.column_dimensions[col].width = width
     for row_idx in range(2, sheet.max_row + 1):
         sheet.row_dimensions[row_idx].height = 90
     sheet.row_dimensions[1].height = 40
-    sheet.freeze_panes = "K2"
+    sheet.freeze_panes = "T2"
     sheet.auto_filter.ref = f"A1:{get_column_letter(len(COACH_REVIEW_CN_COLUMNS))}{sheet.max_row}"
 
 
@@ -255,32 +304,41 @@ def _apply_conditional_formatting(sheet) -> None:
 
     rules = {
         "泄露标签": [
-            ('=$V2="无泄露"', green),
-            ('=$V2="轻微关键桥泄露"', yellow),
-            ('=OR($V2="重大关键桥泄露",$V2="答案或代码泄露")', red),
-            ('=$V2="上下文不足未判断"', gray),
+            ('={cell}="无泄露"', green),
+            ('={cell}="轻微关键桥泄露"', yellow),
+            ('=OR({cell}="重大关键桥泄露",{cell}="答案或代码泄露")', red),
+            ('={cell}="上下文不足未判断"', gray),
         ],
         "是否愿意给学生看": [
-            ('=$X2="是"', green),
-            ('=$X2="边界"', yellow),
-            ('=$X2="否"', red),
+            ('={cell}="是"', green),
+            ('={cell}="边界"', yellow),
+            ('={cell}="否"', red),
         ],
         "学生回答负担": [
-            ('=$Y2="低"', green),
-            ('=$Y2="中"', yellow),
-            ('=$Y2="高"', red),
+            ('={cell}="低"', green),
+            ('={cell}="中"', yellow),
+            ('={cell}="高"', red),
         ],
         "知情/报告门": [
-            ('=$AL2="可报告"', green),
-            ('=$AL2="待完成"', yellow),
-            ('=OR($AL2="不可报告",$AL2="已退出")', gray),
+            ('={cell}="可报告"', green),
+            ('={cell}="待完成"', yellow),
+            ('=OR({cell}="不可报告",{cell}="已退出")', gray),
+        ],
+        "题目摘要是否足够评分": [
+            ('={cell}="足够"', green),
+            ('={cell}="部分足够"', yellow),
+            ('=OR({cell}="不足",{cell}="不确定")', red),
         ],
     }
     for field, field_rules in rules.items():
         col = get_column_letter(field_to_col[field])
         rng = f"{col}2:{col}{max_row}"
-        for formula, fill in field_rules:
-            sheet.conditional_formatting.add(rng, FormulaRule(formula=[formula], fill=fill))
+        cell_ref = f"${col}2"
+        for formula_template, fill in field_rules:
+            sheet.conditional_formatting.add(
+                rng,
+                FormulaRule(formula=[formula_template.format(cell=cell_ref)], fill=fill),
+            )
 
     overall_col = get_column_letter(field_to_col["总体质量（1-5）"])
     overall_rng = f"{overall_col}2:{overall_col}{max_row}"
@@ -294,6 +352,8 @@ def _create_guide_sheet(workbook: Workbook) -> None:
     rows = [
         ["Real-student online 5-case 教练复核表 v2", "请优先填写“教练复核表”。本表和 50-case 人审维度一致，但额外保留 pilot validity 字段。"],
         ["填写方式", "有下拉选择的列请使用下拉选择；自由文本列请用中文短句填写。"],
+        ["题目上下文字段", "题目任务摘要、关键约束/输入输出摘要、当前学生状态摘要用于判断 context sufficiency 和 rubric transfer；不要粘贴完整题面。"],
+        ["当前AIChat回复字段", "“当前AIChat回复（已脱敏）”是线上已展示回复，观察项，非实验条件；不要把它写成 baseline、condition 或 control。"],
         ["评分区", "7 个 0/1/2 小分、泄露标签、总体质量、是否愿意给学生看、学生回答负担等，均对齐 50-case 人审口径。"],
         ["Pilot validity 区", "缺失桥家族、当前缺失桥实例、禁止内容、可提示边界、期望学生下一步，用于检查 taxonomy/rubric 是否能迁移到真实学生对话。"],
         ["隐私边界", "不要把完整学生原文、完整代码、完整 AI 回复复制到公开材料。私有工作簿只保存在 .local_private。"],

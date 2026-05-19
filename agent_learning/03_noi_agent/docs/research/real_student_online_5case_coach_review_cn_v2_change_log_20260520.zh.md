@@ -12,12 +12,16 @@
 - 新增中文 Excel 导出测试：`test_export_real_student_5case_coach_review_cn_xlsx.py`。
 - 生成本地私有中文 5-case 教练复核表：`.local_private/real_student_online_5case_coach_review_packet_cn_v2_20260520.csv`。
 - 生成本地私有中文 5-case 教练复核工作簿：`.local_private/real_student_online_5case_coach_review_packet_cn_v2_20260520.xlsx`。
+- 补强公开模板/schema 的题目上下文字段：题目名称/匿名题号、题目任务摘要、关键约束/输入输出摘要、当前学生状态摘要、题目摘要是否足够评分等。
+- 明确 `当前AIChat回复（已脱敏）` 是“线上已展示回复，观察项，非实验条件”。
 
 ## 为什么修改
 
 原 v1 表格更像 schema / audit packet，字段偏内部，教练不容易直接填写。v2 将评分区改为 dialogue-state v3 / 50-case 人审口径，包括 7 个 0/1/2 小分、泄露标签、总体质量、是否愿意给学生看、学生回答负担、复核信心和备注。
 
 在此基础上补充 `.xlsx` 工作簿，使教练填写体验与此前 50-case workbook 一致：下拉选择、颜色提示、冻结表头、字段对照和填写说明。CSV 仍保留作为脚本校验和数据交换格式。
+
+2026-05-20 追加 patch 进一步补强题目上下文列。原 `题目/场景摘要` 只能说明 problem_title / metadata，难以让教练稳定判断 missing bridge；新增字段要求公开模板至少说明这些信息在本地私有表中有对应位置，教练复核时应补充人工改写任务摘要和当前学生状态摘要。
 
 pilot validity 字段仍保留，但放在评分区之后，用于检查真实学生对话是否能映射到现有 cognitive bridge family、surface anchor 和 case-specific rubric。
 
@@ -50,6 +54,7 @@ v2 的 response-level 评分字段对齐 50-case 人审维度：
 - 不要求教练填写英文 enum。
 - 校验器会拒绝把 `minor_bridge_leakage` 等英文内部标签直接填入中文表。
 - `.xlsx` 工作簿中的结构化字段提供下拉框和颜色提示，推荐教练使用 `.xlsx` 而不是直接编辑 CSV。
+- `当前AIChat回复（已脱敏）` 只能理解为 observed current-system response，不得写成 baseline、condition、control、online condition 或 repair output。
 
 ## Claim Gate
 

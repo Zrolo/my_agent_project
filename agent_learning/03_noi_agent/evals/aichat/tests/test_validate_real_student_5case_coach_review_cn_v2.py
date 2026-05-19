@@ -39,10 +39,19 @@ class CoachReviewCnV2ValidatorTest(unittest.TestCase):
                 "试点案例编号": "rs_online_20260519_001",
                 "30例候选序号": "1",
                 "时间桶": "2026-W19",
+                "题目名称/匿名题号": "匿名题目A",
+                "题目任务摘要": "学生需要判断一个局部调试输出为何与题目目标不一致。",
+                "关键约束/输入输出摘要": "已脱敏，保留足以判断当前卡点的输入输出目标。",
+                "当前学生状态摘要": "学生看到输出差异，但还没有定位到是哪一步含义不一致。",
+                "是否有完整题目上下文": "是",
+                "题目摘要是否足够评分": "足够",
+                "是否需要查看完整题面才能评分": "否",
+                "题目摘要来源": "教练人工改写",
                 "题目/场景摘要": "已脱敏题目摘要",
                 "学生问题（已脱敏）": "已脱敏学生问题",
                 "近期对话（已脱敏，可空）": "已脱敏近期对话",
                 "学生代码片段（已脱敏，可空）": "",
+                "当前AIChat回复字段说明": "线上已展示回复，观察项，非实验条件",
                 "当前AIChat回复（已脱敏）": "已脱敏AI回复",
                 "复核状态": "已复核",
                 "隐私复核状态": "可内部复核",
@@ -125,6 +134,18 @@ class CoachReviewCnV2ValidatorTest(unittest.TestCase):
 
         self.assertFalse(result["ok"])
         self.assertTrue(any("当前缺失桥实例" in error for error in result["errors"]))
+
+    def test_reviewed_row_requires_problem_context_summary_fields(self):
+        row = dict(self.base_row)
+        row["题目任务摘要"] = ""
+        row["题目摘要是否足够评分"] = ""
+        rows = [dict(row, 干跑案例编号=f"dryrun_20260519_{i + 1:02d}", 候选轮次编号=f"rs_{i}") for i in range(5)]
+
+        result = self.validate_rows(rows)
+
+        self.assertFalse(result["ok"])
+        self.assertTrue(any("题目任务摘要" in error for error in result["errors"]))
+        self.assertTrue(any("题目摘要是否足够评分" in error for error in result["errors"]))
 
 
 if __name__ == "__main__":
