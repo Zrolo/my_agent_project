@@ -88,9 +88,9 @@ This is a submission-prep manuscript skeleton, not a final paper. It provides se
 
 - Writing goal: Show why LLM graders are auxiliary only and why human review remains necessary.
 - Current evidence: DeepSeek calibration report and reproduced key metrics.
-- Allowed claim: Case-specific LLM grader may help scalable triage but cannot replace coaches.
+- Allowed claim: Case-specific LLM grader may provide auxiliary low-stakes signals but cannot replace coaches.
 - Forbidden claim: LLM grader is gold or can adjudicate critical leakage alone.
-- Human work: Cite LLM-as-judge work and report critical false-negative risk clearly.
+- Human work: Cite LLM-as-judge work, report critical false-negative risk clearly, and state that the DeepSeek calibration is backend-coupled rather than cross-backend validation. Cross-backend GPT-5.4 calibration belongs in future work or a revision add-on.
 
 ## 12. Discussion
 

@@ -227,6 +227,8 @@ Research v1 不包含：
 - [submission_reproduction_log_20260519.md](submission_reproduction_log_20260519.md): English submission reproduction log.
 - [formatting_cleanup_log_20260519.md](formatting_cleanup_log_20260519.md): Formatting cleanup log for black, JSON pretty-print checks, and bilingual validator report refresh.
 - [formatting_cleanup_log_20260519.zh.md](formatting_cleanup_log_20260519.zh.md): 中文 formatting cleanup log，记录 black、JSON pretty-print check 和 bilingual validator report refresh。
+- [gpt54_external_method_review_llm_grader_coupling_20260519.zh.md](gpt54_external_method_review_llm_grader_coupling_20260519.zh.md): 中文 GPT-5.4 external method review memo，记录 LLM grader same-backend coupling 小修意见；只作为 method review，不作为实验结果。
+- [gpt54_external_method_review_llm_grader_coupling_20260519.md](gpt54_external_method_review_llm_grader_coupling_20260519.md): English GPT-5.4 external method review memo for LLM-grader same-backend coupling wording.
 - [dialogue_state_v3_evidence_manifest_20260518.json](dialogue_state_v3_evidence_manifest_20260518.json): dialogue-state v3 evidence manifest，列出每个 paper-facing 结果表的报告、输入、脚本、输出、checksum、解释边界和禁止表述。
 - [dialogue_state_v3_paper_claims_final_gate_20260518.zh.md](dialogue_state_v3_paper_claims_final_gate_20260518.zh.md): 中文论文 claim final gate，按 allowed wording / required evidence / forbidden wording 锁定投稿前表述边界。
 - [dialogue_state_v3_paper_claims_final_gate_20260518.md](dialogue_state_v3_paper_claims_final_gate_20260518.md): English paper-claim final gate for dialogue-state v3.

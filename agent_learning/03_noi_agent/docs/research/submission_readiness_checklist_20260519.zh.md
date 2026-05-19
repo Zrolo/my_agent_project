@@ -11,7 +11,7 @@
 | C. Human review validity | ready | Coach A/B 完成 350 条评审；已有 priority60 adjudication 和 sensitivity analysis。不能把 labels 写成 final gold。 |
 | D. Baseline fairness | ready with limitation | 强 baseline 已记录；DBox+Repair 只作为 targeted sensitivity，不是 full main validation。 |
 | E. Repair causal boundary | ready | same-candidate stress 支持 leakage reduction with burden trade-off；主均值不作为因果证明。 |
-| F. LLM grader calibration boundary | ready | DeepSeek calibration 支持 auxiliary-only 口径；critical recall 风险阻止 replacement claim。 |
+| F. LLM grader calibration boundary | ready with limitation | DeepSeek calibration 支持 auxiliary-only 口径；critical recall 风险和 same-backend coupling 阻止 replacement 或 cross-backend validation claim。 |
 | G. AI writing compliance | needs work | disclosure 和 verification logs 已建立；还需要人类作者完成 citation 和逐节人工核验。 |
 | H. Ethics / privacy / student data | needs work | 数据边界已有记录，但最终 manuscript 仍需按 venue 写 ethics/privacy。 |
 | I. Reproducibility | ready | 当前 checkpoint 下 verify、reproduce、unit tests 和 bilingual validator 均通过；legacy unpaired docs 是非阻塞文档债。 |

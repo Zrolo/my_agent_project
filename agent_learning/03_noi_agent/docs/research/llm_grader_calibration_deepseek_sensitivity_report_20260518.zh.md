@@ -12,6 +12,12 @@ thinking = disabled
 
 这与主实验的 Bridge Judge / Leakage Guard / Repair stack 对齐。此前无 `_deepseek_` 后缀的 `20260518` calibration 结果来自 `kimi_cli`，只能作为 exploratory/tooling smoke，不应作为论文主 calibration evidence。
 
+## Backend Coupling Boundary
+
+该 calibration 存在 backend coupling。Dialogue-state v3 的 tutor candidates、offline Bridge Judge / Leakage Guard 和 Repair stack 都位于固定的 DeepSeek-family offline stack 中。因此，DeepSeek-backed calibration 不应被解释为 cross-backend validation，也不应被解释为独立的人类评审替代。论文主结论依赖双教练人审与 priority adjudication，而不是自动评分。
+
+跨后端 grader calibration，包括 GPT-5.4-backed grader，应作为 future work 或 revision add-on。除非用同一批 input rows、prompts、reference labels、metrics、outputs 和 manifest records 重新生成，否则不能静默替换当前 DeepSeek calibration。
+
 ## Run Integrity
 
 | reference view | rows | tasks | backend | status | role |
@@ -43,7 +49,7 @@ thinking = disabled
 因此论文不能写 “LLM grader 可以替代 human review”。更准确的写法是：
 
 ```text
-Case-specific bridge rubrics improve some auxiliary grading signals over a generic rubric, but DeepSeek-backed LLM graders still fail to recover human critical-positive leakage labels on the high-risk priority60 reference. Human review and adjudication remain necessary.
+Case-specific bridge rubrics improve some auxiliary grading signals over a generic rubric, but DeepSeek-backed LLM graders still fail to recover human critical-positive leakage labels on the high-risk priority60 reference. Because this calibration is same-backend and backend-sensitive, it is limitation evidence rather than cross-backend validation. Human review and adjudication remain necessary.
 ```
 
 ## Rater-View Sensitivity
@@ -70,7 +76,8 @@ Case-specific bridge rubrics improve some auxiliary grading signals over a gener
 - case-specific bridge rubric 在 DeepSeek 上改善了部分 auxiliary grading 指标；
 - priority60 上 critical false-negative 风险仍很高；
 - automatic LLM grader 不能替代 double human review / adjudication；
-- LLM grader calibration 对 backend 敏感，因此论文主结果必须依赖人审。
+- LLM grader calibration 对 backend 敏感且存在 same-backend coupling，因此论文主结果必须依赖人审；
+- cross-backend calibration，包括 GPT-5.4-backed grading，应作为 future work 或 revision add-on，而不是静默替换当前 DeepSeek calibration。
 
 不能写：
 
@@ -78,3 +85,4 @@ Case-specific bridge rubrics improve some auxiliary grading signals over a gener
 - case-specific judge 可以替代人类教练；
 - Kimi exploratory result 是主实验 calibration；
 - LLM grader labels 是 gold。
+- GPT-5.4 external method review 是实验性 grader-calibration result。

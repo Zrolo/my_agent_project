@@ -60,11 +60,11 @@ These results support Repair as a leakage-reduction intervention with burden tra
 
 ### 4.6 DeepSeek-Backed LLM Grader Calibration
 
-LLM grader calibration is used only to assess whether automatic graders can provide scalable auxiliary signals. The paper-facing calibration uses DeepSeek `deepseek-v4-flash` with thinking disabled, matching the main experiment's offline judge stack.
+LLM grader calibration is used only to assess whether automatic graders can provide auxiliary signals. The paper-facing calibration uses DeepSeek `deepseek-v4-flash` with thinking disabled, matching the main experiment's offline judge stack. Because tutor generation, judge/guard, and repair are all implemented within a fixed DeepSeek-family offline stack, this calibration is backend-coupled and should not be interpreted as cross-backend validation.
 
 On the priority60 reference, the DeepSeek case-specific bridge-rubric judge improves some auxiliary metrics relative to a generic rubric: leakage-label accuracy is 0.617 vs 0.583, student-ready agreement is 0.467 vs 0.433, and safe-ready agreement is 0.533 vs 0.400. However, both generic and case-specific DeepSeek graders have critical recall 0 and major leakage false-negative rate 1.000. The automatic grader fails to recover the rows humans adjudicated as `major_bridge_leakage` / `answer_leakage`.
 
-Thus, case-specific bridge rubrics can improve some automatic-grading signals, but DeepSeek-backed LLM graders are not reliable enough for high-stakes critical-bridge leakage evaluation. Human review and adjudication remain necessary. Earlier Kimi-backed outputs are treated only as exploratory/tooling evidence and illustrate backend sensitivity.
+Thus, case-specific bridge rubrics can improve some auxiliary automatic-grading signals, but DeepSeek-backed LLM graders are not reliable enough for high-stakes critical-bridge leakage evaluation. Human review and adjudication remain necessary. Earlier Kimi-backed outputs are treated only as exploratory/tooling evidence and illustrate backend sensitivity. Cross-backend grader calibration, including GPT-5.4-backed grading, is future work or a revision add-on rather than a silent replacement for the current DeepSeek calibration.
 
 ## 5 Discussion
 
@@ -84,7 +84,7 @@ Repair has more direct support from same-candidate stress testing. It reduces le
 
 ### 5.4 Limitations
 
-First, the 50-case set is a high-risk CP tutoring evidence candidate, not exhaustive CP coverage. Second, student-ready, safe-ready, and rank are rater-sensitive, so the paper must report sensitivity views. Third, priority60 adjudication is not final gold; it reduces uncertainty for high-priority disagreements but does not remove all rater variance. Fourth, the DBox+Repair add-on is a 20-case targeted sensitivity review, not a full 50-case double-coach add-on. Fifth, DeepSeek-backed LLM grader calibration has high critical false-negative risk, so automatic graders cannot replace human review.
+First, the 50-case set is a high-risk CP tutoring evidence candidate, not exhaustive CP coverage. Second, student-ready, safe-ready, and rank are rater-sensitive, so the paper must report sensitivity views. Third, priority60 adjudication is not final gold; it reduces uncertainty for high-priority disagreements but does not remove all rater variance. Fourth, the DBox+Repair add-on is a 20-case targeted sensitivity review, not a full 50-case double-coach add-on. Fifth, DeepSeek-backed LLM grader calibration has high critical false-negative risk and same-backend coupling, so automatic graders cannot replace human review.
 
 ## Paper-Safe Takeaway
 

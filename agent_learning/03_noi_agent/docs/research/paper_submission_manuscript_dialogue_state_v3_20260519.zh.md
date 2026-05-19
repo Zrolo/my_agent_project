@@ -88,9 +88,9 @@
 
 - 写作目标：说明 LLM grader 只能辅助，不能替代人类评审。
 - 当前已有证据：DeepSeek calibration report 和 reproduced key metrics。
-- 允许使用的 claim：case-specific LLM grader 可帮助 scalable triage，但不能替代 coaches。
+- 允许使用的 claim：case-specific LLM grader 可提供 auxiliary low-stakes signals，但不能替代 coaches。
 - 禁止使用的 claim：LLM grader 是 gold 或可单独裁决 critical leakage。
-- 待人工补写内容：引用 LLM-as-judge work，并清楚报告 critical false-negative risk。
+- 待人工补写内容：引用 LLM-as-judge work，清楚报告 critical false-negative risk，并说明 DeepSeek calibration 存在 backend coupling，不是 cross-backend validation。GPT-5.4 cross-backend calibration 应放在 future work 或 revision add-on。
 
 ## 12. Discussion
 

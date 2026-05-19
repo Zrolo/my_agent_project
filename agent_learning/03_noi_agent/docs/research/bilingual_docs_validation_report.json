@@ -1,6 +1,6 @@
 {
   "root": "docs/research",
-  "checked_count": 431,
+  "checked_count": 433,
   "unpaired_count": 0,
   "legacy_unpaired_count": 23,
   "policy": "New docs/research Markdown files must have both English *.md and Chinese *.zh.md companions.",

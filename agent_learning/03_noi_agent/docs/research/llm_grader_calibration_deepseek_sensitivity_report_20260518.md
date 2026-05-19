@@ -12,6 +12,12 @@ thinking = disabled
 
 This aligns with the main experiment's Bridge Judge / Leakage Guard / Repair stack. The earlier `20260518` calibration files without a `_deepseek_` suffix came from `kimi_cli`; they should be treated as exploratory/tooling smoke results, not as the paper's main calibration evidence.
 
+## Backend Coupling Boundary
+
+This calibration is backend-coupled. The dialogue-state v3 tutor candidates, offline Bridge Judge / Leakage Guard, and Repair stack are all implemented within a fixed DeepSeek-family offline stack. Therefore, the DeepSeek-backed calibration should not be interpreted as cross-backend validation or as an independent substitute for human review. The main paper findings rely on double human review and priority adjudication rather than automatic grading.
+
+Cross-backend grader calibration, including a GPT-5.4-backed grader, should be treated as future work or a revision add-on. It should not silently replace the current DeepSeek calibration unless the same input rows, prompts, reference labels, metrics, outputs, and manifest records are regenerated.
+
 ## Run Integrity
 
 | reference view | rows | tasks | backend | status | role |
@@ -43,7 +49,7 @@ The safety-critical result is still weak: both the generic and case-specific Dee
 The paper-safe wording is:
 
 ```text
-Case-specific bridge rubrics improve some auxiliary grading signals over a generic rubric, but DeepSeek-backed LLM graders still fail to recover human critical-positive leakage labels on the high-risk priority60 reference. Human review and adjudication remain necessary.
+Case-specific bridge rubrics improve some auxiliary grading signals over a generic rubric, but DeepSeek-backed LLM graders still fail to recover human critical-positive leakage labels on the high-risk priority60 reference. Because this calibration is same-backend and backend-sensitive, it is limitation evidence rather than cross-backend validation. Human review and adjudication remain necessary.
 ```
 
 ## Rater-View Sensitivity
@@ -70,7 +76,8 @@ Can write:
 - case-specific bridge rubrics improve some DeepSeek auxiliary-grading metrics;
 - priority60 still exposes high critical false-negative risk;
 - automatic LLM graders cannot replace double human review / adjudication;
-- LLM-grader calibration is backend-sensitive, so the main paper result must rely on human review.
+- LLM-grader calibration is backend-sensitive and same-backend-coupled, so the main paper result must rely on human review;
+- cross-backend calibration, including GPT-5.4-backed grading, is future work or a revision add-on rather than a silent replacement for the current DeepSeek calibration.
 
 Do not write:
 
@@ -78,3 +85,4 @@ Do not write:
 - case-specific judges can replace human coaches;
 - the Kimi exploratory result is the main experiment calibration;
 - LLM grader labels are gold.
+- GPT-5.4 external method review is an experimental grader-calibration result.
