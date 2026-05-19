@@ -1,3 +1,11 @@
 accounts.json
 data/local_problem_banks/*.ndjson
 data/local_problem_banks/*.jsonl
+
+# Local-only research artifacts that may contain sensitive or bulky material.
+.local_private/
+docs/research/real_student_online_pilot_candidate_cases_*.csv
+docs/research/real_student_online_pilot_candidate_cases_*.jsonl
+docs/research/eait_reading_pack_*/
+docs/research/eait_recent_corpus_*/
+evals/aichat/ad_hoc_runs/

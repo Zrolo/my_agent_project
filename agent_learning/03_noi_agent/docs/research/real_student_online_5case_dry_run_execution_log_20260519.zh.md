@@ -6,6 +6,7 @@
 | --- | --- | --- |
 | 5-case dry-run plan created | yes | `real_student_online_5case_dry_run_plan_20260519.zh.md` |
 | dry-run form created | yes | `real_student_online_5case_dry_run_form_v1.csv` |
+| local-only private annotation packet created | yes | `.local_private/real_student_online_5case_annotation_packet_20260519.*`; ignored by git |
 | cases selected from 30 pilot candidate cases | yes | selected by coverage, not model performance |
 | raw student text included in public dry-run files | no | only candidate ids and screening labels are included |
 | complete deep annotation done | no | pending manual/coach annotation |
