@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "real_student_online_candidate_screening_schema_v1.json",
+  "title": "Real Student Online AIChat Candidate-Turn Screening v1",
+  "description": "Lightweight screening schema for substantial candidate turns from our own online AIChat logs. This is a screening pool schema, not a deep case-specific rubric annotation, not a main experiment, and not a learning-outcome study.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "candidate_turn_id",
+    "session_id_hash",
+    "student_id_hash",
+    "problem_id_hash",
+    "is_cp_related",
+    "is_substantial_turn",
+    "context_sufficiency",
+    "rough_bridge_family",
+    "surface_anchor",
+    "help_seeking_type",
+    "likely_slice",
+    "candidate_for_deep_annotation",
+    "exclusion_reason",
+    "privacy_review_status",
+    "consent_eligibility",
+    "candidate_selection_reason",
+    "screening_confidence",
+    "screened_by",
+    "notes"
+  ],
+  "properties": {
+    "candidate_turn_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Anonymous candidate-turn identifier for the 137-turn screening pool."
+    },
+    "session_id_hash": {
+      "type": "string",
+      "minLength": 8,
+      "description": "Anonymous hash of the AIChat session id. Do not store raw session ids in the screening form."
+    },
+    "student_id_hash": {
+      "type": "string",
+      "minLength": 8,
+      "description": "Anonymous hash of the student id. Do not store real names, schools, accounts, phone numbers, or emails."
+    },
+    "problem_id_hash": {
+      "type": "string",
+      "minLength": 8,
+      "description": "Anonymous hash of the problem id or problem context."
+    },
+    "is_cp_related": {
+      "type": "string",
+      "enum": [
+        "yes",
+        "no"
+      ],
+      "description": "Whether the turn concerns competitive-programming or algorithmic-programming tutoring."
+    },
+    "is_substantial_turn": {
+      "type": "string",
+      "enum": [
+        "yes",
+        "no"
+      ],
+      "description": "Whether the turn contains enough help-seeking signal to belong to the 137-turn screening pool."
+    },
+    "context_sufficiency": {
+      "type": "string",
+      "enum": [
+        "sufficient",
+        "partial",
+        "insufficient",
+        "unclear"
+      ],
+      "description": "Lightweight judgment of whether the candidate turn has enough context for possible deep annotation."
+    },
+    "rough_bridge_family": {
+      "type": "string",
+      "enum": [
+        "state_representation_bridge",
+        "transition_recurrence_bridge",
+        "predicate_check_bridge",
+        "boundary_order_bridge",
+        "modeling_bridge",
+        "aggregation_contribution_bridge",
+        "data_structure_bridge",
+        "correctness_bridge",
+        "implementation_bridge",
+        "debugging_bridge",
+        "policy_bridge",
+        "other",
+        "unclear"
+      ],
+      "description": "Rough bridge-family guess for screening only. Final bridge family requires deep annotation."
+    },
+    "surface_anchor": {
+      "type": "string",
+      "description": "Observed algorithmic or implementation surface anchor, such as DP state, binary-search check, debugging trace, implementation boundary, or direct-answer request."
+    },
+    "help_seeking_type": {
+      "type": "string",
+      "enum": [
+        "conceptual_hint",
+        "debugging",
+        "implementation",
+        "clarification",
+        "direct_answer_request",
+        "code_request",
+        "other"
+      ],
+      "description": "Lightweight classification of what the student is asking for."
+    },
+    "likely_slice": {
+      "type": "string",
+      "enum": [
+        "main_scaffold_eval",
+        "main_eval_with_caution",
+        "clarification_safety_slice",
+        "policy_safety_slice",
+        "exclude"
+      ],
+      "description": "Likely evaluation target if this candidate were selected for deep annotation. This does not change dialogue-state v3 slices."
+    },
+    "candidate_for_deep_annotation": {
+      "type": "string",
+      "enum": [
+        "yes",
+        "no"
+      ],
+      "description": "Whether this candidate turn should be considered for the 30-case deep annotation sample."
+    },
+    "exclusion_reason": {
+      "type": "string",
+      "description": "Reason for not selecting this candidate for deep annotation, or empty string if selected/undecided."
+    },
+    "privacy_review_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "passed",
+        "needs_redaction",
+        "excluded_privacy_risk"
+      ],
+      "description": "Privacy review status for screening. Only passed cases can be considered for deep reporting."
+    },
+    "consent_eligibility": {
+      "type": "string",
+      "enum": [
+        "eligible",
+        "pending",
+        "not_eligible",
+        "unknown"
+      ],
+      "description": "Whether the candidate is eligible for pilot use under the consent and notice rules."
+    },
+    "candidate_selection_reason": {
+      "type": "string",
+      "description": "Required rationale for candidates selected for deep annotation. Leave empty only when candidate_for_deep_annotation is no."
+    },
+    "screening_confidence": {
+      "type": "string",
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "description": "Confidence in the lightweight screening labels."
+    },
+    "screened_by": {
+      "type": "string",
+      "description": "Reviewer or process identifier for the screening pass. Do not store direct student identifiers."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Free-form notes for screening ambiguity, privacy concerns, or selection rationale. Do not store direct identifiers."
+    }
+  }
+}

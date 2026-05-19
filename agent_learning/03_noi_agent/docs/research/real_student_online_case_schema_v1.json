@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "real_student_online_case_schema_v1.json",
+  "title": "Real Student Online AIChat Pilot Case v1",
+  "description": "Schema for privacy-reviewed real-student online AIChat dialogue-state cases from our own system. This pilot is only an ecological-validity check for taxonomy and rubric transfer; it is not a main experiment, not a learning-outcome study, and not a new baseline condition.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "pilot_case_id",
+    "student_id_hash",
+    "problem_id_hash",
+    "timestamp_bucket",
+    "problem_context_summary",
+    "student_message_redacted",
+    "recent_dialogue_redacted",
+    "student_code_excerpt_redacted",
+    "ai_response_current_system_redacted",
+    "coach_missing_bridge_family",
+    "coach_missing_bridge_instance",
+    "surface_anchor",
+    "context_sufficiency",
+    "expected_next_student_action",
+    "forbidden_content",
+    "matches_existing_taxonomy",
+    "new_bridge_candidate",
+    "observed_next_turn_progress",
+    "privacy_review_status",
+    "consent_status",
+    "notes"
+  ],
+  "properties": {
+    "pilot_case_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Anonymous pilot case identifier. This is not a dialogue-state v3 main-experiment case id."
+    },
+    "student_id_hash": {
+      "type": "string",
+      "minLength": 8,
+      "description": "Anonymous stable hash for the student. Do not store real name, school, phone number, email, account id, or other direct identifiers."
+    },
+    "problem_id_hash": {
+      "type": "string",
+      "minLength": 8,
+      "description": "Anonymous stable hash for the problem context. Do not store public-community links or third-party discussion identifiers."
+    },
+    "timestamp_bucket": {
+      "type": "string",
+      "minLength": 4,
+      "description": "Coarse time bucket such as YYYY-MM or YYYY-Www. Do not store exact timestamps in this pilot."
+    },
+    "problem_context_summary": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Redacted summary of the problem context needed to judge the missing bridge. Do not include full original problem text or third-party community content."
+    },
+    "student_message_redacted": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Current student message from our own online AIChat / teaching system after redaction."
+    },
+    "recent_dialogue_redacted": {
+      "type": "string",
+      "description": "Recent dialogue from our own system with direct identifiers removed. Use an empty string if no recent dialogue is available."
+    },
+    "student_code_excerpt_redacted": {
+      "type": "string",
+      "description": "Minimal code excerpt needed to judge the bridge, with names, file paths, accounts, comments, and identifiers redacted. Use an empty string if unavailable or unnecessary."
+    },
+    "ai_response_current_system_redacted": {
+      "type": "string",
+      "description": "Redacted current AIChat response shown by the existing system. This is recorded for validity analysis only and is not modified by the pilot."
+    },
+    "coach_missing_bridge_family": {
+      "type": "string",
+      "enum": [
+        "state_representation_bridge",
+        "transition_recurrence_bridge",
+        "predicate_check_bridge",
+        "boundary_order_bridge",
+        "modeling_bridge",
+        "aggregation_contribution_bridge",
+        "data_structure_bridge",
+        "correctness_bridge",
+        "implementation_bridge",
+        "debugging_bridge",
+        "policy_bridge",
+        "candidate_new_bridge",
+        "unclear_bridge"
+      ],
+      "description": "Coach-selected cognitive bridge family. Use an existing CP-MissingBridgeBench family when possible; use candidate_new_bridge or unclear_bridge only for pilot validity checking, without changing the main taxonomy."
+    },
+    "coach_missing_bridge_instance": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Natural-language description of the concrete missing bridge in this real-student case."
+    },
+    "surface_anchor": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Algorithmic or implementation surface scene, such as DP state, binary-search check, tree-difference marking, debugging trace, or policy request."
+    },
+    "context_sufficiency": {
+      "type": "string",
+      "enum": [
+        "sufficient",
+        "partial",
+        "insufficient",
+        "unclear"
+      ],
+      "description": "Whether the redacted context is sufficient to annotate missing bridge and rubric fields."
+    },
+    "expected_next_student_action": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The next action the student should be able to take after an appropriate scaffold."
+    },
+    "forbidden_content": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Content that should not be directly supplied in the current turn because it would complete the student's missing bridge."
+    },
+    "matches_existing_taxonomy": {
+      "type": "string",
+      "enum": [
+        "yes",
+        "no",
+        "uncertain"
+      ],
+      "description": "Whether the case maps to the existing cognitive bridge family taxonomy."
+    },
+    "new_bridge_candidate": {
+      "type": "string",
+      "description": "If matches_existing_taxonomy is no or uncertain, describe the candidate new bridge boundary or why the current taxonomy is insufficient. Use an empty string when not applicable."
+    },
+    "observed_next_turn_progress": {
+      "type": "string",
+      "enum": [
+        "progress_observed",
+        "partial_progress_observed",
+        "no_progress_observed",
+        "unavailable",
+        "unclear"
+      ],
+      "description": "Observed next-turn progress if available. This is a validity signal for rubric fit, not a learning-outcome measure."
+    },
+    "privacy_review_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "passed",
+        "needs_redaction",
+        "excluded_privacy_risk"
+      ],
+      "description": "Privacy review status. Only cases marked passed should enter annotation or reporting."
+    },
+    "consent_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "notice_provided",
+        "consented",
+        "declined",
+        "withdrawn"
+      ],
+      "description": "Student/parent/coach notice and consent status according to the pilot privacy and consent checklist."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Free-form internal annotation note for ambiguity, redaction decisions, taxonomy-fit concerns, or dry-run issues. Do not store direct identifiers."
+    }
+  }
+}

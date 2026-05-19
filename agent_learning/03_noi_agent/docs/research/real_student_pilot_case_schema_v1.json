@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "real_student_pilot_case_schema_v1.json",
+  "title": "Real Student Pilot Validity Case v1",
+  "description": "Schema for 20-30 real-student dialogue-state cases used only to check taxonomy and rubric applicability. This pilot is not a main experiment, not a learning-outcome study, and not a new baseline condition.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "pilot_case_id",
+    "student_id_hash",
+    "problem_id_hash",
+    "problem_context_summary",
+    "student_message",
+    "recent_dialogue_redacted",
+    "student_code_excerpt_redacted",
+    "coach_missing_bridge_family",
+    "coach_missing_bridge_instance",
+    "coach_forbidden_content",
+    "expected_next_student_action",
+    "observed_next_turn_progress",
+    "privacy_review_status"
+  ],
+  "properties": {
+    "pilot_case_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Anonymous pilot case identifier used only within the real-student validity check. This is not a dialogue-state v3 main-experiment case id."
+    },
+    "student_id_hash": {
+      "type": "string",
+      "minLength": 8,
+      "description": "Anonymous stable hash for the student. Do not store real name, school, phone number, account name, or other direct identifiers."
+    },
+    "problem_id_hash": {
+      "type": "string",
+      "minLength": 8,
+      "description": "Anonymous stable hash for the problem or assignment context. Do not store private course or platform identifiers unless already anonymized."
+    },
+    "problem_context_summary": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Redacted summary of the problem context needed to judge the missing bridge. Avoid unnecessary full problem statements."
+    },
+    "student_message": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Current student message after redaction. Preserve the tutoring meaning while removing direct identifiers."
+    },
+    "recent_dialogue_redacted": {
+      "type": "string",
+      "description": "Recent dialogue context with all direct identifiers removed. Use an empty string only if no recent dialogue is available."
+    },
+    "student_code_excerpt_redacted": {
+      "type": "string",
+      "description": "Minimal code excerpt needed to judge the bridge, with names, file paths, accounts, comments, and identifiers redacted. Use an empty string if no code is needed or available."
+    },
+    "coach_missing_bridge_family": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Bridge-family label selected by the coach, preferably from the existing CP-MissingBridgeBench taxonomy."
+    },
+    "coach_missing_bridge_instance": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Natural-language description of the concrete missing bridge in this case."
+    },
+    "coach_forbidden_content": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Content that a tutor should not directly provide in this turn because it would complete the learner's current bridge."
+    },
+    "expected_next_student_action": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The next action the student should be able to take after an appropriate scaffold."
+    },
+    "observed_next_turn_progress": {
+      "type": "string",
+      "enum": [
+        "progress_observed",
+        "partial_progress_observed",
+        "no_progress_observed",
+        "unavailable",
+        "unclear"
+      ],
+      "description": "Observed next-turn progress if available. This is a validity signal for rubric fit, not a learning-outcome measure."
+    },
+    "privacy_review_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "passed",
+        "needs_redaction",
+        "excluded_privacy_risk"
+      ],
+      "description": "Privacy review status. Only cases marked passed should enter annotation or reporting."
+    }
+  }
+}

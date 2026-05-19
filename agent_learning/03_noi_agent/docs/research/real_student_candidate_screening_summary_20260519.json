@@ -1,0 +1,117 @@
+{
+  "total_rows": 137,
+  "unique_sessions": 59,
+  "unique_students": 13,
+  "unique_problems": 25,
+  "counts": {
+    "context_sufficiency": {
+      "sufficient": 118,
+      "partial": 19
+    },
+    "rough_bridge_family": {
+      "implementation_bridge": 45,
+      "debugging_bridge": 42,
+      "unclear": 18,
+      "data_structure_bridge": 14,
+      "aggregation_contribution_bridge": 9,
+      "predicate_check_bridge": 3,
+      "correctness_bridge": 2,
+      "policy_bridge": 2,
+      "boundary_order_bridge": 1,
+      "state_representation_bridge": 1
+    },
+    "surface_anchor": {
+      "implementation boundary": 45,
+      "debugging trace": 42,
+      "conceptual hint request": 17,
+      "tree / graph traversal": 10,
+      "prefix/difference contribution": 9,
+      "data-structure operation": 4,
+      "binary-search check": 3,
+      "correctness / invariant reasoning": 2,
+      "direct-answer / code request": 2,
+      "DP state": 1,
+      "boundary update order": 1,
+      "insufficient-context help seeking": 1
+    },
+    "help_seeking_type": {
+      "debugging": 50,
+      "implementation": 49,
+      "conceptual_hint": 34,
+      "code_request": 3,
+      "clarification": 1
+    },
+    "likely_slice": {
+      "main_scaffold_eval": 96,
+      "main_eval_with_caution": 37,
+      "policy_safety_slice": 3,
+      "clarification_safety_slice": 1
+    },
+    "candidate_for_deep_annotation": {
+      "no": 107,
+      "yes": 30
+    },
+    "exclusion_reason": {
+      "not_selected_for_30_case_deep_sample": 107,
+      "(blank)": 30
+    },
+    "privacy_review_status": {
+      "pending": 107,
+      "passed": 30
+    },
+    "consent_eligibility": {
+      "pending": 137
+    }
+  },
+  "selected_deep_candidates_count": 30,
+  "selected_deep_candidates_by_bridge_family": {
+    "implementation_bridge": 12,
+    "debugging_bridge": 10,
+    "data_structure_bridge": 3,
+    "unclear": 3,
+    "aggregation_contribution_bridge": 2
+  },
+  "selected_deep_candidates_by_surface_anchor": {
+    "implementation boundary": 12,
+    "debugging trace": 10,
+    "conceptual hint request": 3,
+    "prefix/difference contribution": 2,
+    "tree / graph traversal": 2,
+    "data-structure operation": 1
+  },
+  "selected_deep_candidates_by_student": {
+    "stu_925ad19bad497ce0": 5,
+    "stu_9589f185858ab7f4": 4,
+    "stu_d8240700d7b4a573": 4,
+    "stu_e8d61ca1e8d38a6d": 4,
+    "stu_2874c3bc5292937e": 3,
+    "stu_4b2d444c6851750d": 3,
+    "stu_a449c196f0b55660": 2,
+    "stu_b531e3ef57c1904a": 2,
+    "stu_05c8a0464f305ce6": 1,
+    "stu_28310c7c6f47decf": 1,
+    "stu_fdff3e566a4a4271": 1
+  },
+  "selected_deep_candidates_by_problem": {
+    "prob_3b5a682d7bb8c38a": 7,
+    "prob_ff5e477452170911": 5,
+    "prob_0a1afc175b781068": 2,
+    "prob_19d6a797891845ab": 2,
+    "prob_b8897aede85aa2a0": 2,
+    "prob_e5ce6c02c6a4ab64": 2,
+    "prob_e893e49d29d156d7": 2,
+    "prob_068410236aed77d1": 1,
+    "prob_08af834e8fc24af1": 1,
+    "prob_36845b05fe98edf2": 1,
+    "prob_4f29cdd992363857": 1,
+    "prob_9177928a1c886d3d": 1,
+    "prob_a0bf3fe990f7682a": 1,
+    "prob_b807a713f7bfb63b": 1,
+    "prob_d115d0e01d0a0f4f": 1
+  },
+  "boundary": {
+    "candidate_turns": "137 candidate turns are a screening pool, not a deep annotation sample.",
+    "deep_sample": "30 selected cases are a deep annotation sample, not all online AIChat data.",
+    "evidence_role": "ecological validity only; not a main result or learning outcome study."
+  }
+}
