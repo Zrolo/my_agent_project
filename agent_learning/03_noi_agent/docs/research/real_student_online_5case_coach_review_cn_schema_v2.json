@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "real_student_online_5case_coach_review_cn_schema_v2.json",
+  "title": "Real Student Online 5-Case Coach Review Chinese Form v2",
+  "description": "面向教练填写的中文 5-case real-student online dry-run 复核表。评分维度对齐 dialogue-state v3 / 50-case response-level human-review rubric；pilot validity 字段只用于检查 taxonomy/rubric 能否迁移到真实学生对话。本表不修改主实验，不新增主实验 condition，不改变线上回复。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "干跑案例编号",
+    "候选轮次编号",
+    "试点案例编号",
+    "30例候选序号",
+    "时间桶",
+    "题目/场景摘要",
+    "学生问题（已脱敏）",
+    "近期对话（已脱敏，可空）",
+    "学生代码片段（已脱敏，可空）",
+    "当前AIChat回复（已脱敏）",
+    "复核状态",
+    "隐私复核状态",
+    "上下文是否足够",
+    "识别当前缺失桥是否准确（0/1/2）",
+    "回复是否基于当前材料（0/1/2）",
+    "脚手架是否合适（0/1/2）",
+    "是否控制关键桥泄露（0/1/2）",
+    "下一步是否清楚（0/1/2）",
+    "是否单焦点连贯（0/1/2）",
+    "微例是否围绕桥梁（0/1/2/不适用）",
+    "微例适用性",
+    "泄露标签",
+    "总体质量（1-5）",
+    "是否愿意给学生看",
+    "学生回答负担",
+    "复核信心",
+    "是否需要讨论",
+    "缺失桥家族（中文）",
+    "当前缺失桥实例（中文简述）",
+    "禁止直接说出的内容（中文）",
+    "可以提示到什么程度（中文）",
+    "期望学生下一步（中文）",
+    "是否匹配现有taxonomy",
+    "新桥候选（如无填“无”）",
+    "观察到的下一轮进展",
+    "是否同意AI预标注",
+    "是否需要裁决",
+    "知情/报告门",
+    "教练备注（中文）"
+  ],
+  "properties": {
+    "干跑案例编号": {"type": "string"},
+    "候选轮次编号": {"type": "string"},
+    "试点案例编号": {"type": "string"},
+    "30例候选序号": {"type": "string"},
+    "时间桶": {"type": "string"},
+    "题目/场景摘要": {"type": "string"},
+    "学生问题（已脱敏）": {"type": "string"},
+    "近期对话（已脱敏，可空）": {"type": "string"},
+    "学生代码片段（已脱敏，可空）": {"type": "string"},
+    "当前AIChat回复（已脱敏）": {"type": "string"},
+    "复核状态": {
+      "type": "string",
+      "enum": ["待复核", "已复核", "需第二教练", "因隐私风险排除", "因上下文不足排除"]
+    },
+    "隐私复核状态": {
+      "type": "string",
+      "enum": ["待复核", "可内部复核", "需继续脱敏", "因隐私风险排除"]
+    },
+    "上下文是否足够": {
+      "type": "string",
+      "enum": ["足够", "部分足够", "不足", "不清楚", ""]
+    },
+    "识别当前缺失桥是否准确（0/1/2）": {
+      "type": "string",
+      "enum": ["0", "1", "2", ""]
+    },
+    "回复是否基于当前材料（0/1/2）": {
+      "type": "string",
+      "enum": ["0", "1", "2", ""]
+    },
+    "脚手架是否合适（0/1/2）": {
+      "type": "string",
+      "enum": ["0", "1", "2", ""]
+    },
+    "是否控制关键桥泄露（0/1/2）": {
+      "type": "string",
+      "enum": ["0", "1", "2", ""]
+    },
+    "下一步是否清楚（0/1/2）": {
+      "type": "string",
+      "enum": ["0", "1", "2", ""]
+    },
+    "是否单焦点连贯（0/1/2）": {
+      "type": "string",
+      "enum": ["0", "1", "2", ""]
+    },
+    "微例是否围绕桥梁（0/1/2/不适用）": {
+      "type": "string",
+      "enum": ["0", "1", "2", "不适用", ""]
+    },
+    "微例适用性": {
+      "type": "string",
+      "enum": ["适用", "不适用", "不清楚", ""]
+    },
+    "泄露标签": {
+      "type": "string",
+      "enum": ["无泄露", "轻微关键桥泄露", "重大关键桥泄露", "答案或代码泄露", "上下文不足未判断", ""]
+    },
+    "总体质量（1-5）": {
+      "type": "string",
+      "enum": ["1", "2", "3", "4", "5", ""]
+    },
+    "是否愿意给学生看": {
+      "type": "string",
+      "enum": ["是", "边界", "否", ""]
+    },
+    "学生回答负担": {
+      "type": "string",
+      "enum": ["低", "中", "高", ""]
+    },
+    "复核信心": {
+      "type": "string",
+      "enum": ["高", "中", "低", ""]
+    },
+    "是否需要讨论": {
+      "type": "string",
+      "enum": ["是", "否", ""]
+    },
+    "缺失桥家族（中文）": {"type": "string"},
+    "当前缺失桥实例（中文简述）": {"type": "string"},
+    "禁止直接说出的内容（中文）": {"type": "string"},
+    "可以提示到什么程度（中文）": {"type": "string"},
+    "期望学生下一步（中文）": {"type": "string"},
+    "是否匹配现有taxonomy": {
+      "type": "string",
+      "enum": ["是", "否", "不确定", ""]
+    },
+    "新桥候选（如无填“无”）": {"type": "string"},
+    "观察到的下一轮进展": {
+      "type": "string",
+      "enum": ["有进展", "部分进展", "无进展", "不清楚", "不可用", ""]
+    },
+    "是否同意AI预标注": {
+      "type": "string",
+      "enum": ["同意", "部分同意", "不同意", "不适用", ""]
+    },
+    "是否需要裁决": {
+      "type": "string",
+      "enum": ["是", "否", ""]
+    },
+    "知情/报告门": {
+      "type": "string",
+      "enum": ["待完成", "可报告", "不可报告", "已退出"]
+    },
+    "教练备注（中文）": {"type": "string"}
+  },
+  "x_alignment_to_dialogue_state_v3_50_case_rubric": {
+    "识别当前缺失桥是否准确（0/1/2）": "coach_bridge_identification_score",
+    "回复是否基于当前材料（0/1/2）": "coach_groundedness_score",
+    "脚手架是否合适（0/1/2）": "coach_scaffold_appropriateness_score",
+    "是否控制关键桥泄露（0/1/2）": "coach_bridge_leakage_control_score",
+    "下一步是否清楚（0/1/2）": "coach_next_step_clarity_score",
+    "是否单焦点连贯（0/1/2）": "coach_single_focus_coherence_score",
+    "微例是否围绕桥梁（0/1/2/不适用）": "coach_bridge_oriented_micro_example_score",
+    "微例适用性": "coach_micro_example_applicability",
+    "泄露标签": "coach_leakage_label",
+    "总体质量（1-5）": "coach_overall_quality_score",
+    "是否愿意给学生看": "coach_would_show_to_student",
+    "学生回答负担": "student_response_burden",
+    "复核信心": "coach_reviewer_confidence",
+    "是否需要讨论": "coach_needs_discussion",
+    "教练备注（中文）": "coach_notes"
+  }
+}
