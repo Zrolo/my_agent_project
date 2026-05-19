@@ -82,15 +82,23 @@
 - `yes`
 - `no`
 
+### `consent_reporting_gate`
+
+- `pending`
+- `eligible`
+- `not_eligible`
+- `withdrawn`
+
 ## Review Procedure
 
 1. Read the private packet case by case.
 2. Ignore AI preannotation at first pass; write an independent coach judgment.
 3. Compare the independent judgment with AI preannotation.
 4. Mark disagreement and adjudication need explicitly.
-5. Do not copy full student text, full code, or full AI response into public notes.
-6. If privacy is not sufficient, stop that case and mark `needs_more_redaction` or `excluded_privacy_risk`.
-7. If context is insufficient, route the case to clarification-safety interpretation rather than forcing an ordinary missing bridge.
+5. Keep `consent_reporting_gate=pending` unless consent/status review has explicitly made the case reportable.
+6. Do not copy full student text, full code, or full AI response into public notes.
+7. If privacy is not sufficient, stop that case and mark `needs_more_redaction` or `excluded_privacy_risk`.
+8. If context is insufficient, route the case to clarification-safety interpretation rather than forcing an ordinary missing bridge.
 
 ## Public Reporting Boundary
 

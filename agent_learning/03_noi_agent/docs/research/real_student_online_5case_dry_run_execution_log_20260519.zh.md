@@ -10,11 +10,18 @@
 | local-only AI preannotation completed | yes | internal-only; not final coach label and not reportable evidence |
 | local-only coach review packet created | yes | `.local_private/real_student_online_5case_coach_review_packet_20260519.*`; ignored by git |
 | public coach review protocol created | yes | `real_student_online_5case_coach_review_protocol_20260519.zh.md` |
+| coach review schema created | yes | `real_student_online_5case_coach_review_schema_v1.json` |
+| coach review validator created | yes | `validate_real_student_5case_coach_review.py`; validates private packet without exposing contents |
+| public aggregate summary template created | yes | `real_student_online_5case_coach_review_public_summary_template_20260519.zh.md` |
 | cases selected from 30 pilot candidate cases | yes | selected by coverage, not model performance |
 | raw student text included in public dry-run files | no | only candidate ids and screening labels are included |
 | complete coach-reviewed annotation done | no | pending manual/coach review |
 | consent/reporting gate complete | no | current status remains pending |
 | reportable deep-pilot evidence produced | no | forbidden until consent/status gate is complete |
+
+## Current Validator Status
+
+The current private coach-review packet has 5 rows. The validator reports `ok=true`, `reviewed_rows_count=0`, `reportable_after_consent_count=0`, and 5 reporting-gate warnings because all selected cases remain `consent_reporting_gate=pending`. This is expected and does not make the cases reportable.
 
 ## Selected Case Coverage
 

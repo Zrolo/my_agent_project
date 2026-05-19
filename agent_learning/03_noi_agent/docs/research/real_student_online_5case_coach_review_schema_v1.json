@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "real_student_online_5case_coach_review_schema_v1.json",
+  "title": "Real Student Online 5-Case Coach Review v1",
+  "description": "Schema for local-only coach review packets for the 5-case real-student online dry run. This is not a main experiment, not a learning-outcome study, and not reportable deep-pilot evidence before consent/reporting gate completion.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "dry_run_case_id",
+    "candidate_turn_id",
+    "pilot_case_id",
+    "selected_index_in_30",
+    "timestamp_bucket",
+    "problem_context_summary",
+    "student_message_redacted",
+    "recent_dialogue_redacted",
+    "student_code_excerpt_redacted",
+    "ai_response_current_system_redacted",
+    "ai_preannotation_missing_bridge_family",
+    "ai_preannotation_missing_bridge_instance_paraphrased",
+    "ai_preannotation_forbidden_content_paraphrased",
+    "ai_preannotation_acceptable_reveal_paraphrased",
+    "ai_preannotation_expected_next_student_action_paraphrased",
+    "ai_preannotation_context_sufficiency_final",
+    "ai_preannotation_matches_existing_taxonomy",
+    "ai_preannotation_current_aichat_leakage_concern",
+    "ai_preannotation_field_sufficiency_notes",
+    "coach_review_status",
+    "coach_privacy_review_status",
+    "coach_context_sufficiency",
+    "coach_missing_bridge_family",
+    "coach_missing_bridge_instance",
+    "coach_forbidden_content",
+    "coach_acceptable_reveal",
+    "coach_expected_next_student_action",
+    "coach_current_aichat_leakage_concern",
+    "coach_matches_existing_taxonomy",
+    "coach_new_bridge_candidate",
+    "coach_observed_next_turn_progress",
+    "coach_field_sufficiency_notes",
+    "coach_disagrees_with_ai_preannotation",
+    "adjudication_needed",
+    "consent_reporting_gate",
+    "coach_notes"
+  ],
+  "properties": {
+    "dry_run_case_id": {"type": "string"},
+    "candidate_turn_id": {"type": "string"},
+    "pilot_case_id": {"type": "string"},
+    "selected_index_in_30": {"type": "string"},
+    "timestamp_bucket": {"type": "string"},
+    "problem_context_summary": {"type": "string"},
+    "student_message_redacted": {"type": "string"},
+    "recent_dialogue_redacted": {"type": "string"},
+    "student_code_excerpt_redacted": {"type": "string"},
+    "ai_response_current_system_redacted": {"type": "string"},
+    "ai_preannotation_missing_bridge_family": {"type": "string"},
+    "ai_preannotation_missing_bridge_instance_paraphrased": {"type": "string"},
+    "ai_preannotation_forbidden_content_paraphrased": {"type": "string"},
+    "ai_preannotation_acceptable_reveal_paraphrased": {"type": "string"},
+    "ai_preannotation_expected_next_student_action_paraphrased": {"type": "string"},
+    "ai_preannotation_context_sufficiency_final": {
+      "type": "string",
+      "enum": ["sufficient", "partial", "insufficient", "unclear", ""]
+    },
+    "ai_preannotation_matches_existing_taxonomy": {
+      "type": "string",
+      "enum": ["yes", "no", "uncertain", ""]
+    },
+    "ai_preannotation_current_aichat_leakage_concern": {
+      "type": "string",
+      "enum": ["yes_high", "yes_medium_high", "yes_medium", "yes_low", "no", "unclear", "not_judged_insufficient_context", ""]
+    },
+    "ai_preannotation_field_sufficiency_notes": {"type": "string"},
+    "coach_review_status": {
+      "type": "string",
+      "enum": ["pending", "reviewed", "needs_second_coach", "excluded_privacy_risk", "excluded_insufficient_context"]
+    },
+    "coach_privacy_review_status": {
+      "type": "string",
+      "enum": ["pending", "passed_for_internal_review", "needs_more_redaction", "excluded_privacy_risk"]
+    },
+    "coach_context_sufficiency": {
+      "type": "string",
+      "enum": ["sufficient", "partial", "insufficient", "unclear", ""]
+    },
+    "coach_missing_bridge_family": {"type": "string"},
+    "coach_missing_bridge_instance": {"type": "string"},
+    "coach_forbidden_content": {"type": "string"},
+    "coach_acceptable_reveal": {"type": "string"},
+    "coach_expected_next_student_action": {"type": "string"},
+    "coach_current_aichat_leakage_concern": {
+      "type": "string",
+      "enum": ["yes_high", "yes_medium", "yes_low", "no", "unclear", "not_judged_insufficient_context", ""]
+    },
+    "coach_matches_existing_taxonomy": {
+      "type": "string",
+      "enum": ["yes", "no", "uncertain", ""]
+    },
+    "coach_new_bridge_candidate": {"type": "string"},
+    "coach_observed_next_turn_progress": {
+      "type": "string",
+      "enum": ["progress_observed", "partial_progress_observed", "no_progress_observed", "unclear", "unavailable", ""]
+    },
+    "coach_field_sufficiency_notes": {"type": "string"},
+    "coach_disagrees_with_ai_preannotation": {
+      "type": "string",
+      "enum": ["yes", "partial", "no", "not_applicable", ""]
+    },
+    "adjudication_needed": {
+      "type": "string",
+      "enum": ["yes", "no", ""]
+    },
+    "consent_reporting_gate": {
+      "type": "string",
+      "enum": ["pending", "eligible", "not_eligible", "withdrawn"]
+    },
+    "coach_notes": {"type": "string"}
+  }
+}
