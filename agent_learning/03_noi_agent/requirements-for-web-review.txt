@@ -1,0 +1,17 @@
+# Minimal requirements for external web-review reproduction.
+#
+# The paper-facing verification commands are designed to run offline from the
+# bundled CSV/JSON/JSONL artifacts. They should not call any LLM backend.
+#
+# Required:
+# - Python 3.10+ standard library
+#
+# Optional, only for live model calls outside the review bundle:
+# - openai
+#
+# Recommended no-install commands:
+#   python3 evals/aichat/verify_dialogue_state_v3_reports.py
+#   python3 evals/aichat/reproduce_dialogue_state_v3_tables.py --output-json /tmp/dialogue_state_v3_reproduced_web_ai.json
+#   python3 -m unittest test_dialogue_state_v3_evidence_package_unit.py test_llm_grader_calibration_pack_unit.py
+#   python3 evals/aichat/validate_research_bilingual_docs.py --output-json /tmp/bilingual_docs_validation_web_ai.json
+#   python3 -m json.tool docs/research/dialogue_state_v3_evidence_manifest_20260518.json >/tmp/dialogue_state_v3_evidence_manifest_check.json

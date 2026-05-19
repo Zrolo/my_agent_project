@@ -19,15 +19,6 @@ import time
 from pathlib import Path
 from typing import Callable
 
-from evals.review.run_review_case_kimi_cli import _run_kimi_cli, _strip_json_fence
-from noi_agent import (
-    _choice_message_text,
-    _offline_judge_completion_create,
-    _offline_judge_profile,
-    _offline_json_judge_request_kwargs,
-)
-
-
 TaskKey = tuple[str, str, str, str]
 
 READY_LABELS = {"yes", "borderline", "no", "UNKNOWN"}
@@ -50,7 +41,9 @@ BURDEN_LABELS = {"low", "medium", "high", "UNKNOWN"}
 
 def _read_jsonl(path: Path) -> list[dict]:
     rows = []
-    for line_number, raw_line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+    for line_number, raw_line in enumerate(
+        path.read_text(encoding="utf-8").splitlines(), 1
+    ):
         line = raw_line.strip()
         if not line:
             continue
@@ -74,6 +67,17 @@ def _load_existing_keys(path: Path) -> set[TaskKey]:
     if not path.exists():
         return set()
     return {_task_key(row) for row in _read_jsonl(path)}
+
+
+def _strip_json_fence(text: str) -> str:
+    stripped = (text or "").strip()
+    if stripped.startswith("```json"):
+        stripped = stripped[len("```json") :].strip()
+    elif stripped.startswith("```"):
+        stripped = stripped[len("```") :].strip()
+    if stripped.endswith("```"):
+        stripped = stripped[:-3].strip()
+    return stripped
 
 
 def _extract_json_object(raw_output: str) -> tuple[dict, str | None]:
@@ -153,6 +157,13 @@ def _validate_prediction(prediction: dict, grader_type: str) -> list[str]:
 
 
 def _run_deepseek_offline_judge(prompt: str) -> str:
+    from noi_agent import (
+        _choice_message_text,
+        _offline_judge_completion_create,
+        _offline_judge_profile,
+        _offline_json_judge_request_kwargs,
+    )
+
     profile = _offline_judge_profile("deepseek")
     kwargs = _offline_json_judge_request_kwargs(
         profile=profile,
@@ -170,6 +181,8 @@ def _call_backend(prompt: str, backend: str) -> str:
     if backend == "deepseek":
         return _run_deepseek_offline_judge(prompt)
     if backend == "kimi_cli":
+        from evals.review.run_review_case_kimi_cli import _run_kimi_cli
+
         return _run_kimi_cli(prompt)
     raise ValueError(f"Unsupported backend: {backend}")
 
@@ -226,7 +239,9 @@ def run_pack(
                     invalid += 1
                 else:
                     prediction = _normalize_prediction(prediction)
-                    schema_errors = _validate_prediction(prediction, str(row.get("grader_type") or ""))
+                    schema_errors = _validate_prediction(
+                        prediction, str(row.get("grader_type") or "")
+                    )
                     if schema_errors:
                         status = "invalid_schema"
                         error = "; ".join(schema_errors)
@@ -279,15 +294,23 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pack-jsonl", required=True, type=Path)
     parser.add_argument("--output-jsonl", required=True, type=Path)
-    parser.add_argument("--backend", default="deepseek", choices=["deepseek", "kimi_cli"])
+    parser.add_argument(
+        "--backend", default="deepseek", choices=["deepseek", "kimi_cli"]
+    )
     parser.add_argument("--limit", type=int, default=None)
-    parser.add_argument("--force", action="store_true", help="Overwrite output instead of resuming.")
+    parser.add_argument(
+        "--force", action="store_true", help="Overwrite output instead of resuming."
+    )
     parser.add_argument(
         "--retry-non-ok",
         action="store_true",
         help="Preserve existing ok rows and retry rows with error/invalid status.",
     )
-    parser.add_argument("--dry-run", action="store_true", help="Validate inputs and print planned work only.")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate inputs and print planned work only.",
+    )
     parser.add_argument("--sleep-seconds", type=float, default=0.0)
     parser.add_argument(
         "--judge-timeout-seconds",
@@ -315,7 +338,9 @@ def main(argv: list[str] | None = None) -> int:
             existing = {_task_key(row) for row in existing_rows}
         else:
             existing = _load_existing_keys(args.output_jsonl)
-        planned = [row for row in selected if args.force or _task_key(row) not in existing]
+        planned = [
+            row for row in selected if args.force or _task_key(row) not in existing
+        ]
         print(
             json.dumps(
                 {
@@ -327,10 +352,16 @@ def main(argv: list[str] | None = None) -> int:
                     "existing_rows": len(existing),
                     "planned_calls": len(planned),
                     "first_task": {
-                        "grader_type": selected[0].get("grader_type") if selected else None,
+                        "grader_type": (
+                            selected[0].get("grader_type") if selected else None
+                        ),
                         "case_id": selected[0].get("case_id") if selected else None,
-                        "condition_id": selected[0].get("condition_id") if selected else None,
-                        "prompt_chars": len(str(selected[0].get("prompt") or "")) if selected else 0,
+                        "condition_id": (
+                            selected[0].get("condition_id") if selected else None
+                        ),
+                        "prompt_chars": (
+                            len(str(selected[0].get("prompt") or "")) if selected else 0
+                        ),
                     },
                 },
                 ensure_ascii=False,

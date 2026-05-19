@@ -7,7 +7,7 @@
 - Branch: `codex/bridge-research-annotation`
 - Current review entrypoint: branch tip of `codex/bridge-research-annotation` for submission-prep handoff, prompt wording, and documentation hygiene.
 - Primary evidence-package review target: `33a5dd7 Add dialogue-state v3 evidence package gates`; if branch tip is newer, audit this fixed evidence package first and separately note whether later commits change evidence files, scripts, or paper wording.
-- Checkpoint interpretation: `dbbbd5c` may appear in machine-readable manifest metadata as the evidence-content base; `33a5dd7` is the evidence-package gates checkpoint; `7baa54e` is the integrity zh-pairs checkpoint that closes current non-legacy bilingual pairing gaps. Later branch-tip commits should be read as submission-prep / reviewer-facing documentation work unless they explicitly modify evidence files, scripts, or paper wording.
+- Checkpoint interpretation: `dbbbd5c` may appear in machine-readable manifest metadata as the evidence-content base; `33a5dd7` is the evidence-package gates checkpoint; `7baa54e` is the integrity zh-pairs checkpoint that closes current non-legacy bilingual pairing gaps; `f3f281b` is the LLM-grader backend-coupling wording checkpoint. Later branch-tip commits should be read as submission-prep / reviewer-facing documentation, packaging, or reproducibility work unless they explicitly modify evidence files, scripts, or paper wording.
 - Dialogue-state v3 status: `formal human-review evidence candidate`；它不是 `final gold`，也不能把 Coach A、Coach B 或 priority60 adjudicated merge 当作唯一真值。
 - Headline rule: 论文主 headline 只能使用 `main_scaffold_eval` slice；`main_eval_with_caution`、`clarification_safety_slice`、`policy_safety_slice` 和 all-50 aggregate 只能作为 sensitivity / appendix，不混成一个 headline 平均。
 - Current online AIChat status: 仍以 `chat()` 为入口，主要由 rules、legacy learning phase judge、Pedagogical Judge v2 soft control、main LLM、自报 level hard gate 和 output guards 组成。
@@ -229,6 +229,9 @@ Research v1 不包含：
 - [formatting_cleanup_log_20260519.zh.md](formatting_cleanup_log_20260519.zh.md): 中文 formatting cleanup log，记录 black、JSON pretty-print check 和 bilingual validator report refresh。
 - [gpt54_external_method_review_llm_grader_coupling_20260519.zh.md](gpt54_external_method_review_llm_grader_coupling_20260519.zh.md): 中文 GPT-5.4 external method review memo，记录 LLM grader same-backend coupling 小修意见；只作为 method review，不作为实验结果。
 - [gpt54_external_method_review_llm_grader_coupling_20260519.md](gpt54_external_method_review_llm_grader_coupling_20260519.md): English GPT-5.4 external method review memo for LLM-grader same-backend coupling wording.
+- [external_review_minor_revision_response_20260519.zh.md](external_review_minor_revision_response_20260519.zh.md): 中文外部网页 AI 审核小修回应，记录 web-review unit test 依赖修复和证据边界。
+- [external_review_minor_revision_response_20260519.md](external_review_minor_revision_response_20260519.md): English minor-revision response to the external web-AI review.
+- [requirements-for-web-review.txt](../../requirements-for-web-review.txt): Minimal no-install requirements note for external web-review reproduction commands.
 - [dialogue_state_v3_evidence_manifest_20260518.json](dialogue_state_v3_evidence_manifest_20260518.json): dialogue-state v3 evidence manifest，列出每个 paper-facing 结果表的报告、输入、脚本、输出、checksum、解释边界和禁止表述。
 - [dialogue_state_v3_paper_claims_final_gate_20260518.zh.md](dialogue_state_v3_paper_claims_final_gate_20260518.zh.md): 中文论文 claim final gate，按 allowed wording / required evidence / forbidden wording 锁定投稿前表述边界。
 - [dialogue_state_v3_paper_claims_final_gate_20260518.md](dialogue_state_v3_paper_claims_final_gate_20260518.md): English paper-claim final gate for dialogue-state v3.
