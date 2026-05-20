@@ -129,7 +129,7 @@ def latex_table(rows: list[list[str]]) -> str:
     return "\n".join(out)
 
 
-def export_latex(blocks: list[dict], out_path: Path, bib_name: str) -> None:
+def export_latex(blocks: list[dict], out_path: Path, bib_name: str | None) -> None:
     title = "CP-MissingBridgeBench: Evaluating Critical-Bridge Leakage in LLM Tutors for Competitive Programming"
     body: list[str] = []
     for block in blocks:
@@ -173,12 +173,15 @@ def export_latex(blocks: list[dict], out_path: Path, bib_name: str) -> None:
 \maketitle
 
 """
-    tail = rf"""
+    if bib_name:
+        tail = rf"""
 
 \bibliographystyle{{apalike}}
 \bibliography{{{bib_name}}}
 \end{{document}}
 """
+    else:
+        tail = "\n\\end{document}\n"
     out_path.write_text(preamble + "\n\n".join(body) + tail, encoding="utf-8")
 
 
@@ -300,12 +303,13 @@ def main() -> None:
     parser.add_argument("--tex-out", required=True)
     parser.add_argument("--docx-out", required=True)
     parser.add_argument("--bib-name", default="eait_v0_12_references_draft_20260520")
+    parser.add_argument("--no-bibliography", action="store_true")
     args = parser.parse_args()
 
     source = Path(args.input_md).read_text(encoding="utf-8")
     references = Path(args.references_md).read_text(encoding="utf-8")
     blocks = parse_blocks(source)
-    export_latex(blocks, Path(args.tex_out), args.bib_name)
+    export_latex(blocks, Path(args.tex_out), None if args.no_bibliography else args.bib_name)
     export_docx(blocks, references, Path(args.docx_out))
 
 

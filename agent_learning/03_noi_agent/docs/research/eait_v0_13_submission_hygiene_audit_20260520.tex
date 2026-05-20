@@ -1,0 +1,114 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{tabularx}
+\usepackage{xltabular}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{hyperref}
+\usepackage{natbib}
+\usepackage{url}
+\setmainfont{Times New Roman}
+\setCJKmainfont{Songti SC}
+\sloppy
+\title{EAIT v0.13 Submission Hygiene Audit 20260520}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Scope}
+
+This audit records the v0.13 submission-hygiene pass for CP-MissingBridgeBench. The pass converts the current manuscript package toward LaTeX and Word deliverables, tightens ethics/privacy/data-availability wording, and verifies number and claim-gate consistency. It does not add experiments, add main conditions, recompute dialogue-state v3 tables, modify online AIChat, change prompts, enable active mode, or change student-visible responses.
+
+\section{Files Produced}
+
+\begingroup
+\small
+\begin{xltabular}{\textwidth}{>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
+\toprule
+artifact & file path & role \\
+\midrule
+Manuscript LaTeX & \texttt{docs/research/...v0\_13\_submission\_hygiene.tex} & LaTeX manuscript draft \\
+Manuscript Word & \texttt{docs/research/...v0\_13\_submission\_hygiene.docx} & Word manuscript draft \\
+Bibliography & \texttt{docs/research/eait\_v0\_13\_references\_20260520.bib} & keep-only bibliography synchronized with v0.13 \\
+Audit LaTeX & \texttt{docs/research/eait\_v0\_13\_submission\_hygiene\_audit\_20260520.tex} & LaTeX audit record \\
+Audit Word & \texttt{docs/research/eait\_v0\_13\_submission\_hygiene\_audit\_20260520.docx} & Word audit record \\
+\bottomrule
+\end{xltabular}
+\endgroup
+
+\section{Result-Number Verification}
+
+\begingroup
+\scriptsize
+\begin{xltabular}{\textwidth}{>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
+\toprule
+number & manuscript use & verification source & status \\
+\midrule
+50 & reviewed dialogue-state cases & evidence manifest and manuscript v0.12/v0.13 & verified \\
+7 & anonymized offline harnesses & evidence manifest and harness table & verified \\
+350 & response-level outputs & 50 cases x 7 harnesses & verified \\
+31 & \texttt{main\_scaffold\_eval} headline cases & evidence manifest headline slice & verified \\
+217 & response-level reviews in headline slice & 31 cases x 7 harnesses & verified \\
+19 & non-headline dialogue-state cases & 50 minus 31 & verified \\
+133 & response-level reviews in remaining slices & 19 cases x 7 harnesses & verified \\
+1156 & raw AIChat message rows & real-student online pilot workflow status & verified \\
+87 & online AIChat sessions & real-student online pilot workflow status & verified \\
+578 & paired user-assistant turns & real-student online pilot workflow status & verified \\
+137 & substantial candidate turns & real-student online pilot workflow status & verified \\
+59 & candidate sessions & real-student online pilot workflow status & verified \\
+30 & selected pilot candidate cases & real-student online pilot workflow status & verified \\
+11 & hashed students covered & real-student online pilot workflow status & verified \\
+15 & hashed problems covered & real-student online pilot workflow status & verified \\
+5 & human coach dry-run cases & real-student online pilot workflow status & verified \\
+9 & focus cases selected for second-coach review & real-student online pilot workflow status & verified \\
+2 & adjudication rows & real-student online pilot workflow status & verified \\
+0 & reportable case-level evidence after gate & real-student online pilot workflow status & verified \\
+80-100 & planned Real-AIChat observational target turns & protocol layer only & verified as planned, not completed result \\
+30/50 & planned Real-AIChat-Replay subset sizes & protocol layer only & verified as planned, not completed result \\
+20-30 & planned real trajectory subset & protocol layer only & verified as planned, not completed result \\
+\bottomrule
+\end{xltabular}
+\endgroup
+
+\section{Claim-Gate Verification}
+
+\begingroup
+\small
+\begin{xltabular}{\textwidth}{>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
+\toprule
+gate & v0.13 status \\
+\midrule
+no new dialogue-state v3 main experiment & pass \\
+no new main condition & pass \\
+no main-table recomputation & pass \\
+no online AIChat / prompt / active-mode modification & pass \\
+sensitivity / stress / calibration / pilot not main result & pass \\
+Coach A/B/priority60 not final gold & pass \\
+all-50 aggregate not headline & pass \\
+217 responses not independent cases & pass \\
+no significant/full dominance claim & pass \\
+no Guard-only repair claim & pass \\
+no Repair causal claim from main means & pass \\
+LLM grader remains auxiliary & pass \\
+observed current AIChat response not baseline/condition/control & pass \\
+real-student pilot not learning outcome study & pass \\
+\bottomrule
+\end{xltabular}
+\endgroup
+
+\section{v0.13 Changes}
+
+The only manuscript prose change is the replacement of the previous combined ethics/privacy/data-availability paragraph block with a more submission-ready section containing: study boundary, public materials and reproducibility, restricted materials, real-student AIChat pilot boundary, data availability statement, and AI writing disclosure. No results section, table value, experimental condition, evidence hierarchy, or citation decision was changed.
+
+\section{Remaining Human Checks}
+
+1. Confirm EAIT / Springer final reference style. 2. Confirm whether \texttt{zhao2026answerLeakage} remains acceptable as an arXiv preprint citation. 3. Final-check DBox ACM/CHI BibTeX before submission. 4. Conduct final result-number verification against the source tables immediately before submission. 5. Complete institutional ethics/privacy/data availability wording review. 6. Keep real-student case-level labels and examples out of public materials until consent/reporting eligibility is documented.
+
+\section{Formatting Verification}
+
+The v0.13 LaTeX manuscript compiles with \texttt{latexmk -xelatex} using \texttt{eait\_v0\_13\_references\_20260520.bib}. The Word manuscript is structurally valid and contains the expected title, sections, tables, and references. Full LibreOffice-based page rendering could not be completed on this machine because \texttt{soffice} is not installed; Quick Look thumbnail preview was used only as a limited visual smoke test.
+\end{document}
