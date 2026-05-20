@@ -25,6 +25,65 @@ def write_csv(path: Path, rows: list[dict[str, str]], fieldnames: list[str]) -> 
         writer.writerows(rows)
 
 
+class RealAIChat100SelectionTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.selector = load_module(
+            "evals/aichat/select_real_aichat_100_observational_validation.py",
+            "real_aichat_100_selector",
+        )
+        self.base_row = {
+            "candidate_turn_id": "rs_screen_001",
+            "session_id_hash": "sess_hash_001",
+            "student_id_hash": "stu_hash_001",
+            "problem_id_hash": "prob_hash_001",
+            "is_cp_related": "yes",
+            "is_substantial_turn": "yes",
+            "context_sufficiency": "sufficient",
+            "rough_bridge_family": "debugging_bridge",
+            "surface_anchor": "debugging trace",
+            "help_seeking_type": "debugging",
+            "likely_slice": "main_scaffold_eval",
+            "candidate_for_deep_annotation": "no",
+            "exclusion_reason": "not_selected_for_30_case_deep_sample",
+            "privacy_review_status": "pending",
+            "consent_eligibility": "pending",
+            "candidate_selection_reason": "",
+            "screening_confidence": "high",
+            "screened_by": "unit_test",
+            "notes": "no raw text",
+        }
+
+    def test_selection_excludes_non_cp_and_failed_privacy_rows(self):
+        rows = []
+        for index in range(5):
+            row = dict(self.base_row)
+            row["candidate_turn_id"] = f"rs_screen_{index:03d}"
+            row["student_id_hash"] = f"stu_hash_{index:03d}"
+            row["problem_id_hash"] = f"prob_hash_{index:03d}"
+            rows.append(row)
+        rows[1]["is_cp_related"] = "no"
+        rows[2]["privacy_review_status"] = "excluded_privacy_risk"
+
+        selected = self.selector.select_candidates(rows, target_count=4)
+
+        self.assertEqual(len(selected), 3)
+        self.assertNotIn("rs_screen_001", {row["candidate_turn_id"] for row in selected})
+        self.assertNotIn("rs_screen_002", {row["candidate_turn_id"] for row in selected})
+
+    def test_manifest_rows_redact_hashes_and_preserve_observed_only_role(self):
+        selected = self.selector.select_candidates([self.base_row], target_count=1)
+        manifest_rows = self.selector.build_manifest_rows(selected, annotation_date="2026-05-20")
+
+        self.assertEqual(len(manifest_rows), 1)
+        row = manifest_rows[0]
+        self.assertEqual(row["student_id_hash_private_or_redacted"], "redacted_in_public_manifest")
+        self.assertEqual(row["problem_id_hash_private_or_redacted"], "redacted_in_public_manifest")
+        self.assertEqual(row["session_id_hash_private_or_redacted"], "redacted_in_public_manifest")
+        self.assertEqual(row["observed_current_aichat_response_role"], "observed_only_not_condition")
+        self.assertEqual(row["public_reporting_allowed"], "no")
+        self.assertEqual(row["possible_bridge_leakage_concern"], "not_assessed")
+
+
 class RealAIChat100ValidatorTest(unittest.TestCase):
     def setUp(self) -> None:
         self.validator = load_module(

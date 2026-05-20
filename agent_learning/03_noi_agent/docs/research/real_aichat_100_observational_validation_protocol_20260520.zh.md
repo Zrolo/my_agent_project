@@ -123,4 +123,10 @@ Real-AIChat-100 是基于我们自己 AIChat / 教学系统真实 target turns �
 
 ## Execution Status
 
-当前仅创建 protocol、schema、空模板和 validator。由于本 patch 不读取 `.local_private/`，也不伪造真实数据，因此未创建实际 Real-AIChat-100 selection manifest。
+当前已基于 `real_student_online_candidate_screening_form_v1.csv` 的 137 条结构化 screening rows 创建公开脱敏 selection manifest：
+
+- `real_aichat_100_observational_validation_manifest_20260520.csv`
+- `real_aichat_100_selection_summary_20260520.json`
+- `real_aichat_100_selection_log_20260520.zh.md`
+
+该 manifest 只使用 candidate-turn screening CSV 中已有的结构化字段，不读取 `.local_private/`，不包含学生原文、完整代码、完整 AIChat 回复、真实身份、hash salt、可逆映射或 row-level hash 表。它不是 deep annotation result，不是 7-condition comparison，不是 learning outcome study，也不更新 dialogue-state v3 主表。

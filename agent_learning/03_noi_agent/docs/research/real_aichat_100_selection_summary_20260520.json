@@ -1,0 +1,76 @@
+{
+  "summary_id": "real_aichat_100_selection_summary_20260520",
+  "selection_date": "2026-05-20",
+  "source_screening_rows": 137,
+  "eligible_screening_rows": 137,
+  "target_count": 100,
+  "selected_manifest_rows": 100,
+  "source_unique_sessions_selected": 59,
+  "source_unique_students_selected": 13,
+  "source_unique_problems_selected": 25,
+  "selected_context_sufficiency_counts": {
+    "partial": 16,
+    "sufficient": 84
+  },
+  "selected_rough_bridge_family_counts": {
+    "aggregation_contribution_bridge": 7,
+    "boundary_order_bridge": 1,
+    "correctness_bridge": 2,
+    "data_structure_bridge": 13,
+    "debugging_bridge": 26,
+    "implementation_bridge": 29,
+    "policy_bridge": 2,
+    "predicate_check_bridge": 3,
+    "state_representation_bridge": 1,
+    "unclear": 16
+  },
+  "selected_surface_anchor_counts": {
+    "DP state": 1,
+    "binary-search check": 3,
+    "boundary update order": 1,
+    "conceptual hint request": 15,
+    "correctness / invariant reasoning": 2,
+    "data-structure operation": 4,
+    "debugging trace": 26,
+    "direct-answer / code request": 2,
+    "implementation boundary": 29,
+    "insufficient-context help seeking": 1,
+    "prefix/difference contribution": 7,
+    "tree / graph traversal": 9
+  },
+  "selected_help_seeking_type_counts": {
+    "clarification": 1,
+    "code_request": 3,
+    "conceptual_hint": 29,
+    "debugging": 34,
+    "implementation": 33
+  },
+  "selected_likely_slice_counts": {
+    "clarification_safety_slice": 1,
+    "main_eval_with_caution": 25,
+    "main_scaffold_eval": 71,
+    "policy_safety_slice": 3
+  },
+  "selected_privacy_review_status_counts": {
+    "passed": 30,
+    "pending": 70
+  },
+  "selected_consent_eligibility_counts": {
+    "pending": 100
+  },
+  "manifest_candidate_for_replay_counts": {
+    "no": 16,
+    "yes": 84
+  },
+  "manifest_public_reporting_allowed_counts": {
+    "no": 100
+  },
+  "boundary": {
+    "main_result": "no",
+    "condition_comparison": "no",
+    "learning_outcome_study": "no",
+    "dialogue_state_v3_table_update": "no",
+    "raw_text_or_full_response_included": "no",
+    "row_level_hashes_public": "no"
+  }
+}
