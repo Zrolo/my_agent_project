@@ -30,11 +30,11 @@ v2 表格补强了题目上下文列，目的是让教练能判断当前材料�
 | 是否需要查看完整题面才能评分 | 标记当前摘要是否不足以支持 rubric 判断。 |
 | 题目摘要来源 | 记录摘要来自线上 AIChat 元数据、教练人工改写、题目上下文摘要或不确定。 |
 
-这些字段用于判断 `context_sufficiency` 和 taxonomy / rubric transfer，不用于新增实验、不改主实验数字，也不要求填写真实身份信息。
+这些字段用于判断 `context_sufficiency` 和 taxonomy / rubric transfer，不用于 main result，不用于新增实验、不改主实验数字，也不要求填写真实身份信息。
 
 ## 当前 AIChat 回复字段边界
 
-`当前AIChat回复（已脱敏）` 指线上 AIChat 已经展示给学生的 observed current-system response。它是观察项，非实验条件；不要把它写成 baseline、condition、control、online condition 或 repair output。
+`当前AIChat回复（已脱敏）` 指线上 AIChat 已经展示给学生的 observed current-system response。它是观察项，非实验条件；不要把它写成 baseline、experimental condition、control arm、online comparison arm 或 repair output。
 
 公开文件只保留空模板和字段说明。本地私有表可以包含经脱敏的线上已展示回复，但在知情/报告门完成前，不能公开 case-level labels、学生原文、完整代码、完整 AIChat 回复或可识别示例。
 

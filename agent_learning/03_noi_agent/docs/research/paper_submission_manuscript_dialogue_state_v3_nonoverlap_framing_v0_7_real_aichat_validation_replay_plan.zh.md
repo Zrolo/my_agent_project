@@ -2,7 +2,7 @@
 
 ## Abstract
 
-LLM tutors for competitive programming can offer timely help, but useful help must preserve the learner's opportunity to complete the next reasoning step. Critical bridge leakage names a tutoring-specific failure in which a response prematurely supplies an intermediate bridge, such as a DP-state meaning, binary-search predicate, invariant, update rule, or debugging cue, even without final code. CP-MissingBridgeBench is a high-resolution, human-reviewed diagnostic benchmark for evaluating this risk in turn-level competitive-programming tutoring. We evaluate 350 tutor responses from 7 anonymized offline harnesses across 50 reviewed dialogue-state cases; the headline scaffold analysis is limited to the 31-case `main_scaffold_eval` slice, corresponding to 217 response-level reviews, while remaining slices are reported as sensitivity or appendix evidence. Each case pairs problem context, recent dialogue, and a case-specific rubric specifying the missing bridge, forbidden content, acceptable reveal, and expected next student action. Under the primary human-review view, DBox-inspired decomposition remains a strong offline baseline, no-direct-solution prompting does not eliminate critical bridge leakage, and Bridge Contract compact + Guard/Repair shows favorable but bounded trends in overall quality and high-severity leakage control. A separate real-student AIChat layer is used only to examine ecological validity and taxonomy/rubric transfer; it is not a main result, does not compare the seven offline conditions, and does not evaluate learning outcomes or deployed-system superiority. The findings suggest that pedagogical safety in LLM tutoring should be evaluated at the level of learners' reasoning opportunities, not only at the level of final-answer disclosure.
+LLM tutors for competitive programming can offer timely help, but useful help must preserve the learner's opportunity to complete the next reasoning step. Critical bridge leakage names a tutoring-specific failure in which a response prematurely supplies an intermediate bridge, such as a DP-state meaning, binary-search predicate, invariant, update rule, or debugging cue, even without final code. CP-MissingBridgeBench is a high-resolution, human-reviewed diagnostic benchmark for evaluating this risk in turn-level competitive-programming tutoring. The fixed offline dialogue-state evaluation contains 50 reviewed cases, 7 anonymized offline harnesses, and 350 response-level outputs; the headline scaffold analysis is limited to the 31-case `main_scaffold_eval` slice, corresponding to 217 response-level reviews, while remaining slices are sensitivity or appendix evidence. Each case pairs problem context, recent dialogue, and a case-specific rubric specifying the missing bridge, forbidden content, acceptable reveal, and expected next student action. Under the primary human-review view, DBox-inspired decomposition remains a strong offline baseline, no-direct-solution prompting does not eliminate critical bridge leakage, and Bridge Contract compact + Guard/Repair shows favorable but bounded trends in overall quality and high-severity leakage control. We further specify an external real-log ecological-validation layer: Real-AIChat-100 is observational and checks taxonomy/rubric transfer, while optional Real-AIChat-Replay-30/50 would generate offline counterfactual responses from the fixed harnesses on the same real-student starting states. These layers are not online deployment experiments, do not evaluate learning outcomes, and do not update the dialogue-state v3 main results. The findings suggest that pedagogical safety in LLM tutoring should be evaluated at the level of learners' reasoning opportunities, not only at the level of final-answer disclosure.
 
 ## 1. Introduction
 
@@ -107,9 +107,12 @@ The sample is therefore adequate for bounded diagnostic claims: it can reveal qu
 | Headline scaffold analysis | 31 `main_scaffold_eval` cases; 217 response-level reviews | Primary scaffold-quality, leakage, and burden comparison | 217 reviews are same-case condition outputs, not separate case-level samples |
 | Remaining dialogue-state slices | 19 non-headline cases; 133 response-level reviews | Sensitivity / appendix for caution, clarification safety, and policy-safety targets | Not mixed into headline scaffold ranking |
 | Supporting checks | paired uncertainty, Repair same-candidate stress, DBox+Repair targeted add-on, LLM-grader calibration | Stress, fairness sensitivity, and auxiliary calibration | Not promoted to main result or causal online-system evidence |
-| Real-student AIChat ecological-validity layer | 1156 message rows; 87 sessions; 578 paired user-assistant turns | Online log corpus background from our own system | Not a condition comparison or learning-outcome study |
+| Online AIChat log corpus background | 1156 message rows; 87 sessions; 578 paired user-assistant turns | Source-corpus background from our own system | Not a condition comparison or learning-outcome study |
 | Candidate-turn screening pool | 137 substantial candidate turns; 59 candidate sessions | Lightweight screening for context sufficiency and possible bridge-family coverage | Not full rubric annotation |
-| Deep pilot candidate set | 30 selected pilot candidate cases; 11 hashed students; 15 hashed problems | Taxonomy/rubric transfer check after privacy and consent/reporting gates | Not main result; no comparison to the seven offline conditions |
+| Selected pilot candidate set | 30 selected pilot candidate cases; 11 hashed students; 15 hashed problems | Candidate set for taxonomy/rubric transfer after privacy and consent/reporting gates | Not main result; no comparison to the seven offline harnesses |
+| Real-AIChat-100 observational validation | 80-100 target turns from AIChat candidate turns, or `N <= 100` if fewer satisfy criteria | Ecological validity and taxonomy/rubric transfer | Observational only; not condition comparison and not learning-outcome evidence |
+| Real-AIChat-Replay-30/50 | 30 context-sufficient cases first, optional 50 if feasible | Real-log-grounded offline counterfactual validation using fixed harnesses | Auxiliary validation only; not merged into dialogue-state v3 main tables |
+| Real trajectory subset | 20-30 real multi-turn trajectories, if collected | Context-sufficiency and short-horizon interpretation | Not learning outcome evidence and not deployed-system effectiveness |
 
 The offline benchmark covers multiple bridge families and evaluation targets without treating them as one homogeneous population. The table below summarizes coverage from existing dialogue-state v3 case metadata; it does not add cases, change slices, or change any reported numbers.
 
@@ -122,7 +125,13 @@ The offline benchmark covers multiple bridge families and evaluation targets wit
 
 This coverage table supports diagnostic breadth across bridge families and surface anchors, but it does not claim exhaustive taxonomy coverage. The benchmark is strongest when read as a case-specific human-review instrument: it asks whether each response preserves the learner's current missing bridge, not whether the sample represents all possible CP tutoring interactions.
 
-### 3.3 Dialogue-State v3 Cases And Slices
+### 3.3 Unit Of Analysis
+
+The unit of analysis is fixed separately for each evidence layer. The 50 dialogue-state v3 items are reviewed case-level tutoring situations, not a set of student participants. The 350 outputs are response-level outputs generated by applying 7 anonymized offline harnesses to the 50 cases; they are not independent case-level samples. The 217 reviews in the headline scaffold slice are response-level reviews nested within 31 `main_scaffold_eval` cases, not independent student samples.
+
+The real-student AIChat layers use different units. Real-AIChat-100 would consist of real dialogue turns or case-level target turns from our own system, not a student-level learning sample. Real-AIChat-Replay-30/50 would use the same real-student starting states for offline counterfactual response generation, not online deployment. Real trajectory subsets, if used, are short-horizon context checks and not evidence of learning or long-term achievement gains.
+
+### 3.4 Dialogue-State v3 Cases And Slices
 
 Dialogue-state v3 contains 50 reviewed candidate cases. Each case keeps the problem context, recent dialogue, student message, and case-specific rubric together, so the response is judged against the actual tutoring situation rather than against an isolated problem statement. The running binary-search example illustrates why this matters: the same sentence about monotonicity may be a useful hint after the student has named the predicate, but a leakage case before that bridge has been crossed.
 
@@ -142,7 +151,7 @@ The main headline uses only `main_scaffold_eval`. The other slices and the all-5
 
 The full 50-case corpus is not discarded. Non-main slices are reported separately because they test different evaluation targets.
 
-### 3.4 Offline Human-Review Harnesses
+### 3.5 Offline Human-Review Harnesses
 
 The main human review compares 7 anonymized conditions and 350 responses. Coaches reviewed the responses blind to condition names. After unblinding, the conditions are interpreted as follows:
 
@@ -158,7 +167,7 @@ The main human review compares 7 anonymized conditions and 350 responses. Coache
 
 These are offline evaluation harnesses, not online AIChat configurations and not evidence of active-mode deployment. They are used to study tutoring-response behavior under controlled review conditions. The DBox-inspired rows should be read as baseline harnesses in this offline review design, not as a claim about the full DBox system.
 
-### 3.5 Case-Specific Rubric And Blind Review
+### 3.6 Case-Specific Rubric And Blind Review
 
 Each case is scored against a rubric fixed before review. The rubric includes `success_criteria`, `forbidden_content`, `critical_bridge_boundary`, `acceptable_reveal`, and `expected_student_next_action`. In the running example, the rubric would separate a legitimate prompt such as "what must become true as `x` increases?" from a forbidden response that gives the full check predicate. This design makes the review concrete: the coach judges whether a response is appropriate for this student, this dialogue state, and this next learning step.
 
@@ -166,7 +175,7 @@ Coach A and Coach B each reviewed all 350 responses. For every response, they sa
 
 Coach A, Coach B, and priority60 adjudication are expert reference or adjudicated sensitivity views. None is treated as a single definitive label. Disagreement is part of the evidence: it shows where pedagogical judgment is sensitive and where the paper must report uncertainty rather than a single settled label.
 
-### 3.6 Metrics
+### 3.7 Metrics
 
 The main metrics are:
 
@@ -181,7 +190,7 @@ The main metrics are:
 
 Diagnostic metrics are used to explain failures and calibrate automatic graders. They are not used as the sole basis for condition ranking. Paired comparisons report win/tie/loss, mean delta, safe-ready delta, major+answer leakage delta, and uncertainty.
 
-### 3.7 Analysis Hierarchy And Evidence Manifest
+### 3.8 Analysis Hierarchy And Evidence Manifest
 
 The analysis was organized by evidence role before manuscript claims were assigned. The purpose of this hierarchy is to keep the educational interpretation aligned with what each comparison can support. The 31-case `main_scaffold_eval` slice provides the main scaffold evaluation. Rater-specific views, non-main slices, and all-50 summaries are used to examine sensitivity. Same-case comparisons are used to describe uncertainty around condition differences. Repair before/after comparisons and DBox+Repair review are kept as supporting checks rather than promoted into headline evidence.
 
@@ -196,6 +205,20 @@ The analysis was organized by evidence role before manuscript claims were assign
 | calibration | DeepSeek LLM grader calibration，作为 auxiliary grader 评估 |
 
 The evidence manifest and reproduction scripts provide the audit trail for the reported tables: `docs/research/dialogue_state_v3_evidence_manifest_20260518.json`, `evals/aichat/reproduce_dialogue_state_v3_tables.py`, and `evals/aichat/verify_dialogue_state_v3_reports.py`. This traceability is methodological support, not a separate result. Sensitivity, stress, and calibration results are not promoted to main results.
+
+### 3.9 External Validation Protocols
+
+The external validation plan adds protocol layers without changing the fixed dialogue-state v3 benchmark. Real-AIChat-100 is an observational ecological-validity layer drawn from our own AIChat / teaching-system candidate turns. It does not compare the 7 offline harnesses. Its purpose is to examine whether the bridge-family taxonomy, surface anchors, context-sufficiency labels, and case-specific rubric fields transfer to real student dialogue turns.
+
+The observed current AIChat response is treated as `observed_current_aichat_response`: an observed current-system response already shown to the student. It is not one of the 7 offline harnesses, not a control arm, not a deployment comparison arm, and not a Repair output. If privacy or consent/reporting gates remain pending, this layer can report only aggregate/process counts and schema readiness.
+
+Real-AIChat-Replay-30/50 is the only external layer that would permit a same-starting-state offline comparison of the fixed harnesses on real-log-grounded cases. Replay-30 would first select 30 context-sufficient cases from Real-AIChat-100; Replay-50 is optional if time and review capacity allow. Replay responses would be generated offline, hidden from students, randomized for blind coach review, and reported only as auxiliary counterfactual validation. Replay results would not be merged into dialogue-state v3 main results.
+
+Safe wording block:
+
+```text
+The observed current AIChat response is treated as an observed current-system response rather than as a baseline condition. Real-AIChat-100 is used to examine ecological validity and rubric transfer. Real-AIChat-Replay, where conducted, uses the same real-student starting states to generate offline counterfactual responses from the fixed harnesses; it is reported as auxiliary validation and is not merged into the dialogue-state v3 main results.
+```
 
 ## 4. Results
 
@@ -297,15 +320,17 @@ The design implication is not to make tutors withhold help. It is to make help c
 
 Human review also plays a design role, not only an audit role. It defines the leakage boundary, reveals trade-offs between safe-but-unhelpful and helpful-but-leaky responses, and calibrates automatic graders for low-stakes use. This kind of human-in-the-loop evaluation is better suited to critical bridge leakage than model self-evaluation or a single automatic score.
 
-### 5.7 Real-Student AIChat As Ecological-Validity Layer
+### 5.7 Real-Student AIChat As Ecological-Validity And Replay-Planning Layers
 
-The real-student AIChat material should be read as an ecological-validity layer, not as a system-performance experiment. Its `observed_current_aichat_response` field, also described in Chinese as `线上已展示 AIChat 回复（观察项，非实验条件）`, records the response that the existing online AIChat had already shown to the student. It is not one of the seven offline harnesses, not a baseline, not a control arm, and not a Repair output.
+The real-student AIChat material should be read as ecological-validity and replay-planning support, not as a system-performance experiment. Its `observed_current_aichat_response` field, also described in Chinese as `线上已展示 AIChat 回复（观察项，非实验条件）`, records the response that the existing online AIChat had already shown to the student. It is not one of the seven offline harnesses, not a baseline, not a control arm, and not a Repair output.
 
-This distinction protects both the paper's evidence hierarchy and the educational interpretation. The online layer can show whether real student questions from our own teaching system can be expressed as dialogue-state cases with a missing bridge, surface anchor, context sufficiency judgment, and case-specific rubric. It cannot show that the deployed AIChat is superior, that active mode is validated, or that student learning outcomes improve. Any future shadow-mode or risk-triggered deployment should be reported as a separate deployment-readiness study rather than merged into the dialogue-state v3 main result.
+This distinction protects both the paper's evidence hierarchy and the educational interpretation. Real-AIChat-100 can show whether real student questions from our own teaching system can be expressed as dialogue-state cases with a missing bridge, surface anchor, context sufficiency judgment, and case-specific rubric. It cannot show that the deployed AIChat is superior, that active mode is validated, or that student learning outcomes improve.
+
+Real-AIChat-Replay-30/50 would answer a different auxiliary question: whether the same fixed offline harnesses show different bridge-preserving behavior when the starting states come from real AIChat turns. Because replay responses would be generated offline and hidden from students, this evidence would remain a counterfactual validation layer rather than an online intervention. Any future shadow-mode or risk-triggered deployment should be reported as a separate deployment-readiness study rather than merged into the dialogue-state v3 main result.
 
 ### 5.8 Limitations
 
-This study has seven main limitations. First, the headline slice is 31 cases / 217 response-level reviews and should be interpreted as bounded expert-reviewed evidence, not exhaustive CP tutoring coverage; the 217 reviews are response-level outputs nested within 31 case-level situations. Second, the 50 cases are curated high-risk dialogue-state cases rather than a random sample of all CP tutoring interactions, so the benchmark does not estimate population prevalence of critical bridge leakage. Third, student-ready, safe-ready, and rank outcomes are rater-sensitive, so sensitivity views are necessary. Fourth, priority60 adjudication is not a single definitive reference; it reduces uncertainty for high-priority disagreements but does not remove all rater differences. Fifth, DBox+Repair is a targeted 20-case sensitivity review, not a full 50-case double-coach condition. Sixth, DeepSeek-backed LLM-grader calibration has high critical false-negative risk and same-backend coupling, so automatic graders and judges remain auxiliary rather than replacements for human coaches. Seventh, the paper evaluates offline tutoring harnesses and a separate ecological-validity layer; it does not evaluate long-term learning outcomes, deployed AIChat superiority, online active-mode effectiveness, or population-level usage effects.
+This study has eight main limitations. First, the headline slice is 31 cases / 217 response-level reviews and should be interpreted as bounded expert-reviewed evidence, not exhaustive CP tutoring coverage; the 217 reviews are response-level outputs nested within 31 case-level situations. Second, the 50 cases are curated high-risk dialogue-state cases rather than a random sample of all CP tutoring interactions, so the benchmark does not estimate population prevalence of critical bridge leakage. Third, student-ready, safe-ready, and rank outcomes are rater-sensitive, so sensitivity views are necessary. Fourth, priority60 adjudication is not a single definitive reference; it reduces uncertainty for high-priority disagreements but does not remove all rater differences. Fifth, DBox+Repair is a targeted 20-case sensitivity review, not a full 50-case double-coach condition. Sixth, DeepSeek-backed LLM-grader calibration has high critical false-negative risk and same-backend coupling, so automatic graders and judges remain auxiliary rather than replacements for human coaches. Seventh, the paper evaluates offline tutoring harnesses and separate real-AIChat ecological-validity protocols; it does not evaluate long-term learning outcomes, deployed AIChat superiority, online active-mode effectiveness, or population-level usage effects. Eighth, Real-AIChat-100 selection and Replay-30/50 generation/review require their own privacy, consent/reporting, selection-bias, and double-review checks before they can be reported beyond aggregate/process counts.
 
 ## 6. Conclusion
 
@@ -395,12 +420,16 @@ Audit note on `dialogue_v3_045_debugging_evidence`: the context-readiness audit 
 | `dialogue_v3_050_policy_request` | `policy_safety_slice` | `policy_bridge` | `policy_safe_response` | 我现在有点想直接看完整题解和代码，不然不知道从哪里继续。 我不是想跳过学习，只是《[CSP-J 2024] 接龙》卡... | `safe_refusal` | recent_dialogue_ends_with_assistant; has_problem_context |
 
 
-## Appendix B. Real-Student AIChat Ecological-Validity Pilot Boundary
+## Appendix B. Real-Student AIChat External-Validation Boundary
 
-The real-student online AIChat pilot is included only as an ecological-validity and deployment-readiness layer. The data source is our own online AIChat / teaching system. The pilot does not use Luogu discussion areas, public forums, third-party Q&A sites, social media, or any other public community data.
+The real-student online AIChat material is included only as an ecological-validity, taxonomy-transfer, and replay-planning layer. The data source is our own online AIChat / teaching system. The pilot and replay protocols do not use Luogu discussion areas, public forums, third-party Q&A sites, social media, or any other public community data.
 
 The online data funnel is reported at three levels. Layer 1 summarizes the online log corpus: 1156 raw AIChat message rows, 87 sessions, and 578 paired user-assistant turns. Layer 2 screens 137 substantial candidate turns across 59 candidate sessions; this is a lightweight candidate-turn screening pool, not a deep annotation sample. Layer 3 contains 30 selected pilot candidate cases covering 11 hashed students and 15 hashed problems; these cases are candidates for full taxonomy/rubric annotation after privacy and consent/reporting gates.
 
+Real-AIChat-100, if constructed, would select 80-100 target turns from the candidate pool, or `N <= 100` if fewer cases satisfy privacy, consent/reporting, and context criteria. It is observational only: it checks whether real AIChat target turns can be described using CP-MissingBridgeBench bridge families, surface anchors, context-sufficiency labels, and case-specific rubric fields. It does not compare the seven offline harnesses.
+
+Real-AIChat-Replay-30/50, if conducted, would select 30 context-sufficient Real-AIChat-100 cases first, with optional expansion to 50. Replay would generate offline counterfactual responses from the fixed harnesses on the same real-student starting states and send anonymized responses to blind coach review. Replay is auxiliary validation and is not merged into the dialogue-state v3 main results.
+
 The field `observed_current_aichat_response` means the current system response already shown by online AIChat. In the Chinese coach-review template, the same field is labeled `线上已展示 AIChat 回复（观察项，非实验条件）`. This field must not be described as a baseline, experimental condition, control arm, online comparison arm, or Repair output. It is an observed response used to test whether the benchmark rubric can be applied to real dialogue-state cases.
 
-The pilot does not compare the seven offline harnesses, does not add a main experiment condition, does not recompute dialogue-state v3 tables, does not evaluate learning outcomes, and does not validate deployed-system superiority. Before consent/reporting gates are complete, public reporting is limited to aggregate counts, workflow status, schema readiness, and field-sufficiency observations. Case-level labels and examples remain non-reportable.
+The real AIChat layers do not add a main experiment condition, do not recompute dialogue-state v3 tables, do not evaluate learning outcomes, and do not validate deployed-system superiority. Before consent/reporting gates are complete, public reporting is limited to aggregate counts, workflow status, schema readiness, and field-sufficiency observations. Case-level labels and examples remain non-reportable.
