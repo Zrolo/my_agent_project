@@ -1,0 +1,40 @@
+{
+  "status_date": "2026-05-20",
+  "evidence_role": "5-case real-student online AIChat dry-run process status only",
+  "total_dry_run_cases": 5,
+  "human_coach_reviewed_rows": 5,
+  "structure_validation_errors": 0,
+  "consent_reporting_warnings": 5,
+  "privacy_review_status_counts": {
+    "可内部复核": 5
+  },
+  "consent_reporting_gate_counts": {
+    "待完成": 5
+  },
+  "reportable_after_consent_status_gate": 0,
+  "leakage_counts_suppressed": true,
+  "score_distributions_suppressed": true,
+  "case_level_labels_suppressed": true,
+  "public_material_excludes": [
+    "student raw text",
+    "complete student code",
+    "complete AIChat response",
+    "case-level coach labels",
+    "coach notes",
+    "student hashes",
+    "problem hashes",
+    "hash salt",
+    "reversible mappings"
+  ],
+  "claim_gate": {
+    "new_dialogue_state_v3_main_experiment": false,
+    "new_main_experiment_condition": false,
+    "recomputed_dialogue_state_v3_main_tables": false,
+    "modified_online_aichat_or_prompt_or_active_mode": false,
+    "changed_evidence_class": false,
+    "pilot_as_main_result": false,
+    "pilot_as_learning_outcome_study": false,
+    "public_case_level_labels_while_gate_pending": false
+  },
+  "boundary": "The completed 5-case human coach review is internal process evidence for pilot feasibility. It must not be reported as model-performance evidence, learning-outcome evidence, deployed-system superiority, or an update to dialogue-state v3 main results while the consent/reporting gate is pending."
+}

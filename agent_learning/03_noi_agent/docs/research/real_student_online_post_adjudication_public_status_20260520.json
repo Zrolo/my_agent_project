@@ -1,0 +1,20 @@
+{
+  "status_doc": "real_student_online_post_adjudication_public_status_20260520.zh.md",
+  "second_review_case_count": 9,
+  "adjudication_case_count": 2,
+  "adjudication_completed_rows": 2,
+  "workflow_adjudication_closed": true,
+  "combined_reportable_rows_after_gate": 0,
+  "reportable_case_level_evidence": 0,
+  "boundary": "Public-safe workflow status only; no case-level labels, raw student text, full code, full AIChat response, identities, hash salt, or reversible mappings are released.",
+  "claim_gate": {
+    "new_dialogue_state_v3_main_experiment": "no",
+    "new_main_experiment_condition": "no",
+    "recomputed_dialogue_state_v3_main_table": "no",
+    "modified_online_aichat_or_prompt_or_active_mode": "no",
+    "changed_student_visible_response": "no",
+    "pilot_as_main_result": "no",
+    "pilot_as_learning_outcome_study": "no",
+    "public_case_level_labels": "no"
+  }
+}

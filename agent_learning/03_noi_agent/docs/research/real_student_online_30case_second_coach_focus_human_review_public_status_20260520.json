@@ -1,0 +1,20 @@
+{
+  "status_doc": "real_student_online_30case_second_coach_focus_human_review_public_status_20260520.zh.md",
+  "case_count": 9,
+  "completed_second_coach_review_rows": 7,
+  "rows_requiring_adjudication": 2,
+  "internal_privacy_review_passed_rows": 9,
+  "consent_reporting_gate_completed_rows": 0,
+  "reportable_case_level_evidence": 0,
+  "boundary": "Public-safe workflow status only; no case-level labels, student raw text, full code, full AIChat response, identities, hash salt, or reversible mappings are released.",
+  "claim_gate": {
+    "new_dialogue_state_v3_main_experiment": "no",
+    "new_main_experiment_condition": "no",
+    "recomputed_dialogue_state_v3_main_table": "no",
+    "modified_online_aichat_or_prompt_or_active_mode": "no",
+    "changed_student_visible_response": "no",
+    "pilot_as_main_result": "no",
+    "pilot_as_learning_outcome_study": "no",
+    "public_case_level_labels": "no"
+  }
+}

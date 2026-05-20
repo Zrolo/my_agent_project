@@ -5,6 +5,7 @@
 ## Current Checkpoint
 
 - Branch: `codex/bridge-research-annotation`
+- 2026-05-20 real-student online AIChat pilot workflow status: see [real_student_online_pilot_workflow_status_20260520.zh.md](real_student_online_pilot_workflow_status_20260520.zh.md). Current public-safe state: 30 selected pilot candidates prepared, 9-case focus review and 2-case adjudication closed internally, reportable case-level evidence after privacy/consent gate = 0.
 - Current review entrypoint: branch tip of `codex/bridge-research-annotation` for submission-prep handoff, prompt wording, and documentation hygiene.
 - Primary evidence-package review target: `33a5dd7 Add dialogue-state v3 evidence package gates`; if branch tip is newer, audit this fixed evidence package first and separately note whether later commits change evidence files, scripts, or paper wording.
 - Checkpoint interpretation: `dbbbd5c` may appear in machine-readable manifest metadata as the evidence-content base; `33a5dd7` is the evidence-package gates checkpoint; `7baa54e` is the integrity zh-pairs checkpoint that closes current non-legacy bilingual pairing gaps; `f3f281b` is the LLM-grader backend-coupling wording checkpoint. Later branch-tip commits should be read as submission-prep / reviewer-facing documentation, packaging, or reproducibility work unless they explicitly modify evidence files, scripts, or paper wording.

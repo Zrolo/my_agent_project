@@ -1,0 +1,64 @@
+{
+  "status_doc": "real_student_online_pilot_workflow_status_20260520.zh.md",
+  "data_funnel": {
+    "raw_aichat_message_rows": 1156,
+    "sessions": 87,
+    "paired_user_assistant_turns": 578,
+    "substantial_candidate_turns": 137,
+    "candidate_sessions": 59,
+    "selected_pilot_candidate_cases": 30,
+    "hashed_students_covered": 11,
+    "hashed_problems_covered": 15
+  },
+  "workflow_snapshot": {
+    "five_case_human_coach_dry_run": {
+      "status": "completed_and_validated",
+      "case_count": 5,
+      "reportable_case_level_evidence": 0
+    },
+    "thirty_case_full_problem_packet": {
+      "status": "prepared",
+      "case_count": 30,
+      "full_problem_statements": 30,
+      "full_packet_human_reviewed_rows": 0
+    },
+    "ai_preliminary_triage": {
+      "status": "completed",
+      "row_count": 30,
+      "boundary": "internal triage only; not human evidence"
+    },
+    "second_coach_focus_review": {
+      "focus_case_count": 9,
+      "reviewed_rows": 7,
+      "adjudicated_rows": 2,
+      "rows_pending_adjudication": 0,
+      "workflow_adjudication_closed": true,
+      "reportable_case_level_evidence": 0
+    },
+    "two_case_adjudication": {
+      "packet_status": "completed_and_integrated",
+      "case_count": 2,
+      "completed_rows": 2,
+      "reportable_case_level_evidence": 0
+    }
+  },
+  "next_required_human_action": "Complete ethics/privacy/data availability review and consent/reporting gate before any case-level reporting.",
+  "claim_gate": {
+    "new_dialogue_state_v3_main_experiment": "no",
+    "new_main_experiment_condition": "no",
+    "recomputed_dialogue_state_v3_main_table": "no",
+    "modified_online_aichat_or_prompt_or_active_mode": "no",
+    "changed_student_visible_response": "no",
+    "pilot_as_main_result": "no",
+    "pilot_as_learning_outcome_study": "no",
+    "ai_preliminary_as_human_evidence": "no",
+    "public_case_level_labels": "no"
+  },
+  "privacy_gate": {
+    "public_raw_student_text": "no",
+    "public_full_code": "no",
+    "public_full_aichat_response": "no",
+    "public_hash_details_or_salt_or_reversible_mapping": "no",
+    "reportable_case_level_evidence_after_gate": 0
+  }
+}
