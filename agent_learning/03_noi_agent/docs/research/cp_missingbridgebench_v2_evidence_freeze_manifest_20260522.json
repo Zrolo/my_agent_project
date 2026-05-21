@@ -1,0 +1,76 @@
+{
+  "closeout_summary": {
+    "case_count": 100,
+    "privacy_boundary": "Aggregate-only reporting. Public outputs must not include raw student text, full student code, complete AIChat responses, real identity fields, hash salts, or reversible mappings.",
+    "row_count": 700
+  },
+  "do_not_release": [
+    "raw student text",
+    "full student code",
+    "complete AIChat responses",
+    "identity fields",
+    "hash salts",
+    "reversible mappings",
+    "private workbooks"
+  ],
+  "evidence_role": "v2 benchmark/evaluation closeout; not dialogue-state v3 main result",
+  "freeze_date": "2026-05-22",
+  "inputs": [
+    {
+      "bytes": 541245,
+      "exists": true,
+      "label": "coach_response_review_analysis_v2_100case_7design.summary.json",
+      "private_path_redacted": true,
+      "sha256": "c33ddce12af1a726fa458b7ae649c4935ad393ccea49ffcfd2c32e3656930b54"
+    },
+    {
+      "bytes": 71509,
+      "exists": true,
+      "label": "cp_missingbridgebench_v2_100case_source_selection_manifest_v2_2_all_sufficient_20260521.csv",
+      "path": "docs/research/cp_missingbridgebench_v2_100case_source_selection_manifest_v2_2_all_sufficient_20260521.csv",
+      "private_path_redacted": false,
+      "sha256": "986b93857a6a1306762afc410d3d5054ba8aac6bcf5cd5469103edb313e6dd10"
+    },
+    {
+      "bytes": 4225210,
+      "exists": true,
+      "label": "coach_response_review_labels_v2_100case_7design.jsonl",
+      "private_path_redacted": true,
+      "sha256": "dcace53045e688d2287a7a098f57cf731f49cbb952c120d5d6f22797844e245f"
+    },
+    {
+      "bytes": 2947524,
+      "exists": true,
+      "label": "cp_missingbridgebench_v2_100case_700response_review_packet_50case_format_by_case_coach_view_20260521_human_coach_reviewed.xlsx",
+      "private_path_redacted": true,
+      "sha256": "7a33afa35caf4aeb4fbe6e05e5fbb800ebe13b9a1ae46d9153f071baf4b1bf88"
+    },
+    {
+      "bytes": 105617,
+      "exists": true,
+      "label": "coach_response_review_workbook_dev_ablation.key.csv",
+      "private_path_redacted": true,
+      "sha256": "49bf5be466e6c192a66bd1149abe587ad5f43e6041418904c0d95d93ef06f0d1"
+    }
+  ],
+  "manifest_id": "cp_missingbridgebench_v2_evidence_freeze_20260522",
+  "outputs": [
+    {
+      "bytes": 13855,
+      "exists": true,
+      "label": "cp_missingbridgebench_v2_experiment_closeout_summary_20260522.json",
+      "path": "docs/research/cp_missingbridgebench_v2_experiment_closeout_summary_20260522.json",
+      "private_path_redacted": false,
+      "sha256": "886b216768add8c7b665c7749511b50690e012cf03ca0512b6355ceec94431ab"
+    },
+    {
+      "bytes": 5513,
+      "exists": true,
+      "label": "cp_missingbridgebench_v2_experiment_closeout_report_20260522.zh.md",
+      "path": "docs/research/cp_missingbridgebench_v2_experiment_closeout_report_20260522.zh.md",
+      "private_path_redacted": false,
+      "sha256": "79996abd65936d299f80d8e56e4fa83a9416370c5c83cf9d2a75fc6184e1a04f"
+    }
+  ],
+  "result_boundary": "v2 closeout evidence; does not recompute or modify dialogue-state v3 main results; does not modify online AIChat; does not establish learning outcomes."
+}

@@ -1,0 +1,7 @@
+{
+  "interpretation": "Targeted second-review focus selection; reliability support only, not final gold.",
+  "overlap_case_count": 30,
+  "passed": true,
+  "sampled_rows": 210,
+  "status": "selection_artifact_present"
+}

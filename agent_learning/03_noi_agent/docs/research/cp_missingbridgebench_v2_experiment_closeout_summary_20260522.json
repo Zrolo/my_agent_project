@@ -1,0 +1,477 @@
+{
+  "case_count": 100,
+  "case_metadata_summary": {
+    "context_sufficiency_counts": {
+      "sufficient": 100
+    },
+    "help_seeking_context_counts": {
+      "code_request": 3,
+      "conceptual_hint": 12,
+      "debugging": 42,
+      "implementation": 43
+    },
+    "reasoning_focus_counts": {
+      "aggregation_contribution_bridge": 8,
+      "boundary_order_bridge": 1,
+      "correctness_bridge": 2,
+      "data_structure_bridge": 13,
+      "debugging_bridge": 34,
+      "implementation_bridge": 39,
+      "policy_bridge": 2,
+      "state_representation_bridge": 1
+    },
+    "row_count": 100
+  },
+  "evidence_role": "v2 benchmark/evaluation closeout; not dialogue-state v3 main result",
+  "failure_mode_summary": {
+    "counts_by_design": {
+      "Bridge Contract + Guard": {
+        "burden:high": 2,
+        "burden:low": 63,
+        "burden:medium": 35,
+        "leakage:major_bridge_leakage": 6,
+        "leakage:minor_bridge_leakage": 7,
+        "leakage:no_leakage": 87,
+        "show:borderline": 18,
+        "show:no": 18,
+        "show:yes": 64
+      },
+      "Bridge Contract + Guard/Repair": {
+        "burden:high": 5,
+        "burden:low": 58,
+        "burden:medium": 37,
+        "leakage:major_bridge_leakage": 9,
+        "leakage:minor_bridge_leakage": 10,
+        "leakage:no_leakage": 81,
+        "show:borderline": 24,
+        "show:no": 17,
+        "show:yes": 59
+      },
+      "Bridge-guided DBox-style + Guard": {
+        "burden:high": 1,
+        "burden:low": 57,
+        "burden:medium": 42,
+        "leakage:major_bridge_leakage": 5,
+        "leakage:minor_bridge_leakage": 7,
+        "leakage:no_leakage": 88,
+        "show:borderline": 27,
+        "show:no": 15,
+        "show:yes": 58
+      },
+      "DBox-inspired": {
+        "burden:high": 2,
+        "burden:low": 66,
+        "burden:medium": 32,
+        "leakage:major_bridge_leakage": 4,
+        "leakage:minor_bridge_leakage": 15,
+        "leakage:no_leakage": 81,
+        "show:borderline": 15,
+        "show:no": 8,
+        "show:yes": 77
+      },
+      "DBox-inspired + Guard": {
+        "burden:high": 1,
+        "burden:low": 69,
+        "burden:medium": 30,
+        "leakage:major_bridge_leakage": 1,
+        "leakage:minor_bridge_leakage": 19,
+        "leakage:no_leakage": 80,
+        "show:borderline": 11,
+        "show:no": 3,
+        "show:yes": 86
+      },
+      "No-direct-solution help": {
+        "burden:high": 2,
+        "burden:low": 48,
+        "burden:medium": 50,
+        "leakage:answer_leakage": 2,
+        "leakage:major_bridge_leakage": 10,
+        "leakage:minor_bridge_leakage": 14,
+        "leakage:no_leakage": 74,
+        "show:borderline": 25,
+        "show:no": 22,
+        "show:yes": 53
+      },
+      "Prompt-only": {
+        "burden:high": 8,
+        "burden:low": 37,
+        "burden:medium": 55,
+        "leakage:answer_leakage": 3,
+        "leakage:major_bridge_leakage": 10,
+        "leakage:minor_bridge_leakage": 22,
+        "leakage:no_leakage": 65,
+        "show:borderline": 21,
+        "show:no": 11,
+        "show:yes": 68
+      }
+    },
+    "major_or_answer_aggregate_by_design": {
+      "Bridge Contract + Guard": {
+        "by_leakage": {
+          "major_bridge_leakage": 6
+        },
+        "by_overall_bucket": {
+          "low_1_2": 1,
+          "mid_3": 5
+        },
+        "by_show": {
+          "borderline": 5,
+          "no": 1
+        },
+        "total": 6
+      },
+      "Bridge Contract + Guard/Repair": {
+        "by_leakage": {
+          "major_bridge_leakage": 9
+        },
+        "by_overall_bucket": {
+          "low_1_2": 4,
+          "mid_3": 5
+        },
+        "by_show": {
+          "borderline": 5,
+          "no": 4
+        },
+        "total": 9
+      },
+      "Bridge-guided DBox-style + Guard": {
+        "by_leakage": {
+          "major_bridge_leakage": 5
+        },
+        "by_overall_bucket": {
+          "mid_3": 5
+        },
+        "by_show": {
+          "borderline": 5
+        },
+        "total": 5
+      },
+      "DBox-inspired": {
+        "by_leakage": {
+          "major_bridge_leakage": 4
+        },
+        "by_overall_bucket": {
+          "mid_3": 4
+        },
+        "by_show": {
+          "borderline": 4
+        },
+        "total": 4
+      },
+      "DBox-inspired + Guard": {
+        "by_leakage": {
+          "major_bridge_leakage": 1
+        },
+        "by_overall_bucket": {
+          "mid_3": 1
+        },
+        "by_show": {
+          "borderline": 1
+        },
+        "total": 1
+      },
+      "No-direct-solution help": {
+        "by_leakage": {
+          "answer_leakage": 2,
+          "major_bridge_leakage": 10
+        },
+        "by_overall_bucket": {
+          "low_1_2": 3,
+          "mid_3": 9
+        },
+        "by_show": {
+          "borderline": 9,
+          "no": 3
+        },
+        "total": 12
+      },
+      "Prompt-only": {
+        "by_leakage": {
+          "answer_leakage": 3,
+          "major_bridge_leakage": 10
+        },
+        "by_overall_bucket": {
+          "low_1_2": 4,
+          "mid_3": 9
+        },
+        "by_show": {
+          "borderline": 9,
+          "no": 4
+        },
+        "total": 13
+      }
+    },
+    "needs_discussion_by_design": {},
+    "notes_count_by_design": {
+      "Bridge Contract + Guard": 100,
+      "Bridge Contract + Guard/Repair": 100,
+      "Bridge-guided DBox-style + Guard": 100,
+      "DBox-inspired": 100,
+      "DBox-inspired + Guard": 100,
+      "No-direct-solution help": 100,
+      "Prompt-only": 100
+    }
+  },
+  "human_review_reliability": {
+    "authority_boundary": "Coach review is treated as expert review evidence, not final gold. Second review or adjudication, when linked, is a bounded reliability check.",
+    "completed_rows_missing_required_fields": 0,
+    "integrity_audit_summary": {
+      "case_count": 100,
+      "cases_missing_designs_total": 0,
+      "cases_with_duplicate_designs": 0,
+      "duplicate_response_id_count": 0,
+      "passed": true,
+      "row_count": 700,
+      "source": "computed_from_review_labels",
+      "unique_response_id_count": 700
+    },
+    "primary_review_rows": 700,
+    "primary_validation_passed": true,
+    "second_review_summary": {
+      "interpretation": "Targeted second-review focus selection; reliability support only, not final gold.",
+      "overlap_case_count": 30,
+      "passed": true,
+      "sampled_rows": 210,
+      "status": "selection_artifact_present"
+    }
+  },
+  "integrity_audit": {
+    "cases_missing_designs_total": 0,
+    "cases_with_duplicate_designs": 0,
+    "cases_with_wrong_row_count": 0,
+    "checks": {
+      "allowed_values_valid": true,
+      "case_count_matches_expected": true,
+      "each_case_has_all_designs": true,
+      "each_case_has_expected_rows": true,
+      "each_design_has_expected_rows": true,
+      "labels_rows_present": true,
+      "no_duplicate_case_design_pairs": true,
+      "no_duplicate_response_ids": true,
+      "no_missing_required_fields": true,
+      "no_unexpected_designs": true,
+      "numeric_scores_valid": true,
+      "payload_case_count_matches_labels": true,
+      "payload_row_count_matches_labels": true,
+      "row_count_matches_expected": true
+    },
+    "design_count_mismatches": {},
+    "duplicate_response_id_count": 0,
+    "expected": {
+      "case_count": 100,
+      "designs": [
+        "Prompt-only",
+        "No-direct-solution help",
+        "DBox-inspired",
+        "DBox-inspired + Guard",
+        "Bridge-guided DBox-style + Guard",
+        "Bridge Contract + Guard",
+        "Bridge Contract + Guard/Repair"
+      ],
+      "row_count": 700,
+      "rows_per_case": 7,
+      "rows_per_design": 100
+    },
+    "external_validation_summary": null,
+    "invalid_allowed_values": {},
+    "invalid_numeric_scores": {},
+    "missing_optional_score_fields": {
+      "bridge_oriented_micro_example": 280
+    },
+    "missing_required_fields": {},
+    "missing_score_fields": {},
+    "observed": {
+      "case_count": 100,
+      "design_counts_by_label": {
+        "Bridge Contract + Guard": 100,
+        "Bridge Contract + Guard/Repair": 100,
+        "Bridge-guided DBox-style + Guard": 100,
+        "DBox-inspired": 100,
+        "DBox-inspired + Guard": 100,
+        "No-direct-solution help": 100,
+        "Prompt-only": 100
+      },
+      "row_count": 700,
+      "unique_response_id_count": 700
+    },
+    "passed": true,
+    "source": "computed_from_review_labels",
+    "unexpected_design_count": 0
+  },
+  "main_results": {
+    "designs": [
+      {
+        "answer_leakage_count": 3,
+        "burden_low_medium_high": "37/55/8",
+        "design_id": "enhanced_prompt_only_clean",
+        "design_label": "Prompt-only",
+        "major_plus_answer_leakage_count": 13,
+        "n": 100,
+        "overall_quality_mean": 3.91,
+        "safe_ready_count": 44,
+        "scaffold_sufficiency_mean": 1.61,
+        "student_ready_count": 64
+      },
+      {
+        "answer_leakage_count": 2,
+        "burden_low_medium_high": "48/50/2",
+        "design_id": "codehelp_codeaid_clean",
+        "design_label": "No-direct-solution help",
+        "major_plus_answer_leakage_count": 12,
+        "n": 100,
+        "overall_quality_mean": 3.57,
+        "safe_ready_count": 37,
+        "scaffold_sufficiency_mean": 1.44,
+        "student_ready_count": 50
+      },
+      {
+        "answer_leakage_count": 0,
+        "burden_low_medium_high": "66/32/2",
+        "design_id": "dbox_inspired_clean",
+        "design_label": "DBox-inspired",
+        "major_plus_answer_leakage_count": 4,
+        "n": 100,
+        "overall_quality_mean": 4.08,
+        "safe_ready_count": 51,
+        "scaffold_sufficiency_mean": 1.72,
+        "student_ready_count": 64
+      },
+      {
+        "answer_leakage_count": 0,
+        "burden_low_medium_high": "69/30/1",
+        "design_id": "dbox_inspired_guard",
+        "design_label": "DBox-inspired + Guard",
+        "major_plus_answer_leakage_count": 1,
+        "n": 100,
+        "overall_quality_mean": 4.23,
+        "safe_ready_count": 54,
+        "scaffold_sufficiency_mean": 1.89,
+        "student_ready_count": 72
+      },
+      {
+        "answer_leakage_count": 0,
+        "burden_low_medium_high": "57/42/1",
+        "design_id": "bridge_guided_dbox_style_guard",
+        "design_label": "Bridge-guided DBox-style + Guard",
+        "major_plus_answer_leakage_count": 5,
+        "n": 100,
+        "overall_quality_mean": 3.7,
+        "safe_ready_count": 39,
+        "scaffold_sufficiency_mean": 1.55,
+        "student_ready_count": 45
+      },
+      {
+        "answer_leakage_count": 0,
+        "burden_low_medium_high": "63/35/2",
+        "design_id": "bridge_contract_compact_guard",
+        "design_label": "Bridge Contract + Guard",
+        "major_plus_answer_leakage_count": 6,
+        "n": 100,
+        "overall_quality_mean": 3.82,
+        "safe_ready_count": 51,
+        "scaffold_sufficiency_mean": 1.52,
+        "student_ready_count": 57
+      },
+      {
+        "answer_leakage_count": 0,
+        "burden_low_medium_high": "58/37/5",
+        "design_id": "bridge_contract_compact_guard_repair",
+        "design_label": "Bridge Contract + Guard/Repair",
+        "major_plus_answer_leakage_count": 9,
+        "n": 100,
+        "overall_quality_mean": 3.75,
+        "safe_ready_count": 45,
+        "scaffold_sufficiency_mean": 1.56,
+        "student_ready_count": 53
+      }
+    ]
+  },
+  "privacy_boundary": "Aggregate-only reporting. Public outputs must not include raw student text, full student code, complete AIChat responses, real identity fields, hash salts, or reversible mappings.",
+  "required_pairwise": [
+    {
+      "ci95": [
+        -0.63,
+        -0.19
+      ],
+      "comparison": "Bridge Contract + Guard - DBox-inspired + Guard",
+      "delta_overall": -0.41,
+      "left_design_id": "bridge_contract_compact_guard",
+      "paired_cases": 100,
+      "right_design_id": "dbox_inspired_guard",
+      "w_t_l": "18/45/37"
+    },
+    {
+      "ci95": [
+        -0.76,
+        -0.32
+      ],
+      "comparison": "Bridge-guided DBox-style + Guard - DBox-inspired + Guard",
+      "delta_overall": -0.53,
+      "left_design_id": "bridge_guided_dbox_style_guard",
+      "paired_cases": 100,
+      "right_design_id": "dbox_inspired_guard",
+      "w_t_l": "14/45/41"
+    },
+    {
+      "ci95": [
+        -0.74,
+        -0.24
+      ],
+      "comparison": "Bridge Contract + Guard/Repair - DBox-inspired + Guard",
+      "delta_overall": -0.48,
+      "left_design_id": "bridge_contract_compact_guard_repair",
+      "paired_cases": 100,
+      "right_design_id": "dbox_inspired_guard",
+      "w_t_l": "22/37/41"
+    },
+    {
+      "ci95": [
+        -0.36,
+        0.19
+      ],
+      "comparison": "Bridge Contract + Guard/Repair - Bridge Contract + Guard",
+      "delta_overall": -0.07,
+      "left_design_id": "bridge_contract_compact_guard_repair",
+      "paired_cases": 100,
+      "right_design_id": "bridge_contract_compact_guard",
+      "w_t_l": "24/45/31"
+    },
+    {
+      "ci95": [
+        -0.04,
+        0.35
+      ],
+      "comparison": "DBox-inspired + Guard - DBox-inspired",
+      "delta_overall": 0.15,
+      "left_design_id": "dbox_inspired_guard",
+      "paired_cases": 100,
+      "right_design_id": "dbox_inspired_clean",
+      "w_t_l": "30/47/23"
+    },
+    {
+      "ci95": [
+        -0.55,
+        -0.11
+      ],
+      "comparison": "Prompt-only - DBox-inspired + Guard",
+      "delta_overall": -0.32,
+      "left_design_id": "enhanced_prompt_only_clean",
+      "paired_cases": 100,
+      "right_design_id": "dbox_inspired_guard",
+      "w_t_l": "25/34/41"
+    },
+    {
+      "ci95": [
+        -0.9,
+        -0.42
+      ],
+      "comparison": "No-direct-solution help - DBox-inspired + Guard",
+      "delta_overall": -0.66,
+      "left_design_id": "codehelp_codeaid_clean",
+      "paired_cases": 100,
+      "right_design_id": "dbox_inspired_guard",
+      "w_t_l": "16/35/49"
+    }
+  ],
+  "row_count": 700
+}
