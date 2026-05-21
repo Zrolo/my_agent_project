@@ -1,0 +1,74 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{newtxtext}
+\usepackage{newtxmath}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{hyperref}
+
+\title{v0.29 Benchmark/Evaluation Reframe Audit}
+\author{}
+\date{2026-05-22}
+
+\begin{document}
+\maketitle
+
+\section{Purpose}
+
+This audit records the v0.29 manuscript reframe after completion of the CP-MissingBridgeBench v2 100-case / 700-response closeout. The purpose of v0.29 is to shift the paper from a method-win narrative to a benchmark/evaluation narrative. The revised manuscript treats CP-MissingBridgeBench as a framework for detecting premature reasoning-step disclosure and for revealing tutoring-design trade-offs.
+
+\section{Files Produced}
+
+\begin{itemize}
+  \item Main LaTeX manuscript draft: v0.29 benchmark/evaluation reframe.
+  \item Compiled PDF preview for the v0.29 manuscript.
+  \item v0.29 keep-only reference file copied from v0.28.
+  \item This v0.29 audit file.
+\end{itemize}
+
+\section{Main Changes}
+
+\begin{itemize}
+  \item Rewrote the abstract to include the expanded 100-case / 700-response closeout and to state that the main conclusion is a benchmark/evaluation finding, not a Bridge Contract method win.
+  \item Added the expanded v2 closeout as a separate evidence layer in the evidence hierarchy.
+  \item Added a Results subsection reporting v2 aggregate design results and paired comparisons.
+  \item Updated the real-log boundary to state that v2 is an offline, aggregate-only, real-log-grounded benchmark/evaluation layer.
+  \item Rewrote Discussion and Conclusion so that DBox-inspired + Guard is reported as the strongest 100-case design, while Bridge Contract / Repair variants are treated as design-boundary evidence.
+  \item Preserved the original 31-case / 217-response dialogue-state v3 result as a bounded local pattern rather than the final method claim.
+\end{itemize}
+
+\section{Evidence Boundary}
+
+\begin{itemize}
+  \item Dialogue-state v3 main experiment changed: No.
+  \item Dialogue-state v3 main tables recomputed: No.
+  \item New main condition added: No.
+  \item Online AIChat, prompt, active mode, or student-visible response changed: No.
+  \item Real-AIChat / v2 results merged into dialogue-state v3 primary tables: No.
+  \item Bridge Contract / Repair written as a confirmed design advantage: No.
+  \item DBox-inspired + Guard reported as strongest v2 design: Yes.
+  \item Student raw text, full code, full AIChat response, identity fields, hash salt, or reversible mappings exposed: No.
+\end{itemize}
+
+\section{Verification}
+
+\begin{itemize}
+  \item LaTeX compile command: \texttt{latexmk} was run in PDF mode with nonstop interaction and halt-on-error enabled against the v0.29 manuscript source.
+  \item Compile status: passed; PDF generated.
+  \item Internal-variable grep checked for previously used implementation-facing terminology markers.
+  \item Unsafe-claim grep checked for sample-unit, deployment, comparator, learning-outcome, and direct method-win wording.
+\end{itemize}
+
+\section{Remaining Manual Checks}
+
+\begin{itemize}
+  \item Human review of whether v2 should be placed as main Results, appendix Results, or a separate companion paper.
+  \item Final visual inspection of Tables A1--A2 and v2 closeout tables in the generated PDF.
+  \item Word export or journal-template conversion; the local environment does not provide \texttt{pandoc}, so a reliable TeX-to-DOCX export still needs a separate conversion path.
+  \item Final reference/BibTeX verification and venue-specific formatting.
+  \item Final ethics/privacy/data-availability review before sharing any real-log-derived materials.
+\end{itemize}
+
+\end{document}
