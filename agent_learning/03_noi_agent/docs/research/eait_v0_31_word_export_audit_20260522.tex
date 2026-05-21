@@ -1,0 +1,70 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{newtxtext}
+\usepackage{newtxmath}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\title{v0.31 Word Export Audit}
+\author{}
+\date{2026-05-22}
+
+\begin{document}
+\maketitle
+
+\section*{Purpose}
+
+This audit records the Word-preview export for the v0.31 manuscript:
+\begin{quote}
+\texttt{v0\_31\_layout\_check\_cleanup.docx}
+\end{quote}
+The export is a submission-package preview derived from the v0.31 \LaTeX{} manuscript and bibliography output. It does not change the dialogue-state v3 main experiment, does not recompute any result table, does not add a main condition, does not modify online AIChat, and does not add new Real-AIChat results.
+
+\section*{Export Method}
+
+The DOCX was generated from:
+\begin{itemize}
+\item v0.31 manuscript \LaTeX{} source
+\item v0.31 manuscript \texttt{.bbl} bibliography output
+\end{itemize}
+The export replaces raw citation keys with author-year labels, includes a References section, and converts the manuscript tables into Word tables for reviewer-facing inspection. The \LaTeX{} file remains the source of record for final PDF compilation.
+
+\section*{Structural Checks}
+
+\begin{tabular}{ll}
+\toprule
+check & result \\
+\midrule
+DOCX paragraphs & 198 \\
+DOCX tables & 12 \\
+References heading present & yes \\
+Raw citation keys in extracted DOCX text & 0 \\
+Restricted/private markers in extracted DOCX text & 0 \\
+Unsafe claim-gate phrases in extracted DOCX text & 0 \\
+Quick Look first-page thumbnail generated & yes \\
+\bottomrule
+\end{tabular}
+
+\section*{Rendering Limitation}
+
+The standard DOCX render workflow could not complete because LibreOffice/\texttt{soffice} is not installed in the current environment. The attempted renderer failed with:
+\begin{quote}
+\texttt{FileNotFoundError: [Errno 2] No such file or directory: 'soffice'}
+\end{quote}
+As a fallback, macOS Quick Look successfully produced a first-page thumbnail, and text-level/structure-level checks were completed. Full Word/PDF visual inspection remains a human submission-package TODO, especially for the wide Appendix A tables.
+
+\section*{Manual TODO Before Submission}
+
+\begin{itemize}
+\item Open the DOCX in Word or LibreOffice and visually inspect page breaks, heading spacing, table widths, and Appendix A readability.
+\item Confirm whether the journal requires DOCX as the source file or whether the \LaTeX{} source/PDF is sufficient.
+\item Fill author metadata, affiliation, corresponding author, declarations, and any journal-specific title-page fields.
+\item Complete final reference/BibTeX verification and institutional ethics/privacy/data-availability review.
+\end{itemize}
+
+\section*{Evidence Boundary}
+
+This export only affects manuscript packaging. It does not alter the original 50-case dialogue-state evidence package, the 31-case primary scaffold subset, the expanded v2 100-case closeout numbers, the 7 offline tutoring designs, or any online AIChat behavior.
+
+\end{document}
