@@ -1,0 +1,137 @@
+\begin{thebibliography}{11}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Atasoy and Arani(2025)]{atasoy2025chatgptEvaluator}
+Arzu Atasoy and Saieed Moslemi~Nezhad Arani.
+\newblock {ChatGPT}: A reliable assistant for the evaluation of students'
+  written texts?
+\newblock \emph{Education and Information Technologies}, 30\penalty0
+  (14):\penalty0 20385--20415, 2025.
+\newblock \doi{10.1007/s10639-025-13553-1}.
+\newblock URL \url{https://doi.org/10.1007/s10639-025-13553-1}.
+\newblock DOI: 10.1007/s10639-025-13553-1; URL:
+  \url{https://doi.org/10.1007/s10639-025-13553-1}.
+
+\bibitem[Chrysafiadi et~al.(2023)Chrysafiadi, Virvou, Tsihrintzis, and
+  Hatzilygeroudis]{chrysafiadi2023fuzzyITS}
+Konstantina Chrysafiadi, Maria Virvou, George~A. Tsihrintzis, and Ioannis
+  Hatzilygeroudis.
+\newblock Evaluating the user's experience, adaptivity and learning outcomes of
+  a fuzzy-based intelligent tutoring system for computer programming for
+  academic students in {Greece}.
+\newblock \emph{Education and Information Technologies}, 28\penalty0
+  (6):\penalty0 6453--6483, 2023.
+\newblock \doi{10.1007/s10639-022-11444-3}.
+\newblock URL \url{https://doi.org/10.1007/s10639-022-11444-3}.
+\newblock DOI: 10.1007/s10639-022-11444-3; URL:
+  \url{https://doi.org/10.1007/s10639-022-11444-3}.
+
+\bibitem[Gong et~al.(2025)Gong, Li, and Qiao]{gong2025genAIDFProgramming}
+Xin Gong, Zhixia Li, and Ailing Qiao.
+\newblock Impact of generative {AI} dialogic feedback on different stages of
+  programming problem solving.
+\newblock \emph{Education and Information Technologies}, 30\penalty0
+  (7):\penalty0 9689--9709, 2025.
+\newblock \doi{10.1007/s10639-024-13173-1}.
+\newblock URL \url{https://doi.org/10.1007/s10639-024-13173-1}.
+\newblock DOI: 10.1007/s10639-024-13173-1; URL:
+  \url{https://doi.org/10.1007/s10639-024-13173-1}.
+
+\bibitem[Gonz{\'a}lez-Mujico(2024)]{gonzalezMujico2024rubricFrameworks}
+Flor de~Lis Gonz{\'a}lez-Mujico.
+\newblock Measuring student and educator digital competence beyond
+  self-assessment: Developing and validating two rubric-based frameworks.
+\newblock \emph{Education and Information Technologies}, 29\penalty0
+  (11):\penalty0 13299--13324, 2024.
+\newblock \doi{10.1007/s10639-023-12363-7}.
+\newblock URL \url{https://doi.org/10.1007/s10639-023-12363-7}.
+\newblock DOI: 10.1007/s10639-023-12363-7; URL:
+  \url{https://doi.org/10.1007/s10639-023-12363-7}.
+
+\bibitem[G{\"u}ner and Er(2025)]{guner2025chatgptProgramming}
+Hacer G{\"u}ner and Erkan Er.
+\newblock {AI} in the classroom: Exploring students' interaction with {ChatGPT}
+  in programming learning.
+\newblock \emph{Education and Information Technologies}, 30\penalty0
+  (9):\penalty0 12681--12707, 2025.
+\newblock \doi{10.1007/s10639-025-13337-7}.
+\newblock URL \url{https://doi.org/10.1007/s10639-025-13337-7}.
+\newblock DOI: 10.1007/s10639-025-13337-7; URL:
+  \url{https://doi.org/10.1007/s10639-025-13337-7}.
+
+\bibitem[Guo and Wang(2024)]{guo2024chatgptTeacherFeedback}
+Kai Guo and Deliang Wang.
+\newblock To resist it or to embrace it? examining {ChatGPT}'s potential to
+  support teacher feedback in {EFL} writing.
+\newblock \emph{Education and Information Technologies}, 29\penalty0
+  (7):\penalty0 8435--8463, 2024.
+\newblock \doi{10.1007/s10639-023-12146-0}.
+\newblock URL \url{https://doi.org/10.1007/s10639-023-12146-0}.
+\newblock DOI: 10.1007/s10639-023-12146-0; URL:
+  \url{https://doi.org/10.1007/s10639-023-12146-0}.
+
+\bibitem[Li et~al.(2025)Li, Shan, Rakovi{\'c}, Guan, Ga{\v{s}}evi{\'c}, and
+  Chen]{li2025aiExplainsGrading}
+Yuheng Li, Zirui Shan, Mladen Rakovi{\'c}, Quanlong Guan, Dragan
+  Ga{\v{s}}evi{\'c}, and Guanliang Chen.
+\newblock When {AI} explains in natural language: Unveiling the impact of
+  generative {AI} explanations on educators' grading and feedback practices.
+\newblock \emph{Education and Information Technologies}, 30\penalty0
+  (17):\penalty0 24931--24964, 2025.
+\newblock \doi{10.1007/s10639-025-13741-z}.
+\newblock URL \url{https://doi.org/10.1007/s10639-025-13741-z}.
+\newblock DOI: 10.1007/s10639-025-13741-z; URL:
+  \url{https://doi.org/10.1007/s10639-025-13741-z}.
+
+\bibitem[Ma et~al.(2025)Ma, Wang, Zhang, Ma, and Wang]{ma2025dbox}
+Shuai Ma, Junling Wang, Yuanhao Zhang, Xiaojuan Ma, and April~Yi Wang.
+\newblock {DBox}: Scaffolding algorithmic programming learning through
+  learner-{LLM} co-decomposition.
+\newblock In \emph{Proceedings of the 2025 CHI Conference on Human Factors in
+  Computing Systems}, pages 1--20, 2025.
+\newblock \doi{10.1145/3706598.3713748}.
+\newblock URL \url{https://doi.org/10.1145/3706598.3713748}.
+\newblock DOI: 10.1145/3706598.3713748; URL:
+  \url{https://doi.org/10.1145/3706598.3713748}.
+
+\bibitem[Maurya et~al.(2025)Maurya, Srivatsa, Petukhova, and
+  Kochmar]{maurya2025mrbench}
+Kaushal~Kumar Maurya, Kv~Aditya Srivatsa, Kseniia Petukhova, and Ekaterina
+  Kochmar.
+\newblock Unifying {AI} tutor evaluation: An evaluation taxonomy for
+  pedagogical ability assessment of {LLM}-powered {AI} tutors.
+\newblock In \emph{Proceedings of the 2025 Conference of the Nations of the
+  Americas Chapter of the Association for Computational Linguistics: Human
+  Language Technologies (Volume 1: Long Papers)}, pages 1234--1251, 2025.
+\newblock \doi{10.18653/v1/2025.naacl-long.57}.
+\newblock URL \url{https://aclanthology.org/2025.naacl-long.57/}.
+\newblock DOI: 10.18653/v1/2025.naacl-long.57; URL:
+  \url{https://aclanthology.org/2025.naacl-long.57/}.
+
+\bibitem[Wang et~al.(2023)Wang, Tlili, Huang, Cai, Li, Cheng, Yang, Li, Zhu,
+  and Fei]{wang2023realContextITS}
+Huanhuan Wang, Ahmed Tlili, Ronghuai Huang, Zhenyu Cai, Min Li, Zui Cheng, Dong
+  Yang, Mengti Li, Xixian Zhu, and Cheng Fei.
+\newblock Examining the applications of intelligent tutoring systems in real
+  educational contexts: A systematic literature review from the social
+  experiment perspective.
+\newblock \emph{Education and Information Technologies}, 28\penalty0
+  (7):\penalty0 9113--9148, 2023.
+\newblock \doi{10.1007/s10639-022-11555-x}.
+\newblock URL \url{https://doi.org/10.1007/s10639-022-11555-x}.
+\newblock DOI: 10.1007/s10639-022-11555-x; URL:
+  \url{https://doi.org/10.1007/s10639-022-11555-x}.
+
+\bibitem[Zhao et~al.(2026)Zhao, Kne{\v{z}}evi{\'c}, and
+  K{\"a}ser]{zhao2026answerLeakage}
+Jin Zhao, Marta Kne{\v{z}}evi{\'c}, and Tanja K{\"a}ser.
+\newblock Evaluating answer leakage robustness of {LLM} tutors against
+  adversarial student attacks, 2026.
+\newblock URL \url{https://arxiv.org/abs/2604.18660}.
+\newblock Preprint, arXiv:2604.18660, \url{https://arxiv.org/abs/2604.18660}.
+
+\end{thebibliography}

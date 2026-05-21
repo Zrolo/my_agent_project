@@ -1,0 +1,72 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{newtxtext}
+\usepackage{newtxmath}
+\usepackage{hyperref}
+\sloppy
+
+\title{v0.30 V2 Integration Cleanup Audit}
+\author{}
+\date{2026-05-22}
+
+\begin{document}
+\maketitle
+
+\section{Purpose}
+
+This audit records the v0.30 cleanup pass after the v0.29 benchmark/evaluation reframe. The goal was to make the 100-case / 700-response v2 closeout read as an integrated benchmark layer rather than as a late manuscript patch.
+
+\section{Files Produced}
+
+\begin{itemize}
+  \item Main LaTeX manuscript draft: v0.30 v2 integration cleanup.
+  \item Compiled PDF preview for the v0.30 manuscript.
+  \item v0.30 keep-only reference file copied from v0.29.
+  \item This v0.30 audit file and PDF preview.
+\end{itemize}
+
+\section{Main Changes}
+
+\begin{itemize}
+  \item Streamlined the abstract so that v2 is framed as a separate expanded closeout using the same offline tutoring designs.
+  \item Rewrote the contribution paragraph from a protocol-contribution framing into four benchmark/evaluation contributions.
+  \item Removed a duplicate evidence-hierarchy row so the v2 closeout appears once with a clear real-log-grounded aggregate boundary.
+  \item Condensed the real-log-grounded v2 boundary section and removed repeated comparator wording.
+  \item Shortened the discussion of real-student AIChat evidence so that it supports benchmark scalability without implying online deployment or learning-outcome evidence.
+  \item Replaced the remaining ``reasoning-bridge families'' phrasing with a reader-facing limitation about learner-reasoning situations.
+\end{itemize}
+
+\section{Evidence Boundary}
+
+\begin{itemize}
+  \item Dialogue-state v3 main experiment changed: No.
+  \item Dialogue-state v3 main tables recomputed: No.
+  \item Main experiment condition added: No.
+  \item Online AIChat, prompt, active mode, or student-visible response changed: No.
+  \item New v2 experimental result generated: No.
+  \item V2 results merged into dialogue-state v3 primary tables: No.
+  \item Bridge Contract / Repair written as a confirmed design advantage: No.
+  \item DBox-inspired + Guard retained as the strongest v2 aggregate design: Yes.
+  \item Student raw text, full code, full AIChat response, identity fields, hash salt, or reversible mappings exposed: No.
+\end{itemize}
+
+\section{Verification}
+
+\begin{itemize}
+  \item LaTeX compile status: passed for the v0.30 manuscript and this audit.
+  \item Safety grep status: no unsafe sample-unit, deployment, comparator, learning-outcome, internal-variable, or unresolved-audit markers found in the v0.30 manuscript/audit pair.
+  \item Privacy grep status: no private-source, raw-text, full-code, full-response, hash-salt, reversible-mapping, or private-path markers found in the v0.30 manuscript/audit pair.
+\end{itemize}
+
+\section{Remaining Manual Checks}
+
+\begin{itemize}
+  \item Decide whether the v2 closeout should remain in the main Results section or move to an appendix / companion evidence section.
+  \item Complete a visual PDF check of the v2 result tables and Appendix A.
+  \item Produce a reliable Word version after journal-template conversion.
+  \item Complete final reference, ethics/privacy, and data-availability review.
+\end{itemize}
+
+\end{document}
