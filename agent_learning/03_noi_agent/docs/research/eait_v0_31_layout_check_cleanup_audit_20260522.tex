@@ -1,0 +1,68 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{newtxtext}
+\usepackage{newtxmath}
+\usepackage{hyperref}
+\sloppy
+
+\title{v0.31 Layout Check Cleanup Audit}
+\author{}
+\date{2026-05-22}
+
+\begin{document}
+\maketitle
+
+\section{Purpose}
+
+This audit records a layout-focused cleanup pass on top of v0.30. The goal was to improve the visual readability of the expanded v2 result tables and Appendix A without changing any experimental result, evidence class, or claim boundary.
+
+\section{Files Produced}
+
+\begin{itemize}
+  \item Main LaTeX manuscript draft: v0.31 layout check cleanup.
+  \item Compiled PDF preview for the v0.31 manuscript.
+  \item v0.31 keep-only reference file copied from v0.30.
+  \item This v0.31 audit file and PDF preview.
+\end{itemize}
+
+\section{Main Changes}
+
+\begin{itemize}
+  \item Increased the page-space guard before the expanded v2 paired-comparison table so the table starts on a clean page instead of splitting at the page bottom.
+  \item Kept Appendix A's two cleaned transparency tables in one landscape environment so the second table can begin after the first table instead of being forced onto a mostly blank new page.
+  \item Rendered selected PDF pages for visual inspection, including the expanded v2 result-table pages and Appendix A landscape pages.
+\end{itemize}
+
+\section{Evidence Boundary}
+
+\begin{itemize}
+  \item Dialogue-state v3 main experiment changed: No.
+  \item Dialogue-state v3 main tables recomputed: No.
+  \item Main experiment condition added: No.
+  \item Online AIChat, prompt, active mode, or student-visible response changed: No.
+  \item New v2 experimental result generated: No.
+  \item Any result number changed: No.
+  \item Real-student case-level private material exposed: No.
+\end{itemize}
+
+\section{Verification}
+
+\begin{itemize}
+  \item LaTeX compile status: passed for the v0.31 manuscript.
+  \item LaTeX log check: no overfull boxes, unresolved references, or undefined citations detected in the final v0.31 manuscript log.
+  \item Safety grep status: no unsafe sample-unit, deployment, comparator, learning-outcome, internal-variable, or unresolved-audit markers found in the v0.31 manuscript/audit pair.
+  \item Privacy grep status: no private-source, raw-text, full-code, full-response, hash-salt, reversible-mapping, or private-path markers found in the v0.31 manuscript/audit pair.
+\end{itemize}
+
+\section{Remaining Manual Checks}
+
+\begin{itemize}
+  \item Human visual check of the full PDF, especially all tables in Methods, Results, and Appendix A.
+  \item Decide whether the expanded v2 closeout should remain in the main Results section or move to an appendix / companion evidence section.
+  \item Produce a reliable Word version after journal-template conversion.
+  \item Complete final reference, ethics/privacy, and data-availability review.
+\end{itemize}
+
+\end{document}
