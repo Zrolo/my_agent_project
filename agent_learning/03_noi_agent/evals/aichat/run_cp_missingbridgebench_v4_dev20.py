@@ -113,21 +113,9 @@ TITLE_ONLY_SCAFFOLD_TEMPLATES = [
     "请说明你当前实现里一次操作前后，哪些量应该改变、哪些量应该不变。先写这一句话，不要急着改代码。",
 ]
 
-TITLE_ONLY_FORBIDDEN_TERMS = [
-    "比如",
-    "例如",
-    "插入",
-    "查询",
-    "合并",
-    "距离",
-    "点集",
-    "节点",
-    "字段",
-    "cnt",
-    "end",
-    "dp[",
-    "Trie",
-    "线段树",
+UNSUPPORTED_SPECIFICITY_EXAMPLES = [
+    "输入没有给出的具体样例、数值、坐标、对象数量、变量名、字段名、状态维度、数据结构名、操作名或证明骨架",
+    "模型不能因为题名猜出特定算法、特定数据结构、特定状态形状、特定操作语义或特定证明关系",
 ]
 
 
@@ -141,7 +129,8 @@ def compact_case_packet(row: dict[str, str]) -> dict[str, Any]:
         "current_student_state_summary": row.get("current_learner_state_summary_zh", ""),
         "public_context_level": infer_public_context_level(row),
         "title_only_scaffold_templates": TITLE_ONLY_SCAFFOLD_TEMPLATES,
-        "title_only_forbidden_terms": TITLE_ONLY_FORBIDDEN_TERMS,
+        "unsupported_specificity_examples": UNSUPPORTED_SPECIFICITY_EXAMPLES,
+        "title_only_response_mode": "exact_template",
         "freeze_reference": {
             "rough_bridge_family": row.get("dev_rough_bridge_family", ""),
             "surface_anchor": row.get("dev_surface_anchor", ""),
@@ -240,12 +229,17 @@ Rules:
 - In title_only context, tutor-visible fields should avoid nouns copied from the
   problem title unless they are necessary to refer to the task. Prefer "这题",
   "当前实现", "当前状态/变量", "已有样例", and "当前代码".
-- In title_only context, do not use "比如", "例如", parentheses examples,
-  invented variable names, stored-field names, object counts, operation names,
-  or problem-specific nouns in tutor-visible fields.
-- In title_only context, tutor-visible fields must not contain any item from
-  title_only_forbidden_terms unless the same term is explicitly present in the
-  public input packet.
+- In title_only context, apply the unsupported-specificity rule: tutor-visible
+  fields must not introduce any concrete concept, object, operation, variable,
+  state shape, data structure, numeric example, or proof step that is not
+  supported by the public input packet.
+- The example list only illustrates the rule. Do not treat it as a closed
+  keyword blacklist: an unsupported detail can be unsafe even if it uses
+  different wording, and a listed concept can be safe if it is explicitly
+  present in the public input packet.
+- If title_only_response_mode=exact_template, tell the Tutor to copy exactly one
+  learner-owned template. The Tutor may add only one neutral opener such as
+  "先别急着改代码。" It may not paraphrase the template into task-specific wording.
 """
 
 TUTOR_SYSTEM = """You are a Chinese competitive-programming tutor for
@@ -279,9 +273,9 @@ Rules:
 8. For state-representation cases, do not suggest exact dimensions such as
    dp[i][j], do not assign meanings to dimensions, and do not list candidate
    state definitions unless those exact definitions are already in the input.
-9. For data-structure cases, do not name a specific structure such as Trie,
-   segment tree, heap, map, or queue unless it appears in the supplied packet or
-   is already named by the student/problem summary.
+9. For data-structure cases, do not name a specific structure or stored-field
+   choice unless it appears in the supplied packet or is already named by the
+   student/problem summary.
 10. For correctness, invariant, or geometry-style cases, do not fabricate
     coordinates, counterexamples, arrays, or proof skeletons. Ask the student to
     choose or report their own minimal case instead.
@@ -293,25 +287,23 @@ Rules:
     seed, treat all problem-specific facts beyond the title as unavailable. Use
     wording such as "用你当前代码里的变量" or "选择你已有的最小样例", not new invented
     facts.
-13. When public_context_level=title_only, do not use "例如" to introduce
-    problem-specific objects, counts, coordinates, strings, arrays,
-    data-structure names, or state shapes. If an example is needed, phrase it as
-    "用你已有的一个小样例" without specifying what the sample contains.
-14. In public_context_level=title_only context, choose one action from
+13. In public_context_level=title_only context, choose one action from
     title_only_scaffold_templates and write one short response around it. Do not
     add a second problem-specific mini-example.
-15. In title_only context, avoid problem-title nouns if a generic phrase works.
+14. In title_only context, avoid problem-title nouns if a generic phrase works.
     Prefer "这题", "当前实现", "当前状态/变量", "已有样例", and "当前代码".
-16. In title_only context, the student-facing response should be at most two
-    short sentences. It may add a brief opener such as "先别急着改代码", but the
-    main action should stay close to one template. Do not use "比如", "例如", or
-    parenthetical examples.
-17. In title_only context, do not mention operation-specific words such as
-    insert, query, merge, distance, point set, roster, node, field, counter,
-    array names, or state dimensions unless they are present in the packet.
-18. In title_only context, do not use any item from title_only_forbidden_terms.
-    For data-structure cases, use "一次操作" instead of insert/query/update-specific
-    wording.
+15. In title_only context with title_only_response_mode=exact_template, the
+    student-facing response must be exactly one template from
+    title_only_scaffold_templates, optionally preceded by one neutral opener such
+    as "先别急着改代码。" Do not paraphrase the template into task-specific wording.
+16. In title_only context, do not rely on a forbidden-word list. Before writing,
+    ask: "Am I introducing any concrete information that the input did not give
+    me?" If yes, remove it or turn it into a request for the student to provide
+    that information.
+17. In title_only context, generic phrases such as "一次操作", "一个变量",
+    "已有样例", and "一步变化" are acceptable because they do not add unsupported
+    problem content, but do not specialize them into subtypes unless the input
+    supports it.
 """
 
 GUARD_SYSTEM = """You are the CP-MissingBridgeBench v4.1 Leakage Guard.
@@ -349,15 +341,20 @@ Additional rules:
   problem-specific illustration should usually trigger needs_repair=yes, even if
   it is phrased as an example.
 - In title_only context, introducing problem-title-derived concrete nouns,
-  numeric counts, candidate dimensions, or operation-specific examples should be
-  treated as unsupported specificity unless those details are present in the
-  packet.
-- In title_only context, the words "比如", "例如", parenthetical examples,
-  invented variable names, stored-field names, operation-specific nouns, or more
-  than one action request should normally trigger needs_repair=yes.
-- In title_only context, if the candidate response contains any item from
-  title_only_forbidden_terms, set needs_repair=yes and include that phrase in
-  repair_target_sentences.
+  numeric counts, candidate dimensions, operation-specific examples, or
+  task-specific relations should be treated as unsupported specificity unless
+  those details are present in the public input packet.
+- In title_only context, do not judge by keyword matching. Set needs_repair=yes
+  when the response introduces unsupported concrete content: a new object,
+  operation, algorithm/data-structure name, variable/field name, numeric example,
+  state shape, proof step, or task-specific relation not present in the public
+  input packet.
+- The example list is only diagnostic help. A response can be unsafe even if it
+  avoids every listed example, and safe if the concrete concept is explicitly
+  present in the public input packet.
+- In title_only context with title_only_response_mode=exact_template, set
+  needs_repair=yes if the response is not an exact template plus optional neutral
+  opener.
 """
 
 REPAIR_SYSTEM = """You are the CP-MissingBridgeBench v4.1 Targeted Repair.
@@ -389,11 +386,16 @@ illustrative examples and replace them with "你已有的最小样例", "你当�
 or "你自己提出的一句话定义".
 In title_only context, if the candidate response contains several action
 requests, keep only one learner-owned action template and remove the rest.
-In title_only context, remove "比如", "例如", parenthetical examples, invented
-variable/field names, and operation-specific nouns. The repaired response should
-be no longer than two short sentences.
-In title_only context, remove every item from title_only_forbidden_terms; replace
-operation-specific wording with "一次操作" or "一步操作".
+In title_only context, remove unsupported concrete content, not merely listed
+words. Replace unsupported objects, operations, variables, state shapes,
+data-structure names, numeric examples, or proof steps with learner-owned
+requests such as "你已有的最小样例", "你当前代码中的一个变量", "你自己提出的一句话定义", or
+"一步操作前后".
+In title_only context with title_only_response_mode=exact_template, the repaired
+response should be exactly one template from title_only_scaffold_templates,
+optionally preceded by one neutral opener.
+The repaired response should be no longer than two short sentences and should
+keep only one learner-owned next action.
 """
 
 
@@ -468,7 +470,8 @@ def run_case(row: dict[str, str], *, provider_id: str, max_retries: int) -> dict
                 "current_student_state_summary",
                 "public_context_level",
                 "title_only_scaffold_templates",
-                "title_only_forbidden_terms",
+                "unsupported_specificity_examples",
+                "title_only_response_mode",
             ]
         },
         "bridge_boundary": {
@@ -502,7 +505,8 @@ def run_case(row: dict[str, str], *, provider_id: str, max_retries: int) -> dict
             "current_student_state_summary": packet["current_student_state_summary"],
             "public_context_level": packet["public_context_level"],
             "title_only_scaffold_templates": packet["title_only_scaffold_templates"],
-            "title_only_forbidden_terms": packet["title_only_forbidden_terms"],
+            "unsupported_specificity_examples": packet["unsupported_specificity_examples"],
+            "title_only_response_mode": packet["title_only_response_mode"],
         },
         "bridge_boundary": {
             "private_bridge_target": judge.get("private_bridge_target", ""),
@@ -538,7 +542,8 @@ def run_case(row: dict[str, str], *, provider_id: str, max_retries: int) -> dict
             "guard_result": guard,
             "public_context_level": packet["public_context_level"],
             "title_only_scaffold_templates": packet["title_only_scaffold_templates"],
-            "title_only_forbidden_terms": packet["title_only_forbidden_terms"],
+            "unsupported_specificity_examples": packet["unsupported_specificity_examples"],
+            "title_only_response_mode": packet["title_only_response_mode"],
         }
         repair, retry, latency = json_call(
             system_prompt=REPAIR_SYSTEM,
@@ -692,7 +697,7 @@ def main(argv: list[str] | None = None) -> int:
             "dev_manifest": str(args.dev_manifest),
             "freeze_csv": str(args.freeze_csv),
             "output_jsonl": str(output_jsonl),
-            "prompt_draft": "docs/research/cp_missingbridgebench_v4_prompt_freeze_draft_v0_8_20260522.md",
+            "prompt_draft": "docs/research/cp_missingbridgebench_v4_prompt_freeze_draft_v1_0_20260522.md",
         }
     )
     summary_json.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
